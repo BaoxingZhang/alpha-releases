@@ -1,0 +1,34 @@
+{
+  "verified_at": "2026-10-31T17:51:53.197711+00:00",
+  "recovered_source_files_unchanged": 169,
+  "native_sha256_and_modes": {
+    "vendor/runtime": 43,
+    "build/runtime-bundle": 43
+  },
+  "security_host_macos_codesign_valid": true,
+  "original_native_source_recompiled": false,
+  "native_internal_guard": "See local-run.json; macOS signature does not establish internal runtime guard acceptance",
+  "protocol_module": {
+    "top_level_bindings": 900,
+    "client_request_variants": 128,
+    "server_response_variants": 129,
+    "tests_passed": 12,
+    "note": "Independent recovered codec/framing; not a backend implementation; test command npm run test:protocol"
+  },
+  "candidate_backend": {
+    "source": "vendor/chatlog",
+    "commit": "a7162bca9454fa43b5950a2414670983fe180e56",
+    "build_report": "docs/chatlog-build-results.json",
+    "status": "compiled",
+    "integrated_into_alpha": false,
+    "executed": false
+  },
+  "backend_mapping": {
+    "covered_requests": 128,
+    "directly_compatible": 0,
+    "reading_foundation": 6,
+    "compose_or_new": 30,
+    "missing": 92,
+    "report": "docs/backend-compatibility-map.json"
+  }
+}

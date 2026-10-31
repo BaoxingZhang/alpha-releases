@@ -1,0 +1,7 @@
+{
+  "version": "go1.24.13",
+  "url": "https://go.dev/dl/go1.24.13.darwin-arm64.tar.gz",
+  "sha256": "f282d882c3353485e2fc6c634606d85caf36e855167d59b996dbeae19fa7629a",
+  "bytes": 76442495,
+  "source": "https://go.dev/dl/?mode=json&include=all"
+}

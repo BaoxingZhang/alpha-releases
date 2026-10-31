@@ -1,0 +1,90 @@
+{
+  "startedAt": "2026-10-31T18:03:54.940Z",
+  "status": "passed",
+  "source": {
+    "repository": "https://github.com/imldy/chatlog",
+    "commit": "a7162bca9454fa43b5950a2414670983fe180e56",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/chatlog",
+    "goModSha256Before": "3d0bd822ae4bf853a83bc56910bf2760a3d263a88cefc12d14ceaba7c90e2768",
+    "goSumSha256Before": "1a9818eefb1024030f8a3212707a885dc23b433d29b5808c56355bc1ba030981",
+    "goModSha256After": "3d0bd822ae4bf853a83bc56910bf2760a3d263a88cefc12d14ceaba7c90e2768",
+    "goSumSha256After": "1a9818eefb1024030f8a3212707a885dc23b433d29b5808c56355bc1ba030981"
+  },
+  "target": "darwin/arm64",
+  "candidateExecuted": false,
+  "systemSecurityChanged": false,
+  "scope": "Compile fixed candidate source only; not an Alpha backend replacement or real-data validation.",
+  "checks": {
+    "compilation": true,
+    "machoArm64": true,
+    "sourceUnchanged": true,
+    "moduleFilesUnchanged": true
+  },
+  "limitations": [
+    "No key acquisition, process memory access, server/TUI launch, or real WeChat data access.",
+    "No Alpha engine protocol adapter or UI integration is provided by this build.",
+    "Current WeChat compatibility and full Alpha feature coverage remain unverified.",
+    "Original automatic macOS key acquisition requires SIP changes; it was not invoked.",
+    "Dependency license inventory records notices, not a complete legal audit."
+  ],
+  "toolchain": {
+    "version": "go1.24.13",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "archiveUrl": "https://go.dev/dl/go1.24.13.darwin-arm64.tar.gz",
+    "archiveSha256": "f282d882c3353485e2fc6c634606d85caf36e855167d59b996dbeae19fa7629a",
+    "archiveBytes": 76442495,
+    "metadataSource": "https://go.dev/dl/?mode=json&include=all",
+    "binarySha256": "c9507e881b743649af2b8d9edd8678433b999acfe4da2f9834a08a4fcebb1861",
+    "installedAt": "2026-10-31T18:04:07.378Z",
+    "install": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/toolchains/go1.24.13",
+    "binary": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/toolchains/go1.24.13/bin/go",
+    "reused": false,
+    "versionOutput": "go version go1.24.13 darwin/arm64"
+  },
+  "buildEnvironment": {
+    "GOCACHE": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/chatlog-go/build-cache",
+    "GOMODCACHE": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/chatlog-go/module-cache",
+    "GOPATH": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/chatlog-go/gopath",
+    "GOTMPDIR": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/chatlog-go/tmp",
+    "GOROOT": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/toolchains/go1.24.13",
+    "GOENV": "off",
+    "GOWORK": "off",
+    "GOTOOLCHAIN": "local",
+    "CGO_ENABLED": "1",
+    "GOOS": "darwin",
+    "GOARCH": "arm64",
+    "GOPROXY": "https://proxy.golang.org,direct",
+    "GOSUMDB": "sum.golang.org",
+    "CC": "/Library/Developer/CommandLineTools/usr/bin/clang",
+    "SDKROOT": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+    "systemPathChanged": false,
+    "homeChanged": false
+  },
+  "command": [
+    "go",
+    "build",
+    "-mod=readonly",
+    "-trimpath",
+    "-o",
+    "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/chatlog.building",
+    "main.go"
+  ],
+  "artifact": {
+    "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/chatlog",
+    "sha256": "f9c8ac5c137e2da0b05283b7fb1f21ee57fbf996388cb2675001cee0ae82c92a",
+    "bytes": 41953346,
+    "file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/chatlog: Mach-O 64-bit executable arm64",
+    "linkedLibraries": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/chatlog:\n\t/usr/lib/libresolv.9.dylib (compatibility version 1.0.0, current version 1.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1359.0.0)\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 5027.0.69)\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 62460.1.2)",
+    "buildInfo": "docs/chatlog-build-info.txt"
+  },
+  "licenses": {
+    "modules": 57,
+    "standaloneLicenseFiles": 70,
+    "modulesWithoutStandaloneLicense": [],
+    "embeddedNotices": 2,
+    "manifest": "docs/chatlog-dependency-licenses.json"
+  },
+  "finishedAt": "2026-10-31T18:04:57.162Z",
+  "log": "docs/chatlog-build.log"
+}

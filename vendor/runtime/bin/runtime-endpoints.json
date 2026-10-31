@@ -1,0 +1,8 @@
+{
+  "schema": "alpha.runtime-endpoints.v1",
+  "target": "windows-x64",
+  "license": {
+    "base_url": "https://189.24.72.59",
+    "product_code": "alpha"
+  }
+}

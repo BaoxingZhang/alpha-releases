@@ -1,0 +1,495 @@
+{
+  "review": "Recovered Alpha runtime isolation and gaps",
+  "mode": "read-only static source review; no application/native execution",
+  "project": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5",
+  "source_file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+  "source_sha256": "7e8fabf836059696bc00ecf9266b68cbed4b0cd690e3ffe6f80e1755a72c193a",
+  "sections": [
+    {
+      "id": "early-isolation",
+      "finding": "Configure private Electron paths before importing recovered main: top-level code already constructs userData stores and requests the single-instance lock. Keep app.isPackaged false.",
+      "paths": {
+        "home": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/home",
+        "documents": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/home/Documents",
+        "appData": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/app-data",
+        "userData": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/user-data",
+        "sessionData": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/session-data",
+        "temp": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/tmp",
+        "logs": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/user-data/logs"
+      },
+      "caveat": "Electron path overrides are not an OS filesystem sandbox. Native code may resolve user directories through other APIs. Use process-level filesystem/network restrictions; do not alter the user shell global environment.",
+      "evidence": [
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 71963,
+          "byte_offset_utf8": 2954303,
+          "snippet": "function packagedUserDataPath(isPackaged, appData) {\n  return isPackaged ? node_path.join(appData, \"Alpha\") : null;\n}"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 72987,
+          "byte_offset_utf8": 3004007,
+          "snippet": "const packagedUserData = packagedUserDataPath(electron.app.isPackaged, electron.app.getPath(\"appData\"));\nif (packagedUserData) electron.app.setPath(\"userData\", packagedUserData);\nconst cacheDirectory = new CacheDirectory(electron.app.getPath(\"userData\"));\nelectron.protocol.registerSchemesAsPrivileged([ALPHA_MEDIA_SCHEME]);\nconst DESKTOP_PARTITION = \"persist:alpha-desktop\";"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 73719,
+          "byte_offset_utf8": 3040613,
+          "snippet": "const primaryInstance = electron.app.requestSingleInstanceLock();\nif (!primaryInstance) electron.app.quit();\nelse electron.app.on(\"second-instance\", () => showMainWindow());\nif (primaryInstance) electron.app.whenReady().then(async () => {"
+        }
+      ]
+    },
+    {
+      "id": "workspace-layout",
+      "finding": "Original development paths assume a monorepo: app.getAppPath()/../.. is workspace, then target/debug, build/runtime-bundle and workers/agent/dist are used. Running electron at the recovered project root resolves the wrong workspace.",
+      "minimum_adaptation": "Use an apps/desktop app directory or introduce explicit recovered project/runtime roots in the adapter. Do not spoof packaged mode.",
+      "evidence": [
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 62900,
+          "byte_offset_utf8": 2517434,
+          "snippet": "    const workspace = node_path.resolve(electron.app.getAppPath(), \"../..\");\n    const executable = electron.app.isPackaged ? node_path.resolve(process.resourcesPath, \"bin\", process.platform === \"win32\" ? \"alpha-engine.exe\" : \"alpha-engine\") : developmentEnginePath(node_path.resolve(workspace, \"target\", \"debug\", process.platform === \"win32\" ? \"alpha-engine.exe\" : \"alpha-engine\"), process.env.ALPHA_ENGINE_PATH);\n    const nativeHost = electron.app.isPackaged ? node_path.resolve(process.resourcesPath, \"bin\", process.platform === \"win32\" ? \"alpha-data-host.exe\" : \"alpha-data-host\") : node_path.resolve(workspace, \"build\", \"runtime-bundle\", \"bin\", process.platform === \"win32\" ? \"alpha-data-host.exe\" : \"alpha-data-host\");\n    const inherited = electron.app.isPackaged ? packagedHostEnvironment(nativeHost, process.env) : process.env;"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 73093,
+          "byte_offset_utf8": 3011765,
+          "snippet": "function developmentRuntimeBundle() {\n  return node_path.resolve(electron.app.getAppPath(), \"../..\", \"build\", \"runtime-bundle\");\n}"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 73788,
+          "byte_offset_utf8": 3045975,
+          "snippet": "  const workspaceRoot = node_path.resolve(electron.app.getAppPath(), \"../..\");\n  desktopEngineBridge = new DesktopEngineBridge((bytes2, signal) => engine.dispatchReadOnlyFrame(bytes2, signal), assertHttpApiAllowed);\n  personaGateway = new PersonaGatewayService({"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 67833,
+          "byte_offset_utf8": 2738440,
+          "snippet": "function resolvePaths(options2, exists) {\n  const userData = requireAbsolute(options2.userDataPath);\n  const gatewayRoot = node_path.resolve(userData, \"persona-gateway\");\n  const platform = options2.platform ?? process.platform;\n  const executableName = platform === \"win32\" ? \"alpha-server.exe\" : \"alpha-server\";\n  const developmentServer = !options2.resourcesPath && options2.developmentServerPath ? requireAbsolute(options2.developmentServerPath) : void 0;\n  const server = resolveCandidate(\n    developmentServer ? [developmentServer] : [\n      options2.resourcesPath ? node_path.join(requireAbsolute(options2.resourcesPath), \"bin\", executableName) : \"\",\n      options2.workspaceRoot ? node_path.join(requireAbsolute(options2.workspaceRoot), \"target\", \"debug\", executableName) : \"\"\n    ],\n    exists,\n    \"persona_gateway.binary_not_found\"\n  );\n  const agentHost = resolveCandidate(\n    [\n      options2.resourcesPath ? node_path.join(requireAbsolute(options2.resourcesPath), \"bin\", \"alpha-agent-host.cjs\") : \"\",\n      options2.workspaceRoot ? node_path.join(requireAbsolute(options2.workspaceRoot), \"workers\", \"agent\", \"dist\", \"index.cjs\") : \"\"\n    ],\n    exists,\n    \"persona_gateway.agent_host_not_found\"\n  );\n  const readyFile = node_path.resolve(gatewayRoot, \"ready-v1.json\");\n  const runDatabase = node_path.resolve(gatewayRoot, \"persona-runs.sqlite3\");"
+        }
+      ]
+    },
+    {
+      "id": "native-paths",
+      "finding": "Development mode supports absolute engine and worker paths. Preserve the full original runtime relative layout and original hashes/policies.",
+      "paths": {
+        "ALPHA_ENGINE_PATH": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-engine",
+        "ALPHA_DATA_HOST_PATH": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-data-host",
+        "ALPHA_NATIVE_HOST_PATH": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-data-host",
+        "ALPHA_SECURITY_HOST_PATH": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-security-host",
+        "ALPHA_KEY_WORKER_PATH": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-key-worker",
+        "ALPHA_NATIVE_LIBRARY_PATH": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/native/wcdb/libalpha_native.dylib",
+        "ALPHA_WCDB_LIBRARY_PATH": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/native/wcdb/libalpha_sqlcipher_readonly.dylib",
+        "ALPHA_FFMPEG_PATH": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/ffmpeg",
+        "ALPHA_AGENT_HOST_PATH": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-agent-host.cjs",
+        "ALPHA_GATEWAY_PATH": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-server"
+      },
+      "notes": [
+        "writerBundleRoot and voice-model catalog paths also need vendor/runtime mapping.",
+        "ALPHA_AGENT_HOST_NODE must be the real Electron executable. Set ELECTRON_RUN_AS_NODE only for appropriate child processes, never in the environment launching the GUI Electron process.",
+        "The packaged child environment sets ALPHA_WORKER_SUPERVISOR=0, ALPHA_MESSAGE_ROUTING=1 and ALPHA_BIZ_ROUTING=1; if adapting the runtime helper, preserve normal routing semantics and all verification."
+      ],
+      "evidence": [
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 13947,
+          "byte_offset_utf8": 700506,
+          "snippet": "function developmentEnginePath(fallback, override) {\n  if (override === void 0) return fallback;\n  if (!node_path.isAbsolute(override)) throw new Error(\"ALPHA_ENGINE_PATH_MUST_BE_ABSOLUTE\");\n  return override;\n}"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 13561,
+          "byte_offset_utf8": 679121,
+          "snippet": "function runtimeEnvironment(workspace, nativeHost, userData, inherited = process.env, writerDiagnostic, writerBundleRoot = node_path.resolve(workspace, \"build\", \"runtime-bundle\")) {\n  const environment = {\n    ...inherited,\n    ALPHA_NATIVE_HOST_PATH: inherited.ALPHA_NATIVE_HOST_PATH ?? nativeHost,\n    ALPHA_DATA_HOST_PATH: inherited.ALPHA_DATA_HOST_PATH ?? nativeHost,\n    ALPHA_SECURITY_HOST_PATH: inherited.ALPHA_SECURITY_HOST_PATH ?? node_path.resolve(node_path.dirname(nativeHost), process.platform === \"win32\" ? \"alpha-security-host.exe\" : \"alpha-security-host\"),\n    ALPHA_KEY_WORKER_PATH: inherited.ALPHA_KEY_WORKER_PATH ?? node_path.resolve(node_path.dirname(nativeHost), process.platform === \"win32\" ? \"alpha-key-worker.exe\" : \"alpha-key-worker\"),\n    ALPHA_DATA_DIR: userData,\n    ALPHA_KEY_ROUTING: \"1\",\n    ALPHA_MEDIA_CACHE_ROOT: inherited.ALPHA_MEDIA_CACHE_ROOT ?? node_path.resolve(userData, \"media-cache\")\n  };\n  const writer = configureWcdbWriterEnvironment(environment, { bundleRoot: writerBundleRoot });\n  try {\n    writerDiagnostic?.(writer);\n  } catch {\n  }"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 13879,
+          "byte_offset_utf8": 696497,
+          "snippet": "function configurePackagedWorkerEnvironment(environment, resourcesPath, electronExecutable = process.execPath) {\n  if (!node_path.isAbsolute(resourcesPath)) throw new Error(\"RESOURCES_PATH_MUST_BE_ABSOLUTE\");\n  if (!node_path.isAbsolute(electronExecutable)) throw new Error(\"ALPHA_AGENT_HOST_NODE_MUST_BE_ABSOLUTE\");\n  delete environment.ALPHA_BIZ_WORKER_PATH;\n  delete environment.ALPHA_MESSAGE_WORKER_PATH;\n  environment.ALPHA_DATA_HOST_PATH = node_path.join(resourcesPath, \"bin\", process.platform === \"win32\" ? \"alpha-data-host.exe\" : \"alpha-data-host\");\n  environment.ALPHA_NATIVE_HOST_PATH = environment.ALPHA_DATA_HOST_PATH;\n  environment.ALPHA_SECURITY_HOST_PATH = node_path.join(resourcesPath, \"bin\", process.platform === \"win32\" ? \"alpha-security-host.exe\" : \"alpha-security-host\");\n  environment.ALPHA_AGENT_HOST_PATH = packagedAgentHostPath(resourcesPath);\n  environment.ALPHA_AGENT_HOST_NODE = node_path.resolve(electronExecutable);\n  environment.ALPHA_FFMPEG_PATH = packagedFfmpegPath(resourcesPath);\n  environment.ALPHA_WORKER_SUPERVISOR = \"0\";\n  environment.ALPHA_MESSAGE_ROUTING = \"1\";\n  environment.ALPHA_BIZ_ROUTING = \"1\";\n  delete environment.ALPHA_WXPROTO_HOST_PATH;\n  if (process.platform === \"win32\" && process.arch === \"x64\") {\n    environment.ALPHA_COMPONENT_BROKER_PATH = packagedComponentBrokerPath(resourcesPath);\n    environment.ALPHA_COMPONENT_DELIVERY_MODE = \"signed-plaintext\";"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 62947,
+          "byte_offset_utf8": 2520779,
+          "snippet": "    const child = node_child_process.spawn(executable, [], {\n      cwd: workspace,\n      env: childEnvironment,\n      stdio: [\"pipe\", \"pipe\", \"pipe\"],\n      windowsHide: true\n    });"
+        }
+      ]
+    },
+    {
+      "id": "data-confinement",
+      "finding": "Runtime ALPHA_DATA_DIR is Electron userData. Artifacts, media cache, transcription cache, snapshots and vault default below that root. Startup enforces snapshot/vault/key confinement.",
+      "minimum_adaptation": "Start with a fresh private userData, no imported accounts/keys/vault. Remove inherited ALPHA_* credentials and paths and rebuild a minimal allowlisted environment. In particular do not inherit ALPHA_ACCOUNT_REGISTRY_PATH.",
+      "evidence": [
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 13568,
+          "byte_offset_utf8": 679885,
+          "snippet": "    ALPHA_DATA_DIR: userData,\n    ALPHA_KEY_ROUTING: \"1\",\n    ALPHA_MEDIA_CACHE_ROOT: inherited.ALPHA_MEDIA_CACHE_ROOT ?? node_path.resolve(userData, \"media-cache\")\n  };\n  const writer = configureWcdbWriterEnvironment(environment, { bundleRoot: writerBundleRoot });\n  try {\n    writerDiagnostic?.(writer);\n  } catch {\n  }\n  setAbsoluteIfPresent(environment, \"ALPHA_NATIVE_LIBRARY_PATH\");\n  setAbsoluteIfPresent(environment, \"ALPHA_DATA_HOST_PATH\");\n  setAbsoluteIfPresent(environment, \"ALPHA_SECURITY_HOST_PATH\");"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 13582,
+          "byte_offset_utf8": 680551,
+          "snippet": "    const registry = environment.ALPHA_ACCOUNT_REGISTRY_PATH;\n    if (!registry) environment.ALPHA_ARTIFACT_DIR = node_path.resolve(userData, \"artifacts\");\n    else if (node_path.isAbsolute(registry)) environment.ALPHA_ARTIFACT_DIR = node_path.resolve(node_path.dirname(registry), \"artifacts\");\n  }\n  setAbsoluteIfPresent(environment, \"ALPHA_ARTIFACT_DIR\");"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 13638,
+          "byte_offset_utf8": 683757,
+          "snippet": "async function prepareRuntimeEnvironment(environment) {\n  const dataRoot = requiredAbsolutePath(environment, \"ALPHA_DATA_DIR\");\n  const snapshotRoot = requiredAbsolutePath(environment, \"ALPHA_WCDB_SNAPSHOT_ROOT\");\n  const vaultRoot = requiredAbsolutePath(environment, \"ALPHA_NATIVE_VAULT_DIR\");\n  const mediaCacheRoot = requiredAbsolutePath(environment, \"ALPHA_MEDIA_CACHE_ROOT\");\n  assertConfined(dataRoot, snapshotRoot, \"ALPHA_WCDB_SNAPSHOT_ROOT\");\n  assertConfined(dataRoot, vaultRoot, \"ALPHA_NATIVE_VAULT_DIR\");\n  await promises.mkdir(snapshotRoot, { recursive: true, mode: 448 });\n  await promises.mkdir(vaultRoot, { recursive: true, mode: 448 });\n  await promises.mkdir(mediaCacheRoot, { recursive: true, mode: 448 });\n  environment.ALPHA_LICENSE_INSTALLATION_ID = await resolveInstallationId(environment, dataRoot);\n  const provider = environment.ALPHA_NATIVE_VAULT_KEY_PROVIDER?.trim().toLowerCase();"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 13685,
+          "byte_offset_utf8": 686711,
+          "snippet": "async function resolveInstallationId(environment, dataRoot) {\n  const configured = environment.ALPHA_LICENSE_INSTALLATION_ID?.trim().toLowerCase();\n  if (configured) {\n    if (!isCanonicalUuid(configured)) throw new Error(\"ALPHA_LICENSE_INSTALLATION_ID_INVALID\");\n    return configured;\n  }\n  const path = node_path.resolve(dataRoot, \"installation-id.v1\");\n  assertConfined(dataRoot, path, \"ALPHA_LICENSE_INSTALLATION_ID_FILE\");\n  for (let attempt = 0; attempt < 2; attempt += 1) {\n    if (node_fs.existsSync(path)) {\n      const metadata = node_fs.lstatSync(path);\n      if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size > 128) {"
+        }
+      ]
+    },
+    {
+      "id": "update-network",
+      "finding": "Development update configuration reads ALPHA_UPDATE_* only. With none configured, update state is unconfigured and refresh returns without a network request. Startup and a 15-minute timer still invoke refresh.",
+      "minimum_adaptation": "Keep development mode and clear ALPHA_UPDATE_ROOT_PUBLIC_KEY_BASE64URL, ALPHA_UPDATE_POLICY_URL, ALPHA_UPDATE_POLICY_PATH and ALPHA_UPDATE_MIRROR_BASE_URL. Do not remove signature validation or turn blocked/forced into ready. Network restrictions must cover native sidecars as well as Electron sessions.",
+      "evidence": [
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 71442,
+          "byte_offset_utf8": 2927939,
+          "snippet": "function resolveUpdateConfiguration(packaged, embedded2, environment) {\n  if (packaged) {\n    if (!embedded2) return { publicKey: \"\", policyUrl: \"\", channel: \"stable\" };\n    try {\n      return {\n        publicKey: releasePublicKey(embedded2.publicKey),\n        policyUrl: releasePolicyUrl(embedded2.policyUrl),\n        channel: channel(embedded2.channel),\n        ...mirrorBase(embedded2.mirrorBaseUrl)\n      };\n    } catch {\n      return { publicKey: \"\", policyUrl: \"\", channel: \"stable\" };\n    }\n  }\n  const requestedChannel = environment.ALPHA_UPDATE_CHANNEL?.trim();\n  return {\n    publicKey: environment.ALPHA_UPDATE_ROOT_PUBLIC_KEY_BASE64URL?.trim() || \"\",\n    policyUrl: environment.ALPHA_UPDATE_POLICY_URL?.trim() || \"\",\n    policyPath: environment.ALPHA_UPDATE_POLICY_PATH?.trim() || void 0,\n    channel: requestedChannel === \"beta\" || requestedChannel === \"nightly\" ? requestedChannel : \"stable\",\n    ...environment.ALPHA_UPDATE_MIRROR_BASE_URL?.trim() ? { mirrorBaseUrl: environment.ALPHA_UPDATE_MIRROR_BASE_URL.trim().replace(/\\/+$/, \"\") } : {}\n  };\n}\nconst MAX_UPDATE_POLICY_BYTES = 1024 * 1024;\nasync function fetchUpdatePolicyFrom(urls, fetcher = globalThis.fetch) {\n  let failure2 = new Error(\"UPDATE_POLICY_URL_INVALID\");\n  for (const url of urls) {\n    try {\n      return await fetchUpdatePolicy(url, fetcher);\n    } catch (error) {\n      failure2 = error;"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 73454,
+          "byte_offset_utf8": 3029005,
+          "snippet": "async function refreshUpdateStatusOnce() {\n  const currentVersion = resolveApplicationVersion(electron.app.isPackaged, electron.app.getVersion(), \"0.3.5\");\n  const config = updateConfiguration();\n  if (!config.publicKey || !config.policyPath && !config.policyUrl) {\n    updateStatus = {\n      state: electron.app.isPackaged ? \"blocked\" : \"unconfigured\",\n      currentVersion,\n      reason: electron.app.isPackaged ? \"update-system-untrusted\" : void 0,\n      download: downloadStatus\n    };\n    return updateStatus;\n  }\n  const store = stateStore();\n  let verifier;\n  try {\n    verifier = new UpdatePolicyVerifier(config.publicKey);"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 73491,
+          "byte_offset_utf8": 3030970,
+          "snippet": "function blocksBusinessOperations() {\n  return updateStatus.state === \"forced\" || updateStatus.state === \"blocked\";\n}"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 73512,
+          "byte_offset_utf8": 3031656,
+          "snippet": "  const status = await refreshUpdateStatus();\n  await reconcileEngineGate();\n  return status;\n}\nfunction downloadUpdate() {\n  if (activeDownload) return activeDownload;\n  const operation = downloadUpdateOnce().finally(() => {\n    if (activeDownload === operation) activeDownload = null;\n  });\n  activeDownload = operation;\n  return operation;\n}\nasync function downloadUpdateOnce() {\n  if (!trustedPolicy || ![\"available\", \"forced\"].includes(updateStatus.state)) throw new Error(\"UPDATE_POLICY_NOT_TRUSTED\");"
+        }
+      ]
+    },
+    {
+      "id": "automatic-startup",
+      "finding": "Startup calls observeRestoredLicense -> engine.getCapabilities before the final reconcileEngineGate -> engine.start. Therefore isolation must be in place before importing main, not merely before showing the window.",
+      "fresh_defaults": [
+        "AI mode off",
+        "HTTP API disabled; push disabled; LAN disabled",
+        "External MCP servers empty",
+        "macOS development build does not support login-item registration"
+      ],
+      "minimum_adaptation": "Use fresh state and do not trigger sign-in, model downloads, connection enabling or sending. Verify real engine status and an empty registered-account list separately from UI visibility.",
+      "evidence": [
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 73165,
+          "byte_offset_utf8": 3015633,
+          "snippet": "function observeRestoredLicense() {\n  void engine.getCapabilities().then((value) => licenseRenewal.observe(value)).catch(() => void 0);\n}\nengine.onProcessGenerationChanged(observeRestoredLicense);"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 74261,
+          "byte_offset_utf8": 3076194,
+          "snippet": "  observeRestoredLicense();\n  electron.ipcMain.handle(IPC_CHANNELS.refreshUpdateStatus, refreshAndReconcile);\n  electron.ipcMain.handle(IPC_CHANNELS.downloadUpdate, downloadUpdate);"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 73494,
+          "byte_offset_utf8": 3031088,
+          "snippet": "async function reconcileEngineGate() {\n  engineGateOperation = engineGateOperation.catch(() => void 0).then(async () => {\n    if (blocksBusinessOperations()) {\n      await httpApi?.suspend();\n      await stopOwnedGateway();\n      await engine.setMaintenanceMode(true);\n      return;\n    }\n    await engine.setMaintenanceMode(false);\n    await engine.start();\n    await httpApi?.reconcile();\n  });\n  await engineGateOperation;\n}\nfunction canDispatchPrivilegedOperation() {"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 3762,
+          "byte_offset_utf8": 180226,
+          "snippet": "  config = { enabled: false, port: 5031, pushEnabled: false, lan: false };"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 68178,
+          "byte_offset_utf8": 2758066,
+          "snippet": "const AGENT_SETTINGS_DEFAULT = {\n  mode: \"off\",\n  memoryScope: \"selected-account\",\n  toolApproval: \"read-only\",\n  approvedTools: [],\n  providerKind: \"openai-chat\",\n  baseUrl: \"https://api.openai.com/v1\",\n  model: \"\"\n};"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 70044,
+          "byte_offset_utf8": 2851219,
+          "snippet": "class ExternalMcpSettingsService {\n  deps;\n  state = { version: 1, revision: \"unconfigured\", servers: [] };\n  loading = null;"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 66469,
+          "byte_offset_utf8": 2681812,
+          "snippet": "function launchAtStartupUnsupported(platform, packaged) {\n  if (platform !== \"win32\" && platform !== \"darwin\" && platform !== \"linux\") return \"platform-unsupported\";\n  return packaged ? null : \"development-build\";\n}"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 66507,
+          "byte_offset_utf8": 2683468,
+          "snippet": "  async repair() {\n    if (this.environment.platform !== \"linux\" || !this.environment.packaged) return;\n    const entry = await this.readAutostart();\n    if (entry === null || disabledEntry(entry) || entry === desktopEntry(this.environment.executable)) return;"
+        }
+      ]
+    },
+    {
+      "id": "account-discovery",
+      "finding": "listAccounts reads registered accounts. discoverAccounts requires a source location. detectAccountDataSources separately probes Electron home/documents/appData, so changing userData alone is insufficient.",
+      "minimum_adaptation": "Restrict smoke tests to status/listAccounts. In the safe launch adapter, reject real account discovery, directory selection, key acquisition/import, sending and database mutation IPC with an explicit sandbox-unavailable error. Never fake successful backend responses.",
+      "evidence": [
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 63513,
+          "byte_offset_utf8": 2547151,
+          "snippet": "  async listAccounts() {\n    await this.start();\n    const response = await this.call({\n      requestId: this.nextRequestId++,\n      listAccounts: {}\n    });\n    if (response.error) throw new Error(response.error.code);\n    return (response.listAccounts?.accounts ?? []).map(mapAccount);\n  }\n  async discoverAccounts(sourceLocationId) {"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 63522,
+          "byte_offset_utf8": 2547443,
+          "snippet": "  async discoverAccounts(sourceLocationId) {\n    const trimmed = sourceLocationId.trim();\n    if (!trimmed) throw new Error(\"SOURCE_LOCATION_ID_REQUIRED\");\n    await this.start();\n    const response = await this.call({\n      requestId: this.nextRequestId++,\n      discoverAccounts: { sourceLocation: trimmed }\n    });\n    if (response.error) throw new Error(response.error.code);\n    return (response.discoverAccounts?.accounts ?? []).map(mapAccount);\n  }\n  async readAccountDataKey(raw) {"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 74265,
+          "byte_offset_utf8": 3076446,
+          "snippet": "  electron.ipcMain.handle(IPC_CHANNELS.detectAccountDataSources, async (event) => {\n    await checkAccountDiscoveryAccess(event);\n    const result = await detectAccountDataSources({\n      platform: process.platform,\n      home: electron.app.getPath(\"home\"),\n      documents: electron.app.getPath(\"documents\"),\n      appData: electron.app.getPath(\"appData\")\n    });\n    await checkAccountDiscoveryAccess(event);\n    return result;\n  });\n  electron.ipcMain.handle(IPC_CHANNELS.chooseAccountDataDirectory, async (event) => {"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 74304,
+          "byte_offset_utf8": 3078196,
+          "snippet": "  electron.ipcMain.handle(IPC_CHANNELS.readAccountDataKey, async (event, request2) => {\n    if (!isTrustedMainRendererEvent(event) || shutdownStarted) throw new Error(\"ACCOUNT_DATA_KEY_CALLER_CHANGED\");\n    if (blocksBusinessOperations()) await engine.setMaintenanceMode(true);\n    const epoch = mutationAccessEpoch;\n    return readSettingsAccountDataKey(engine, request2, () => {\n      if (!isTrustedMainRendererEvent(event) || event.sender.isDestroyed() || shutdownStarted || apiLockTransition || epoch !== mutationAccessEpoch) throw new Error(\"ACCOUNT_DATA_KEY_CALLER_CHANGED\");"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 74329,
+          "byte_offset_utf8": 3079767,
+          "snippet": "  electron.ipcMain.handle(IPC_CHANNELS.acquireDatabaseKey, async (_event, accountId2, processId, mode, timeoutSeconds) => {\n    const normalizedMode = mode ?? \"auto\";\n    const normalizedTimeout = timeoutSeconds ?? 180;\n    if (typeof accountId2 !== \"string\" || typeof processId !== \"number\" || !Number.isSafeInteger(processId) || processId < 0 || processId > 4294967295 || normalizedMode !== \"auto\" && normalizedMode !== \"memory-scan\" && normalizedMode !== \"runtime-capture\" || typeof normalizedTimeout !== \"number\" || !Number.isSafeInteger(normalizedTimeout) || normalizedTimeout < 1 || normalizedTimeout > 900) {\n      throw new Error(\"DATABASE_KEY_ACQUISITION_REQUEST_INVALID\");\n    }\n    try {"
+        }
+      ]
+    },
+    {
+      "id": "native-authenticity",
+      "finding": "JavaScript startup checks existence of engine/security-host/data-host, then performs a protobuf hello. Native policy and peer image verification may still reject a copied runtime.",
+      "minimum_adaptation": "Keep peer-manifest, trust policies, dates, signatures and binaries intact. Preserve RUNTIME_PEER_*, SECURITY_HOST_* and SECURITY_RUNTIME_POLICY_REJECTED failures; do not bypass verification or report backend-ready on failure.",
+      "evidence": [
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 13986,
+          "byte_offset_utf8": 702404,
+          "snippet": "function runtimeStartupError(engine2, environment) {\n  for (const [path, code2] of [\n    [engine2, \"ENGINE_NOT_INSTALLED\"],\n    [environment.ALPHA_SECURITY_HOST_PATH, \"SECURITY_HOST_NOT_INSTALLED\"],\n    [environment.ALPHA_DATA_HOST_PATH, \"DATA_HOST_NOT_INSTALLED\"]\n  ]) {\n    try {\n      if (!path || !node_fs.statSync(path).isFile()) return code2;\n    } catch {\n      return code2;\n    }\n  }\n  return void 0;\n}\nfunction createBaseProtocolVersion() {\n  return { major: 0, minor: 0 };\n}"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 13952,
+          "byte_offset_utf8": 700718,
+          "snippet": "function runtimeFailureCode(text2) {\n  return text2.match(/\\b(?:RUNTIME_PEER_[A-Z_]{1,64}|SECURITY_HOST_[A-Z_]{1,64}|SECURITY_RUNTIME_POLICY_REJECTED(?:_[A-Z]{1,24}){0,3}|NATIVE_RUNTIME_POLICY_REJECTED)\\b/)?.[0];\n}"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 62987,
+          "byte_offset_utf8": 2522465,
+          "snippet": "      const response = await this.call({\n        requestId: this.nextRequestId++,\n        hello: {\n          protocol: { major: 1, minor: 0 },\n          desktopVersion: electron.app.getVersion(),\n          desktopBuildId: `alpha-desktop/${electron.app.getVersion()}`,\n          clientNonce: node_crypto.randomBytes(16),\n          bootstrapProof: new Uint8Array()\n        }\n      }, ENGINE_STARTUP_TIMEOUT_MS);\n      if (response.error) throw new Error(response.error.code);\n      if (!response.hello) throw new Error(\"ENGINE_HELLO_MISSING\");\n      this.exportTimeRangeSupported = response.hello.supportsExportTimeRange;\n      this.chatExportJobsSupported = [121, 122, 123, 124, 125].every((id2) => response.hello.supportedMethodIds.includes(id2));"
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+          "line": 63003,
+          "byte_offset_utf8": 2523494,
+          "snippet": "      this.status = {\n        state: \"ready\",\n        components: response.hello.components.map((component) => ({\n          component: component.component,\n          version: component.version,\n          buildId: component.buildId,\n          protocol: `${component.protocolMajor}.${component.protocolMinor}`\n        }))\n      };\n    } catch (error) {"
+        }
+      ],
+      "native_evidence": [
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-security-host",
+          "byte_offset": 6470346,
+          "ascii_literal": "RUNTIME_PEER_IMAGE_NOT_ALLOWED",
+          "qualification": "Static string only; not proof of a complete execution path."
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-security-host",
+          "byte_offset": 6586050,
+          "ascii_literal": "peer-manifest.json",
+          "qualification": "Static string only; not proof of a complete execution path."
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-engine",
+          "byte_offset": 12416742,
+          "ascii_literal": "SECURITY_RUNTIME_POLICY_REJECTED",
+          "qualification": "Static string only; not proof of a complete execution path."
+        }
+      ]
+    },
+    {
+      "id": "acceptance-boundaries",
+      "finding": "Rebuilding readable JS/HTML/CSS while retaining original native sidecars is not rebuilding the original Rust/native project from source.",
+      "acceptance_levels": [
+        {
+          "level": "UI",
+          "requirements": [
+            "Build succeeds",
+            "Electron renderer/preload/window load",
+            "Empty state or explicit backend failure is visible"
+          ],
+          "does_not_prove": [
+            "Native hello success",
+            "Database access",
+            "Complete product functionality"
+          ]
+        },
+        {
+          "level": "empty-native-backend",
+          "requirements": [
+            "Real native hello succeeds",
+            "Components report ready",
+            "Isolated registered-account list is empty",
+            "No real WeChat access, cloud AI or sends"
+          ],
+          "does_not_prove": [
+            "Real database operations",
+            "Export/edit/send features",
+            "Other platforms"
+          ]
+        },
+        {
+          "level": "full-source-reconstruction",
+          "status": "not_established",
+          "reason": "Original source tree, build configuration and Rust/native source are not recovered merely by unpacking shipped artifacts."
+        }
+      ]
+    }
+  ],
+  "changes_made": [
+    "docs/runtime-gap-review.json only"
+  ],
+  "not_performed": [
+    "No target code execution",
+    "No external service/account/database access",
+    "No src/scripts modifications",
+    "No trust/license/signature modifications"
+  ],
+  "accepted_project_layout": {
+    "app_path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app",
+    "main_entry": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/bootstrap.cjs",
+    "original_workspace_calculation": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5",
+    "runtime_bundle_link": null,
+    "runtime_bundle_target": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime",
+    "status": "dist/app satisfies original workspace calculation; a full runtime copy is required because original WCDB checks reject symlink ancestors.",
+    "runtime_bundle_copy": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/runtime-bundle"
+  },
+  "macos_sandbox_recommendation": {
+    "profile": "(version 1)\n(allow default)\n(deny network-outbound)\n(deny file-read* (subpath \"/Users/baoxingzhang\"))\n(deny file-write* (subpath \"/Users/baoxingzhang\"))\n(allow file-read* (subpath \"/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5\"))\n(allow file-write* (subpath \"/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime\"))\n",
+    "invocation": [
+      "/usr/bin/sandbox-exec",
+      "-f",
+      "<profile file>",
+      "<absolute bundled Electron executable>",
+      "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app"
+    ],
+    "findings": [
+      "Native children inherit the sandbox; this covers Rust sidecar outbound networking unlike Electron session webRequest filtering.",
+      "The profile intentionally allows normal system framework access, while denying user-home reads/writes except project reads and .runtime writes.",
+      "Do not add broad Library, Library/Containers, Library/Group Containers, Application Support or Keychains read exceptions. Those can expose real app/account data.",
+      "If Electron needs user fonts/preferences, identify a specific benign path from a concrete denial and grant only that exact path or subdirectory. First try the profile without user-Library exceptions.",
+      "Launch the sandboxed Electron executable directly; avoid running npm or a login shell inside it, since tools/config under the real user home are intentionally denied.",
+      "Home path overrides and outbound denial do not themselves establish complete UI/native compatibility. Capture actual logs and report restrictions that prevent startup."
+    ],
+    "validation_performed": {
+      "profile_parse_and_true": "exit 0",
+      "read_project_review": "exit 0",
+      "read_known_harmless_file_outside_project_under_user_home": "exit 1; Operation not permitted",
+      "target_application_run": false,
+      "network_probe": false
+    },
+    "remaining_caveat": "The allow-default base does not restrict writes outside the real user-home tree. Bootstrap should redirect app temp/state paths; stricter global write controls need compatibility testing."
+  },
+  "post_implementation_review": {
+    "observed_smoke_result": {
+      "ui": "main renderer loaded; no renderer errors",
+      "backend": "unavailable",
+      "error_code": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY",
+      "accounts": "ENGINE_NOT_STARTED; not verified empty"
+    },
+    "confirmed_adaptation_errors": [
+      {
+        "id": "runtime-symlink",
+        "source": "src/main/index.js:13510",
+        "finding": "readBoundedFile rejects any symlink ancestor, so build/runtime-bundle symlink necessarily failed WCDB writer validation.",
+        "status": "Parent reported fixed by a full byte-preserving copy."
+      },
+      {
+        "id": "retention-flags",
+        "source": "src/main/index.js:13426",
+        "finding": "ALPHA_ENABLE_LOCAL_MESSAGE_RETENTION is not a recognized flag. Actual retention flags are ALPHA_ENABLE_MOMENTS_ANTI_DELETE and ALPHA_ENABLE_MESSAGE_ANTI_RECALL, and valid bundle discovery otherwise defaults them on.",
+        "status": "Parent reported both actual flags now explicitly zero."
+      },
+      {
+        "id": "worker-node",
+        "source": "scripts/environment.mjs:21",
+        "finding": "process.execPath in the external Node launcher points outside project; the sandbox denies that home-tree executable. This is not the cause of current AI-off startup failure.",
+        "recommendation": "Use the project Electron executable for the worker, with ELECTRON_RUN_AS_NODE only in its child environment."
+      },
+      {
+        "id": "gateway-agent-path",
+        "source": "src/main/index.js:67846",
+        "finding": "PersonaGateway resolvePaths ignores ALPHA_AGENT_HOST_PATH and uses workspace/workers/agent/dist/index.cjs in development. That path was absent during review.",
+        "recommendation": "Build/copy recovered worker to the expected path or add a narrowly scoped explicit runtime-root adapter. AI-off UI testing does not cover this path."
+      }
+    ],
+    "integrity_failure_scope": {
+      "confirmed": [
+        "Security-host is present and bytes were verified against the copied bundle by parent provenance.",
+        "codesign --verify --strict --verbose=2 vendor/runtime/bin/alpha-security-host reports valid on disk and satisfies Designated Requirement.",
+        "The guard policy is embedded in the binary; static strings show alpha.runtime-policy.v2, alpha.guard.macho64.v1 and APOL-BIND-v1.",
+        "Observed native error is INTEGRITY, not EXPIRED."
+      ],
+      "candidate_not_yet_proven": "Electron app.setPath(home) does not rewrite the inherited HOME environment. Native strings show HOME plus Library/Application Support/Alpha/RuntimeState and runtime-peer storage paths, so native state may resolve outside the isolated app paths and be denied. Configure only the launched process environment for a private home/temp root and retain OS denial of the real home; do not modify shell globals.",
+      "not_found_in_static_scan": [
+        "No explicit ALPHA_RUNTIME_POLICY_PATH, ALPHA_RUNTIME_POLICY_FILE or ALPHA_GUARD override was found."
+      ],
+      "do_not_conclude": [
+        "A valid macOS code signature does not prove the separate custom guard accepts the runtime.",
+        "Static path strings alone do not prove the exact failing guard branch.",
+        "Do not attribute the current failure to expiry or patch policies/signatures to force success."
+      ],
+      "native_string_evidence": [
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-security-host",
+          "byte_offset": 7374292,
+          "literals": [
+            "Library",
+            "Application Support",
+            "Alpha",
+            "RuntimeState",
+            "alpha-security-host/desktop-v1",
+            "secrets.lock",
+            "device-root"
+          ]
+        },
+        {
+          "file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-security-host",
+          "byte_offset": 6585742,
+          "literals": [
+            "Library",
+            "Application Support",
+            "Alpha",
+            "runtime-peer"
+          ]
+        }
+      ]
+    },
+    "sandbox_note": {
+      "current_profile_difference": "deny file-read-data preserves metadata traversal required for Chromium; explicit project data access is allowed. Remote IP outbound is denied; loopback is allowed for Playwright/Electron.",
+      "chromium_sandbox": "The launch uses --no-sandbox because nested Chromium sandbox initialization fails under the outer Seatbelt profile. Document that only the outer application/process sandbox is active; do not claim Chromium renderer sandbox is also active.",
+      "scope": "No target binary executed by this reviewer. No signature, policy, license, source or script modification."
+    }
+  }
+}

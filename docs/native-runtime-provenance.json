@@ -1,0 +1,363 @@
+{
+  "schema": "alpha-recovered.native-provenance.v1",
+  "copied_at": "2026-11-01T01:40:24.313324+08:00",
+  "source_dmg": "/Users/baoxingzhang/Downloads/Alpha-0.3.5-arm64.dmg",
+  "source_dmg_bytes": 183712520,
+  "source_dmg_sha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
+  "source_root_in_image": "Alpha.app/Contents/Resources",
+  "destination": "vendor/runtime",
+  "selected_paths": [
+    "bin",
+    "native",
+    "manifests",
+    "policies",
+    "resources",
+    "voice-models",
+    "component-manifest.json"
+  ],
+  "verification": {
+    "all_file_hashes_equal_to_source": true,
+    "all_regular_file_modes_preserved": true,
+    "target_programs_executed": false
+  },
+  "regular_files": 43,
+  "regular_file_bytes": 156899845,
+  "entries": [
+    {
+      "path": "bin",
+      "type": "directory",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-agent-host.cjs",
+      "type": "file",
+      "bytes": 269724,
+      "sha256": "f3ca767b4c58a3fbf98ef3bc95d3333d3c515c357e93502a0cc4aaf844c50555",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-analysis",
+      "type": "file",
+      "bytes": 449808,
+      "sha256": "5da615202135458326ff3f688f9df311e7327cb2634cbd6025daff719a4fb8da",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-chatlab-pull",
+      "type": "file",
+      "bytes": 1687760,
+      "sha256": "2a5cc934b52ec55f5e2b22326c9ed7ec48eb072f3103cdbf7c81d8c4c1b7ee92",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-cli",
+      "type": "file",
+      "bytes": 1913496,
+      "sha256": "9364a338fc7556d0b26a27cb6a12d39ae49a3243d2266b8501b6fc1492182aaa",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-component-artifact.ed25519.pub",
+      "type": "file",
+      "bytes": 32,
+      "sha256": "ec5041022fa308f96a27275bee96204376727bad9f40996ea79a79994d4eb0b2",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/alpha-component-catalog.ed25519.pub",
+      "type": "file",
+      "bytes": 32,
+      "sha256": "f0283f0c466acc00ece47a2e493ae6478a137f0f668bf6f500c3a7ca84a4b502",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/alpha-component-delivery.ed25519.pub",
+      "type": "file",
+      "bytes": 32,
+      "sha256": "59ebe0a9162777d0ac7b88fd3b88bc305549ad13ddea91cd4de7ef1533744847",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/alpha-component-permit.ed25519.pub",
+      "type": "file",
+      "bytes": 32,
+      "sha256": "59ebe0a9162777d0ac7b88fd3b88bc305549ad13ddea91cd4de7ef1533744847",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/alpha-component-revocation.ed25519.pub",
+      "type": "file",
+      "bytes": 32,
+      "sha256": "72ac612b601b2b040a77a0449018587be2a4f1539e617188e7fd9a3b523a40fb",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/alpha-data-analysis",
+      "type": "file",
+      "bytes": 1964768,
+      "sha256": "42d136f8260217ec14de557123cc0d7d6800ea1f908d0df73ccd9ba9488664d6",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-data-host",
+      "type": "file",
+      "bytes": 16905936,
+      "sha256": "a594b57bd7ec51efb0ef683808637a17d08ee622ed880db1a4426e7431b282a0",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-engine",
+      "type": "file",
+      "bytes": 18293856,
+      "sha256": "468cafd9cceb30520cadc3e175fa303f99aeb98dc00e1b2b891af57f1bb3b569",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-key-worker",
+      "type": "file",
+      "bytes": 2277152,
+      "sha256": "c4f79fcbcc88ed5e767dad3a86508af2bd629d01ac2da659d708ae215a209e01",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-license-lease.ed25519.pub",
+      "type": "file",
+      "bytes": 32,
+      "sha256": "282ac7528688a984121483aba35130994703c8c199783044fdb20cd87f5609e0",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/alpha-license-response.ed25519.pub",
+      "type": "file",
+      "bytes": 32,
+      "sha256": "f10e732673cc1ff9fbd7c0e6dc74db3bb3253c192e94398f3bff62f9485664ed",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/alpha-mcp-stdio",
+      "type": "file",
+      "bytes": 15090464,
+      "sha256": "a18577a91c10b22ae2bf6071e122f1cf3080c241e6d89657abd12fab065da9db",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-message-send",
+      "type": "file",
+      "bytes": 3312224,
+      "sha256": "3aab88ce1c7e343055d426ae4b3c36bfe8ca0c5fee128a7214396b583ea011ed",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-official-export",
+      "type": "file",
+      "bytes": 3461992,
+      "sha256": "7351f83269ce3bab42eda9230f1266b6b741a30f8869d5487b1803a16a6e13c8",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-schedules",
+      "type": "file",
+      "bytes": 4232032,
+      "sha256": "d08547cee2dcd478e14f0573d2789095941a367cd5c6af943b447f4a20326f15",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-security-host",
+      "type": "file",
+      "bytes": 9112272,
+      "sha256": "048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha-server",
+      "type": "file",
+      "bytes": 25172512,
+      "sha256": "715c5cc1cade91325ea476a9549a26d1efa9e6b76ebf7c687b74f63b5e2c00b2",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha_xkey.dylib",
+      "type": "file",
+      "bytes": 515552,
+      "sha256": "f241dc5f1dc402b8f3427ab0e0fce5fe06eb85bf9758cb46139542d8d260fe51",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/alpha_xkey_helper",
+      "type": "file",
+      "bytes": 513440,
+      "sha256": "97812a07af645aeab7e0fb3875300b77126252077ccf9b28339ee1e950ea2d4d",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/component-trust.json",
+      "type": "file",
+      "bytes": 1511,
+      "sha256": "e77830e9f49350648599795b35349630cfd4c5b112d3d7b953040083f6576f78",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/ffmpeg",
+      "type": "file",
+      "bytes": 45568216,
+      "sha256": "a90e3db6a3fd35f6074b013f948b1aa45b31c6375489d39e572bea3f18336584",
+      "mode": "0o755"
+    },
+    {
+      "path": "bin/ffmpeg.LICENSE",
+      "type": "file",
+      "bytes": 4376,
+      "sha256": "cb48bf09a11f5fb576cddb0431c8f5ed0a60157a9ec942adffc13907cbe083f2",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/ffmpeg.README",
+      "type": "file",
+      "bytes": 1810,
+      "sha256": "05ba4b92c96605434b1aaae3eedf5a2c280c9607bf78ffca9a5b536d9af2dc6a",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/license-trust.json",
+      "type": "file",
+      "bytes": 628,
+      "sha256": "883520eea8a3fafe25bfd3110a02870a3ef513d35dd6eb835ece5530c9403520",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/peer-manifest.json",
+      "type": "file",
+      "bytes": 1274,
+      "sha256": "c228266ac248a5a58f8acec7e8d7c17a4d63f1f13d88966bbb3e83da98f0d0fc",
+      "mode": "0o644"
+    },
+    {
+      "path": "bin/runtime-endpoints.json",
+      "type": "file",
+      "bytes": 160,
+      "sha256": "8eed11a2e13d067c54a87e386081670f9e044ae976f48925c3349ced937d09ba",
+      "mode": "0o644"
+    },
+    {
+      "path": "component-manifest.json",
+      "type": "file",
+      "bytes": 9617,
+      "sha256": "8d4d8426548fd7e1a9b3249bb553179c20288ea99c0220a5e29f51740402ceac",
+      "mode": "0o644"
+    },
+    {
+      "path": "manifests",
+      "type": "directory",
+      "mode": "0o755"
+    },
+    {
+      "path": "manifests/alpha-wcdb.component.json",
+      "type": "file",
+      "bytes": 23827,
+      "sha256": "ea2e9f0f56e25538e58b43f752d15969bddebbbac823d4ce7a4caa5f392370a4",
+      "mode": "0o644"
+    },
+    {
+      "path": "manifests/alpha-wcdb.package-manifest.json",
+      "type": "file",
+      "bytes": 8397,
+      "sha256": "ded0f0ac110a7c77147a0e89a9351c1c474ad1dd70c8b51eeee9225807d52d33",
+      "mode": "0o644"
+    },
+    {
+      "path": "manifests/alpha-wxproto.component.json",
+      "type": "file",
+      "bytes": 7790,
+      "sha256": "c0db309604aecd28963795cb0dc2eabbaeb87d9021eee5177b3c93f255e8278c",
+      "mode": "0o644"
+    },
+    {
+      "path": "manifests/alpha-wxproto.package-manifest.json",
+      "type": "file",
+      "bytes": 7343,
+      "sha256": "a0f2a9ab75fd70601ed1032b3bf135474880caad1d17b34c630a2b7d65f7c917",
+      "mode": "0o644"
+    },
+    {
+      "path": "manifests/alpha-xkey.component.json",
+      "type": "file",
+      "bytes": 6220,
+      "sha256": "16e05b059df32aa329f99b1fc45af919f31977fd89b255930fa7285bceb5cbcd",
+      "mode": "0o644"
+    },
+    {
+      "path": "manifests/alpha-xkey.package-manifest.json",
+      "type": "file",
+      "bytes": 5364,
+      "sha256": "62b70ece7cf6cba81e93ef21b7782a7ece3e0526b2e49a27e406de4e5e2c320b",
+      "mode": "0o644"
+    },
+    {
+      "path": "native",
+      "type": "directory",
+      "mode": "0o755"
+    },
+    {
+      "path": "native/wcdb",
+      "type": "directory",
+      "mode": "0o755"
+    },
+    {
+      "path": "native/wcdb/libalpha_native.dylib",
+      "type": "file",
+      "bytes": 2104544,
+      "sha256": "be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c",
+      "mode": "0o755"
+    },
+    {
+      "path": "native/wcdb/libalpha_sqlcipher_readonly.dylib",
+      "type": "file",
+      "bytes": 2036224,
+      "sha256": "90bbfd625de14ceac0b9d47fbe820f4a2bf67c9d9a5f8706a92980bb8144ccfe",
+      "mode": "0o755"
+    },
+    {
+      "path": "native/wcdb/libalpha_sqlcipher_retention_writer.dylib",
+      "type": "file",
+      "bytes": 1924896,
+      "sha256": "4c13205b3049a099403e35ae1621eb33a72deca63c8a7b60c883db5648b2e8b9",
+      "mode": "0o755"
+    },
+    {
+      "path": "policies",
+      "type": "directory",
+      "mode": "0o755"
+    },
+    {
+      "path": "policies/peer-trust.json",
+      "type": "file",
+      "bytes": 190,
+      "sha256": "de608415c30e81aceecb42f50730c67527dea564ce2759c2135ce95c14b3b96f",
+      "mode": "0o644"
+    },
+    {
+      "path": "resources",
+      "type": "directory",
+      "mode": "0o755"
+    },
+    {
+      "path": "resources/local-transcription-model-catalog-v1.json",
+      "type": "file",
+      "bytes": 7123,
+      "sha256": "489a2cb2f0e06e38cf0b41a28e9c1aea84e866525ba4d6fd11ea45083b9edd85",
+      "mode": "0o644"
+    },
+    {
+      "path": "voice-models",
+      "type": "directory",
+      "mode": "0o755"
+    },
+    {
+      "path": "voice-models/local-transcription-model-catalog-v1.json",
+      "type": "file",
+      "bytes": 7123,
+      "sha256": "489a2cb2f0e06e38cf0b41a28e9c1aea84e866525ba4d6fd11ea45083b9edd85",
+      "mode": "0o644"
+    }
+  ]
+}

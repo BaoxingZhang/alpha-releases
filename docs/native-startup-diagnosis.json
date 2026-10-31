@@ -1,0 +1,404 @@
+{
+  "schema": "alpha.native-startup-diagnosis.v1",
+  "created_at": "2026-10-31T18:03:59.963594+00:00",
+  "status": "bounded_static_diagnosis_complete_exact_dynamic_failure_branch_unresolved",
+  "target": {
+    "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-security-host",
+    "sha256": "048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8",
+    "size": 9112272,
+    "mode": "0o755",
+    "nlink": 1,
+    "is_symlink": false
+  },
+  "working_copy_comparison": [
+    {
+      "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-security-host",
+      "sha256": "048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8",
+      "size": 9112272,
+      "mode": "0o755",
+      "nlink": 1,
+      "is_symlink": false
+    },
+    {
+      "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/runtime-bundle/bin/alpha-security-host",
+      "sha256": "048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8",
+      "size": 9112272,
+      "mode": "0o755",
+      "nlink": 1,
+      "is_symlink": false
+    }
+  ],
+  "summary_zh": "已证实启动被原生 guard 的自校验/运行策略完整性层阻断；这不是仅根据错误名推测。已跟踪到自镜像路径、文件/内存完整性检查、封装策略绑定和 -103→integrity 的错误映射。但未执行动态断点，无法断定本次命中其中哪一分支，未发现可确认的遗漏资源或合法环境参数修复。",
+  "observed_smoke": {
+    "source": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/local-run.json",
+    "testedAt": "2026-10-31T17:52:19.944Z",
+    "backend": {
+      "state": "unavailable",
+      "components": [],
+      "errorCode": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY",
+      "update": {
+        "state": "unconfigured",
+        "currentVersion": "0.3.5",
+        "download": {
+          "phase": "idle"
+        }
+      }
+    },
+    "checks": {
+      "projectReadable": true,
+      "personalFileReadDenied": true,
+      "remoteNetworkDenied": true,
+      "mainRendererLoaded": true,
+      "keychainDisabled": true,
+      "backendReady": false,
+      "emptyAccounts": null
+    }
+  },
+  "methods": {
+    "rea_version": "6.8.0",
+    "ghidra_version": "12.1.4",
+    "cold_start_deadline_ms": 300000,
+    "cold_analysis_attempts": 1,
+    "cold_analysis_completed": true,
+    "session_strategy": "One stdio MCP session; all focused queries reused the same imported Program. Snapshot retains 27 Evidence records; it is not a recovered original source tree.",
+    "snapshot": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/security-host.snapshot.json",
+    "session_closed": true,
+    "target_executed_by_this_diagnosis": false,
+    "supplementary_tools": [
+      "Python exact-byte/Mach-O structure inspection",
+      "Apple llvm-objdump bounded arm64 assembly",
+      "codesign read-only verification",
+      "ps comm read-only process inventory"
+    ]
+  },
+  "findings": [
+    {
+      "id": "guard-precedes-request-dispatch",
+      "confidence": "observed-static",
+      "conclusion_zh": "请求处理函数先进入 guard check/init；非零结果立即包装为 SECURITY_RUNTIME_POLICY_REJECTED。该边界发生在原生业务处理之前。",
+      "source": {
+        "evidence_id": "ev_542d824306e6e87a7298f547bbe567fa4c9685e97eac0a1856fa3f47b0db108c",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/policy-caller-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/policy-caller-pseudocode.c",
+        "anchors": [
+          {
+            "line": 151,
+            "snippet": "FUN_100225c88(0x584b5254"
+          },
+          {
+            "line": 159,
+            "snippet": "iVar13 = FUN_100225dd8();"
+          },
+          {
+            "line": 162,
+            "snippet": "if (iVar13 != 0)"
+          },
+          {
+            "line": 167,
+            "snippet": "FUN_100106ef8(param_1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "error-category-exact",
+      "confidence": "observed-static",
+      "conclusion_zh": "错误分类器识别 SECURITY_RUNTIME_POLICY_ / RUNTIME_OPERATION_POLICY_ 文本；-103 映射为 integrity；-101 expired、-102 rollback、-104 analysis、-105 state、-106 not_yet_effective 是不同类别。",
+      "mapping": {
+        "-101": "expired",
+        "-102": "rollback",
+        "-103": "integrity",
+        "-104": "analysis",
+        "-105": "state",
+        "-106": "not_yet_effective"
+      },
+      "source": {
+        "evidence_id": "ev_8a5ac89ce3575399d69e72c22126c673e307226cdaab8fe42be93c8c18ba44e7",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/error-category-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/error-category-pseudocode.c",
+        "anchors": [
+          {
+            "line": 2,
+            "snippet": "FUN_1000e8054"
+          },
+          {
+            "line": 61,
+            "snippet": "0x3330312d"
+          },
+          {
+            "line": 63,
+            "snippet": "\"integrity\""
+          },
+          {
+            "line": 77,
+            "snippet": "\"state\""
+          }
+        ]
+      },
+      "error_wrapper": {
+        "evidence_id": "ev_6e4f20aad43abc79dfe01dd62dffd25fa3362890bd3e76f84b221d0cc2916938",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/policy-error-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/policy-error-pseudocode.c",
+        "anchors": [
+          {
+            "line": 31,
+            "snippet": "FUN_100106bcc(local_318,param_2,\"SECURITY_RUNTIME_POLICY_REJECTED\""
+          },
+          {
+            "line": 48,
+            "snippet": "FUN_1000e8054"
+          }
+        ]
+      }
+    },
+    {
+      "id": "self-image-verification-confirmed",
+      "confidence": "observed-static",
+      "conclusion_zh": "guard 实际定位当前代码地址所属 dyld 镜像并 realpath；随后打开自身文件、fstat、pread，解析 Mach-O，读取所选内存段并检查只读权限，再比较摘要。完整性拒绝可来自这层中的多项失败，当前没有动态分支命中证据。",
+      "own_image_path": {
+        "evidence_id": "ev_579bf4e8ed074652315d39c74becd60734cc3fd57175a495ab0f0660462fca18",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-own-image-path-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-own-image-path-pseudocode.c",
+        "anchors": [
+          {
+            "line": 17,
+            "snippet": "__dyld_image_count"
+          },
+          {
+            "line": 41,
+            "snippet": "__dyld_get_image_name"
+          },
+          {
+            "line": 43,
+            "snippet": "_realpath_DARWIN_EXTSN"
+          }
+        ]
+      },
+      "image_registration": {
+        "evidence_id": "ev_afa04820fabe79f1d74d25d4eb18ff87427d569f09310db1abe5354d2f0b3015",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-image-register-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-image-register-pseudocode.c",
+        "anchors": [
+          {
+            "line": 92,
+            "snippet": "_open((char *)pppppppcVar13,0x1000100)"
+          },
+          {
+            "line": 148,
+            "snippet": "(local_110.st_mode & 0xf012) == 0x8000"
+          },
+          {
+            "line": 159,
+            "snippet": "_pread("
+          },
+          {
+            "line": 207,
+            "snippet": "*piVar2 == 0x1d"
+          }
+        ]
+      },
+      "loaded_memory": {
+        "evidence_id": "ev_1987598dbf95009dc1a50abe6f56f800b76a4384efa36dd83e6c85bfdfc2c09e",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-loaded-image-digest-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-loaded-image-digest-pseudocode.c",
+        "anchors": [
+          {
+            "line": 1049,
+            "snippet": "_mach_vm_region"
+          },
+          {
+            "line": 1055,
+            "snippet": "((uint)local_b0 & 3) != 1"
+          }
+        ]
+      },
+      "comparison": {
+        "evidence_id": "ev_db44efc58192c70b360c273da774d371954306749feea7d63ba9849ae8bbda40",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-image-check-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-image-check-pseudocode.c",
+        "anchors": [
+          {
+            "line": 54,
+            "snippet": "FUN_100217de8"
+          },
+          {
+            "line": 83,
+            "snippet": "FUN_100217f70"
+          },
+          {
+            "line": 85,
+            "snippet": "bVar5 = ((local_50 == *param_2"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sealed-runtime-binding",
+      "confidence": "observed-static",
+      "conclusion_zh": "初始化还构造组件命名空间/操作集合，按 0x814 字节与内嵌 APOL-BIND-v1 区块逐字节比较；这是封装策略绑定检查，不是普通缺失文件提示。没有改变该绑定。",
+      "source": {
+        "evidence_id": "ev_ddcb2fc13f928011dd1aad71852cce20a3be8ee529ec18b96087acca26cac97b",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-binding-init-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-binding-init-pseudocode.c",
+        "anchors": [
+          {
+            "line": 53,
+            "snippet": "FUN_100226248"
+          },
+          {
+            "line": 1332,
+            "snippet": "PTR_s_authorize_operation_1007cf570"
+          },
+          {
+            "line": 1343,
+            "snippet": "_memcmp(pvVar4,\"APOL-BIND-v1\",0x814)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "integrity-versus-state",
+      "confidence": "observed-static-with-limit",
+      "conclusion_zh": "共同 guard 函数中的自检/镜像校验失败可返回 -103；状态读取或持久化失败有单独 -105 分支。因此不能根据 HOME 字符串把当前 integrity 报错直接归因为真实 HOME 被拒读。其他辅助函数也可返回 -103，本次未确定唯一根因。",
+      "source": {
+        "evidence_id": "ev_0a4eaffe5ac3a060a4ee6b11b8cb4b80f43e9fe85f5a0845e334faf00a5c3dc6",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-readback-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-readback-pseudocode.c",
+        "anchors": [
+          {
+            "line": 57,
+            "snippet": "FUN_100226248();"
+          },
+          {
+            "line": 68,
+            "snippet": "FUN_100217224("
+          },
+          {
+            "line": 75,
+            "snippet": "FUN_10021939c("
+          },
+          {
+            "line": 118,
+            "snippet": "FUN_1001f4ae0("
+          },
+          {
+            "line": 209,
+            "snippet": "uVar5 = 0xffffff97;"
+          },
+          {
+            "line": 65,
+            "snippet": "uVar5 = 0xffffff99;"
+          }
+        ]
+      },
+      "state_lock": {
+        "evidence_id": "ev_9077a80834f032237ff09d4e55460f84f4e85c0b981f3ae40956af225f376596",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-state-lock-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-state-lock-pseudocode.c",
+        "anchors": [
+          {
+            "line": 7,
+            "snippet": "FUN_1002137ac(\"state.lock\")"
+          }
+        ]
+      }
+    },
+    {
+      "id": "peer-layout-not-missing",
+      "confidence": "observed-static",
+      "conclusion_zh": "peer-manifest.json 应在当前 security-host 的 canonical executable 旁；现有布局符合该路径算法。随包 8 个 peer 的文件、大小、SHA-256 均匹配清单，但未声称清单签名认证成功。",
+      "source": {
+        "evidence_id": "ev_96b0d25c976d4eff7768f0422a8f83b66588b890e2aa61aa0662eb0cac817cb1",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-self-image-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-self-image-pseudocode.c",
+        "anchors": [
+          {
+            "line": 40,
+            "snippet": "env::current_exe"
+          },
+          {
+            "line": 49,
+            "snippet": "sys::fs::canonicalize"
+          },
+          {
+            "line": 65,
+            "snippet": "\"peer-manifest.json\""
+          },
+          {
+            "line": 67,
+            "snippet": "fs::read::inner"
+          }
+        ]
+      },
+      "comparison": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/peer-file-comparison.json"
+    },
+    {
+      "id": "no-supported-state-root-found",
+      "confidence": "bounded-negative-search",
+      "conclusion_zh": "精确字节搜索未发现 ALPHA_RUNTIME_POLICY_PATH、ALPHA_RUNTIME_POLICY_FILE、ALPHA_GUARD；不能据此证明所有可能配置均不存在。ALPHA_REAL_SMOKE_ROOT 的实际 getenv 调用后进入 WindowsHelloProvider::new，未证实它控制 guard 状态根，不作为修复。HOME 保持原环境，没有重设。",
+      "literal_evidence": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/literal-offsets.json",
+      "smoke_root_assembly": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/smoke-root-assembly.txt",
+      "getenv_call_va": "0x1000d71a0",
+      "windows_hello_constructor_call_va": "0x1000d7270"
+    },
+    {
+      "id": "policy-time-window",
+      "confidence": "observed-artifact-declaration",
+      "conclusion_zh": "内嵌策略声明有效窗口 2026-10-19 至 2026-11-18。当前 2026-11-01 在窗口内，且错误类别为 integrity，因此没有依据将本次问题写成过期。",
+      "policy_file_offset": 6573298,
+      "schema": "alpha.runtime-policy.v2",
+      "profile": "production",
+      "not_before_utc": "2026-10-19T00:00:00Z",
+      "expires_at_utc": "2026-11-18T00:00:00Z"
+    },
+    {
+      "id": "state-envelope-magic-correction",
+      "confidence": "observed-static",
+      "conclusion_zh": "ALGRD008 在已追踪函数中是加密状态信封头：先执行 secretbox，再追加 magic、nonce 和密文。先前仅按字符串把它称作 guard trailer 不够准确，现更正。",
+      "source": {
+        "evidence_id": "ev_ac64be1232b9e0fa31e9116dccdd0be00092fd4ad82961a9e599698bb7711f24",
+        "evidence_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-state-envelope-pseudocode.json",
+        "pseudocode_file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/guard-state-envelope-pseudocode.c",
+        "anchors": [
+          {
+            "line": 58,
+            "snippet": "\"alpha.guard.state.secretbox.v1\""
+          },
+          {
+            "line": 85,
+            "snippet": "_crypto_secretbox_xsalsa20poly1305_tweet"
+          },
+          {
+            "line": 128,
+            "snippet": "\"ALGRD008\""
+          }
+        ]
+      }
+    },
+    {
+      "id": "disk-signature-and-original-process-scope",
+      "confidence": "observed",
+      "conclusion_zh": "codesign --verify --strict 成功；这只验证系统签名，不代表自定义 guard 接受当前运行环境。ps comm 两次快照均未观察到原 Alpha.app/相关 sidecar；没有启动原应用，不能判断原包是否整体可用。",
+      "codesign": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/codesign-verify.txt"
+    }
+  ],
+  "confirmed_legitimate_fix_from_this_pass": null,
+  "maintenance_implications_zh": [
+    "可以维护已恢复的 Electron JS 和页面；原生组件仍以随包二进制保留。",
+    "此轮生成的是地址绑定的伪代码证据，不是可直接编译的原 Rust/C++ 源码，未恢复 Cargo/workspace、真实类型、构建参数或签名/策略发行流程。",
+    "完整原生维护需要可授权使用的原生源码及相容的 guard SDK/发行配置，或另行按业务接口实现并验证自有后端；本轮没有实施替换或绕过。",
+    "现阶段验收应写 UI 运行通过、原生 backend 未就绪；账号列表报 ENGINE_NOT_STARTED，不能记为空账号后端已通过。"
+  ],
+  "unknowns": [
+    "Which exact native -103 branch executed in the isolated smoke process.",
+    "Whether a specific sandbox denial, host kernel/loaded-image behavior, embedded binding, or another native integrity precondition causes the failure.",
+    "Original installed Alpha app current behavior; no live original sidecar was observed.",
+    "Whether any documented vendor-supported development policy/state-root exists outside inspected artifact and focused functions."
+  ],
+  "limitations": [
+    "Static pseudocode is provider-recovered representation; Ghidra reports type-propagation/unreachable-block warnings for some functions.",
+    "Several optimized C++ functions show void/extraout return artifacts; integer-code mapping and key calls were corroborated with original arm64 assembly, but full original types were not recovered.",
+    "No dynamic attach, debugger breakpoints, real WeChat access, cloud AI calls, message sending, binary patches, clock alterations, signature changes, or guard bypasses were performed.",
+    "All native target bytes remain unchanged."
+  ]
+}

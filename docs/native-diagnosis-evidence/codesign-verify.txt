@@ -1,0 +1,2 @@
+vendor/runtime/bin/alpha-security-host: valid on disk
+vendor/runtime/bin/alpha-security-host: satisfies its Designated Requirement

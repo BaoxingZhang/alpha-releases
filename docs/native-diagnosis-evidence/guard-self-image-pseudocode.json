@@ -1,0 +1,100 @@
+{
+  "result": {
+    "_meta": {
+      "provenance": {
+        "untrusted_content": true,
+        "source": "analysis_target"
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"evidence_id\":\"ev_96b0d25c976d4eff7768f0422a8f83b66588b890e2aa61aa0662eb0cac817cb1\",\"subject\":{\"name\":\"alpha-security-host\",\"digest\":{\"sha256\":\"048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8\"},\"local_path\":\"/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-security-host\",\"format\":\"mach-o\",\"architecture\":\"arm64\"},\"provider\":{\"id\":\"ghidra\",\"name\":\"Ghidra\",\"version\":\"12.1.4\"},\"analysis_profile\":{\"provider\":{\"id\":\"ghidra\",\"name\":\"Ghidra\",\"version\":\"12.1.4\"},\"parameters\":{\"target_kind\":\"executable\",\"target_format\":\"mach-o\",\"architecture\":\"arm64\",\"available_architectures\":[\"arm64\"],\"import_mode\":\"ephemeral-source-immutable\",\"annotation_policy\":\"atomic-function-entry-metadata-v1\",\"load_image_observations\":\"source-mappings-entry-context-v2\",\"function_body_evidence\":\"complete-inclusive-ranges-v1\",\"function_references\":\"complete-body-and-entry-reference-manager-v2\",\"call_relationship_coverage\":\"function-body-call-coverage-v5\",\"function_dossier_coverage\":\"observed-facets-and-call-relationships-v1\",\"string_inventory_evidence\":\"defined-data-coverage-v1\",\"location_resolution\":\"explicit-address-exact-entry-symbol-first-v3\",\"procedure_file_offset_resolution\":\"address-first-unique-target-source-mapping-v2\",\"instruction_flow_evidence\":\"decoded-return-pcode-v1\",\"instruction_references\":\"exact-address-incoming-without-synthetic-entry-v2\",\"function_boundary_observations\":\"ghidra-function-boundary-limitations-v4\",\"no_return_repair\":\"returning-imports-decoded-return-v2\",\"process_launch\":\"inspected-jvm-launch-support-v1\",\"jump_table_evidence\":\"typed-case-default-blocks-v1\",\"decompiler_jump_loads\":true,\"loader\":\"auto-from-header\",\"language_id\":\"auto-from-header\",\"compiler_spec_id\":\"auto-default\",\"analyzer_preset\":\"ghidra-default\",\"function_coordinate_context\":{\"kind\":\"native-function-coordinate-context-v1\",\"selected_image\":null,\"mapping_sha256\":\"55a7964dc0bcdf067484a281c658e6ca8457a49405e0ea9dbd080366ee4c3198\"}},\"digest\":\"066f9d6c56d7a436e2061afaa7f68aa9085572cd83e3172cf52ecd30a6101bae\"},\"predicate_type\":\"rea.analysis\",\"operation\":\"procedure_pseudo_code\",\"parameters\":{\"procedure\":\"0x100266dc0\"},\"raw_result\":null,\"normalized_result\":\"\\nvoid FUN_100266d98(undefined8 *param_1)\\n\\n{\\n  long lVar1;\\n  long lVar2;\\n  long lVar3;\\n  long lVar4;\\n  int iVar5;\\n  long lVar6;\\n  long lVar7;\\n  undefined8 uVar8;\\n  long local_130;\\n  long lStack_128;\\n  undefined8 local_120;\\n  undefined8 uStack_118;\\n  undefined8 uStack_110;\\n  undefined8 uStack_108;\\n  undefined8 local_100;\\n  undefined8 uStack_f8;\\n  undefined8 local_f0;\\n  undefined8 uStack_e8;\\n  undefined8 local_e0;\\n  undefined8 uStack_d8;\\n  undefined8 local_d0;\\n  long local_c8;\\n  long lStack_c0;\\n  undefined8 local_b8;\\n  undefined8 uStack_b0;\\n  undefined8 local_a8;\\n  undefined8 uStack_a0;\\n  undefined8 uStack_98;\\n  undefined8 uStack_90;\\n  undefined8 local_88;\\n  undefined8 uStack_80;\\n  undefined8 uStack_78;\\n  undefined8 uStack_70;\\n  undefined8 local_68;\\n  \\n  std[9bc579fd67db55b0]::env::current_exe(&local_c8);\\n  lVar4 = lStack_c0;\\n  lVar3 = local_c8;\\n  if (local_c8 == -1) {\\n    uVar8 = FUN_10061a3c4(lStack_c0);\\n    *param_1 = 1;\\n    param_1[1] = uVar8;\\n    return;\\n  }\\n  std[9bc579fd67db55b0]::sys::fs::canonicalize(&local_130,lStack_c0,local_b8);\\n  uVar8 = local_120;\\n  lVar2 = lStack_128;\\n  lVar1 = local_130;\\n  if (local_130 == -1) {\\n    uVar8 = FUN_10061a3c4(lStack_128);\\n    *param_1 = 1;\\n    param_1[1] = uVar8;\\n    lVar1 = lVar3;\\n    lVar2 = lVar4;\\n    goto joined_r0x000100266f1c;\\n  }\\n  if (lVar3 != 0) {\\n    __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar4,lVar3,1);\\n  }\\n  <std[9bc579fd67db55b0]::path::Path>::_with_file_name\\n            (&local_c8,lVar2,uVar8,\\\"peer-manifest.json\\\",0x12);\\n  lVar3 = lStack_c0;\\n  std[9bc579fd67db55b0]::fs::read::inner(&local_130,lStack_c0,local_b8);\\n  if (local_c8 != 0) {\\n    __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar3,local_c8,1);\\n  }\\n  lVar4 = lStack_128;\\n  lVar3 = local_130;\\n  if (local_130 == -1) {\\n    uVar8 = FUN_100619c2c(lStack_128);\\n    *param_1 = 1;\\n    param_1[1] = uVar8;\\n    goto joined_r0x000100266f1c;\\n  }\\n  FUN_1002670b8(&local_c8,lStack_128,local_120);\\n  if (local_c8 == -1) {\\n    *param_1 = 1;\\n    param_1[1] = lStack_c0;\\n  }\\n  else {\\n    uStack_e8 = uStack_80;\\n    local_f0 = local_88;\\n    uStack_d8 = uStack_70;\\n    local_e0 = uStack_78;\\n    uStack_118 = uStack_b0;\\n    local_120 = local_b8;\\n    uStack_108 = uStack_a0;\\n    uStack_110 = local_a8;\\n    local_d0 = local_68;\\n    uStack_f8 = uStack_90;\\n    local_100 = uStack_98;\\n    local_130 = local_c8;\\n    lStack_128 = lStack_c0;\\n    FUN_1002719c4(&local_c8);\\n    lVar7 = lStack_c0;\\n    lVar6 = local_c8;\\n    if (local_c8 == -1) {\\n      *param_1 = 1;\\n      param_1[1] = lStack_c0;\\n    }\\n    else {\\n      FUN_100268f2c(&local_c8,lStack_c0,local_b8,local_e0,uStack_d8);\\n      iVar5 = (int)local_c8;\\n      if ((int)local_c8 != -1) {\\n        if (*(long *)(lStack_c0 + 0x48) == 0) {\\n          local_c8 = 0;\\n          local_b8 = 0;\\n        }\\n        else {\\n          if (*(long *)(lStack_c0 + 0x38) == 0) {\\n                    /* WARNING: Subroutine does not return */\\n            core[2525d0a98ae2f2bb]::option::unwrap_failed\\n                      (&PTR_s__rustc_58cf8f9c35b355199727627d0_1007d20d8);\\n          }\\n          FUN_10026f928(&local_c8,*(long *)(lStack_c0 + 0x38),*(undefined8 *)(lStack_c0 + 0x40));\\n        }\\n        param_1[2] = lStack_c0;\\n        param_1[1] = local_c8;\\n        param_1[3] = local_b8;\\n        param_1[4] = local_d0;\\n        *param_1 = 0;\\n        _close(iVar5);\\n        if (lVar6 != 0) {\\n          __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar7,lVar6,1);\\n        }\\n        FUN_100265b94(&local_130);\\n        goto LAB_100266fbc;\\n      }\\n      *param_1 = 1;\\n      param_1[1] = lStack_c0;\\n      if (lVar6 != 0) {\\n        __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar7,lVar6,1);\\n      }\\n    }\\n    FUN_100265b94(&local_130);\\n  }\\nLAB_100266fbc:\\n  if (lVar3 != 0) {\\n    __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar4,lVar3,1);\\n  }\\njoined_r0x000100266f1c:\\n  if (lVar1 != 0) {\\n    __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar2,lVar1,1);\\n  }\\n  return;\\n}\\n\\n\",\"confidence\":\"observed\",\"authority\":\"shipped-artifact\",\"environment\":null,\"limitations\":[\"The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.\",\"The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.\",\"Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.\",\"Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.\",\"Pseudocode is Ghidra decompiler output, not original source and not text-equivalent to Hopper output.\",\"External functions and functions without an analyzable body return null; other decompiler failures remain explicit.\",\"Ghidra Listing reports a terminal call at 0x10026700c to 0x10062a200 core[2525d0a98ae2f2bb]::option::unwrap_failed (external=false, thunk=false, hasNoReturn=true); fallthrough is excluded by Ghidra's flow model. This records Ghidra's FunctionManager flag, not an independent verification that the callee cannot return.\",\"macOS sessions require a matching executable Ghidra native decompiler; REA checks for it but does not build native components or change Gatekeeper quarantine state.\"],\"relationship_coverage\":null,\"locations\":[],\"evidence_links\":[]}"
+      }
+    ],
+    "structuredContent": {
+      "evidence_id": "ev_96b0d25c976d4eff7768f0422a8f83b66588b890e2aa61aa0662eb0cac817cb1",
+      "subject": {
+        "name": "alpha-security-host",
+        "digest": {
+          "sha256": "048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8"
+        },
+        "local_path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-security-host",
+        "format": "mach-o",
+        "architecture": "arm64"
+      },
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.4"
+      },
+      "analysis_profile": {
+        "provider": {
+          "id": "ghidra",
+          "name": "Ghidra",
+          "version": "12.1.4"
+        },
+        "parameters": {
+          "target_kind": "executable",
+          "target_format": "mach-o",
+          "architecture": "arm64",
+          "available_architectures": [
+            "arm64"
+          ],
+          "import_mode": "ephemeral-source-immutable",
+          "annotation_policy": "atomic-function-entry-metadata-v1",
+          "load_image_observations": "source-mappings-entry-context-v2",
+          "function_body_evidence": "complete-inclusive-ranges-v1",
+          "function_references": "complete-body-and-entry-reference-manager-v2",
+          "call_relationship_coverage": "function-body-call-coverage-v5",
+          "function_dossier_coverage": "observed-facets-and-call-relationships-v1",
+          "string_inventory_evidence": "defined-data-coverage-v1",
+          "location_resolution": "explicit-address-exact-entry-symbol-first-v3",
+          "procedure_file_offset_resolution": "address-first-unique-target-source-mapping-v2",
+          "instruction_flow_evidence": "decoded-return-pcode-v1",
+          "instruction_references": "exact-address-incoming-without-synthetic-entry-v2",
+          "function_boundary_observations": "ghidra-function-boundary-limitations-v4",
+          "no_return_repair": "returning-imports-decoded-return-v2",
+          "process_launch": "inspected-jvm-launch-support-v1",
+          "jump_table_evidence": "typed-case-default-blocks-v1",
+          "decompiler_jump_loads": true,
+          "loader": "auto-from-header",
+          "language_id": "auto-from-header",
+          "compiler_spec_id": "auto-default",
+          "analyzer_preset": "ghidra-default",
+          "function_coordinate_context": {
+            "kind": "native-function-coordinate-context-v1",
+            "selected_image": null,
+            "mapping_sha256": "55a7964dc0bcdf067484a281c658e6ca8457a49405e0ea9dbd080366ee4c3198"
+          }
+        },
+        "digest": "066f9d6c56d7a436e2061afaa7f68aa9085572cd83e3172cf52ecd30a6101bae"
+      },
+      "predicate_type": "rea.analysis",
+      "operation": "procedure_pseudo_code",
+      "parameters": {
+        "procedure": "0x100266dc0"
+      },
+      "raw_result": null,
+      "normalized_result": "\nvoid FUN_100266d98(undefined8 *param_1)\n\n{\n  long lVar1;\n  long lVar2;\n  long lVar3;\n  long lVar4;\n  int iVar5;\n  long lVar6;\n  long lVar7;\n  undefined8 uVar8;\n  long local_130;\n  long lStack_128;\n  undefined8 local_120;\n  undefined8 uStack_118;\n  undefined8 uStack_110;\n  undefined8 uStack_108;\n  undefined8 local_100;\n  undefined8 uStack_f8;\n  undefined8 local_f0;\n  undefined8 uStack_e8;\n  undefined8 local_e0;\n  undefined8 uStack_d8;\n  undefined8 local_d0;\n  long local_c8;\n  long lStack_c0;\n  undefined8 local_b8;\n  undefined8 uStack_b0;\n  undefined8 local_a8;\n  undefined8 uStack_a0;\n  undefined8 uStack_98;\n  undefined8 uStack_90;\n  undefined8 local_88;\n  undefined8 uStack_80;\n  undefined8 uStack_78;\n  undefined8 uStack_70;\n  undefined8 local_68;\n  \n  std[9bc579fd67db55b0]::env::current_exe(&local_c8);\n  lVar4 = lStack_c0;\n  lVar3 = local_c8;\n  if (local_c8 == -1) {\n    uVar8 = FUN_10061a3c4(lStack_c0);\n    *param_1 = 1;\n    param_1[1] = uVar8;\n    return;\n  }\n  std[9bc579fd67db55b0]::sys::fs::canonicalize(&local_130,lStack_c0,local_b8);\n  uVar8 = local_120;\n  lVar2 = lStack_128;\n  lVar1 = local_130;\n  if (local_130 == -1) {\n    uVar8 = FUN_10061a3c4(lStack_128);\n    *param_1 = 1;\n    param_1[1] = uVar8;\n    lVar1 = lVar3;\n    lVar2 = lVar4;\n    goto joined_r0x000100266f1c;\n  }\n  if (lVar3 != 0) {\n    __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar4,lVar3,1);\n  }\n  <std[9bc579fd67db55b0]::path::Path>::_with_file_name\n            (&local_c8,lVar2,uVar8,\"peer-manifest.json\",0x12);\n  lVar3 = lStack_c0;\n  std[9bc579fd67db55b0]::fs::read::inner(&local_130,lStack_c0,local_b8);\n  if (local_c8 != 0) {\n    __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar3,local_c8,1);\n  }\n  lVar4 = lStack_128;\n  lVar3 = local_130;\n  if (local_130 == -1) {\n    uVar8 = FUN_100619c2c(lStack_128);\n    *param_1 = 1;\n    param_1[1] = uVar8;\n    goto joined_r0x000100266f1c;\n  }\n  FUN_1002670b8(&local_c8,lStack_128,local_120);\n  if (local_c8 == -1) {\n    *param_1 = 1;\n    param_1[1] = lStack_c0;\n  }\n  else {\n    uStack_e8 = uStack_80;\n    local_f0 = local_88;\n    uStack_d8 = uStack_70;\n    local_e0 = uStack_78;\n    uStack_118 = uStack_b0;\n    local_120 = local_b8;\n    uStack_108 = uStack_a0;\n    uStack_110 = local_a8;\n    local_d0 = local_68;\n    uStack_f8 = uStack_90;\n    local_100 = uStack_98;\n    local_130 = local_c8;\n    lStack_128 = lStack_c0;\n    FUN_1002719c4(&local_c8);\n    lVar7 = lStack_c0;\n    lVar6 = local_c8;\n    if (local_c8 == -1) {\n      *param_1 = 1;\n      param_1[1] = lStack_c0;\n    }\n    else {\n      FUN_100268f2c(&local_c8,lStack_c0,local_b8,local_e0,uStack_d8);\n      iVar5 = (int)local_c8;\n      if ((int)local_c8 != -1) {\n        if (*(long *)(lStack_c0 + 0x48) == 0) {\n          local_c8 = 0;\n          local_b8 = 0;\n        }\n        else {\n          if (*(long *)(lStack_c0 + 0x38) == 0) {\n                    /* WARNING: Subroutine does not return */\n            core[2525d0a98ae2f2bb]::option::unwrap_failed\n                      (&PTR_s__rustc_58cf8f9c35b355199727627d0_1007d20d8);\n          }\n          FUN_10026f928(&local_c8,*(long *)(lStack_c0 + 0x38),*(undefined8 *)(lStack_c0 + 0x40));\n        }\n        param_1[2] = lStack_c0;\n        param_1[1] = local_c8;\n        param_1[3] = local_b8;\n        param_1[4] = local_d0;\n        *param_1 = 0;\n        _close(iVar5);\n        if (lVar6 != 0) {\n          __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar7,lVar6,1);\n        }\n        FUN_100265b94(&local_130);\n        goto LAB_100266fbc;\n      }\n      *param_1 = 1;\n      param_1[1] = lStack_c0;\n      if (lVar6 != 0) {\n        __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar7,lVar6,1);\n      }\n    }\n    FUN_100265b94(&local_130);\n  }\nLAB_100266fbc:\n  if (lVar3 != 0) {\n    __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar4,lVar3,1);\n  }\njoined_r0x000100266f1c:\n  if (lVar1 != 0) {\n    __rustc[3d2f79520d6fa809]::__rust_dealloc(lVar2,lVar1,1);\n  }\n  return;\n}\n\n",
+      "confidence": "observed",
+      "authority": "shipped-artifact",
+      "environment": null,
+      "limitations": [
+        "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+        "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+        "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+        "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+        "Pseudocode is Ghidra decompiler output, not original source and not text-equivalent to Hopper output.",
+        "External functions and functions without an analyzable body return null; other decompiler failures remain explicit.",
+        "Ghidra Listing reports a terminal call at 0x10026700c to 0x10062a200 core[2525d0a98ae2f2bb]::option::unwrap_failed (external=false, thunk=false, hasNoReturn=true); fallthrough is excluded by Ghidra's flow model. This records Ghidra's FunctionManager flag, not an independent verification that the callee cannot return.",
+        "macOS sessions require a matching executable Ghidra native decompiler; REA checks for it but does not build native components or change Gatekeeper quarantine state."
+      ],
+      "relationship_coverage": null,
+      "locations": [],
+      "evidence_links": []
+    }
+  },
+  "jsonrpc": "2.0",
+  "id": 14
+}

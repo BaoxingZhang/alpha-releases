@@ -1,0 +1,67 @@
+{
+  "target": "vendor/runtime/bin/alpha-security-host",
+  "sha256": "048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8",
+  "file_size": 9112272,
+  "matches": [
+    {
+      "literal": "ALPHA_RUNTIME_POLICY_PATH",
+      "offsets": []
+    },
+    {
+      "literal": "ALPHA_RUNTIME_POLICY_FILE",
+      "offsets": []
+    },
+    {
+      "literal": "ALPHA_GUARD",
+      "offsets": []
+    },
+    {
+      "literal": "ALPHA_REAL_SMOKE_ROOT",
+      "offsets": [
+        6490940
+      ]
+    },
+    {
+      "literal": "ALGRD008",
+      "offsets": [
+        6556672
+      ]
+    },
+    {
+      "literal": "alpha.guard.macho64.v1",
+      "offsets": [
+        6556726
+      ]
+    },
+    {
+      "literal": "HOME",
+      "offsets": [
+        6587064
+      ]
+    },
+    {
+      "literal": "RuntimeState",
+      "offsets": [
+        7374326
+      ]
+    },
+    {
+      "literal": "SECURITY_RUNTIME_POLICY_REJECTED",
+      "offsets": [
+        6470425,
+        6476865,
+        6482809,
+        6496110
+      ]
+    },
+    {
+      "literal": "integrity",
+      "offsets": [
+        6493044,
+        7390288,
+        7411507
+      ]
+    }
+  ],
+  "scope": "Exact case-sensitive byte search; absence is only absence of this literal, not absence of configuration capability."
+}

@@ -1,0 +1,184 @@
+/* WeChat's tool row as the viewer's title bar: icon buttons in groups with a short rule between
+   them, ··· and a rule before the window buttons. Slot sizes come from toolbar-layout.ts. */
+.window-titlebar.viewer-toolbar { --titlebar-inset: 8px; --titlebar-ink: var(--viewer-icon); background: var(--viewer-bar); color: var(--viewer-icon); }
+.window-titlebar.viewer-toolbar[data-focused='false'] { --titlebar-ink: var(--viewer-muted); }
+.viewer-toolbar .window-titlebar-leading { flex: 1 1 auto; }
+.viewer-toolbar .window-titlebar-content { flex: 0 0 auto; gap: 0; }
+.viewer-tools-frame { display: flex; width: 100%; min-width: 0; height: 100%; align-items: center; }
+.viewer-tools, .viewer-tools-end { display: flex; flex: 0 0 auto; align-items: center; }
+.viewer-tool { display: grid; width: calc(var(--tool-slot) - 4px); height: 34px; margin: 0 2px; place-items: center; padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--viewer-icon); cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out), color var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out); }
+.viewer-tool:hover:not(:disabled), .viewer-tool[aria-expanded='true'] { background: var(--viewer-hover); }
+.viewer-tool:active:not(:disabled) { background: var(--viewer-press); transform: scale(.92); }
+.viewer-tool:disabled { cursor: default; opacity: .32; }
+/* Toggles that are on (置顶, 全部图片) take the accent. */
+.viewer-tool[aria-pressed='true'] { background: var(--viewer-accent-soft); color: var(--viewer-accent); }
+.viewer-tool:focus-visible { outline: 2px solid var(--viewer-accent); outline-offset: -2px; }
+.viewer-tool-rule { flex: 0 0 auto; width: 1px; height: 18px; margin: 0 calc((var(--group-rule) - 1px) / 2); background: var(--viewer-rule); }
+/* macOS has no window buttons on the right, so nothing to separate. */
+.window-titlebar[data-platform='darwin'] .viewer-controls-rule { display: none; }
+
+/* The ··· menu: tools that no longer fit (with their icons), then the menu's own groups. */
+.ui-popover.viewer-menu { min-width: 216px; padding: 6px; border-color: var(--viewer-border); background: var(--viewer-surface); box-shadow: var(--viewer-shadow); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.viewer-menu [role='menu'] { display: flex; flex-direction: column; }
+.viewer-menu-item { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 36px; padding: 0 12px 0 10px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--viewer-fg); font: 400 14px/1.2 var(--font-sans); text-align: left; white-space: nowrap; cursor: pointer; transition: background-color var(--motion-fast) var(--ease-out); }
+.viewer-menu-item:hover:not(:disabled), .viewer-menu-item:focus-visible { background: var(--viewer-hover); outline: none; }
+.viewer-menu-item:active:not(:disabled) { background: var(--viewer-press); }
+.viewer-menu-item:disabled { cursor: default; opacity: .38; }
+.viewer-menu-icon { display: grid; place-items: center; color: var(--viewer-icon); }
+.viewer-menu-item kbd { color: var(--viewer-muted); font: 400 12px/1 var(--font-sans); }
+.viewer-menu-rule { height: 1px; margin: 6px 8px; background: var(--viewer-rule); }
+
+@media (prefers-reduced-motion: reduce) {
+  .viewer-tool, .viewer-menu-item { transition: none; }
+}
+/* Standalone viewer in WeChat's layout: a grey tool row as the title bar over a quiet canvas.
+   It follows the app's light/dark theme (pushed by Main); this window does not load styles.css,
+   so the shared components' tokens are mapped onto the viewer palette below. */
+:root, :root[data-theme="light"] {
+  color-scheme: light;
+  --viewer-bg: #f7f7f8;
+  --viewer-bar: #ebecee;
+  --viewer-fg: #1e2430;
+  --viewer-muted: #5d6676;
+  --viewer-icon: #2e3542;
+  --viewer-hover: rgb(0 0 0 / 7%);
+  --viewer-press: rgb(0 0 0 / 12%);
+  --viewer-rule: #d2d5d8;
+  --viewer-accent: #3a6ccc;
+  --viewer-accent-soft: #dfe8f8;
+  --viewer-surface: #ffffff;
+  --viewer-border: #dce2ea;
+  --viewer-shadow: 0 14px 36px rgb(20 32 56 / 16%), 0 2px 6px rgb(20 32 56 / 8%);
+  --viewer-picture-shadow: 0 2px 12px rgb(0 0 0 / 8%);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --viewer-bg: #15171b;
+  --viewer-bar: #22252b;
+  --viewer-fg: #e6e9ef;
+  --viewer-muted: #a7afbd;
+  --viewer-icon: #d3d9e3;
+  --viewer-hover: rgb(255 255 255 / 8%);
+  --viewer-press: rgb(255 255 255 / 14%);
+  --viewer-rule: #3a404b;
+  --viewer-accent: #7fa7f2;
+  --viewer-accent-soft: #1c2a45;
+  --viewer-surface: #292c33;
+  --viewer-border: #383e4a;
+  --viewer-shadow: 0 14px 36px rgb(0 0 0 / 48%);
+  --viewer-picture-shadow: 0 4px 20px rgb(0 0 0 / 38%);
+}
+:root {
+  /* Shared components (Tooltip, PopoverLayer, TitleBar) read these. */
+  --foreground: var(--viewer-fg); --muted: var(--viewer-hover); --muted-foreground: var(--viewer-muted); --primary: var(--viewer-accent);
+  --tooltip-surface: var(--viewer-surface); --glass-surface: var(--viewer-surface); --glass-border: var(--viewer-border); --shadow-overlay: var(--viewer-shadow); --ring: var(--viewer-accent);
+  --font-sans: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif; --radius-pill: 999px; --radius-sm: 8px; --radius-md: 12px; --z-popover: 1000; --z-tooltip: 1100;
+  --ease-out: cubic-bezier(.22, 1, .36, 1); --ease-in: cubic-bezier(.4, 0, 1, 1); --motion-fast: 120ms; --motion-pop: 160ms;
+  --titlebar-height: 48px; --window-close: #c42b1c; --window-close-foreground: #ffffff;
+  /* Readouts over the picture stay dark glass in both themes, like WeChat's. */
+  --viewer-glass: rgb(22 24 25 / 74%);
+}
+html, body, #root { height: 100%; margin: 0; }
+body { overflow: hidden; background: var(--viewer-bg); color: var(--viewer-fg); font: 13px/1.4 var(--font-sans); user-select: none; }
+.viewer { position: relative; display: flex; height: 100%; flex-direction: column; background: var(--viewer-bg); }
+
+/* The stage: the picture centred, panned only while larger than the window. */
+.viewer-stage { position: relative; display: flex; min-height: 0; flex: 1 1 auto; overflow: hidden; }
+.viewer-viewport { position: relative; display: flex; flex: 1; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+.viewer-viewport[data-pannable='true'] { cursor: grab; }
+.viewer-viewport[data-pannable='true']:active { cursor: grabbing; }
+.viewer-viewport.is-video { touch-action: auto; }
+.viewer-image { display: block; max-width: none; max-height: none; flex: none; border-radius: 2px; box-shadow: var(--viewer-picture-shadow); will-change: transform; animation: viewer-picture-in 240ms var(--ease-out); -webkit-user-drag: none; }
+/* Buttons, keys and double clicks glide; wheel and drag follow the pointer directly. */
+.viewer-image[data-animate='true'] { transition: transform 220ms var(--ease-out); }
+/* A step through the post slides in from the side it came from; `translate` and `scale` compose with the zoom. */
+.viewer-image[data-enter='next'], .viewer-video[data-enter='next'] { animation-name: viewer-picture-from-right; }
+.viewer-image[data-enter='prev'], .viewer-video[data-enter='prev'] { animation-name: viewer-picture-from-left; }
+@keyframes viewer-picture-in { from { opacity: 0; scale: .96; } }
+@keyframes viewer-picture-from-right { from { opacity: 0; translate: 40px 0; } }
+@keyframes viewer-picture-from-left { from { opacity: 0; translate: -40px 0; } }
+.viewer-video { display: block; max-width: calc(100% - 48px); max-height: calc(100% - 48px); border-radius: 6px; background: rgb(0 0 0); box-shadow: var(--viewer-picture-shadow); outline: none; animation: viewer-picture-in 240ms var(--ease-out); }
+.viewer-video[hidden] { display: none; }
+.viewer-video-loading { position: absolute; top: 16px; left: 50%; display: flex; align-items: center; gap: 8px; margin: 0; padding: 6px 14px; border-radius: 999px; background: var(--viewer-glass); color: rgb(255 255 255); font-size: 12px; transform: translateX(-50%); pointer-events: none; }
+.viewer-video-loading .viewer-spinner { width: 14px; height: 14px; border-width: 2px; border-color: rgb(255 255 255 / 30%); border-top-color: rgb(255 255 255); }
+
+/* Loading and failure, centred. */
+.viewer-status { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--viewer-muted); text-align: center; animation: viewer-fade 200ms var(--ease-out); }
+.viewer-status p { margin: 0; }
+.viewer-status button { height: 32px; padding: 0 16px; border: 1px solid var(--viewer-border); border-radius: var(--radius-sm); background: var(--viewer-surface); color: var(--viewer-fg); font: inherit; cursor: pointer; transition: background-color var(--motion-fast) var(--ease-out); }
+.viewer-status button:hover { background: color-mix(in srgb, var(--viewer-surface) 90%, var(--viewer-fg)); }
+.viewer-status button:focus-visible { outline: 2px solid var(--viewer-accent); outline-offset: 2px; }
+.viewer-spinner { width: 28px; height: 28px; border: 2.5px solid color-mix(in srgb, var(--viewer-muted) 25%, transparent); border-top-color: var(--viewer-accent); border-radius: 50%; animation: viewer-spin .8s linear infinite; }
+@keyframes viewer-spin { to { transform: rotate(360deg); } }
+@keyframes viewer-fade { from { opacity: 0; } }
+
+/* Readouts over the picture: zoom in the middle, position and notices at the bottom. */
+.viewer-hud { position: absolute; top: 50%; left: 50%; z-index: 3; margin: 0; padding: 8px 16px; border-radius: 999px; background: var(--viewer-glass); color: rgb(255 255 255); font: 600 15px/1 var(--font-sans); font-variant-numeric: tabular-nums; transform: translate(-50%, -50%); pointer-events: none; animation: viewer-hud 1100ms var(--ease-out) forwards; }
+@keyframes viewer-hud-still { to { opacity: 0; } }
+@keyframes viewer-hud {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.9); }
+  14% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  72% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.viewer-counter { position: absolute; bottom: 16px; left: 50%; z-index: 2; margin: 0; padding: 5px 12px; border-radius: 999px; background: var(--viewer-glass); color: rgb(255 255 255); font: 500 12px/1 var(--font-sans); font-variant-numeric: tabular-nums; transform: translateX(-50%); pointer-events: none; }
+.viewer-toast { position: absolute; bottom: 20px; left: 50%; z-index: 4; max-width: min(80%, 520px); margin: 0; padding: 9px 16px; border-radius: 999px; background: var(--viewer-glass); color: rgb(255 255 255); font: 400 13px/1.45 var(--font-sans); text-align: center; overflow-wrap: anywhere; transform: translateX(-50%); pointer-events: none; animation: viewer-toast-in 200ms var(--ease-out); }
+.viewer-stage[data-counter='true'] .viewer-toast { bottom: 52px; }
+.viewer-toast[data-tone='error'] { background: rgb(160 42 49 / 90%); }
+@keyframes viewer-toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+/* 实况: a 实况照片 plays its clip in place of the picture (WeChat, WeFlow); the mark stays visible. */
+.viewer-live { position: absolute; top: 16px; left: 16px; z-index: 2; display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 12px 0 9px; border: 0; border-radius: 999px; background: var(--viewer-glass); color: rgb(255 255 255); font: 600 12px/1 var(--font-sans); box-shadow: 0 4px 16px rgb(0 0 0 / 20%); cursor: pointer; transition: background-color var(--motion-fast) var(--ease-out); }
+.viewer-live:hover { background: rgb(22 24 25 / 88%); }
+.viewer-live[aria-pressed='true'] { background: var(--viewer-accent); }
+.viewer-live[data-missing] { opacity: .6; cursor: default; }
+.viewer-live:focus-visible { outline: 2px solid var(--viewer-accent); outline-offset: 2px; }
+.viewer-live .viewer-spinner { width: 14px; height: 14px; border-width: 2px; border-color: rgb(255 255 255 / 30%); border-top-color: rgb(255 255 255); }
+/* 从微信下载: the missing original or 实况 clip, fetched by the opener (media.cdn.download). */
+.viewer-fetch { position: absolute; top: 16px; right: 16px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 10px; border: 0; border-radius: 999px; background: var(--viewer-glass); color: rgb(255 255 255); font: 600 12px/1 var(--font-sans); box-shadow: 0 4px 16px rgb(0 0 0 / 20%); cursor: pointer; transition: background-color var(--motion-fast) var(--ease-out); }
+.viewer-fetch:hover { background: rgb(22 24 25 / 88%); }
+.viewer-fetch[aria-busy='true'] { cursor: default; }
+.viewer-fetch:focus-visible { outline: 2px solid var(--viewer-accent); outline-offset: 2px; }
+.viewer-fetch .viewer-spinner { width: 14px; height: 14px; border-width: 2px; border-color: rgb(255 255 255 / 30%); border-top-color: rgb(255 255 255); }
+/* The clip sits exactly over the picture (same box and transform), transparent until frames play,
+   then crossfades in and back out over 0.3 s like 密语 / WeFlow / Apple's Live Photos. */
+.viewer-live-video { position: absolute; top: 50%; left: 50%; display: block; max-width: none; max-height: none; border-radius: 2px; background: transparent; object-fit: fill; opacity: 0; pointer-events: none; will-change: opacity, transform; transition: opacity 300ms ease-in-out; }
+.viewer-live-video[data-visible] { opacity: 1; }
+.viewer-live-video[data-animate] { transition: opacity 300ms ease-in-out, transform 220ms var(--ease-out); }
+
+/* Prev / next at the edges, shown while the pointer is over the stage (密语 / WCD). */
+.viewer-edge { position: absolute; top: 50%; z-index: 2; display: grid; width: 44px; height: 44px; place-items: center; padding: 0; border: 0; border-radius: 50%; background: var(--viewer-glass); color: rgb(255 255 255); box-shadow: 0 4px 16px rgb(0 0 0 / 20%); opacity: 0; transform: translateY(-50%) scale(.92); transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), background-color var(--motion-fast) var(--ease-out); cursor: pointer; }
+.viewer-edge.is-prev { left: 16px; }
+.viewer-edge.is-next { right: 16px; }
+.viewer-stage:hover .viewer-edge, .viewer-edge:focus-visible { opacity: 1; transform: translateY(-50%) scale(1); }
+.viewer-edge:hover { background: rgb(22 24 25 / 88%); }
+.viewer-edge:active { transform: translateY(-50%) scale(.94); }
+.viewer-edge:focus-visible { outline: 2px solid var(--viewer-accent); outline-offset: 2px; }
+
+/* 全部图片: the whole post as tiles over the stage. */
+.viewer-grid { position: absolute; inset: 0; z-index: 5; overflow: auto; padding: 24px; background: color-mix(in srgb, var(--viewer-bg) 94%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); animation: viewer-grid-in 200ms var(--ease-out); }
+.viewer-grid-items { display: grid; max-width: 960px; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; margin: 0 auto; }
+.viewer-grid-item { position: relative; display: grid; aspect-ratio: 1; place-items: center; overflow: hidden; padding: 0; border: 0; border-radius: 6px; background: var(--viewer-hover); color: var(--viewer-muted); cursor: pointer; transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out); }
+.viewer-grid-item img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.viewer-grid-item:hover { box-shadow: var(--viewer-shadow); transform: translateY(-2px); }
+.viewer-grid-item[aria-current='true'] { box-shadow: 0 0 0 3px var(--viewer-accent); }
+.viewer-grid-item:focus-visible { outline: 2px solid var(--viewer-accent); outline-offset: 3px; }
+.viewer-grid-badge { position: absolute; right: 6px; bottom: 6px; display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: rgb(0 0 0 / 55%); color: rgb(255 255 255); }
+@keyframes viewer-grid-in { from { opacity: 0; transform: scale(.985); } }
+
+/* 打印: only the picture, fitted to the page. */
+@media print {
+  @page { margin: 12mm; }
+  html, body, #root, .viewer { height: auto; overflow: visible; background: rgb(255 255 255); }
+  .window-titlebar, .viewer-edge, .viewer-hud, .viewer-counter, .viewer-toast, .viewer-grid, .viewer-status, .ui-tooltip, .ui-popover, .viewer-live, .viewer-live-video, .viewer-fetch { display: none !important; }
+  .viewer-stage, .viewer-viewport { display: block; overflow: visible; }
+  .viewer-image { width: auto; max-width: 100%; max-height: 260mm; margin: 0 auto; border-radius: 0; box-shadow: none; transform: none !important; animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewer-image, .viewer-video, .viewer-status, .viewer-toast, .viewer-grid { animation: none; }
+  /* The zoom readout still shows for a moment, without the fade. */
+  .viewer-hud { animation: viewer-hud-still 1100ms steps(1, end) forwards; }
+  .viewer-image[data-animate='true'], .viewer-edge, .viewer-live, .viewer-fetch, .viewer-grid-item, .viewer-status button { transition: none; }
+}

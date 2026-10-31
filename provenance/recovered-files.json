@@ -1,0 +1,1019 @@
+{
+  "source_dmg_sha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
+  "files": [
+    {
+      "path": "src/agent-host/index.cjs",
+      "original": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/vendor/runtime/bin/alpha-agent-host.cjs",
+      "bytes": 269724,
+      "sha256": "f3ca767b4c58a3fbf98ef3bc95d3333d3c515c357e93502a0cc4aaf844c50555"
+    },
+    {
+      "path": "src/main/index.js",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/main/index.js",
+      "bytes": 3180527,
+      "sha256": "7e8fabf836059696bc00ecf9266b68cbed4b0cd690e3ffe6f80e1755a72c193a"
+    },
+    {
+      "path": "src/preload/image-viewer.js",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/preload/image-viewer.js",
+      "bytes": 1838,
+      "sha256": "c1c25e455edd7eb9d6c8d1e85a8bb670d1c1a07fa7e888c6b6dab72fef96c728"
+    },
+    {
+      "path": "src/preload/index.js",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/preload/index.js",
+      "bytes": 52648,
+      "sha256": "3dda505f7afc673cbf476f1d040b12f7e8613f29c225ba78d8e413e7e48d8068"
+    },
+    {
+      "path": "src/preload/notification.js",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/preload/notification.js",
+      "bytes": 1805,
+      "sha256": "521b7c93fd7d408e57f5644c9df500321a39c573996a2089d4d23228fcf42533"
+    },
+    {
+      "path": "src/renderer/assets/client-Bg2hQ5uk.js",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/assets/client-Bg2hQ5uk.js",
+      "bytes": 554778,
+      "sha256": "59968640056a2fe659d14f43f59a5f273fc92729911e477d2fa15d569c86084a"
+    },
+    {
+      "path": "src/renderer/assets/image-viewer-7GeFMU21.css",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/assets/image-viewer-7GeFMU21.css",
+      "bytes": 16908,
+      "sha256": "2c23308614aba21bd8546fbca71df57261ba683525416d36300007b734b9fe93"
+    },
+    {
+      "path": "src/renderer/assets/image-viewer-BiP1Iv4A.js",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/assets/image-viewer-BiP1Iv4A.js",
+      "bytes": 50044,
+      "sha256": "6a17d1256b05892d3da5424718411e6da4bbbdfb4d6868f6e9d8d4da6a72b84e"
+    },
+    {
+      "path": "src/renderer/assets/index-Bk459aoT.css",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/assets/index-Bk459aoT.css",
+      "bytes": 604040,
+      "sha256": "9d034e76a6ea2fd0ef5027d14aed6447a560665322fc48959f0913eb0d17bf45"
+    },
+    {
+      "path": "src/renderer/assets/index-DPCwIOAb.js",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/assets/index-DPCwIOAb.js",
+      "bytes": 2863507,
+      "sha256": "8547e1338248bf174063cf7153c398a6d1a7d8c72ec0e6780e25ed01a954bde3"
+    },
+    {
+      "path": "src/renderer/assets/message-images-Dl-McHRQ.js",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/assets/message-images-Dl-McHRQ.js",
+      "bytes": 145330,
+      "sha256": "ce904108976b2ab13691e9d5f23e63f00e67eba3630c4d6eaf6bb961cf0ef0a2"
+    },
+    {
+      "path": "src/renderer/assets/message-images-FTkZqR_D.css",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/assets/message-images-FTkZqR_D.css",
+      "bytes": 11060,
+      "sha256": "f0d9f60d8910beebff3226dafbf7150e7f6862fe2334c90a8d8ff3dbf361519a"
+    },
+    {
+      "path": "src/renderer/assets/notification-BiBtnUUc.js",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/assets/notification-BiBtnUUc.js",
+      "bytes": 10427,
+      "sha256": "a9039a97248d39f00d975c0fed9ea33225bfb05154852023b5eb78e9b4237fe7"
+    },
+    {
+      "path": "src/renderer/assets/notification-c6g_Eggm.css",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/assets/notification-c6g_Eggm.css",
+      "bytes": 6253,
+      "sha256": "834c5f02ceca86ea0e0b3db2f7d5d440c47847f776c22749659e83fc256f2aab"
+    },
+    {
+      "path": "src/renderer/assets/segments-CBPICGMn.js",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/assets/segments-CBPICGMn.js",
+      "bytes": 13667,
+      "sha256": "c71f1cbc9d80763fbda747bb3afe2b65370420cc19035978c02fedd55b6a54e4"
+    },
+    {
+      "path": "src/renderer/brand/alpha-logo-dark.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/brand/alpha-logo-dark.png",
+      "bytes": 73895,
+      "sha256": "423937d20be31a326d3059a9b5366322de423e61371890580daacb8dec3e781f"
+    },
+    {
+      "path": "src/renderer/brand/alpha-logo-light.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/brand/alpha-logo-light.png",
+      "bytes": 68290,
+      "sha256": "9522390c31ffd53993f8433a071e59efb2b28475135ee4c5218d756db6b9a354"
+    },
+    {
+      "path": "src/renderer/image-viewer.html",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/image-viewer.html",
+      "bytes": 891,
+      "sha256": "12d85a15a0b2cd9ae0362ac75e80ca52191afd2ca65529c5dbb0ad753fa97080"
+    },
+    {
+      "path": "src/renderer/index.html",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/index.html",
+      "bytes": 995,
+      "sha256": "d94861e9c8ddfab0d03fc13b22a18a03140afbedbdc293fe8bbee1323886e393"
+    },
+    {
+      "path": "src/renderer/notification.html",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/notification.html",
+      "bytes": 758,
+      "sha256": "fac1226410c0ab50e39d7c360f5f0f3c8e24196d4b8ac47340ffb1bc8a802b83"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_100@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_100@2x.png",
+      "bytes": 1804,
+      "sha256": "2a185ffed01ba5fd7bd4cbc24326437d9806d7909fe3cbb5e47c8beb552ec3fc"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_101@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_101@2x.png",
+      "bytes": 2037,
+      "sha256": "74ef1476bb0360050678e6cdf5b0b2731caadab1ca3aaecb5965147b47c4ce68"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_102@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_102@2x.png",
+      "bytes": 1822,
+      "sha256": "2645735c72f56161c84675e3c4bb0489df1081e543b050abc0044c7002591f76"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_103@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_103@2x.png",
+      "bytes": 2072,
+      "sha256": "137a5b9bd1909fd2016438556fc115e578beb260115dd790cb1b599280cfb83a"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_104@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_104@2x.png",
+      "bytes": 1666,
+      "sha256": "7cd9c8f7cd516ebc5a5f89231f788f55e27f70a3be05c378611315f5e05d720e"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_105@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_105@2x.png",
+      "bytes": 1809,
+      "sha256": "2fafb760fcfcd0310d1054f699ef954a2f18907c760dd7e31b8e7d55c7924fd8"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_10@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_10@2x.png",
+      "bytes": 6583,
+      "sha256": "4580ae033d17dada62bfa3840d95298d6044c3a6f1ecd4b5b96f5782bc23ee80"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_11@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_11@2x.png",
+      "bytes": 5700,
+      "sha256": "f61dc7a22922738bb74e169789e8da97c2f025c4c473de29d12fc976e994fa08"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_12@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_12@2x.png",
+      "bytes": 5954,
+      "sha256": "6fe9be86d102041d50b68e48cd95b82e4860f418e3fb4367a013d7be1d91f663"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_13@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_13@2x.png",
+      "bytes": 5985,
+      "sha256": "6a9aaf83e2f10e52d9fb8274ee4671230121051c89fa2a94ad8af199da9f7b61"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_14@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_14@2x.png",
+      "bytes": 7326,
+      "sha256": "c4defd50bd194b08b70c14ad31b403e0309203102ab0cf87b0190838404afd32"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_15@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_15@2x.png",
+      "bytes": 6130,
+      "sha256": "bac729b0bb67782339620bb139ca8541dea92b55e61b52587f76d31db5a7165e"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_16@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_16@2x.png",
+      "bytes": 5921,
+      "sha256": "89e042957ea6bb5d1e5b1f9d5440e73dece6dfb2fe21cf7a931488aae037b767"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_17@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_17@2x.png",
+      "bytes": 1901,
+      "sha256": "78054accfff8a500f517fca2f2d7f44811f0d3047a8a8861a45f3643f1d48db5"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_18@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_18@2x.png",
+      "bytes": 6350,
+      "sha256": "74e81be39d2c5551a5f753c43dd6ed0caad08bf056a7a33defc63453f310a2b2"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_19@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_19@2x.png",
+      "bytes": 7628,
+      "sha256": "53f2d179ed1fd161daa607192afc1ce7b8d0442c86b0b9936c7a268bb2fe31b7"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_1@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_1@2x.png",
+      "bytes": 6840,
+      "sha256": "9eaa358eda88b0fb4b4cb1cbd5c33b1982f180c490c7ec2fad34418423c67ab0"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_20@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_20@2x.png",
+      "bytes": 6787,
+      "sha256": "e91c102feb836ec2d5ee527bff16acc58803a85bffd0194f27df338ab6ef679a"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_21@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_21@2x.png",
+      "bytes": 7654,
+      "sha256": "b2a4ef91a585fb629a2c494bd770b43ce1065d97131a976d8bb1779b7892346c"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_22@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_22@2x.png",
+      "bytes": 6251,
+      "sha256": "10b8535357b9134530a500f2171e70659e5c82e09d451f3958885a24f6bce2e7"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_23@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_23@2x.png",
+      "bytes": 6878,
+      "sha256": "0228bacafd695f4bfe3e7652483c19b4259c925ba46c66d4ca5d43ea96acf148"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_24@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_24@2x.png",
+      "bytes": 6891,
+      "sha256": "c1292540bf4e3a3565e1016bbb0c7955c3c0b57d06904ccc56c0cc740af62ba6"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_25@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_25@2x.png",
+      "bytes": 1927,
+      "sha256": "67cf9b1a70289c583ed4b2bc72d4c6174364a0df56d0eb93ca9ffb96494ebc5e"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_26@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_26@2x.png",
+      "bytes": 5624,
+      "sha256": "2f9174dce65702b38d3fe999bc7ebe22206d9d97d59b2730ad4dd7b090b24262"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_27@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_27@2x.png",
+      "bytes": 5982,
+      "sha256": "b7cc68b9a1a0cba7e6c89dfb1c3c8c9b1c13cf053976935eee6696717c19481b"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_28@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_28@2x.png",
+      "bytes": 1904,
+      "sha256": "28a143d4716ff9389e36e7c15c1faf7fc6e5bf88289350cff43d7ac9a70c60a5"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_29@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_29@2x.png",
+      "bytes": 7152,
+      "sha256": "b0eb8f27a86aa5318f171a526cf60d68831482e646fb25bb00d340f67df546de"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_2@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_2@2x.png",
+      "bytes": 6086,
+      "sha256": "0851de3e85ab3db8e7f2eee83dc6c6f4370d195e8cde1561443da2e1df30c543"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_30@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_30@2x.png",
+      "bytes": 6000,
+      "sha256": "e57ed6591726a3553c33f054b78b5b5f8093f64b932268136aa8f850a34e49b6"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_31@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_31@2x.png",
+      "bytes": 1994,
+      "sha256": "8eb56e05254e37922e16343868dda6df82cf26d0095e67f8cbf5a6a7eaac722f"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_32@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_32@2x.png",
+      "bytes": 7369,
+      "sha256": "d1b9912643277112515b96c83c73bae3e8a23fe8c7bfa0f07b09071d79e4ef0d"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_33@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_33@2x.png",
+      "bytes": 7356,
+      "sha256": "0eca685e0505e1ae08757e7c368130fdef7fc0ad8c547c5a84df3dfe72e2a11f"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_34@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_34@2x.png",
+      "bytes": 6391,
+      "sha256": "ff0bb6a5c771ee6884ba28f7a243e7761aaf3fdb589f0ab7832418349f88592e"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_35@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_35@2x.png",
+      "bytes": 7815,
+      "sha256": "289baf4d51dd6b58f9d67ddcbc28803fdc6bd7b96d2eca1c552fc8d9cb162393"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_36@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_36@2x.png",
+      "bytes": 1948,
+      "sha256": "25f215b77433a70af16219dd27c28a963dba7a7f34671b42cd32a28748048ed8"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_37@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_37@2x.png",
+      "bytes": 5759,
+      "sha256": "90574ceff499902541753d146714396e366b70c49604a29c412d2cf9bba521f3"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_38@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_38@2x.png",
+      "bytes": 6766,
+      "sha256": "02535ab6fd2e46ae41396fa1d331d50b86e5ab1a83d02ef84a439b66ac76b65e"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_39@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_39@2x.png",
+      "bytes": 19104,
+      "sha256": "790dd37db36eb40262ceea0ac1c92377750a6b458b85bf6e81717f962dec5688"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_3@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_3@2x.png",
+      "bytes": 6285,
+      "sha256": "4626da7f59372cd3df1e7c396a488839b488ba93f8769af9c9365d182774981c"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_40@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_40@2x.png",
+      "bytes": 6289,
+      "sha256": "26d6322788adb75e5834f23ca7f4b3a06df1945fe3dfe296c05b6cef892f3f84"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_41@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_41@2x.png",
+      "bytes": 6536,
+      "sha256": "241eb6a675ee3ba7b79403c45adc031c0cd95276ffdb9196c9a0ef01647403f4"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_42@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_42@2x.png",
+      "bytes": 6418,
+      "sha256": "027361ffc45bc081776de4a21eaf9eea615632afc85178f6a6ee8177995cf468"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_43@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_43@2x.png",
+      "bytes": 7483,
+      "sha256": "bf88a6cdb762d3fe9cf6f42f73b891dc737b1ce3439922d9a22171631287a585"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_44@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_44@2x.png",
+      "bytes": 1948,
+      "sha256": "22f8b06f77f679fe291ee1105400178f2d9178477a921b9411b26e6ec7ecc2c4"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_45@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_45@2x.png",
+      "bytes": 6358,
+      "sha256": "cab6e36716372dbe67a35bc609df19787cf4c7926bb539b9f504328f9303d22f"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_46@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_46@2x.png",
+      "bytes": 7041,
+      "sha256": "caca559f578608f8684ee04f874a3645920888e93a784acb13d99f7e09d0add4"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_47@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_47@2x.png",
+      "bytes": 5950,
+      "sha256": "a20eeffec7bd58a2f36e73b9614c0934789a5ed756208795bb6ebace5bcd8d99"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_48@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_48@2x.png",
+      "bytes": 1810,
+      "sha256": "58410b97733e2f17f1807d539f81c74fd401a90bf9727ecf917cacd914d08087"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_49@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_49@2x.png",
+      "bytes": 7877,
+      "sha256": "46a9634f82ad7d1c80f12c6cd752fc0bfdfd99db5ca1ea7f3d2647cf0bbd47a3"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_4@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_4@2x.png",
+      "bytes": 6867,
+      "sha256": "03a1ddc6c60ab8caf364c451ca0a860d9ff5754b501660e1fff20e770089248b"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_50@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_50@2x.png",
+      "bytes": 7547,
+      "sha256": "5f57b2b76dbc80aa8881d1bf55f6428502d2924264f02336d17b637c04da58d0"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_51@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_51@2x.png",
+      "bytes": 7146,
+      "sha256": "8a758db12c305457b2def26754ec6f614446a4fc6b802c29f0f904633077aa4d"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_52@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_52@2x.png",
+      "bytes": 7120,
+      "sha256": "83bee467d637cb9f69206455db4a48dd0144de21408cbeb37dfc7a282484088a"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_53@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_53@2x.png",
+      "bytes": 6709,
+      "sha256": "17e53a8ae41467ba1073286f469aacbf7674688409023f5522f91943d9aaa3e4"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_54@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_54@2x.png",
+      "bytes": 1908,
+      "sha256": "c329712a6a8bcd2f6f9ecfe12c545ac4eb9102fc611459b871b7191a245e860d"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_55@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_55@2x.png",
+      "bytes": 7380,
+      "sha256": "64fb72b008bd49efbae57cba79893834b80a36c0fb2a69f740857fee1be793c1"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_56@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_56@2x.png",
+      "bytes": 3640,
+      "sha256": "4da10bbe6bc993523282de2b25827293cbfe347071cdce8c5fac388547c2ef7a"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_57@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_57@2x.png",
+      "bytes": 1768,
+      "sha256": "15ea5270f0e894eb93462d5d50a65031c15c18888f7f5087b734a0d3b71c0bd1"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_58@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_58@2x.png",
+      "bytes": 7300,
+      "sha256": "0ddbcac1871ee6f2cd7c0e1ebc85cee4e73d6468419ec10d210228516e657cb8"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_59@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_59@2x.png",
+      "bytes": 1833,
+      "sha256": "37a63c88405fcf01d2203e328f706a551a4a9d097e79d6da259b8c29e4780694"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_5@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_5@2x.png",
+      "bytes": 6745,
+      "sha256": "ffacc8568fd441e7dd00074672efba85ccb1df0c68051056715145690d403029"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_60@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_60@2x.png",
+      "bytes": 1687,
+      "sha256": "d07c9119fa091e2f03c20beafb8b7714628795a758c24b9110ed2be1901141c8"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_61@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_61@2x.png",
+      "bytes": 6453,
+      "sha256": "57f8c27910193572b491ef44eed3e76d574452f01e19ba41d5526a38290f798a"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_62@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_62@2x.png",
+      "bytes": 1584,
+      "sha256": "bd2df947d5d520af26af401eb89da4db810edf734a20d03e9540a241b702f90e"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_63@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_63@2x.png",
+      "bytes": 6329,
+      "sha256": "e19a294d06382992e47a84de9d873aa80f848e997e67e352f5fcae419c97aa04"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_64@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_64@2x.png",
+      "bytes": 4388,
+      "sha256": "84dcd870c011cd52c214696f4efc4b0108e56217e1d43ba290cedd630ad35ada"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_65@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_65@2x.png",
+      "bytes": 5727,
+      "sha256": "1813c9ab4ef705d30a3b7fb07c751ecc69484ff5a184be1d96b869ae5c5e9c75"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_66@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_66@2x.png",
+      "bytes": 5675,
+      "sha256": "170bc3e06924996b0b5f2b6d3f37424ceffc4505a40f5feb0db8a40bf6e522e6"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_67@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_67@2x.png",
+      "bytes": 7169,
+      "sha256": "a01bf8b8ca103e518cbdb0285e1e60b0dd1251a0ac0b007aafb6520ace4911d9"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_68@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_68@2x.png",
+      "bytes": 5764,
+      "sha256": "2979d0b92cda94fae8bb3476c42eb839d6b37c87f0cd0ab13dc68da43c381c2d"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_69@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_69@2x.png",
+      "bytes": 6654,
+      "sha256": "e330d5a49511dd3e44e584b576a23defae461a02d47f3f932d6e4de56a2f81df"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_6@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_6@2x.png",
+      "bytes": 5529,
+      "sha256": "1b4ee441e2c62310aaad82b74da2fa1c611074bfa8ec2957a4d3fb8acb07e69a"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_70@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_70@2x.png",
+      "bytes": 904,
+      "sha256": "768deae2171ecd2a83de7415949b06b734a609e7b6a6312c7eac47a81b9a208e"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_71@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_71@2x.png",
+      "bytes": 6041,
+      "sha256": "af7d92025aa67b7597f766a62b68d680d6ac09a57387d096c7f2bef838c96437"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_72@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_72@2x.png",
+      "bytes": 1032,
+      "sha256": "c54718922a432cf13ab9f15253c25d6181cf8384ffea2e2bd791b2962cb151b9"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_73@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_73@2x.png",
+      "bytes": 1486,
+      "sha256": "d189b901505bd7c8b8a4402cabc39537468424527b69be83537a9d7c0f080c36"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_74@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_74@2x.png",
+      "bytes": 1668,
+      "sha256": "f6fe9734880aedfccb2d84a5503b823ab25b2e7aac38d788450eeb6c7e05ba78"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_75@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_75@2x.png",
+      "bytes": 6525,
+      "sha256": "a721f469df9e9819da1090246d196d2f97215bbf7d9e4c190ce107a27eea60e1"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_76@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_76@2x.png",
+      "bytes": 6984,
+      "sha256": "e20557120c101d2d83d208a9b99bfda44231f73b1548c754fc7fc69ee9d0a8c7"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_77@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_77@2x.png",
+      "bytes": 7824,
+      "sha256": "a4f1218a417481c63a66338bd40532ff23dedd232c159eaddf7b54089f4bb9f0"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_78@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_78@2x.png",
+      "bytes": 7323,
+      "sha256": "5fda4fc63b3b80e52268c74637356f097b27cc4702663720302d707f080e9780"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_79@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_79@2x.png",
+      "bytes": 5823,
+      "sha256": "644afdc3f58f1721692fc5ff65f97580eea6e7745ff1672b326345d21e9e921d"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_7@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_7@2x.png",
+      "bytes": 6743,
+      "sha256": "81fe36141c51ae8e68f61adca3154bde943d43b59e621ddb0e407e60580592b7"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_80@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_80@2x.png",
+      "bytes": 5410,
+      "sha256": "9b67655255bb2d0b130b0e29bed57e136739faf91dbaeb79d28999561263d3f2"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_81@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_81@2x.png",
+      "bytes": 5245,
+      "sha256": "afa9142dca61f2d5be63cbb87f581abb9add1c4862c24d17952414a6a6a73637"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_82@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_82@2x.png",
+      "bytes": 7490,
+      "sha256": "a4f3c586c62c0d253ed5ec97c0147ab477bdee6877cb97f169063a36f6bcdba6"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_83@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_83@2x.png",
+      "bytes": 7182,
+      "sha256": "f92ffabb765649ed05cbcf69b71208fb7359aed98bacadb9e47da619bd8943f5"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_84@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_84@2x.png",
+      "bytes": 6870,
+      "sha256": "b2cd8eba805f641a43a023f464e5976f077c558dc924780526cd683a09db829e"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_85@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_85@2x.png",
+      "bytes": 6322,
+      "sha256": "73a91de42c0bec980df9f3bcdd4efb65a0099d668e69d79637d6877ea5cda637"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_86@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_86@2x.png",
+      "bytes": 8024,
+      "sha256": "9c6da5abb86d58558a512651e2a131ab63f26b6927b1ccde6757c0103737b592"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_87@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_87@2x.png",
+      "bytes": 1466,
+      "sha256": "75cdf7dc94800e01140147177cc36425e8d09ab178343a166efc3b1ef745440c"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_88@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_88@2x.png",
+      "bytes": 1540,
+      "sha256": "ca24372d5d770bd731216e1f6f356534f56928114b0be33a1b43a1b167c24809"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_89@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_89@2x.png",
+      "bytes": 1380,
+      "sha256": "0cf91705ce1bae34eb2c79059edce42787f3e2147c1c6ffa630e26e24477e6bd"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_8@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_8@2x.png",
+      "bytes": 6466,
+      "sha256": "9c6076a644d05cd5339862ede407317b7df81ce4537e740eaf8979768f697209"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_90@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_90@2x.png",
+      "bytes": 7937,
+      "sha256": "655f5b78790091eeb17c9b218f867257dbd6a0ed0270b4c812c3bbf00ec8e3f8"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_91@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_91@2x.png",
+      "bytes": 1804,
+      "sha256": "7e41b971423b308cb0ad55cd54349c724d00cb963691a7d36c3f45ca4e3f0e52"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_92@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_92@2x.png",
+      "bytes": 1636,
+      "sha256": "371d3c56b694ef92852728a69e656e1f202c219e92faa97e987d36c9ba7de574"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_93@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_93@2x.png",
+      "bytes": 4724,
+      "sha256": "c193205ce135477a26d29c930d36db41d224338dd2733346439f668125f991ec"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_94@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_94@2x.png",
+      "bytes": 5060,
+      "sha256": "3560f0eaaffb4de27eefaaf18c3fbaab68fa1b3b47ddd5e5bf07ddd1a16aa350"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_95@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_95@2x.png",
+      "bytes": 1759,
+      "sha256": "4dc90633e9b5f462702c6dd654cbe42c75348dda0cfb6c0c63594f2f1dad607c"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_96@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_96@2x.png",
+      "bytes": 4555,
+      "sha256": "73de89f549d84a89f7851be6f84a17663b993c3ca1e43bd97d6473256cd729c1"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_97@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_97@2x.png",
+      "bytes": 1806,
+      "sha256": "40ee63023f25b8be98f9256956706be0dc7a5efcefc3123b42909589d0778453"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_98@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_98@2x.png",
+      "bytes": 1836,
+      "sha256": "607370140e93916467dc5c11c7c098f3dec5c10c9523584f22134b8bae90c03c"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_99@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_99@2x.png",
+      "bytes": 1828,
+      "sha256": "0e8c9a6785cc9cdb73e837fc542b8476c74b601f5068dba365229964566cdd51"
+    },
+    {
+      "path": "src/renderer/wxemoji/Expression_9@2x.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/Expression_9@2x.png",
+      "bytes": 6322,
+      "sha256": "c125862dcc3ce217d25844714eff3d3e9a1a9f3e2d4e17301c515e2f40c308d5"
+    },
+    {
+      "path": "src/renderer/wxemoji/NOTICE.md",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/NOTICE.md",
+      "bytes": 440,
+      "sha256": "a6ba6b25bc802b1747a69769c93240823572d339ab001375a00536d0cec3c60d"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_02.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_02.png",
+      "bytes": 10278,
+      "sha256": "b318704b4cc7b0ee0e6eadcafa1ccd1c6341fac705a1343bbba5d2c7e634c649"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_04.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_04.png",
+      "bytes": 10912,
+      "sha256": "7069fbf09387fa102977a0f2799f58280d35350e01113e2071186f66ae12fc71"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_05.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_05.png",
+      "bytes": 11045,
+      "sha256": "b1ef1b3958fbc80e9dce7903b76d81c8dd73f30ae45ff7158489330942272ce5"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_06.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_06.png",
+      "bytes": 10714,
+      "sha256": "a64de36ba7d7fd2b4e7f190bdee0bec12f77030e29e28394644b81c898a7bd7f"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_07.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_07.png",
+      "bytes": 2659,
+      "sha256": "ff720d04f8eebcf19cd35f1db25c4532cc15a987e9828ed557e79b30c31fbaa5"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_09.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_09.png",
+      "bytes": 5262,
+      "sha256": "4da4eb6dbe1df58f2ec84e0de12b5b15bfa43f7d4c8a11a408239669081f92c2"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_10.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_10.png",
+      "bytes": 2139,
+      "sha256": "cb11941765f135b60519308523fd365921c5523e884a16d6614c977297266385"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_11.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_11.png",
+      "bytes": 11288,
+      "sha256": "81175277a6657028ae6d228dd295ce6c7ed6302c9b4275f95101e6a37f0cef94"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_12.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_12.png",
+      "bytes": 9957,
+      "sha256": "c1657f6ae45425d837acf2cc67535ab50aa69d363733e704d36c6350c2abb2ff"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_14.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_14.png",
+      "bytes": 2674,
+      "sha256": "f3f21abf17d85d8f070ed9d84fd75ee0f8c7477bb9988e5b04c0568658be4c06"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_15.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_15.png",
+      "bytes": 8369,
+      "sha256": "60e764f14ef61bc949622d0ce5128933f4fb6b98f5a316dbd8e7d9f630ceb842"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_16.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_16.png",
+      "bytes": 9362,
+      "sha256": "d9f2205c178f371e64c271a5347822c6abe2bf319934c0321c6074f80bd7b295"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/2_17.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/2_17.png",
+      "bytes": 3086,
+      "sha256": "74f81b79a984f4c7b7c2f8a8972b3e45f498135797a5e00a2f0c17e83bacf3d3"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/666.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/666.png",
+      "bytes": 11470,
+      "sha256": "590669b9b276a5f0e3be9b114c3136f25dc1903f98501fcaf051754fe9746242"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Addoil.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Addoil.png",
+      "bytes": 11381,
+      "sha256": "38a2775b8ab8881b009e07caec50490bcf29b1d43985e69552011017fbb21196"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Boring.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Boring.png",
+      "bytes": 8921,
+      "sha256": "da9fcefdd8acd9cd30366edae5e47ffa515519dcb306de47333b19bb7c73f944"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Broken.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Broken.png",
+      "bytes": 11371,
+      "sha256": "48662bdff12759e7c52b0e8820660d6a17076f650e64a51b537fb9d0be320d70"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Cold.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Cold.png",
+      "bytes": 9660,
+      "sha256": "ccca82523a2250313e454c96997f4a1c85e06a3f87a5df6dcef6cf02d38b75a2"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Duh.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Duh.png",
+      "bytes": 9985,
+      "sha256": "b01ad07e13f09364b13598cdc60f3d9824e261bf7f3a90a82e53d232ea5bb092"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Firecracker.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Firecracker.png",
+      "bytes": 7710,
+      "sha256": "1add03dd3d1e992b47d6c30de2d42ff67f24f7b5bf63d22bb18e0739fd3641be"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Fireworks.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Fireworks.png",
+      "bytes": 10823,
+      "sha256": "56361c1967a6a9e9e6f32bbd302745961c04e07c3eb477d47aebd1e716b3f012"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Flushed.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Flushed.png",
+      "bytes": 10008,
+      "sha256": "92fdeffea72ce8321a48100dfa34284aa26300145721b18e555554f1ab3c0663"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Happy.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Happy.png",
+      "bytes": 10164,
+      "sha256": "73a539c116eb012c6ba1441e2365a302134a69cc2625e8fab5f3e9083e273047"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Hurt.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Hurt.png",
+      "bytes": 9287,
+      "sha256": "6252e75d27384fde548c18f7b4e9f8611f9c003748752d96f8de23ebdbaaf59b"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/KeepFighting.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/KeepFighting.png",
+      "bytes": 4515,
+      "sha256": "aef5b24ca793a6c446954a4aab3034555080f8249957beb4f9caf04679018c32"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/LetDown.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/LetDown.png",
+      "bytes": 9870,
+      "sha256": "922d6c50a91f677553eeeda169f9a43c7ba27bcd721870bf151cd6061b56bdeb"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/LetMeSee.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/LetMeSee.png",
+      "bytes": 11901,
+      "sha256": "28d4bc60fd3b35852471e9e55a4505ff96f8dd68309b2ff026f7908d4c36d55c"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Lol.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Lol.png",
+      "bytes": 10475,
+      "sha256": "9c41be5d108b4a82f89f5bb1461d5633bef67d0332488370a45d716a4d75516a"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/NoProb.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/NoProb.png",
+      "bytes": 11342,
+      "sha256": "0d265e281bcf5af993fd841952eb74e64f5f99d7ed235fab4d7b9cf5acf1b4a1"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Party.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Party.png",
+      "bytes": 8527,
+      "sha256": "35da9627775e952a409bb15e31d2691bba99e65c12cb91ec10a197cb9f2331a8"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Shocked.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Shocked.png",
+      "bytes": 10393,
+      "sha256": "4e73fddae1567da41b0f24e569526b68abbc77d06cbc0de2eb1a7759f2a668d1"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Sick.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Sick.png",
+      "bytes": 10060,
+      "sha256": "25e5b8de1937e2a8cbbe0efbba12b1b7dc33bc911e5fce71ae4010a7c15e0b34"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Sigh.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Sigh.png",
+      "bytes": 10175,
+      "sha256": "395f27045f9cbe31c38950b1c26a5b1264d538aa41fcfae8aa94ee8174273737"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Slap.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Slap.png",
+      "bytes": 10214,
+      "sha256": "dc10b180b6ac9e6456823b4a7961d413ea8c3c62e2bda2218d7bf736aeb7e2d9"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Social.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Social.png",
+      "bytes": 11373,
+      "sha256": "daa5653701329496edabbe7358657dce5f0f342d55313e677b6627500e02ec42"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Sweat.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Sweat.png",
+      "bytes": 9561,
+      "sha256": "a43a94bea9453d296b184cbae2937124acc967ddb36ff79ee724201cda5dbb3f"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Terror.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Terror.png",
+      "bytes": 9522,
+      "sha256": "088fcf0af1fac76121ecfeac7278b14c4911ada9322de43c3841f21987e134a9"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Watermelon.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Watermelon.png",
+      "bytes": 9895,
+      "sha256": "6a36f71b9bc4278838ce48c9efe813112de340e0e54d62c79586c6a3803b0b12"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Worship.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Worship.png",
+      "bytes": 8228,
+      "sha256": "cceda93b5fad758a568ef2aaad42a11250cea5885c23370a21483ccedee0e002"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Wow.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Wow.png",
+      "bytes": 10731,
+      "sha256": "b1e067ad28cf99ca904c4c8373f240864d8f02a64b1aee10c9148f027085ad3c"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/Yellowdog.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/Yellowdog.png",
+      "bytes": 9927,
+      "sha256": "20d994b84c6e3fabdec70610eca3addf5e61d42e3d43e574e76e9a5629271cd1"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/smiley_39b.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/smiley_39b.png",
+      "bytes": 10699,
+      "sha256": "49912f2cf4f49f7300ed6e4422ca5d5b50db593c31158d5e3646068d430f400f"
+    },
+    {
+      "path": "src/renderer/wxemoji/new/smiley_83b.png",
+      "original": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out/renderer/wxemoji/new/smiley_83b.png",
+      "bytes": 10558,
+      "sha256": "e34e2cede4353d3f67effe7edcc2642272d47d89bb1be2023fcaa9fb1bfb3005"
+    }
+  ]
+}

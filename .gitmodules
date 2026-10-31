@@ -1,0 +1,3 @@
+[submodule "vendor/chatlog"]
+	path = vendor/chatlog
+	url = https://github.com/imldy/chatlog.git

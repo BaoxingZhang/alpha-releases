@@ -1,0 +1,162 @@
+{
+  "architecture": "arm64",
+  "artifacts": [
+    {
+      "path": "README.md",
+      "sha256": "356e6f9b4bebec3e0edb17e122610289fe0387e4b1395585508034be67fc96e9",
+      "size": 11504
+    },
+    {
+      "path": "alpha-xkey.component.json",
+      "sha256": "16e05b059df32aa329f99b1fc45af919f31977fd89b255930fa7285bceb5cbcd",
+      "size": 6220
+    },
+    {
+      "path": "bin/alpha-key-worker",
+      "sha256": "c4f79fcbcc88ed5e767dad3a86508af2bd629d01ac2da659d708ae215a209e01",
+      "size": 2277152
+    },
+    {
+      "path": "bin/alpha-security-host",
+      "sha256": "048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8",
+      "size": 9112272
+    },
+    {
+      "path": "bin/alpha_xkey.dylib",
+      "sha256": "f241dc5f1dc402b8f3427ab0e0fce5fe06eb85bf9758cb46139542d8d260fe51",
+      "size": 515552
+    },
+    {
+      "path": "bin/alpha_xkey_helper",
+      "sha256": "97812a07af645aeab7e0fb3875300b77126252077ccf9b28339ee1e950ea2d4d",
+      "size": 513440
+    },
+    {
+      "path": "docs/helper-protocol-v1.md",
+      "sha256": "cd12ca498d508e9ae11aa853483263aef182e86938108a66ffd6a048c2c6e137",
+      "size": 2900
+    },
+    {
+      "path": "docs/security-policy.md",
+      "sha256": "753409422e6e6ddc998199171a8870b852f170043edec186f2ca54900a5c9e34",
+      "size": 8211
+    },
+    {
+      "path": "include/alpha_xkey/alpha_xkey.h",
+      "sha256": "25259cf98fe61b3731a6dc95aa76ea0af3cd86d5a4f8a3ad85c6ae90c79bf375",
+      "size": 3349
+    },
+    {
+      "path": "manifest/alpha-xkey-manifest.schema.json",
+      "sha256": "dc20504874d39ccbb627ab47996329f789f857df10b4dbfea60823c980ab4d58",
+      "size": 5816
+    },
+    {
+      "path": "policies/alpha-key-worker.date-decoys-provenance.json",
+      "sha256": "fb26ad15da4330813196a679f3bc4f941c1d02d302d22bc9f7026ebdfbcc9bfb",
+      "size": 758
+    },
+    {
+      "path": "policies/alpha-key-worker.json",
+      "sha256": "ec522fdea2634766174ced2d01f3903c36b157957bdbb33ea4ca162a3b4fb068",
+      "size": 1125
+    },
+    {
+      "path": "policies/alpha-key-worker.json.sig.json",
+      "sha256": "10a4c6313aa22a9fbf97af707252c4595482aed4c03566d715b8f53a0a8dcdd3",
+      "size": 414
+    },
+    {
+      "path": "policies/alpha-key-worker.policy-provenance.json",
+      "sha256": "abdeafd147b8e1284c6a6f6646c029c543ff429b3dcc19cb3cac3a368eb9b35d",
+      "size": 1621
+    },
+    {
+      "path": "policies/alpha-security-host.date-decoys-provenance.json",
+      "sha256": "6a2c10504be65ed4904d422a739faca4b6a1e67c1250505a76c8f874ab971b71",
+      "size": 783
+    },
+    {
+      "path": "policies/alpha-security-host.json",
+      "sha256": "f694362008578a439f353ff97d88503b6466768182ec3e9c1e8260f42a36a4dc",
+      "size": 2934
+    },
+    {
+      "path": "policies/alpha-security-host.json.sig.json",
+      "sha256": "604187c6984631346a06c6aacd91f1b953ef2bf249a944c425de645a5bf7f1e4",
+      "size": 414
+    },
+    {
+      "path": "policies/alpha-security-host.policy-provenance.json",
+      "sha256": "3dcc4812609dc342772e945ffb454bbb24c710b8ab7973140a31fc48c0f44eda",
+      "size": 3430
+    },
+    {
+      "path": "policies/alpha-xkey-helper.date-decoys-provenance.json",
+      "sha256": "62138e819788ad65341695bd8c29fa25979aee02954433be0eaa64a8dbcffb0a",
+      "size": 760
+    },
+    {
+      "path": "policies/alpha-xkey-helper.json",
+      "sha256": "eacbdd0dbd2e3758bba3ab1cc3532a12f458743c236502464f89f23ff5b728fa",
+      "size": 1046
+    },
+    {
+      "path": "policies/alpha-xkey-helper.json.sig.json",
+      "sha256": "0d15813fa30cd5276ef7242dcaf291ca0d1162c85b5583ae311685916a58210a",
+      "size": 414
+    },
+    {
+      "path": "policies/alpha-xkey-helper.policy-provenance.json",
+      "sha256": "8d9ad54f66301fdda288e7a7022e5bec6c58b018407b854da9140f8c87c7552d",
+      "size": 1542
+    },
+    {
+      "path": "policies/alpha-xkey.date-decoys-provenance.json",
+      "sha256": "cc4db92060605cb317f000f1d35aa33d0b689361ef267069d7a9f06207fa30bc",
+      "size": 746
+    },
+    {
+      "path": "policies/alpha-xkey.json",
+      "sha256": "d5f0046fd0c09f2147032a6ac3db55c30b8b06f89b3b09e9212b3618ca9bc38f",
+      "size": 1218
+    },
+    {
+      "path": "policies/alpha-xkey.json.sig.json",
+      "sha256": "c67f59f5b33177ccbfe0b9a799bdf84a449f4f0d8f7286b6782a20b5d6c945ec",
+      "size": 414
+    },
+    {
+      "path": "policies/alpha-xkey.policy-provenance.json",
+      "sha256": "cf9b4be72814422147889b4efbb86072289fed68cf0b6f52c270dfb1cb0a14ac",
+      "size": 1714
+    },
+    {
+      "path": "policies/component-trust.json",
+      "sha256": "80d71e227caa4176cfd7021ac05ab5f044361e81ded5168de886c97cd071a3e1",
+      "size": 857
+    },
+    {
+      "path": "policies/guard-sdk-provenance.json",
+      "sha256": "55239bd24619bf517e579dbae244afd756ec82429e7cf58e634b35296a183f65",
+      "size": 5781
+    },
+    {
+      "path": "policies/peer-trust.json",
+      "sha256": "de608415c30e81aceecb42f50730c67527dea564ce2759c2135ce95c14b3b96f",
+      "size": 190
+    },
+    {
+      "path": "policies/runtime-qualification.json",
+      "sha256": "33550d313abe6f175fed4d7a9a49daf30684a38234f043d021e0a26b109ad742",
+      "size": 337
+    }
+  ],
+  "component": "alpha-xkey",
+  "component_manifest": "alpha-xkey.component.json",
+  "platform": "macos",
+  "schema": "alpha-xkey.package-manifest.v2",
+  "source_commit": "b94eac22c3cb9c1544c3a776590143d1c10ce2fa",
+  "source_dirty": false,
+  "version": "1.1.0"
+}

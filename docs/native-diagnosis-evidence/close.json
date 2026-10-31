@@ -1,0 +1,27 @@
+{
+  "result": {
+    "_meta": {
+      "provenance": {
+        "untrusted_content": true,
+        "source": "analysis_target"
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"result\":{\"path\":\"/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/security-host.snapshot.json\",\"bytes\":326121,\"primitive_entries\":0,\"workflow_entries\":0,\"evidence_records\":27}}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/docs/native-diagnosis-evidence/security-host.snapshot.json",
+        "bytes": 326121,
+        "primitive_entries": 0,
+        "workflow_entries": 0,
+        "evidence_records": 27
+      }
+    }
+  },
+  "jsonrpc": "2.0",
+  "id": 31
+}

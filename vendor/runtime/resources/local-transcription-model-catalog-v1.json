@@ -1,0 +1,221 @@
+{
+  "schema": "alpha.local-transcription-model-catalog.v1",
+  "commercial_authorization": false,
+  "native_wechat_asr": false,
+  "recommended_models": [
+    {
+      "model_id": "qwen3-asr-0.6b",
+      "backend": "qwen3-asr"
+    },
+    {
+      "model_id": "qwen3-asr-1.7b",
+      "backend": "qwen3-asr"
+    },
+    {
+      "model_id": "fun-asr-nano",
+      "backend": "fun-asr-nano"
+    },
+    {
+      "model_id": "paraformer-zh",
+      "backend": "paraformer"
+    },
+    {
+      "model_id": "zipformer-zh-small",
+      "backend": "zipformer"
+    }
+  ],
+  "whisper_model_ids": [
+    "tiny",
+    "base",
+    "small",
+    "medium",
+    "large-v3",
+    "turbo"
+  ],
+  "devices": [
+    "cpu",
+    "cuda"
+  ],
+  "download_policy": "explicit-user-request-only",
+  "download_sources": {
+    "huggingface": "https://huggingface.co",
+    "hf-mirror": "https://hf-mirror.com"
+  },
+  "model_downloads": {
+    "zipformer-zh-small": {
+      "repository": "pkufool/zipformer-small",
+      "revision": "e1764e4e54504721900d1e6b99c746e7331980af",
+      "files": [
+        {
+          "path": "encoder.int8.onnx",
+          "target": "encoder.int8.onnx",
+          "size": 25848215,
+          "sha256": "b95f7a94fdc91408e4b1562391e9ed23c8bcab5e7ca0542adf88512a937e3e23"
+        },
+        {
+          "path": "decoder.onnx",
+          "target": "decoder.onnx",
+          "size": 24950841,
+          "sha256": "54ee5cb3ef1869e48a3fdbd94165134221da72815ad24a5a58ff2b48327d006c"
+        },
+        {
+          "path": "joiner.int8.onnx",
+          "target": "joiner.int8.onnx",
+          "size": 6018498,
+          "sha256": "4d6e87ccc7c613e372e3c284a8c0e3e355f4bb1c1578b640c7bd7943d41d6d25"
+        },
+        {
+          "path": "data/tokens.txt",
+          "target": "tokens.txt",
+          "size": 114134,
+          "sha256": "5beaddf82e078ef5644dcad130f3c4817a04016bfb0f31c0df28c6b4fa8df3af"
+        }
+      ]
+    },
+    "paraformer-zh": {
+      "repository": "csukuangfj/sherpa-onnx-paraformer-zh-int8-2025-10-07",
+      "revision": "52f0cdb5bdde9533c62f2a49c9ec073ab8139820",
+      "files": [
+        {
+          "path": "model.int8.onnx",
+          "target": "model.int8.onnx",
+          "size": 238429929,
+          "sha256": "53813ee1d41722cc6370a571c887e6d0b391d25b8312cf714a31af85ea603812"
+        },
+        {
+          "path": "tokens.txt",
+          "target": "tokens.txt",
+          "size": 75756,
+          "sha256": "59aba8873a2ed1e122c25fee421e25f283b63290efbde85c1f01a853d83cb6e6"
+        }
+      ]
+    },
+    "qwen3-asr-0.6b": {
+      "repository": "csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25",
+      "revision": "68818b2313fe77bd06f6a7c5068ff3ef59d02b8a",
+      "files": [
+        {
+          "path": "conv_frontend.onnx",
+          "target": "conv_frontend.onnx",
+          "size": 44148281,
+          "sha256": "d22dc4423e0940e49884e903d2ea2f7e5567c14fc1aed97e4e26d6b8f208ef9e"
+        },
+        {
+          "path": "encoder.int8.onnx",
+          "target": "encoder.int8.onnx",
+          "size": 182491662,
+          "sha256": "60748d3e6744a57c9c91e1b17424a6c2990567e8adceb0783940c03ed98fa9d9"
+        },
+        {
+          "path": "decoder.int8.onnx",
+          "target": "decoder.int8.onnx",
+          "size": 755914231,
+          "sha256": "4f6885be5959ae26af3089d38ee7972c5fafbeeb1cf8d5e76eab6d8b61ca5771"
+        },
+        {
+          "path": "tokenizer/vocab.json",
+          "target": "tokenizer/vocab.json",
+          "size": 2776833,
+          "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        },
+        {
+          "path": "tokenizer/merges.txt",
+          "target": "tokenizer/merges.txt",
+          "size": 1671853,
+          "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"
+        },
+        {
+          "path": "tokenizer/tokenizer_config.json",
+          "target": "tokenizer/tokenizer_config.json",
+          "size": 12487,
+          "sha256": "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c"
+        }
+      ]
+    },
+    "qwen3-asr-1.7b": {
+      "repository": "Qwen/Qwen3-ASR-1.7B",
+      "revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+      "modelscope_repository": "zengshuishui/Qwen3-ASR-onnx",
+      "files": [
+        {
+          "path": "model_1.7B/conv_frontend.onnx",
+          "target": "conv_frontend.onnx",
+          "origin": "modelscope",
+          "revision": "cb045ad80b8970c9d411d463e5b78991a566596c",
+          "size": 48080441,
+          "sha256": "fa894a4ba53da6a4238f2a6ca0b09362e505d39cecbd646051b033e2e8d7e2fb"
+        },
+        {
+          "path": "model_1.7B/encoder.int8.onnx",
+          "target": "encoder.int8.onnx",
+          "origin": "modelscope",
+          "revision": "c69fb1666ccb59a82c09840c511a6c894e6a2482",
+          "size": 314222162,
+          "sha256": "436fbd910a0c8914851e5ac1354e807be9f283d08a5da728adaa609731c41469"
+        },
+        {
+          "path": "model_1.7B/decoder.int8.onnx",
+          "target": "decoder.int8.onnx",
+          "origin": "modelscope",
+          "revision": "cb045ad80b8970c9d411d463e5b78991a566596c",
+          "size": 2037458645,
+          "sha256": "c43c853fa6e97d08365cb8a5502b360b595cd43c00dc60e4d8ca7cc18cad460b"
+        },
+        {
+          "path": "vocab.json",
+          "target": "tokenizer/vocab.json",
+          "size": 2776833,
+          "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        },
+        {
+          "path": "merges.txt",
+          "target": "tokenizer/merges.txt",
+          "size": 1671853,
+          "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "target": "tokenizer/tokenizer_config.json",
+          "size": 12487,
+          "sha256": "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c"
+        }
+      ]
+    },
+    "turbo": {
+      "repository": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
+      "revision": "0a363e9161cbc7ed1431c9597a8ceaf0c4f78fcf",
+      "files": [
+        {
+          "path": "config.json",
+          "target": "config.json",
+          "size": 2263,
+          "sha256": "b0253ea6c0d3bea6b1e19e91a02acfd3b53f4467362efcb5a3e6b16c9b3a9b7e"
+        },
+        {
+          "path": "model.bin",
+          "target": "model.bin",
+          "size": 1617884929,
+          "sha256": "e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da"
+        },
+        {
+          "path": "preprocessor_config.json",
+          "target": "preprocessor_config.json",
+          "size": 340,
+          "sha256": "7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711"
+        },
+        {
+          "path": "tokenizer.json",
+          "target": "tokenizer.json",
+          "size": 2710337,
+          "sha256": "297b13372ac43916285644fb9687add3cc62ee2a1adb60da3dc25cc94c1871fd"
+        },
+        {
+          "path": "vocabulary.json",
+          "target": "vocabulary.json",
+          "size": 1068114,
+          "sha256": "c69260f2ab26d659b7c398f9a2b2b48ed0df16c3b47d7326782fd9cba71690c1"
+        }
+      ]
+    }
+  }
+}

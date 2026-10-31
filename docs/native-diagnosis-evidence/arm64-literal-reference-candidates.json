@@ -1,0 +1,41 @@
+{
+  "method": "Independent original Mach-O __text instruction scan, not REA evidence; arm64 ADRP/ADD immediate candidates only",
+  "matches": [
+    {
+      "literal": "ALPHA_REAL_SMOKE_ROOT",
+      "literal_va": "0x100630b3c",
+      "adrp_va": "0x1000d7190",
+      "add_va": "0x1000d7194",
+      "adrp_opcode": "0xb0002ac0",
+      "add_opcode": "0x912cf000",
+      "limitation": "Candidate ADRP/ADD pair within 8 instructions; no intervening register-write dataflow proved."
+    },
+    {
+      "literal": "integrity-category",
+      "literal_va": "0x100631374",
+      "adrp_va": "0x1000e81ec",
+      "add_va": "0x1000e8200",
+      "adrp_opcode": "0xb0002a40",
+      "add_opcode": "0x910dd000",
+      "limitation": "Candidate ADRP/ADD pair within 8 instructions; no intervening register-write dataflow proved."
+    },
+    {
+      "literal": "integrity-category",
+      "literal_va": "0x100631374",
+      "adrp_va": "0x1000e81fc",
+      "add_va": "0x1000e8200",
+      "adrp_opcode": "0xb0002a40",
+      "add_opcode": "0x910dd000",
+      "limitation": "Candidate ADRP/ADD pair within 8 instructions; no intervening register-write dataflow proved."
+    },
+    {
+      "literal": "runtime-policy-error",
+      "literal_va": "0x100631f6e",
+      "adrp_va": "0x100106f20",
+      "add_va": "0x100106f24",
+      "adrp_opcode": "0xf0002941",
+      "add_opcode": "0x913db821",
+      "limitation": "Candidate ADRP/ADD pair within 8 instructions; no intervening register-write dataflow proved."
+    }
+  ]
+}

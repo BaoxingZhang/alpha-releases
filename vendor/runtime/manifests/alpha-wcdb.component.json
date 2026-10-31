@@ -1,0 +1,653 @@
+{
+  "abi": "alpha_native_get_api",
+  "abi_extensions": {
+    "media_locator": "alpha-wcdb.media-locator.v1",
+    "moments_projection": "alpha.moment.v1",
+    "source_message_lookup": "alpha-wcdb.source-message-lookup.v1"
+  },
+  "abi_version": 1,
+  "architecture": "arm64",
+  "artifact": "bin/libalpha_native.dylib",
+  "artifact_sha256": "be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c",
+  "artifacts": [
+    {
+      "path": "bin/libalpha_native.dylib",
+      "role": "semantic-runtime",
+      "sha256": "be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c",
+      "size": 2104544
+    },
+    {
+      "path": "bin/libalpha_sqlcipher_readonly.dylib",
+      "role": "readonly-provider",
+      "sha256": "90bbfd625de14ceac0b9d47fbe820f4a2bf67c9d9a5f8706a92980bb8144ccfe",
+      "size": 2036224
+    },
+    {
+      "path": "bin/libalpha_sqlcipher_retention_writer.dylib",
+      "role": "retention-writer",
+      "sha256": "4c13205b3049a099403e35ae1621eb33a72deca63c8a7b60c883db5648b2e8b9",
+      "size": 1924896
+    },
+    {
+      "path": "bin/alpha-data-host",
+      "role": "data-host",
+      "sha256": "a594b57bd7ec51efb0ef683808637a17d08ee622ed880db1a4426e7431b282a0",
+      "size": 16905936
+    },
+    {
+      "path": "bin/alpha-data-analysis",
+      "role": "data-analysis",
+      "sha256": "42d136f8260217ec14de557123cc0d7d6800ea1f908d0df73ccd9ba9488664d6",
+      "size": 1964768
+    }
+  ],
+  "build_type": "Release",
+  "compiler": "AppleClang 21.0.0.21000101",
+  "component": "alpha-wcdb",
+  "data_analysis": {
+    "artifact": "bin/alpha-data-analysis"
+  },
+  "data_host": {
+    "artifact": "bin/alpha-data-host",
+    "protocol": "alpha.native.v1",
+    "semantic_argument": "--semantic-json-stdio",
+    "semantic_protocol": "alpha.data-rpc.v1"
+  },
+  "guard_sdk": {
+    "commit": "b512a0d0a4d8607a365c0b6df626e838d3a48b95",
+    "files": [
+      {
+        "path": "CMakeLists.txt",
+        "sha256": "34b1ea5f232f39837cbef98d2b2e7f3494deb6ddab61931434bf77c1cde17400"
+      },
+      {
+        "path": "README.md",
+        "sha256": "d3015e298218d586a817f0b712cdc913345a4741702f2c00bcc43ab3175a7904"
+      },
+      {
+        "path": "SOURCE.json",
+        "sha256": "6dc1f39f334d31ff9b90acd60d7893459e41923c2da6315f03605143228f05c0"
+      },
+      {
+        "path": "VERSION",
+        "sha256": "c89b87c262e9d5ffd20e73aac74a1772adcc9f5a21682cc33adcf5086e5fef5c"
+      },
+      {
+        "path": "cmake/AlphaRuntimeGuard.cmake",
+        "sha256": "0d5c8595a59caa89d51ce0ac106c27e6932aad5ac87b67c57b0c5db6e549af3d"
+      },
+      {
+        "path": "core/alpha_guard_platform.h",
+        "sha256": "f852383610deb4c2f1ea9306a5146f4bf42364c3ce9bc1c7e9a576ba891ea6e7"
+      },
+      {
+        "path": "core/alpha_runtime_guard.cpp",
+        "sha256": "3f27f22acb3225705696c285edf06d2280c6f6efbe3f0f6bb94bf5ccf7ef983e"
+      },
+      {
+        "path": "core/control_vm.h",
+        "sha256": "93e3c8aa0846d4f1889c130d9ff7d85b7052f05d7faa437684c823eee697692a"
+      },
+      {
+        "path": "core/date_decoys.cpp",
+        "sha256": "81b87feba73107477b8206e4c5d9a74a2a3eeb9aa9277c0a703e2ad888f848ab"
+      },
+      {
+        "path": "core/date_decoys.h",
+        "sha256": "3f2eefb0c2d69edcb263500ab2fa8b9caca094a14d5e839ecd64e3f275d1e579"
+      },
+      {
+        "path": "core/license_guard.cpp",
+        "sha256": "8561afdc34e0409a78ea608c55d1f9d5a54bfb280719f4941a967b0242f588bc"
+      },
+      {
+        "path": "core/license_guard.h",
+        "sha256": "9f945e52a6c40b620fc547806c50abc1fc340dcc8358794ab68e8ad20e5d8f51"
+      },
+      {
+        "path": "core/offline_guard.cpp",
+        "sha256": "a2665d002a2eee938395392014a1b34c33532473dd072b0b8ac74dfdfcab9088"
+      },
+      {
+        "path": "core/offline_guard.h",
+        "sha256": "ae620261e0897e98fa0291c6ca9d8ef4e67ba01ea20a2c3d3b3361e77457b717"
+      },
+      {
+        "path": "core/offline_guard_seal.cpp",
+        "sha256": "c57c235f3766529bdaeb1a1b36de753d1d43b1b2754213b30cfdacc36df23ab1"
+      },
+      {
+        "path": "core/operation_lease.cpp",
+        "sha256": "9604e5040d9252540043524e338d23f5cb935f4c0c185a3c87f7a49d8ddae295"
+      },
+      {
+        "path": "core/policy_signature.cpp",
+        "sha256": "c7e3d2ec7707fe1b909e698dc00d5c1303602e5096f2db8e7b1e320dc496af8c"
+      },
+      {
+        "path": "core/policy_signature.h",
+        "sha256": "e4951d42710ada58a613eb93184158e97f97c4be8bf67a811b708f1a10e7c57b"
+      },
+      {
+        "path": "core/portable_guard.cpp",
+        "sha256": "48ff545c82743ad9df396f9dd51d7271e900ce0e7f567699d369ff3bab72263a"
+      },
+      {
+        "path": "core/portable_guard.h",
+        "sha256": "6d68721cf627c3d038d6008374a5b98481d8af84378686f06ba588a13d0b51e1"
+      },
+      {
+        "path": "core/portable_image.cpp",
+        "sha256": "95d7eadb02bfdb1b1d7423955c7f48cbed3373ba7d5b16661c4b726547d3458a"
+      },
+      {
+        "path": "core/rollback_state_record.h",
+        "sha256": "6027a6b3a390e2573e4472e80d1049ab4495d8c2b24942f5fb166a95f8d488e6"
+      },
+      {
+        "path": "core/third_party/tweetnacl.c",
+        "sha256": "1fd0734dfc78195317255fcb1fcf69f638adfd414e3163fa0ebe0af2231076af"
+      },
+      {
+        "path": "core/third_party/tweetnacl.h",
+        "sha256": "43f29ad721d9927b747b0100ab4160c119e7bb180c7c98a66e4bf79d31244287"
+      },
+      {
+        "path": "core/windows_state_lock.h",
+        "sha256": "a21932b72d38657cdae5623f6cc8e60fd3a957f7d264ffecaa0aedd6568d968b"
+      },
+      {
+        "path": "generator/date_decoys.py",
+        "sha256": "fff053bd2170c4e16c96a9ac377a24f02f1e740e9ca2f2041596003853add66a"
+      },
+      {
+        "path": "generator/generate_policy_vm.rs",
+        "sha256": "cfa0f265b015deb762615c56543d67b269c7f5f5763dd996f71c865ffba47700"
+      },
+      {
+        "path": "generator/policy_contract.py",
+        "sha256": "55ba2000957b627bceb2a76a0859a23d30fcfcf6a8d1e9b53793bcf0835904b9"
+      },
+      {
+        "path": "generator/policy_signature.py",
+        "sha256": "7d1b6dc5f51dae0047a6c6e1bc66a376120eb173c318b99ab6924fca8b00f67e"
+      },
+      {
+        "path": "generator/prepare_policy.py",
+        "sha256": "b96efaf4b36e37d84777bbebc4c38f46c765e24cc9703663f825e4801358ca0b"
+      },
+      {
+        "path": "generator/seal_pe_text.ps1",
+        "sha256": "244ad9261a1b08bf999fc9bbc6425b3e9acecbb70451156b5ee5119c887f157e"
+      },
+      {
+        "path": "generator/seal_portable_image.py",
+        "sha256": "dd2c5d6aa0c505c7969db1d5bfac09175883f873c983484435e27877ef6729bd"
+      },
+      {
+        "path": "generator/verify_date_decoys.py",
+        "sha256": "2a82e1166c6061bea9a804b04fb22b6dfef0702c1e266427677e841b553ccd72"
+      },
+      {
+        "path": "include/alpha_runtime_guard.h",
+        "sha256": "f068e4e49cce7f7eec1561f68b0bc693319c4eb64d3c4fc6ecb91e10b678ac6f"
+      },
+      {
+        "path": "include/alpha_runtime_operation.hpp",
+        "sha256": "f9eca82562a76185165143bc196fbd1093d0ec7a2ba2b39ab851e74b4c3883e2"
+      },
+      {
+        "path": "include/runtime_operation.rs",
+        "sha256": "2b665e635cf6d8e5710231af050be23dac4c8faa6512a5cd8d9f6bf2a9ef7811"
+      }
+    ],
+    "normalization": "CRLF-to-LF",
+    "path": "protection",
+    "repository": "xunchahaha/alpha-wcdb",
+    "revision": "alpha-guard-sdk-v2.1.0",
+    "schema": "alpha.guard-snapshot.v2",
+    "sdk_version": "2.1.0",
+    "source_sha256": "8636733f62cbf4087f468312885e20499e0ae18822fd997dea599a7b79552512"
+  },
+  "manifest_version": 3,
+  "platform": "macos",
+  "platforms": [
+    "macos-arm64"
+  ],
+  "policies": {
+    "data-analysis": {
+      "artifact_attestation_sha256": "75848faa3f1cb5c2884658550e4e731425438ad93623b24427cbf45f9de0310a",
+      "build_identity": "alpha-data-analysis:2026-09-30:macos-arm64:v3:sdk-2.0.1:sdk-2.0.2:expiry-sdk-2.1.0",
+      "component_interface": {
+        "name": "alpha.data-analysis.cli",
+        "version": 1
+      },
+      "date_decoys": {
+        "count": 16,
+        "payload_sha256": "99401e58fd07b05e71d106ffac877eac39545e5b384373782d3c7577dd8a1265",
+        "payload_size": 1088,
+        "representations": [
+          "iso-utc",
+          "unix-le64",
+          "xor-rotate-le64"
+        ],
+        "schema": "alpha.guard-date-decoys-check.v1",
+        "section": "Mach-O immutable segment"
+      },
+      "expires_at_utc": "2026-11-18T00:00:00Z",
+      "features": [
+        "analysis.local",
+        "export.local"
+      ],
+      "module": "alpha-data-analysis",
+      "native_image_seal": "macho-code-and-readonly",
+      "not_before_utc": "2026-10-19T00:00:00Z",
+      "operations": [
+        "format.chatlab",
+        "format.chatlab-json",
+        "format.chatlab-jsonl",
+        "format.chatlab-ndjson",
+        "format.favorites",
+        "format.favorites-json",
+        "format.forensics",
+        "format.forensics-json",
+        "format.json",
+        "format.jsonl",
+        "format.markdown",
+        "format.md",
+        "format.messages-json",
+        "format.messages-jsonl",
+        "format.ndjson",
+        "format.persona",
+        "format.persona-json",
+        "format.persona-prompt",
+        "format.prompt",
+        "format.report",
+        "format.report-json"
+      ],
+      "persist_step_seconds": 60,
+      "policy_sequence": 17,
+      "policy_sha256": "9803105f3c83a77b1b4a961017a775e800653889a9ff976278ca760531a7c040",
+      "policy_signature": {
+        "algorithm": "Ed25519",
+        "key_id": "alpha-build-policy-20261011",
+        "policy_sha256": "9803105f3c83a77b1b4a961017a775e800653889a9ff976278ca760531a7c040",
+        "purpose": "alpha.runtime-policy.expiry-enforcement.v1",
+        "schema": "alpha.runtime-policy-signature.v1",
+        "signature": "8837900ec167ed1e9df3cdb845de56cbec8d54bc8759b54c4ef4e27e8a3eb7170006d89cef1164e9c65c7ccfb101c6a4bd4686ae6b9ed4032743d1ddce76560d"
+      },
+      "profile": "production",
+      "reviewed_ledger_sequence": 17,
+      "rollback_tolerance_seconds": 300,
+      "schema": "alpha.guard-generated.v2",
+      "sdk_source": {
+        "repository": "xunchahaha/alpha-wcdb",
+        "revision": "alpha-guard-sdk-v2.1.0",
+        "sha256": "8636733f62cbf4087f468312885e20499e0ae18822fd997dea599a7b79552512"
+      },
+      "sdk_version": "2.1.0",
+      "state_version": 6,
+      "target": "macos-arm64"
+    },
+    "data-host": {
+      "artifact_attestation_sha256": "862e27e248bf9580113309a8e87eb43973aeb4744a1034b5191046f94cc181a2",
+      "build_identity": "alpha-data-host:2026-09-30:macos-arm64:v3:sdk-2.0.1:sdk-2.0.2:native-envelope-v2:contact-profile:moment-authors:message-aggregate:chat-export:cdn-media:expiry-sdk-2.1.0",
+      "component_interface": {
+        "name": "alpha.native.v1.NativeCallRequest",
+        "version": 2
+      },
+      "date_decoys": {
+        "count": 16,
+        "payload_sha256": "bcfab0eacd5387f8723fcc98bdfbf53a2f06969a84fd5715abd065373335adc0",
+        "payload_size": 1088,
+        "representations": [
+          "iso-utc",
+          "unix-le64",
+          "xor-rotate-le64"
+        ],
+        "schema": "alpha.guard-date-decoys-check.v1",
+        "section": "Mach-O immutable segment"
+      },
+      "expires_at_utc": "2026-11-18T00:00:00Z",
+      "features": [
+        "alpha.data-rpc.v1",
+        "alpha.native.v1",
+        "data.local",
+        "data.retention"
+      ],
+      "module": "alpha-data-host",
+      "native_image_seal": "macho-code-and-readonly",
+      "not_before_utc": "2026-10-19T00:00:00Z",
+      "operations": [
+        "native.aggregate_messages",
+        "native.apply_message_mutation",
+        "native.authorize_operation",
+        "native.cdn_media_transfer",
+        "native.chat_export",
+        "native.clear_native_message_mutation",
+        "native.close_account",
+        "native.configure_native_message_mutation",
+        "native.delete_image_key",
+        "native.delete_secret",
+        "native.describe_message_mutation_resource",
+        "native.discover_accounts",
+        "native.discover_pending_message_resources",
+        "native.get_contact_profile",
+        "native.get_device_proof_identity",
+        "native.hello",
+        "native.issue_material_ingest_ticket",
+        "native.issue_material_ticket",
+        "native.issue_secret_ingest_ticket",
+        "native.list_contacts",
+        "native.list_conversations",
+        "native.list_favorites",
+        "native.list_general",
+        "native.list_message_recall_records",
+        "native.list_messages",
+        "native.list_moment_authors",
+        "native.list_moments",
+        "native.maintain_message_resource",
+        "native.manage_message_anti_recall",
+        "native.manage_moments_anti_delete",
+        "native.moments_year_stats",
+        "native.open_account",
+        "native.peek_cached_media",
+        "native.read_account_data_key",
+        "native.read_image_media",
+        "native.read_voice_blob",
+        "native.resolve_image_media",
+        "native.resolve_record_media",
+        "native.resolve_wechat_capture_target",
+        "native.search_messages",
+        "native.sign_device_proof",
+        "semantic.aggregate",
+        "semantic.analyze",
+        "semantic.annual_add_batch",
+        "semantic.annual_begin",
+        "semantic.annual_bounds",
+        "semantic.annual_cancel",
+        "semantic.annual_finish",
+        "semantic.annual_report",
+        "semantic.app_message_fields",
+        "semantic.chatlab",
+        "semantic.conflict_review",
+        "semantic.export",
+        "semantic.favorite_xml",
+        "semantic.favorites",
+        "semantic.forensics",
+        "semantic.journey",
+        "semantic.media",
+        "semantic.message_display",
+        "semantic.message_presentation",
+        "semantic.message_semantics",
+        "semantic.moments",
+        "semantic.offline_codec",
+        "semantic.persona",
+        "semantic.persona_prompt",
+        "semantic.revocation_target",
+        "semantic.valid_decimal_id",
+        "semantic.voice_transcript_cache",
+        "semantic.xml_projection"
+      ],
+      "persist_step_seconds": 60,
+      "policy_sequence": 22,
+      "policy_sha256": "21a673f3f98ab4b40328c0ec9fabf86b46195679156a935751eb0626e45b2a5d",
+      "policy_signature": {
+        "algorithm": "Ed25519",
+        "key_id": "alpha-build-policy-20261011",
+        "policy_sha256": "21a673f3f98ab4b40328c0ec9fabf86b46195679156a935751eb0626e45b2a5d",
+        "purpose": "alpha.runtime-policy.expiry-enforcement.v1",
+        "schema": "alpha.runtime-policy-signature.v1",
+        "signature": "69b9777c7a41fd9476f6fadb221da4b01f52dd3e09505aefbf2b5129dbed4d8d850eb4a9751eb464596853c42b62fc9467d56224860588c88742093087b5530e"
+      },
+      "profile": "production",
+      "reviewed_ledger_sequence": 22,
+      "rollback_tolerance_seconds": 300,
+      "schema": "alpha.guard-generated.v2",
+      "sdk_source": {
+        "repository": "xunchahaha/alpha-wcdb",
+        "revision": "alpha-guard-sdk-v2.1.0",
+        "sha256": "8636733f62cbf4087f468312885e20499e0ae18822fd997dea599a7b79552512"
+      },
+      "sdk_version": "2.1.0",
+      "state_version": 6,
+      "target": "macos-arm64"
+    },
+    "readonly-provider": {
+      "artifact_attestation_sha256": "c90958513d1ced926e95ea772e43c3fdfe5e28ca4fefd15ea069600de3a7841e",
+      "build_identity": "alpha-sqlcipher-readonly:2026-09-30:macos-arm64:v3:sdk-2.0.1:sdk-2.0.2:expiry-sdk-2.1.0",
+      "component_interface": {
+        "name": "alpha_sqlite_readonly_get_api",
+        "version": 1
+      },
+      "date_decoys": {
+        "count": 16,
+        "payload_sha256": "29cdcc590cb35abc870753179b1fb034b4ba713c18332f37a9a18280de200bc4",
+        "payload_size": 1088,
+        "representations": [
+          "iso-utc",
+          "unix-le64",
+          "xor-rotate-le64"
+        ],
+        "schema": "alpha.guard-date-decoys-check.v1",
+        "section": "Mach-O immutable segment"
+      },
+      "expires_at_utc": "2026-11-18T00:00:00Z",
+      "features": [
+        "database.read"
+      ],
+      "module": "alpha-sqlcipher-readonly",
+      "native_image_seal": "macho-code-and-readonly",
+      "not_before_utc": "2026-10-19T00:00:00Z",
+      "operations": [
+        "bind_int",
+        "bind_int64",
+        "bind_null",
+        "bind_text",
+        "busy_timeout",
+        "changes",
+        "close_v2",
+        "column_blob",
+        "column_bytes",
+        "column_count",
+        "column_int64",
+        "column_name",
+        "column_text",
+        "column_type",
+        "errmsg",
+        "finalize",
+        "key",
+        "open_v2",
+        "prepare_v2",
+        "reset",
+        "step"
+      ],
+      "persist_step_seconds": 60,
+      "policy_sequence": 17,
+      "policy_sha256": "b24ad040ebfae0e9944f3069cc2f1d3eca3f7acdafc5df1b67a8ae45a2701b16",
+      "policy_signature": {
+        "algorithm": "Ed25519",
+        "key_id": "alpha-build-policy-20261011",
+        "policy_sha256": "b24ad040ebfae0e9944f3069cc2f1d3eca3f7acdafc5df1b67a8ae45a2701b16",
+        "purpose": "alpha.runtime-policy.expiry-enforcement.v1",
+        "schema": "alpha.runtime-policy-signature.v1",
+        "signature": "fba8256d46b1d7c6b700990af70217d3f717b974b6e5056ccbfe0f8acb08bf12b0e776a5d336d2e332372c5afe6548be7ac06d1c9a440b5b33e45ffdf52bb107"
+      },
+      "profile": "production",
+      "reviewed_ledger_sequence": 17,
+      "rollback_tolerance_seconds": 300,
+      "schema": "alpha.guard-generated.v2",
+      "sdk_source": {
+        "repository": "xunchahaha/alpha-wcdb",
+        "revision": "alpha-guard-sdk-v2.1.0",
+        "sha256": "8636733f62cbf4087f468312885e20499e0ae18822fd997dea599a7b79552512"
+      },
+      "sdk_version": "2.1.0",
+      "state_version": 6,
+      "target": "macos-arm64"
+    },
+    "retention-writer": {
+      "artifact_attestation_sha256": "8c0d4e811f41cec9f8f6473b73f1eced925b8c5cf10bef1baad015f190ec57d2",
+      "build_identity": "alpha-sqlcipher-retention-writer:2026-09-30:macos-arm64:v3:sdk-2.0.1:sdk-2.0.2:expiry-sdk-2.1.0",
+      "component_interface": {
+        "name": "alpha_sqlite_controlled_writer_get_api",
+        "version": 1
+      },
+      "date_decoys": {
+        "count": 16,
+        "payload_sha256": "81041e91916c10e3022a85324d5e00a9ed0110f71f49f339bd1e39fa493e48e9",
+        "payload_size": 1088,
+        "representations": [
+          "iso-utc",
+          "unix-le64",
+          "xor-rotate-le64"
+        ],
+        "schema": "alpha.guard-date-decoys-check.v1",
+        "section": "Mach-O immutable segment"
+      },
+      "expires_at_utc": "2026-11-18T00:00:00Z",
+      "features": [
+        "data.retention"
+      ],
+      "module": "alpha-sqlcipher-retention-writer",
+      "native_image_seal": "macho-code-and-readonly",
+      "not_before_utc": "2026-10-19T00:00:00Z",
+      "operations": [
+        "moments.install",
+        "moments.uninstall",
+        "recall.clear",
+        "recall.install",
+        "recall.uninstall"
+      ],
+      "persist_step_seconds": 60,
+      "policy_sequence": 17,
+      "policy_sha256": "d6bf136388a45c16e456bcf727422115297ce416587a5721161f16f1336103ab",
+      "policy_signature": {
+        "algorithm": "Ed25519",
+        "key_id": "alpha-build-policy-20261011",
+        "policy_sha256": "d6bf136388a45c16e456bcf727422115297ce416587a5721161f16f1336103ab",
+        "purpose": "alpha.runtime-policy.expiry-enforcement.v1",
+        "schema": "alpha.runtime-policy-signature.v1",
+        "signature": "b11527aa40c349f101c15685120770a53f4b0ea86ecbf1f7afb7680416483a327509b962ceeae6a1937db28d8b4d9e3cac209a96190d51d6d2aaa3d0eed94d0d"
+      },
+      "profile": "production",
+      "reviewed_ledger_sequence": 17,
+      "rollback_tolerance_seconds": 300,
+      "schema": "alpha.guard-generated.v2",
+      "sdk_source": {
+        "repository": "xunchahaha/alpha-wcdb",
+        "revision": "alpha-guard-sdk-v2.1.0",
+        "sha256": "8636733f62cbf4087f468312885e20499e0ae18822fd997dea599a7b79552512"
+      },
+      "sdk_version": "2.1.0",
+      "state_version": 6,
+      "target": "macos-arm64"
+    },
+    "semantic-runtime": {
+      "artifact_attestation_sha256": "bc2df50d71ba80c3b3fffcc5710f711afab54063360c048afd0e81c7150074de",
+      "build_identity": "alpha-native:2026-09-30:macos-arm64:v3:sdk-2.0.1:sdk-2.0.2:expiry-sdk-2.1.0",
+      "component_interface": {
+        "name": "alpha_native_get_api",
+        "version": 1
+      },
+      "date_decoys": {
+        "count": 16,
+        "payload_sha256": "831e1f4e2f5b2afbb016c508436d698e248e80c813c950d97fef90e5b6bd1e06",
+        "payload_size": 1088,
+        "representations": [
+          "iso-utc",
+          "unix-le64",
+          "xor-rotate-le64"
+        ],
+        "schema": "alpha.guard-date-decoys-check.v1",
+        "section": "Mach-O immutable segment"
+      },
+      "expires_at_utc": "2026-11-18T00:00:00Z",
+      "features": [
+        "data.local",
+        "data.retention"
+      ],
+      "module": "alpha-native",
+      "native_image_seal": "macho-code-and-readonly",
+      "not_before_utc": "2026-10-19T00:00:00Z",
+      "operations": [
+        "create_context",
+        "destroy_context",
+        "release_buffer",
+        "request",
+        "stream_close",
+        "stream_next",
+        "stream_open"
+      ],
+      "persist_step_seconds": 60,
+      "policy_sequence": 17,
+      "policy_sha256": "de488713b55527dd8afac26a8939a7d7200f58ba09b13efe515b93da9a4abe02",
+      "policy_signature": {
+        "algorithm": "Ed25519",
+        "key_id": "alpha-build-policy-20261011",
+        "policy_sha256": "de488713b55527dd8afac26a8939a7d7200f58ba09b13efe515b93da9a4abe02",
+        "purpose": "alpha.runtime-policy.expiry-enforcement.v1",
+        "schema": "alpha.runtime-policy-signature.v1",
+        "signature": "ed78984a30d3896b99fc6684a93fe7f99a5eb67d3eae9a10f28f291debea7abc795f9ddcf1572cdb2596e696fa434b02f199fe23a1cd9f21eadd77fdfca43d09"
+      },
+      "profile": "production",
+      "reviewed_ledger_sequence": 17,
+      "rollback_tolerance_seconds": 300,
+      "schema": "alpha.guard-generated.v2",
+      "sdk_source": {
+        "repository": "xunchahaha/alpha-wcdb",
+        "revision": "alpha-guard-sdk-v2.1.0",
+        "sha256": "8636733f62cbf4087f468312885e20499e0ae18822fd997dea599a7b79552512"
+      },
+      "sdk_version": "2.1.0",
+      "state_version": 6,
+      "target": "macos-arm64"
+    }
+  },
+  "profile": "alpha-data-runtime",
+  "qualification": "local-candidate; target functional/protection tests and internal issuer-signed image identity required",
+  "readonly_provider": {
+    "abi": "alpha_sqlite_readonly_get_api",
+    "abi_version": 1,
+    "artifact": "bin/libalpha_sqlcipher_readonly.dylib",
+    "capabilities": [
+      "live-readonly-sql",
+      "sqlcipher-keyed-open"
+    ],
+    "schema": "alpha-wcdb.readonly-provider.v1"
+  },
+  "release_qualified": false,
+  "retention_writer": {
+    "abi": "alpha_sqlite_controlled_writer_get_api",
+    "abi_flags": 15,
+    "abi_version": 1,
+    "artifact": "bin/libalpha_sqlcipher_retention_writer.dylib",
+    "capabilities": [
+      "moments.anti_delete",
+      "message.anti_recall"
+    ],
+    "default_enabled": false,
+    "device_delivery_qualified": false,
+    "message_mutations": false,
+    "profile": "alpha-wcdb.retention-writer.v1",
+    "runtime_policy": "native-permit-scoped-retention",
+    "schema": "alpha-wcdb.retention-writer.v1",
+    "vm_qualified": false
+  },
+  "runtime_linkage": "static-sqlcipher",
+  "runtime_policy": "semantic-data-with-private-guard",
+  "schema": "alpha-wcdb.component-manifest.v3",
+  "source": "maintained-alpha-private",
+  "source_commit": "50d908958d8162bc3a6738a00b4a476ff97c65d5",
+  "source_dirty": false,
+  "vendor": {
+    "commit": "df808591b9f9a9ab42156006819c3550d5af13a3",
+    "nested_submodules": {
+      "openssl": "081314d07705aa58912845c213a48414d8f616a9",
+      "sqlcipher": "f049bed66ca26741f09a6e4f0603ed3af195ac96",
+      "zstd": "69036dffe50f385bd3b7b187e3fd230f4b2ef97e"
+    },
+    "repository": "https://github.com/Tencent/wcdb.git",
+    "version": "2.1.16"
+  }
+}

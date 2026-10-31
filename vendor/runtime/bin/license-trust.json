@@ -1,0 +1,20 @@
+{
+  "schema": "alpha.license-trust.v2",
+  "target": "windows-x64",
+  "keys": {
+    "response": {
+      "purpose": "device_bound_response",
+      "algorithm": "Ed25519",
+      "kid": "alpha-server-20261008-device-response",
+      "file": "alpha-license-response.ed25519.pub",
+      "sha256": "f10e732673cc1ff9fbd7c0e6dc74db3bb3253c192e94398f3bff62f9485664ed"
+    },
+    "lease": {
+      "purpose": "lease_jws",
+      "algorithm": "Ed25519",
+      "kid": "alpha-server-20261008-lease",
+      "file": "alpha-license-lease.ed25519.pub",
+      "sha256": "282ac7528688a984121483aba35130994703c8c199783044fdb20cd87f5609e0"
+    }
+  }
+}

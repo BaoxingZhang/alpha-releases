@@ -1,0 +1,208 @@
+{
+  "schema_version": 2,
+  "product": "alpha",
+  "target": "macos-arm64",
+  "candidate_only": true,
+  "peer_overlay": null,
+  "capabilities": {
+    "automatic_key_acquisition": "included",
+    "manual_database_key": "included",
+    "security_runtime": "included",
+    "local_transcription": "unavailable",
+    "original_image_download": "unavailable",
+    "live_readonly_sql": "included",
+    "readonly_provider": {
+      "abi": "alpha_sqlite_readonly_get_api",
+      "abi_version": 1,
+      "artifact": "bin/libalpha_sqlcipher_readonly.dylib",
+      "capabilities": [
+        "live-readonly-sql",
+        "sqlcipher-keyed-open"
+      ],
+      "schema": "alpha-wcdb.readonly-provider.v1"
+    },
+    "controlled_writer": {
+      "state": "unavailable",
+      "source_available": false,
+      "profile": "alpha-wcdb.controlled-writer.v1",
+      "base_package": false,
+      "default_enabled": false,
+      "device_bound": false,
+      "vm_qualified": false
+    },
+    "retention_writer": {
+      "state": "included",
+      "source_available": true,
+      "profile": "alpha-wcdb.retention-writer.v1",
+      "base_package": true,
+      "default_enabled": false,
+      "message_mutations": false,
+      "device_bound": false,
+      "vm_qualified": false
+    },
+    "alpha_wxproto": "unavailable",
+    "advanced_component_delivery": "unavailable",
+    "advanced_component_protection": "unavailable"
+  },
+  "components": {
+    "alpha-wcdb": {
+      "source_commit": "50d908958d8162bc3a6738a00b4a476ff97c65d5",
+      "version": null,
+      "manifest_sha256": "ea2e9f0f56e25538e58b43f752d15969bddebbbac823d4ce7a4caa5f392370a4",
+      "package_manifest_sha256": "ded0f0ac110a7c77147a0e89a9351c1c474ad1dd70c8b51eeee9225807d52d33",
+      "artifacts": {
+        "semantic-runtime": "native/wcdb/libalpha_native.dylib",
+        "readonly-provider": "native/wcdb/libalpha_sqlcipher_readonly.dylib",
+        "retention-writer": "native/wcdb/libalpha_sqlcipher_retention_writer.dylib",
+        "data-host": "bin/alpha-data-host",
+        "data-analysis": "bin/alpha-data-analysis"
+      },
+      "archive": {
+        "name": "alpha-wcdb-macos-arm64-runtime.tar.gz",
+        "sha256": "ea3424af0856bf63b79a80e02473b087fe1a6f13dad2caf801aefc3961b7c17d",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/download/local/alpha-wcdb-macos-arm64-runtime.tar.gz"
+      }
+    },
+    "alpha-xkey": {
+      "source_commit": "b94eac22c3cb9c1544c3a776590143d1c10ce2fa",
+      "version": "1.1.0",
+      "manifest_sha256": "16e05b059df32aa329f99b1fc45af919f31977fd89b255930fa7285bceb5cbcd",
+      "package_manifest_sha256": "62b70ece7cf6cba81e93ef21b7782a7ece3e0526b2e49a27e406de4e5e2c320b",
+      "artifacts": {
+        "security-host": "bin/alpha-security-host",
+        "key-worker": "bin/alpha-key-worker",
+        "key-helper": "bin/alpha_xkey_helper",
+        "key-library": "bin/alpha_xkey.dylib"
+      },
+      "archive": {
+        "name": "alpha-xkey-macos-arm64.tar.gz",
+        "sha256": "038cd52548c8aa059bc963574cf2d96d26c9fb358e7c957b6b228af79476890e",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/download/local/alpha-xkey-macos-arm64.tar.gz"
+      }
+    },
+    "alpha-wxproto": {
+      "source_commit": "80ed82ea194bb5e8cdc6ac081fb3f641e2f3c93b",
+      "version": null,
+      "manifest_sha256": "c0db309604aecd28963795cb0dc2eabbaeb87d9021eee5177b3c93f255e8278c",
+      "package_manifest_sha256": "a0f2a9ab75fd70601ed1032b3bf135474880caad1d17b34c630a2b7d65f7c917",
+      "artifacts": {
+        "model-catalog": "resources/local-transcription-model-catalog-v1.json"
+      },
+      "archive": {
+        "name": "alpha-wxproto-macos-arm64-base.zip",
+        "sha256": "c930edda043eb2cf793153fec1a7ab5a1cda9e792c05edd3d8a191f24936d98f",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/download/local/alpha-wxproto-macos-arm64-base.zip"
+      }
+    }
+  },
+  "artifacts": [
+    {
+      "path": "bin/alpha_xkey_helper",
+      "size": 513440,
+      "sha256": "97812a07af645aeab7e0fb3875300b77126252077ccf9b28339ee1e950ea2d4d",
+      "sha512": "11dc4122cf89fdc26a9a96418c6ce90734eeaac241d18dd2152d08364be1dea886427b77bfe092043472b621e19dc418cb3958e0896dd81bf3780a20e5607dd1"
+    },
+    {
+      "path": "bin/alpha_xkey.dylib",
+      "size": 515552,
+      "sha256": "f241dc5f1dc402b8f3427ab0e0fce5fe06eb85bf9758cb46139542d8d260fe51",
+      "sha512": "a1727ca46a95d9b2b9b73049beda0981fcfbdea11d4f3a4498dfb7b63fe375e6ff13b1f73d7fdb6672b82549a476c23b7015f96beac13656cea5dc55dbdbb5ab"
+    },
+    {
+      "path": "bin/alpha-data-analysis",
+      "size": 1964768,
+      "sha256": "42d136f8260217ec14de557123cc0d7d6800ea1f908d0df73ccd9ba9488664d6",
+      "sha512": "a2f398e0a6dd61cb43506f0e22f57d14f35a1242a1303c9c67212eec0ea6998fb61126bde7e8a5ed2a7e73de34f1dbe58e2ffe6e822ca0e433bd757aae69024e"
+    },
+    {
+      "path": "bin/alpha-data-host",
+      "size": 16905936,
+      "sha256": "a594b57bd7ec51efb0ef683808637a17d08ee622ed880db1a4426e7431b282a0",
+      "sha512": "0d9ae4a927f8cff7023fa0d04a13a8f2706f776ab48f2aff1ff7c749a11ab0b9e0e5f50b0cb13d4d4727a70739a2edcc6a7dcf706f4b817a86f84f59d000a207"
+    },
+    {
+      "path": "bin/alpha-key-worker",
+      "size": 2277152,
+      "sha256": "c4f79fcbcc88ed5e767dad3a86508af2bd629d01ac2da659d708ae215a209e01",
+      "sha512": "4b726e0d5bceb10c07f229a760afcb46ca2a2246b4137176fc1ed2acc7bbde7170301f2e18e5c2383d08a0b047a0ef398cc1477e3c69af79d695f75c7f01b88d"
+    },
+    {
+      "path": "bin/alpha-security-host",
+      "size": 9112272,
+      "sha256": "048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8",
+      "sha512": "9e1e780a4c51cb74b279b4bfd1499d7d1689570460df4e86063a46f8b8e2503605c857df977bced2dcffc34f9796788ca14fb33ad482c700442debde587ffcff"
+    },
+    {
+      "path": "bin/peer-manifest.json",
+      "size": 1274,
+      "sha256": "c228266ac248a5a58f8acec7e8d7c17a4d63f1f13d88966bbb3e83da98f0d0fc",
+      "sha512": "603b072c995f2ce08eef52fb8d1660dbf940fde3b7ce41d7c42cf0bd14eda52a3fb9e148b64e85935be5874e8529200a15aae884e8f8e60058c31b15a01dbe36"
+    },
+    {
+      "path": "manifests/alpha-wcdb.component.json",
+      "size": 23827,
+      "sha256": "ea2e9f0f56e25538e58b43f752d15969bddebbbac823d4ce7a4caa5f392370a4",
+      "sha512": "de21a1b7566b27a15d68ae63352b37a10dfc1efe6bd18e8f4d3e969b6a40580210c3a8bed52cf749cd4adf2494d0f71776dc9234a3459d33b8258c4bfc0d1a8c"
+    },
+    {
+      "path": "manifests/alpha-wcdb.package-manifest.json",
+      "size": 8397,
+      "sha256": "ded0f0ac110a7c77147a0e89a9351c1c474ad1dd70c8b51eeee9225807d52d33",
+      "sha512": "27c4e125e3d409f2d408cc9a7a5cb05fa0edbc7dab915edf971705a21916898a458b2c1d84e7dae9b872b9f8ceff602080b4279ebe2ac32eb8de6d010036a989"
+    },
+    {
+      "path": "manifests/alpha-wxproto.component.json",
+      "size": 7790,
+      "sha256": "c0db309604aecd28963795cb0dc2eabbaeb87d9021eee5177b3c93f255e8278c",
+      "sha512": "8d0cb1e0251782ccadb48666bbff16c668cf4c96da57513eca7fc80091b617ab180e92c0fd932dbfb49ddd3241d61d90e9ae5bcce92a6a6b092174a21d42fa04"
+    },
+    {
+      "path": "manifests/alpha-wxproto.package-manifest.json",
+      "size": 7343,
+      "sha256": "a0f2a9ab75fd70601ed1032b3bf135474880caad1d17b34c630a2b7d65f7c917",
+      "sha512": "a5e065dd241b901003fb9d3b01447c8ff098a56a0080e0920dc79711814260efd648a86f42799fc81f0768880040453b3f1b2d1545b48deada2b13131608b440"
+    },
+    {
+      "path": "manifests/alpha-xkey.component.json",
+      "size": 6220,
+      "sha256": "16e05b059df32aa329f99b1fc45af919f31977fd89b255930fa7285bceb5cbcd",
+      "sha512": "d69057b6d4b5a03903bb3192ec5dbb3e9fd8043db73f566e8c0fd10504e3f4dd5940e94a3e0f5ec60319788d8328071d336a4e8817a9e7032545dac3277b8582"
+    },
+    {
+      "path": "manifests/alpha-xkey.package-manifest.json",
+      "size": 5364,
+      "sha256": "62b70ece7cf6cba81e93ef21b7782a7ece3e0526b2e49a27e406de4e5e2c320b",
+      "sha512": "7a7de038376c00457f0ca767d4a032358f0f81e1c057e25d53b2c03b9bcd794b27eb9f068864c8cd9df129c5139f1f6c7bc6ec1c390314eab4f6c6a77a04d29c"
+    },
+    {
+      "path": "native/wcdb/libalpha_native.dylib",
+      "size": 2104544,
+      "sha256": "be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c",
+      "sha512": "74bf6e55cd4969b666a79597541521785c321aad68251fb127583061100b181617a39f6e8edc93877e60b68f634845961fd9f3c47e4f7edeadada5a784ebffa8"
+    },
+    {
+      "path": "native/wcdb/libalpha_sqlcipher_readonly.dylib",
+      "size": 2036224,
+      "sha256": "90bbfd625de14ceac0b9d47fbe820f4a2bf67c9d9a5f8706a92980bb8144ccfe",
+      "sha512": "85d0aec5478cda3fc7ab75c886e36aa03e86f423fdddfa41752f05a3b8e6fb67dcaa56c6b51546eae23ba0ec8eee49bd2b1c72f812f579bb4152f3526196b28f"
+    },
+    {
+      "path": "native/wcdb/libalpha_sqlcipher_retention_writer.dylib",
+      "size": 1924896,
+      "sha256": "4c13205b3049a099403e35ae1621eb33a72deca63c8a7b60c883db5648b2e8b9",
+      "sha512": "c84ab7c946ddb731ee191239d95934426cefbb5c411b8854dd9fbf3ffeb38b10027ad54dd0b18ebff903951f4ab6d3f8f9bb4a4852adc9400b6baf0d70ac3c12"
+    },
+    {
+      "path": "policies/peer-trust.json",
+      "size": 190,
+      "sha256": "de608415c30e81aceecb42f50730c67527dea564ce2759c2135ce95c14b3b96f",
+      "sha512": "77b47476d5010a3f10c7a59706a4c12cb683462fc9d91fad3b1fdbb83de237f764f362b396c56db66bc9d36f525e5658b5667df6b798d5f0c6868de561dac5f4"
+    },
+    {
+      "path": "resources/local-transcription-model-catalog-v1.json",
+      "size": 7123,
+      "sha256": "489a2cb2f0e06e38cf0b41a28e9c1aea84e866525ba4d6fd11ea45083b9edd85",
+      "sha512": "fe930180c8067730431a97af68b78cf2ce934056dac163ea3af267f551fb1d8a706450296d205c01027e4708f95623f996bc64c3fde2392ba2b114dfaa256e3d"
+    }
+  ]
+}

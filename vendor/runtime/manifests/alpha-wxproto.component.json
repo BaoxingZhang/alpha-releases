@@ -1,0 +1,224 @@
+{
+  "component": "alpha-wxproto",
+  "platform": "macos",
+  "architecture": "arm64",
+  "source_commit": "80ed82ea194bb5e8cdc6ac081fb3f641e2f3c93b",
+  "source_dirty": false,
+  "release_qualified": false,
+  "guard_policies": {
+    "transcription-worker": {
+      "schema": "alpha.guard-generated.v2",
+      "sdk_version": "2.0.2",
+      "sdk_source": {
+        "repository": "xunchahaha/alpha-wcdb",
+        "revision": "alpha-guard-sdk-v2.0.2",
+        "sha256": "e7877abbe80e9d7b0f4ecf14ce6a6b74eb0a58e9707ac12430eeded086056b15"
+      },
+      "target": "macos-arm64",
+      "build_identity": "alpha-transcription-worker:2026-09-30:macos-arm64:v3:sdk-2.0.1:sdk-2.0.2",
+      "component_interface": {
+        "name": "alpha.transcription.worker.v1",
+        "version": 1
+      },
+      "features": [
+        "voice.local"
+      ],
+      "operations": [
+        "batch_transcribe",
+        "health",
+        "inspect_model",
+        "release_models",
+        "shutdown",
+        "transcribe",
+        "transcribe_wechat_voice",
+        "transcribe_wechat_voice_batch"
+      ],
+      "rollback_tolerance_seconds": 300,
+      "persist_step_seconds": 60,
+      "state_version": 6,
+      "policy_sequence": 8,
+      "not_before_utc": "2026-10-19T00:00:00Z",
+      "expires_at_utc": "2026-11-18T00:00:00Z",
+      "module": "alpha-transcription-worker",
+      "profile": "production",
+      "policy_sha256": "48ddbaf7612b213ca9deaec2f531f6da04de095d2f5dc52e81dbf196bdac6313",
+      "native_image_seal": {
+        "windows": "pe-code-and-readonly",
+        "linux": "elf-code-and-readonly",
+        "macos": "macho-code-and-readonly"
+      }
+    }
+  },
+  "guard_sdk": {
+    "schema": "alpha.guard-snapshot.v2",
+    "repository": "xunchahaha/alpha-wcdb",
+    "commit": "c7e75428721af6418d84d7584612ce47f2e9f05f",
+    "path": "protection",
+    "sdk_version": "2.0.2",
+    "revision": "alpha-guard-sdk-v2.0.2",
+    "source_sha256": "e7877abbe80e9d7b0f4ecf14ce6a6b74eb0a58e9707ac12430eeded086056b15",
+    "normalization": "CRLF-to-LF",
+    "files": [
+      {
+        "path": "CMakeLists.txt",
+        "sha256": "a68e6ba08f640ed60c8b4a155dedd9c263b90c34ba065cc16eb2f2e4df534f0b"
+      },
+      {
+        "path": "README.md",
+        "sha256": "c67b5d9cb1f46415ffa4f4a35aefcf4fbd9c614a720d5e4826b3160de4fa2e94"
+      },
+      {
+        "path": "SOURCE.json",
+        "sha256": "6ef82575dd359cdfb6854b531c6cabeb8eaf2684d5511534f333f5a80d848d42"
+      },
+      {
+        "path": "VERSION",
+        "sha256": "b4b16faea52dc04ccfe32f7b342094855923ebf599a3cac1940470a2d6d7c261"
+      },
+      {
+        "path": "cmake/AlphaRuntimeGuard.cmake",
+        "sha256": "563854fe14ed0a8ce8d5498e5ed55c304a87d7b72ec1719cb08d7e0214af1e8f"
+      },
+      {
+        "path": "core/alpha_guard_platform.h",
+        "sha256": "f852383610deb4c2f1ea9306a5146f4bf42364c3ce9bc1c7e9a576ba891ea6e7"
+      },
+      {
+        "path": "core/alpha_runtime_guard.cpp",
+        "sha256": "253d8ddcb550134ceecc593be68928dc49e2f0b5eed273ca4f7a4edcfc3aa2fd"
+      },
+      {
+        "path": "core/control_vm.h",
+        "sha256": "93e3c8aa0846d4f1889c130d9ff7d85b7052f05d7faa437684c823eee697692a"
+      },
+      {
+        "path": "core/license_guard.cpp",
+        "sha256": "d0a714130cd6a858b065256c588a19360d51e17dd9d5b153755d341034cb09ff"
+      },
+      {
+        "path": "core/license_guard.h",
+        "sha256": "9f945e52a6c40b620fc547806c50abc1fc340dcc8358794ab68e8ad20e5d8f51"
+      },
+      {
+        "path": "core/offline_guard.cpp",
+        "sha256": "df65ad6d90e223347a75ae8ae5260c4a5913170d47b6729098103b5b0cfa0f79"
+      },
+      {
+        "path": "core/offline_guard.h",
+        "sha256": "ae620261e0897e98fa0291c6ca9d8ef4e67ba01ea20a2c3d3b3361e77457b717"
+      },
+      {
+        "path": "core/offline_guard_seal.cpp",
+        "sha256": "c57c235f3766529bdaeb1a1b36de753d1d43b1b2754213b30cfdacc36df23ab1"
+      },
+      {
+        "path": "core/portable_guard.cpp",
+        "sha256": "d0341f5a53621093c99d2e5c2339f024e1a68b17d6e040c5f54a3ce917caa26b"
+      },
+      {
+        "path": "core/portable_guard.h",
+        "sha256": "6d68721cf627c3d038d6008374a5b98481d8af84378686f06ba588a13d0b51e1"
+      },
+      {
+        "path": "core/portable_image.cpp",
+        "sha256": "95d7eadb02bfdb1b1d7423955c7f48cbed3373ba7d5b16661c4b726547d3458a"
+      },
+      {
+        "path": "core/rollback_state_record.h",
+        "sha256": "6027a6b3a390e2573e4472e80d1049ab4495d8c2b24942f5fb166a95f8d488e6"
+      },
+      {
+        "path": "core/third_party/tweetnacl.c",
+        "sha256": "1fd0734dfc78195317255fcb1fcf69f638adfd414e3163fa0ebe0af2231076af"
+      },
+      {
+        "path": "core/third_party/tweetnacl.h",
+        "sha256": "43f29ad721d9927b747b0100ab4160c119e7bb180c7c98a66e4bf79d31244287"
+      },
+      {
+        "path": "core/windows_state_lock.h",
+        "sha256": "a21932b72d38657cdae5623f6cc8e60fd3a957f7d264ffecaa0aedd6568d968b"
+      },
+      {
+        "path": "generator/generate_policy_vm.rs",
+        "sha256": "cfa0f265b015deb762615c56543d67b269c7f5f5763dd996f71c865ffba47700"
+      },
+      {
+        "path": "generator/policy_contract.py",
+        "sha256": "11f716b0cc7e06b4543ad7caa55453963cf4e23109cda93d14bf259396943588"
+      },
+      {
+        "path": "generator/prepare_policy.py",
+        "sha256": "d10f705b6b72d6c376736d2f8407c9110cf0ad0a3f810c364f09b419e923e4b8"
+      },
+      {
+        "path": "generator/seal_pe_text.ps1",
+        "sha256": "244ad9261a1b08bf999fc9bbc6425b3e9acecbb70451156b5ee5119c887f157e"
+      },
+      {
+        "path": "generator/seal_portable_image.py",
+        "sha256": "dd2c5d6aa0c505c7969db1d5bfac09175883f873c983484435e27877ef6729bd"
+      },
+      {
+        "path": "include/alpha_runtime_guard.h",
+        "sha256": "1b6e6213f8e866990db4eedae5219033b7fbf6f933b466ef752c554d78aebfcd"
+      }
+    ],
+    "historical_import": {
+      "repository": "xunchahaha/alpha-wcdb",
+      "commit": "97a7bd4ffe79737e32c9bf81a15441b29d34ecbe",
+      "sdk_version": "1.0.0",
+      "use": "private approved runtime-guard SDK snapshot; release multi-section seal required",
+      "archive_sha256": "2011d2f81413000ef4ddd3e6ab2f81394fbe8cea3807aa905e0e37c7b769c4a2",
+      "archive_format": "git-archive-zip",
+      "included_paths": [
+        "README.md",
+        "SOURCE.json",
+        "VERSION",
+        "cmake",
+        "core",
+        "generator",
+        "include"
+      ]
+    }
+  },
+  "schema": "alpha-wxproto.base-manifest.v1",
+  "artifacts": [
+    {
+      "path": "bin/alpha-transcription-worker",
+      "sha256": "d1850f7e0b2940d2928cdcf2be048a6dae0857a2e6bc3b6e79cfc8c03b142570",
+      "size": "73929552",
+      "role": "transcription-worker"
+    },
+    {
+      "path": "resources/local-transcription-model-catalog-v1.json",
+      "sha256": "489a2cb2f0e06e38cf0b41a28e9c1aea84e866525ba4d6fd11ea45083b9edd85",
+      "size": "7123",
+      "role": "model-catalog"
+    }
+  ],
+  "native_guards": {
+    "transcription-worker": {
+      "path": "libalpha_transcription_guard.dylib",
+      "sha256": "a8b046bc7603628bc0f942d1803868dd73dc0c15be36e829063439ad6e3b5df9",
+      "size": 336128,
+      "policy_sha256": "48ddbaf7612b213ca9deaec2f531f6da04de095d2f5dc52e81dbf196bdac6313",
+      "hardening": {
+        "format": "Mach-O64",
+        "target": "macos-arm64",
+        "exports": [
+          "alpha_transcription_guard_check"
+        ],
+        "stack_protector": true,
+        "nx_stack": true,
+        "writable_executable": false,
+        "debug_symbols": false,
+        "code_signature_present": true,
+        "fortify_imports": [],
+        "immutable_region_seal": "f9e6fc9d9cdc6f49b267631d8ef81d0ec07e84c81d786af057973af2003e55a0",
+        "analysis_markers": 4
+      },
+      "sdk_source_sha256": "e7877abbe80e9d7b0f4ecf14ce6a6b74eb0a58e9707ac12430eeded086056b15"
+    }
+  }
+}

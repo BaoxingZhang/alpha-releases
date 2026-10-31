@@ -1,0 +1,297 @@
+{
+  "schema": "alpha-recovered.native-source-gaps.v1",
+  "generated_at": "2026-11-01T01:41:16.400916+08:00",
+  "target": {
+    "name": "Alpha",
+    "version": "0.3.5",
+    "platform": "macos-arm64",
+    "source_dmg": "/Users/baoxingzhang/Downloads/Alpha-0.3.5-arm64.dmg",
+    "source_dmg_sha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004"
+  },
+  "scope": "Only the seven selected original Resources paths were copied. No original application/helper was executed; no user WeChat data or credentials were read. The dedicated read-only DMG mount was detached.",
+  "copied_runtime": {
+    "root": "vendor/runtime",
+    "file_count": 43,
+    "bytes": 156899845,
+    "provenance": "docs/native-runtime-provenance.json",
+    "source_hash_verification": "all copied file SHA256 values match the mounted source",
+    "permissions": "regular file permission modes preserved"
+  },
+  "buildability": {
+    "full_native_source_rebuild": "not_possible_from_available_inputs",
+    "reason": "The package supplies compiled Rust executables and C/C++ dylibs/helpers, not their Rust/C/C++ source workspaces, build scripts and pinned dependency locks.",
+    "hybrid_project": "The recovered JavaScript application can be built/packaged while reusing these exact precompiled macOS arm64 resources. This is not a full source rebuild of native components.",
+    "native_runtime_verified": false,
+    "javascript_build_and_app_launch": "Owned by the parent task; not asserted by this report."
+  },
+  "components": [
+    {
+      "name": "Rust application/backend sidecars",
+      "available": "original precompiled arm64 Mach-O files",
+      "files": [
+        "bin/alpha-analysis",
+        "bin/alpha-chatlab-pull",
+        "bin/alpha-cli",
+        "bin/alpha-data-analysis",
+        "bin/alpha-data-host",
+        "bin/alpha-engine",
+        "bin/alpha-key-worker",
+        "bin/alpha-mcp-stdio",
+        "bin/alpha-message-send",
+        "bin/alpha-official-export",
+        "bin/alpha-schedules",
+        "bin/alpha-security-host",
+        "bin/alpha-server"
+      ],
+      "source_missing": [
+        "Rust workspace Cargo.toml",
+        "Cargo.lock",
+        "crate src/*.rs",
+        "build.rs and generated protocol sources",
+        "exact release compiler/toolchain/build flags"
+      ],
+      "evidence": [
+        {
+          "path": "vendor/runtime/bin/peer-manifest.json",
+          "line": 1,
+          "needle": "alpha-server"
+        }
+      ],
+      "rebuild_boundary": "Static strings and reverse-engineered pseudocode cannot recover the complete original Cargo workspace. Original binaries can be reused as vendored artifacts with their original permissions and hashes."
+    },
+    {
+      "name": "alpha-wcdb / C/C++ database layer",
+      "available": [
+        "native/wcdb/libalpha_native.dylib",
+        "native/wcdb/libalpha_sqlcipher_readonly.dylib",
+        "native/wcdb/libalpha_sqlcipher_retention_writer.dylib",
+        "manifests/alpha-wcdb.component.json"
+      ],
+      "source_missing": [
+        "C/C++ semantic runtime implementation",
+        "SQLCipher integration source and pinned build configuration",
+        "ABI headers and implementations",
+        "CMake build project",
+        "runtime guard SDK source and policy build tooling"
+      ],
+      "declared_source_commit": "50d908958d8162bc3a6738a00b4a476ff97c65d5",
+      "evidence": [
+        {
+          "path": "vendor/runtime/manifests/alpha-wcdb.component.json",
+          "line": 45,
+          "needle": "\"compiler\""
+        },
+        {
+          "path": "vendor/runtime/manifests/alpha-wcdb.component.json",
+          "line": 56,
+          "needle": "\"guard_sdk\""
+        },
+        {
+          "path": "vendor/runtime/manifests/alpha-wcdb.component.json",
+          "line": 615,
+          "needle": "sqlcipher-keyed-open"
+        }
+      ],
+      "rebuild_boundary": "Manifest source filenames, commits and hashes are provenance, not the source text. Existing binary APIs are retained; no replacement implementation was invented."
+    },
+    {
+      "name": "alpha-xkey / native helper and security host",
+      "available": [
+        "bin/alpha-security-host",
+        "bin/alpha-key-worker",
+        "bin/alpha_xkey_helper",
+        "bin/alpha_xkey.dylib"
+      ],
+      "source_missing": [
+        "native helper/library source",
+        "security/key-worker Rust source",
+        "guard build tooling",
+        "issuer/server implementation and private signing material"
+      ],
+      "declared_source_commit": "b94eac22c3cb9c1544c3a776590143d1c10ce2fa",
+      "evidence": [
+        {
+          "path": "vendor/runtime/manifests/alpha-xkey.component.json",
+          "line": 127,
+          "needle": "\"runtime_security\""
+        },
+        {
+          "path": "vendor/runtime/manifests/alpha-xkey.component.json",
+          "line": 143,
+          "needle": "\"security\""
+        }
+      ],
+      "rebuild_boundary": "Original files and public trust data were copied byte-for-byte. Signatures, permits, peer identity checks, expiry policies and license checks were not bypassed or modified."
+    },
+    {
+      "name": "AI agent host",
+      "available": "bin/alpha-agent-host.cjs readable bundled JavaScript with src/*.ts comments",
+      "source_missing": [
+        "original separate TypeScript source files",
+        "original TypeScript build configuration and workspace lockfile",
+        "original generated protobuf schema/source project"
+      ],
+      "evidence": [
+        {
+          "path": "vendor/runtime/bin/alpha-agent-host.cjs",
+          "line": 4,
+          "needle": "// src/provider/fixture-provider.ts"
+        },
+        {
+          "path": "vendor/runtime/bin/alpha-agent-host.cjs",
+          "line": 6602,
+          "needle": "// src/host/agent-host-runtime.ts"
+        }
+      ],
+      "rebuild_boundary": "This emitted JavaScript can be preserved or refactored as recovered source. Its source-module comments do not constitute recovery of the exact original TypeScript project."
+    },
+    {
+      "name": "FFmpeg",
+      "available": [
+        "bin/ffmpeg",
+        "bin/ffmpeg.README",
+        "bin/ffmpeg.LICENSE"
+      ],
+      "source_missing": [
+        "corresponding exact FFmpeg source snapshot",
+        "release configure/build flags and dependency source tree"
+      ],
+      "evidence": [
+        {
+          "path": "vendor/runtime/bin/ffmpeg.README",
+          "line": 4,
+          "needle": "FFmpeg is a collection"
+        },
+        {
+          "path": "vendor/runtime/bin/ffmpeg.LICENSE",
+          "line": 3,
+          "needle": "GNU Lesser"
+        }
+      ],
+      "rebuild_boundary": "Copied executable and accompanying license documents; not rebuilt from source."
+    },
+    {
+      "name": "Local transcription and advanced protocol features",
+      "available": [
+        "voice-models/local-transcription-model-catalog-v1.json",
+        "resources/local-transcription-model-catalog-v1.json",
+        "manifests/alpha-wxproto.component.json"
+      ],
+      "source_missing": [
+        "transcription worker executable/source in the top-level packaged runtime",
+        "ASR model weights",
+        "advanced protocol implementation/source"
+      ],
+      "evidence": [
+        {
+          "path": "vendor/runtime/component-manifest.json",
+          "line": 11,
+          "needle": "\"local_transcription\": \"unavailable\""
+        },
+        {
+          "path": "vendor/runtime/component-manifest.json",
+          "line": 43,
+          "needle": "\"alpha_wxproto\": \"unavailable\""
+        },
+        {
+          "path": "vendor/runtime/component-manifest.json",
+          "line": 12,
+          "needle": "\"original_image_download\": \"unavailable\""
+        }
+      ],
+      "rebuild_boundary": "Model catalogs and component manifests are retained. They do not make omitted engines/models available. No missing worker/model was downloaded."
+    },
+    {
+      "name": "License and component services",
+      "available": [
+        "bin/runtime-endpoints.json",
+        "bin/license-trust.json",
+        "bin/component-trust.json",
+        "bin/peer-manifest.json",
+        "policies/peer-trust.json",
+        "bin/*.ed25519.pub"
+      ],
+      "source_missing": [
+        "server-side licensing/component delivery implementation",
+        "server database/configuration",
+        "private signing keys and valid user-specific permits"
+      ],
+      "evidence": [
+        {
+          "path": "vendor/runtime/bin/runtime-endpoints.json",
+          "line": 4,
+          "needle": "\"license\""
+        },
+        {
+          "path": "vendor/runtime/manifests/alpha-xkey.component.json",
+          "line": 57,
+          "needle": "\"expires_at_utc\""
+        },
+        {
+          "path": "vendor/runtime/policies/peer-trust.json",
+          "line": 2,
+          "needle": "ed25519-image-v1"
+        }
+      ],
+      "rebuild_boundary": "Only shipped client configuration/public trust material is available. A local rebuild cannot reconstruct the remote service or manufacture valid permits. Published policy dates are recorded, not bypassed; actual runtime license behavior is untested."
+    }
+  ],
+  "public_source_lookup": {
+    "checked_at": "2026-11-01T01:41:16.404207+08:00",
+    "access": "GitHub connector, metadata/root listing/README only; no repository cloned or source installed",
+    "results": [
+      {
+        "repository": "alpha",
+        "url": "https://github.com/xunchahaha/alpha",
+        "result": "GitHub API 404 NOT_FOUND",
+        "interpretation": "Not accessible via the connected account at lookup time; may be private, removed or renamed. No public source recovered."
+      },
+      {
+        "repository": "alpha-wcdb",
+        "url": "https://github.com/xunchahaha/alpha-wcdb",
+        "result": "GitHub API 404 NOT_FOUND",
+        "interpretation": "Not accessible via the connected account at lookup time; may be private, removed or renamed. No public source recovered."
+      },
+      {
+        "repository": "alpha-xkey",
+        "url": "https://github.com/xunchahaha/alpha-xkey",
+        "result": "GitHub API 404 NOT_FOUND",
+        "interpretation": "Not accessible via the connected account at lookup time; may be private, removed or renamed. No public source recovered."
+      },
+      {
+        "repository": "alpha-wxproto",
+        "url": "https://github.com/xunchahaha/alpha-wxproto",
+        "result": "GitHub API 404 NOT_FOUND",
+        "interpretation": "Not accessible via the connected account at lookup time; may be private, removed or renamed. No public source recovered."
+      },
+      {
+        "repository": "alpha-releases",
+        "url": "https://github.com/xunchahaha/alpha-releases",
+        "result": "public repository",
+        "observed_root_entries": [
+          "README.md",
+          "assets",
+          "docs",
+          "update"
+        ],
+        "source_build_files_at_root": false,
+        "readme_url": "https://github.com/xunchahaha/alpha-releases/blob/main/README.md",
+        "readme_observation": "Release/download and product documentation; no source-build repository link found in the read README. This is a bounded lookup, not proof no source exists elsewhere."
+      }
+    ]
+  },
+  "verification": {
+    "dmg_mounted_read_only": true,
+    "dedicated_mount_detached": true,
+    "copies_hash_verified": true,
+    "copied_executables_run": false,
+    "existing_installed_app_modified": false,
+    "user_data_accessed": false,
+    "configuration_or_license_bypassed": false
+  },
+  "limits": [
+    "Only statically shipped artifacts and read-only repository metadata were inspected.",
+    "The source gaps above explain why a JavaScript rebuild with vendored native binaries is a hybrid reconstruction, not the original full-source repository.",
+    "Native service startup, permission prompts, database compatibility, licensed features and media/model downloads need separate explicit operational verification."
+  ]
+}

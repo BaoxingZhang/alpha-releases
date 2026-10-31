@@ -1,0 +1,20 @@
+{
+  "name": "@alpha-recovered/protocol",
+  "version": "0.3.5-recovered.1",
+  "private": true,
+  "description": "Recovered Alpha wire codecs and framing; no Electron or native process startup",
+  "type": "commonjs",
+  "main": "index.cjs",
+  "exports": {
+    ".": "./index.cjs",
+    "./bindings": "./bindings.cjs",
+    "./ipc": "./ipc-channels.cjs",
+    "./source-manifest.json": "./source-manifest.json"
+  },
+  "engines": {
+    "node": ">=24.15 <25"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.14.0"
+  }
+}

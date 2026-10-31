@@ -1,0 +1,6268 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "alphaVersion": "0.3.5",
+    "candidate": "sjzar/chatlog",
+    "candidateCommit": "a7162bca9454fa43b5950a2414670983fe180e56",
+    "alphaSourceSha256": "7e8fabf836059696bc00ecf9266b68cbed4b0cd690e3ffe6f80e1755a72c193a",
+    "protocolManifestSha256": "561e0426e51a21ea332c69f3186bbdd2d4d54731155b486dea2f7eedd2f473a2",
+    "requestBranchCount": 128,
+    "coverage": "128/128 EngineClientFrame payload branches, excluding requestId; main/preload-only domains listed separately",
+    "method": "Alpha branches and codec locations derived from AST and extracted codec default fields; Chatlog evidence read from pinned source; no target application or personal data loaded"
+  },
+  "statusDefinitions": {
+    "read_foundation": "候选有真实读取/解析实现，可复用基础，但不是Alpha接口等价实现",
+    "compose_or_new": "有相关底层数据或工具，需要组合并新增核心语义",
+    "missing": "在所审查固定commit的数据源/API/服务实现中未找到对应领域能力；保留为全功能目标待实现"
+  },
+  "counts": {
+    "missing": 92,
+    "compose_or_new": 30,
+    "read_foundation": 6
+  },
+  "limitations": [
+    "全部记录都是静态源码证据；候选编译通过不等于真实微信数据兼容。",
+    "missing是基于明确审查的接口和源码范围，没有证明任何未来分支都不具备该能力。",
+    "候选128请求中0项被认定可直接替换；数量不可解释为全功能完成率。",
+    "Go internal包不能由任意外部Go module直接import；应在明确fork内组织adapter或建立受控服务边界。"
+  ],
+  "criticalGaps": [
+    {
+      "topic": "消息身份与分页",
+      "evidence": [
+        "messages",
+        "message_model",
+        "message_wrap",
+        "message_raw"
+      ],
+      "finding": "v4查询要求会话；regexp keyword；秒时间范围；offset分页；跨库/会话满足数量可提前返回，不能证明全局稳定排序。消息归一未保留完整server/local/source身份，IsSelf有源码FIXME。"
+    },
+    {
+      "topic": "多账号",
+      "evidence": [
+        "account_scan",
+        "account_model",
+        "db_start"
+      ],
+      "finding": "运行中账号发现与单WorkDir数据库服务不能替代持久多账号句柄和选择事务。"
+    },
+    {
+      "topic": "接口保护",
+      "evidence": [
+        "http_start",
+        "http_config",
+        "http_cors",
+        "media_path"
+      ],
+      "finding": "默认0.0.0.0:5030，所见路由未配置认证；不应按默认HTTP配置直接接入桌面产品。需loopback/受控子进程、调用方认证、账号scope和媒体路径授权。"
+    },
+    {
+      "topic": "图片密钥",
+      "evidence": [
+        "image_key",
+        "key_config"
+      ],
+      "finding": "图片key是全局状态；空值设置不清除。Alpha逐账号key和clear协议必须新实现。"
+    },
+    {
+      "topic": "AI与写入",
+      "evidence": [
+        "mcp",
+        "surface"
+      ],
+      "finding": "MCP查询工具不等于AI对话/画像/审批服务；无候选发送、消息变更与防撤回实现。"
+    },
+    {
+      "topic": "全功能目标",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "finding": "朋友圈、收藏、公众号、任务调度、ASR、许可和应用锁仍保留在路线图，不因首轮读取基础可用而裁剪或假报支持。"
+    }
+  ],
+  "mainOnlyDomains": [
+    {
+      "domain": "agent-chat/model-config/memory/external-mcp/chat-summary",
+      "alphaEvidence": [
+        {
+          "file": "src/main/index.js",
+          "line": 67416,
+          "symbol": "PersonaGatewayService"
+        },
+        {
+          "file": "src/main/index.js",
+          "line": 69243,
+          "symbol": "AgentSettingsService"
+        },
+        {
+          "file": "src/main/index.js",
+          "line": 70044,
+          "symbol": "ExternalMcpSettingsService"
+        },
+        {
+          "file": "src/main/index.js",
+          "line": 72842,
+          "symbol": "ChatSummaryService"
+        }
+      ],
+      "candidateEvidence": [
+        "mcp"
+      ],
+      "status": "compose_or_new",
+      "note": "保留Alpha可恢复的JS编排，Chatlog仅能作为读取工具底座；本矩阵128是engine请求，不覆盖267个main IPC的全部JS服务。"
+    },
+    {
+      "domain": "window/cache/notification/export-file-dialog",
+      "alphaEvidence": [
+        {
+          "file": "src/main/index.js",
+          "line": 66421,
+          "symbol": "WindowClosePreferenceStore"
+        },
+        {
+          "file": "src/main/index.js",
+          "line": 72533,
+          "symbol": "CacheDirectory"
+        }
+      ],
+      "candidateEvidence": [],
+      "status": "not_candidate_responsibility",
+      "note": "属于Electron桌面层，应继续独立维护，不要求Go数据候选接管。"
+    }
+  ],
+  "evidence": {
+    "surface": {
+      "file": "vendor/chatlog/internal/wechatdb/datasource/datasource.go",
+      "line": 16,
+      "symbol": "type DataSource interface",
+      "description": "数据源接口只声明消息、联系人、群、会话、媒体、文件变化回调和关闭。",
+      "sha256": "d02de5c97149da0657c3ec9679fb8d5f58c412469a4469d46d6c20f8c78a95a9",
+      "excerpt": "type DataSource interface {"
+    },
+    "http_routes": {
+      "file": "vendor/chatlog/internal/chatlog/http/route.go",
+      "line": 55,
+      "symbol": "func (s *Service) initAPIRouter",
+      "description": "HTTP业务读取路由只有chatlog/contact/chatroom/session。",
+      "sha256": "cb08c66ab47bf852ae129d5363eb07b24ac00ff82d009800959371f4b88a440b",
+      "excerpt": "func (s *Service) initAPIRouter() {"
+    },
+    "mcp": {
+      "file": "vendor/chatlog/internal/chatlog/http/mcp.go",
+      "line": 20,
+      "symbol": "func (s *Service) initMCPServer",
+      "description": "注册联系人、群、最近会话、聊天记录、当前时间五个MCP工具；没有模型推理或Agent会话。",
+      "sha256": "284e5fb85e923e6f77373c4a48a2056b1c04ca6498d8becf455878f136b30925",
+      "excerpt": "func (s *Service) initMCPServer() {"
+    },
+    "account_scan": {
+      "file": "vendor/chatlog/internal/wechat/manager.go",
+      "line": 52,
+      "symbol": "func (m *Manager) Load",
+      "description": "从微信进程检测生成账号列表；非持久多账号数据库注册表。",
+      "sha256": "4ee059a8d88653471aa38565e95786535b1a4c18a5a23ad7917c6bd323a585d4",
+      "excerpt": "func (m *Manager) Load() error {"
+    },
+    "account_model": {
+      "file": "vendor/chatlog/internal/wechat/wechat.go",
+      "line": 14,
+      "symbol": "type Account struct",
+      "description": "账号模型含进程/目录/Key/ImgKey/Status，没有Alpha selected/handleState。",
+      "sha256": "03faf8f998044d12822e5ef5a3ce4e5068c5f29145870d2c267e5559c37c7755",
+      "excerpt": "type Account struct {"
+    },
+    "account_key": {
+      "file": "vendor/chatlog/internal/wechat/wechat.go",
+      "line": 67,
+      "symbol": "func (a *Account) GetKey",
+      "description": "按平台版本提取并验证数据/图片密钥；没有Alpha任务进度协议。",
+      "sha256": "03faf8f998044d12822e5ef5a3ce4e5068c5f29145870d2c267e5559c37c7755",
+      "excerpt": "func (a *Account) GetKey(ctx context.Context) (string, string, error) {"
+    },
+    "darwin_key": {
+      "file": "vendor/chatlog/internal/wechat/key/darwin/v4.go",
+      "line": 55,
+      "symbol": "func (e *V4Extractor) Extract",
+      "description": "macOS v4密钥提取代码存在，适配和权限仍需实际验证。",
+      "sha256": "3da732b12884e8a9e9b0b6f498200c1626f155722a83dbebe8efd0352b9f01b6",
+      "excerpt": "func (e *V4Extractor) Extract(ctx context.Context, proc *model.Process) (string, string, error) {"
+    },
+    "decrypt_validate": {
+      "file": "vendor/chatlog/internal/wechat/decrypt/validator.go",
+      "line": 51,
+      "symbol": "func (v *Validator) Validate",
+      "description": "提供数据库页密钥验证基础。",
+      "sha256": "062f87f96ae65fe726417b6f30dad9e71737709cba96ad0dc70454ccc97f45eb",
+      "excerpt": "func (v *Validator) Validate(key []byte) bool {"
+    },
+    "decrypt": {
+      "file": "vendor/chatlog/internal/wechat/decrypt/darwin/v4.go",
+      "line": 79,
+      "symbol": "func (d *V4Decryptor) Decrypt",
+      "description": "解密到传入的io.Writer，不是Alpha原生授权与DB句柄流程。",
+      "sha256": "c3990f6d436f969f93fd69dff0f69e17ca38cc1a7bc83e5bb51176eddda557d8",
+      "excerpt": "func (d *V4Decryptor) Decrypt(ctx context.Context, dbfile string, hexKey string, output io.Writer) error {"
+    },
+    "db_start": {
+      "file": "vendor/chatlog/internal/chatlog/database/service.go",
+      "line": 45,
+      "symbol": "func (s *Service) Start",
+      "description": "单一配置WorkDir打开DB后设置Ready；需独立账号生命周期包装。",
+      "sha256": "12c4954ff0bf627d3f8c81cd4d1681a34e9ac80f93c800050c54df8d71c25215",
+      "excerpt": "func (s *Service) Start() error {"
+    },
+    "db_new": {
+      "file": "vendor/chatlog/internal/wechatdb/wechatdb.go",
+      "line": 23,
+      "symbol": "func New(",
+      "description": "DB对象以path/platform/version创建。",
+      "sha256": "ab09ee08af0c86bd619ba832a604dea954b43d91b414d073350cafa54b5e5e0f",
+      "excerpt": "func New(path string, platform string, version int) (*DB, error) {"
+    },
+    "db_open": {
+      "file": "vendor/chatlog/internal/wechatdb/datasource/dbm/dbm.go",
+      "line": 114,
+      "symbol": "func (d *DBManager) OpenDB",
+      "description": "使用临时副本后sql.Open；不能据此宣称操作系统级只读隔离。",
+      "sha256": "70236e51cf1b1cb3f53cf033638baaa411fb9b9b3e812e498a965aa78c2c0347",
+      "excerpt": "func (d *DBManager) OpenDB(path string) (*sql.DB, error) {"
+    },
+    "sessions": {
+      "file": "vendor/chatlog/internal/wechatdb/datasource/v4/datasource.go",
+      "line": 543,
+      "symbol": "func (ds *DataSource) GetSessions",
+      "description": "SessionTable查询排序并提供limit/offset。",
+      "sha256": "8fc299f114f7225b3a3684722dbf4f303da6a0de6f1828b2ea1d1bd9b2f8fbe9",
+      "excerpt": "func (ds *DataSource) GetSessions(ctx context.Context, key string, limit, offset int) ([]*model.Session, error) {"
+    },
+    "session_model": {
+      "file": "vendor/chatlog/internal/model/session.go",
+      "line": 8,
+      "symbol": "type Session struct",
+      "description": "统一模型只保留UserName/NOrder/NickName/Content/NTime，未保留Alpha全部会话字段。",
+      "sha256": "085f9a3868e3990fa43479ebc87561313a27c9ef95dd5489c9ec73f2864db48f",
+      "excerpt": "type Session struct {"
+    },
+    "messages": {
+      "file": "vendor/chatlog/internal/wechatdb/datasource/v4/datasource.go",
+      "line": 184,
+      "symbol": "func (ds *DataSource) GetMessages",
+      "description": "会话必填；按秒时间范围、sender、regexp keyword过滤；offset分页。",
+      "sha256": "8fc299f114f7225b3a3684722dbf4f303da6a0de6f1828b2ea1d1bd9b2f8fbe9",
+      "excerpt": "func (ds *DataSource) GetMessages(ctx context.Context, startTime, endTime time.Time, talker string, sender string, keyword string, limit, offset int) ([]*model.Message, error) {"
+    },
+    "message_model": {
+      "file": "vendor/chatlog/internal/model/message.go",
+      "line": 108,
+      "symbol": "type Message struct",
+      "description": "统一消息模型缺少完整localId/serverId/sourceId及Alpha opaque token。",
+      "sha256": "e94a15015a8ba714be85fec9a54231f883672156212d38e81ca7012a96c5064e",
+      "excerpt": "type Message struct {"
+    },
+    "message_wrap": {
+      "file": "vendor/chatlog/internal/model/message_v4.go",
+      "line": 47,
+      "symbol": "func (m *MessageV4) Wrap",
+      "description": "v4归一化；IsSelf有FIXME，serverId仅在部分语音内容中保留。",
+      "sha256": "f85b38ab2b2af3398b537d63a1475a9976d787519a931ce7aafc65a4d6d59b9f",
+      "excerpt": "func (m *MessageV4) Wrap(talker string) *Message {"
+    },
+    "message_raw": {
+      "file": "vendor/chatlog/internal/model/message_v4.go",
+      "line": 36,
+      "symbol": "type MessageV4 struct",
+      "description": "SQL读取server_id/sort_seq等，但不读取local_id和完整原始source。",
+      "sha256": "f85b38ab2b2af3398b537d63a1475a9976d787519a931ce7aafc65a4d6d59b9f",
+      "excerpt": "type MessageV4 struct {"
+    },
+    "message_enrich": {
+      "file": "vendor/chatlog/internal/wechatdb/repository/message.go",
+      "line": 32,
+      "symbol": "func (r *Repository) EnrichMessages",
+      "description": "可补群名与发送者显示名称。",
+      "sha256": "143b563170d7e4b038ff9cb8b4bd84b6da1f726a58b6701476dc1192e9599cc2",
+      "excerpt": "func (r *Repository) EnrichMessages(ctx context.Context, messages []*model.Message) error {"
+    },
+    "contacts": {
+      "file": "vendor/chatlog/internal/wechatdb/repository/contact.go",
+      "line": 105,
+      "symbol": "func (r *Repository) GetContacts",
+      "description": "联系人查询与缓存基础，不等于完整Alpha联系档案。",
+      "sha256": "be61d8718bd048cabae67850433162476e1d398bad0ab1321ce7e2b414669e37",
+      "excerpt": "func (r *Repository) GetContacts(ctx context.Context, key string, limit, offset int) ([]*model.Contact, error) {"
+    },
+    "contact_one": {
+      "file": "vendor/chatlog/internal/wechatdb/repository/contact.go",
+      "line": 96,
+      "symbol": "func (r *Repository) GetContact",
+      "description": "按key获取联系人基础信息。",
+      "sha256": "be61d8718bd048cabae67850433162476e1d398bad0ab1321ce7e2b414669e37",
+      "excerpt": "func (r *Repository) GetContact(ctx context.Context, key string) (*model.Contact, error) {"
+    },
+    "contact_model": {
+      "file": "vendor/chatlog/internal/model/contact.go",
+      "line": 3,
+      "symbol": "type Contact struct",
+      "description": "仅UserName/Alias/Remark/NickName/IsFriend。",
+      "sha256": "208a589bc248af9c718ea42e5f8c7616eecee66ffb83f7ff48cbead1bad95ced",
+      "excerpt": "type Contact struct {"
+    },
+    "groups": {
+      "file": "vendor/chatlog/internal/wechatdb/repository/chatroom.go",
+      "line": 99,
+      "symbol": "func (r *Repository) GetChatRooms",
+      "description": "群集合查询及成员模型基础。",
+      "sha256": "ec0d8e006d780082d93ae4a07db2341b8a053a79454670e71a4db6c14f1bc861",
+      "excerpt": "func (r *Repository) GetChatRooms(ctx context.Context, key string, limit, offset int) ([]*model.ChatRoom, error) {"
+    },
+    "group_model": {
+      "file": "vendor/chatlog/internal/model/chatroom.go",
+      "line": 9,
+      "symbol": "type ChatRoom struct",
+      "description": "包含群Owner、Users与用户群内显示名。",
+      "sha256": "90cb6e4b1cee1a359b71ab0aa187451117b03ac33a13ecca90f290e008bfac02",
+      "excerpt": "type ChatRoom struct {"
+    },
+    "media": {
+      "file": "vendor/chatlog/internal/wechatdb/datasource/v4/datasource.go",
+      "line": 601,
+      "symbol": "func (ds *DataSource) GetMedia",
+      "description": "本地图片/视频/文件元信息与路径查询。",
+      "sha256": "8fc299f114f7225b3a3684722dbf4f303da6a0de6f1828b2ea1d1bd9b2f8fbe9",
+      "excerpt": "func (ds *DataSource) GetMedia(ctx context.Context, _type string, key string) (*model.Media, error) {"
+    },
+    "media_http": {
+      "file": "vendor/chatlog/internal/chatlog/http/route.go",
+      "line": 295,
+      "symbol": "func (s *Service) handleMedia",
+      "description": "媒体按key查找并重定向本地data路径；没有Alpha capability token。",
+      "sha256": "cb08c66ab47bf852ae129d5363eb07b24ac00ff82d009800959371f4b88a440b",
+      "excerpt": "func (s *Service) handleMedia(c *gin.Context, _type string) {"
+    },
+    "media_path": {
+      "file": "vendor/chatlog/internal/chatlog/http/route.go",
+      "line": 363,
+      "symbol": "func (s *Service) handleMediaData",
+      "description": "拼接DataDir和请求路径后读文件；接入前需额外路径/账号授权边界。",
+      "sha256": "cb08c66ab47bf852ae129d5363eb07b24ac00ff82d009800959371f4b88a440b",
+      "excerpt": "func (s *Service) handleMediaData(c *gin.Context) {"
+    },
+    "image_decode": {
+      "file": "vendor/chatlog/pkg/util/dat2img/dat2img.go",
+      "line": 48,
+      "symbol": "func Dat2Image(",
+      "description": "本地dat图像解码基础。",
+      "sha256": "1d2d52b238a11523b4a7f328807b1193f816d6a4eb8d7bf326475cc91ce32d6e",
+      "excerpt": "func Dat2Image(data []byte) ([]byte, string, error) {"
+    },
+    "image_key": {
+      "file": "vendor/chatlog/pkg/util/dat2img/dat2img.go",
+      "line": 192,
+      "symbol": "func SetAesKey(",
+      "description": "设置全局V4Format2.AesKey，空字符串直接return，不能当作clearImageKey。",
+      "sha256": "1d2d52b238a11523b4a7f328807b1193f816d6a4eb8d7bf326475cc91ce32d6e",
+      "excerpt": "func SetAesKey(key string) {"
+    },
+    "image_key_validate": {
+      "file": "vendor/chatlog/pkg/util/dat2img/imgkey.go",
+      "line": 62,
+      "symbol": "func (v *AesKeyValidator) Validate",
+      "description": "图像密钥校验基础，不含每账号安全存储。",
+      "sha256": "03daae5d5937fd57a4472228e8573985d4d3a0f99aae8baccc6fd27169824af4",
+      "excerpt": "func (v *AesKeyValidator) Validate(key []byte) bool {"
+    },
+    "voice": {
+      "file": "vendor/chatlog/internal/wechatdb/datasource/v4/datasource.go",
+      "line": 705,
+      "symbol": "func (ds *DataSource) GetVoice",
+      "description": "本地语音数据读取。",
+      "sha256": "8fc299f114f7225b3a3684722dbf4f303da6a0de6f1828b2ea1d1bd9b2f8fbe9",
+      "excerpt": "func (ds *DataSource) GetVoice(ctx context.Context, key string) (*model.Media, error) {"
+    },
+    "silk": {
+      "file": "vendor/chatlog/pkg/util/silk/silk.go",
+      "line": 10,
+      "symbol": "func Silk2MP3(",
+      "description": "SILK到MP3音频解码；不是语音识别。",
+      "sha256": "56d66d85b620680aa3ae9521132e102a3419d3253dbb0334c94888acb119abd9",
+      "excerpt": "func Silk2MP3(data []byte) ([]byte, error) {"
+    },
+    "export_http": {
+      "file": "vendor/chatlog/internal/chatlog/http/route.go",
+      "line": 90,
+      "symbol": "func (s *Service) handleChatlog",
+      "description": "已有CSV/JSON/纯文本输出；没有Alpha多格式任务/收据/恢复。",
+      "sha256": "cb08c66ab47bf852ae129d5363eb07b24ac00ff82d009800959371f4b88a440b",
+      "excerpt": "func (s *Service) handleChatlog(c *gin.Context) {"
+    },
+    "export_contacts": {
+      "file": "vendor/chatlog/internal/chatlog/http/route.go",
+      "line": 158,
+      "symbol": "func (s *Service) handleContacts",
+      "description": "联系人JSON/CSV格式化基础，现有CSV逐字段fmt不等同健壮导出器。",
+      "sha256": "cb08c66ab47bf852ae129d5363eb07b24ac00ff82d009800959371f4b88a440b",
+      "excerpt": "func (s *Service) handleContacts(c *gin.Context) {"
+    },
+    "export_groups": {
+      "file": "vendor/chatlog/internal/chatlog/http/route.go",
+      "line": 203,
+      "symbol": "func (s *Service) handleChatRooms",
+      "description": "群列表输出，非Alpha群成员完整文件导出任务。",
+      "sha256": "cb08c66ab47bf852ae129d5363eb07b24ac00ff82d009800959371f4b88a440b",
+      "excerpt": "func (s *Service) handleChatRooms(c *gin.Context) {"
+    },
+    "db_watch": {
+      "file": "vendor/chatlog/internal/wechatdb/wechatdb.go",
+      "line": 129,
+      "symbol": "func (w *DB) SetCallback",
+      "description": "文件组变化回调基础，未提供Alpha revision字符串。",
+      "sha256": "ab09ee08af0c86bd619ba832a604dea954b43d91b414d073350cafa54b5e5e0f",
+      "excerpt": "func (w *DB) SetCallback(group string, callback func(event fsnotify.Event) error) error {"
+    },
+    "file_groups": {
+      "file": "vendor/chatlog/pkg/filemonitor/filegroup.go",
+      "line": 106,
+      "symbol": "func (fg *FileGroup) List",
+      "description": "可枚举匹配文件；不等于已经签发Alpha watch targets。",
+      "sha256": "6aff46691d1533d3cc24776c1852041458b51403815de90c2b8f78dfcc2fff99",
+      "excerpt": "func (fg *FileGroup) List() ([]string, error) {"
+    },
+    "webhook": {
+      "file": "vendor/chatlog/internal/chatlog/webhook/webhook.go",
+      "line": 159,
+      "symbol": "func (m *MessageWebhook) Do",
+      "description": "文件变化后查消息并推送Webhook；不是消息撤回保全或任务调度系统。",
+      "sha256": "647d27d16620cdd4ffeebfdc5342f37572dd5f248a5141b59716764db9c2a73b",
+      "excerpt": "func (m *MessageWebhook) Do(event fsnotify.Event) {"
+    },
+    "http_start": {
+      "file": "vendor/chatlog/internal/chatlog/http/service.go",
+      "line": 33,
+      "symbol": "func NewService",
+      "description": "注册错误处理/日志/CORS中间件，未见认证中间件。",
+      "sha256": "8b0d8796f5cea7b1bf6ba71eb750e0c0f9290802a23c851a16e2ad4b4e0ef409",
+      "excerpt": "func NewService(conf Config, db *database.Service) *Service {"
+    },
+    "http_config": {
+      "file": "vendor/chatlog/internal/chatlog/conf/server.go",
+      "line": 4,
+      "symbol": "DefalutHTTPAddr =",
+      "description": "默认监听0.0.0.0:5030，不宜直接继承为桌面通信配置。",
+      "sha256": "0ebb266a9b467c5de8cf33a8d76ca9273735f7e9024155e1988da050b0a1bbcb",
+      "excerpt": "DefalutHTTPAddr = \"0.0.0.0:5030\""
+    },
+    "http_cors": {
+      "file": "vendor/chatlog/internal/chatlog/http/middleware.go",
+      "line": 10,
+      "symbol": "func corsMiddleware",
+      "description": "CORS允许*；不是Alpha本机权限、许可或应用锁的替代。",
+      "sha256": "77f99f2416ecf0e896a3968aeaab5ed500ec2ba0cb11e6ee835b34a528ca7fb3",
+      "excerpt": "func corsMiddleware() gin.HandlerFunc {"
+    },
+    "key_config": {
+      "file": "vendor/chatlog/internal/chatlog/conf/server.go",
+      "line": 7,
+      "symbol": "type ServerConfig struct",
+      "description": "配置具有data_key/img_key字符串字段；无Alpha安全存储等价证据。",
+      "sha256": "0ebb266a9b467c5de8cf33a8d76ca9273735f7e9024155e1988da050b0a1bbcb",
+      "excerpt": "type ServerConfig struct {"
+    }
+  },
+  "requests": [
+    {
+      "request": "hello",
+      "domain": "protocol",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "db_start"
+      ],
+      "reason": "Chatlog没有Alpha protobuf会话、版本协商、nonce/bootstrap proof或组件Hello协议。",
+      "requiredWork": [
+        "新增真实传输与生命周期适配；不得用HTTP /health等价原生身份验证通过。"
+      ],
+      "alpha": {
+        "fieldNumber": 10,
+        "requestCodec": "HelloRequest",
+        "responseCodec": "HelloResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57959
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1217359,
+          "end": 1221797,
+          "startLine": 29288,
+          "endLine": 29406
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1226077,
+          "end": 1231316,
+          "startLine": 29538,
+          "endLine": 29665
+        },
+        "requestFields": [
+          "protocol",
+          "desktopVersion",
+          "desktopBuildId",
+          "clientNonce",
+          "bootstrapProof"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getCapabilities",
+      "domain": "license",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "http_start"
+      ],
+      "reason": "Alpha这些分支承载entitlements/激活/刷新/注销；Chatlog未实现原产品授权服务。",
+      "requiredWork": [
+        "单独定义自有实现能力并保留原产品授权边界；不伪造签名、许可或lease。"
+      ],
+      "alpha": {
+        "fieldNumber": 11,
+        "requestCodec": "GetCapabilitiesRequest",
+        "responseCodec": "GetCapabilitiesResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57962
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1846602,
+          "end": 1847836,
+          "startLine": 47577,
+          "endLine": 47619
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1847921,
+          "end": 1849920,
+          "startLine": 47623,
+          "endLine": 47679
+        },
+        "requestFields": []
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listAccounts",
+      "domain": "accounts",
+      "status": "compose_or_new",
+      "evidence": [
+        "account_scan",
+        "account_model",
+        "db_new"
+      ],
+      "reason": "候选能发现运行中的微信进程及目录；不能等价Alpha已保存账号清单、手动目录发现与读取状态。",
+      "requiredWork": [
+        "建立持久账号注册表；区分进程发现、数据源验证、打开句柄和selected。"
+      ],
+      "alpha": {
+        "fieldNumber": 12,
+        "requestCodec": "ListAccountsRequest",
+        "responseCodec": "ListAccountsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57965
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1347223,
+          "end": 1348445,
+          "startLine": 33027,
+          "endLine": 33069
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1364792,
+          "end": 1367319,
+          "startLine": 33528,
+          "endLine": 33601
+        },
+        "requestFields": []
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "selectAccount",
+      "domain": "accounts",
+      "status": "compose_or_new",
+      "evidence": [
+        "db_start",
+        "db_new",
+        "account_model"
+      ],
+      "reason": "存在打开/关闭单一WorkDir的DB服务，无多账号选择事务、旧请求撤销与持久移除操作。",
+      "requiredWork": [
+        "增加按accountId的DB实例生命周期、切换epoch、缓存失效和可回读的选择结果。"
+      ],
+      "alpha": {
+        "fieldNumber": 13,
+        "requestCodec": "SelectAccountRequest",
+        "responseCodec": "SelectAccountResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57968
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1400428,
+          "end": 1402236,
+          "startLine": 34553,
+          "endLine": 34611
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1402337,
+          "end": 1404873,
+          "startLine": 34615,
+          "endLine": 34688
+        },
+        "requestFields": [
+          "accountId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listConversations",
+      "domain": "conversations",
+      "status": "read_foundation",
+      "evidence": [
+        "sessions",
+        "session_model"
+      ],
+      "reason": "存在真实SessionTable读取；缺cursor、账号scope及置顶/折叠/未读等Alpha完整字段。",
+      "requiredWork": [
+        "映射字段并补查询；实现稳定分页和排序，不将缺失字段猜成已验证状态。"
+      ],
+      "alpha": {
+        "fieldNumber": 14,
+        "requestCodec": "ListConversationsRequest",
+        "responseCodec": "ListConversationsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57971
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1409336,
+          "end": 1411759,
+          "startLine": 34831,
+          "endLine": 34904
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1421284,
+          "end": 1424381,
+          "startLine": 35170,
+          "endLine": 35258
+        },
+        "requestFields": [
+          "accountId",
+          "page"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listMessages",
+      "domain": "messages",
+      "status": "read_foundation",
+      "evidence": [
+        "messages",
+        "message_raw",
+        "message_model",
+        "message_wrap"
+      ],
+      "reason": "存在真实消息读取与解析；候选是offset/秒时间范围且会话必填，Alpha为cursor/双向/毫秒边界。",
+      "requiredWork": [
+        "保留local/server/source身份；重写稳定分页、时间边界、direction与取消语义。"
+      ],
+      "alpha": {
+        "fieldNumber": 15,
+        "requestCodec": "ListMessagesRequest",
+        "responseCodec": "ListMessagesResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57974
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1432123,
+          "end": 1437935,
+          "startLine": 35516,
+          "endLine": 35670
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1474659,
+          "end": 1479088,
+          "startLine": 36697,
+          "endLine": 36806
+        },
+        "requestFields": [
+          "accountId",
+          "conversationId",
+          "page",
+          "ascending",
+          "afterUnixMs",
+          "deferMedia",
+          "beforeUnixMs"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "exportConversation",
+      "domain": "export",
+      "status": "compose_or_new",
+      "evidence": [
+        "export_http",
+        "messages"
+      ],
+      "reason": "已有消息CSV/JSON/文本输出，可复用数据与格式化基础；非Alpha完整导出任务。",
+      "requiredWork": [
+        "新增HTML/Markdown/XLSX/SQL/ChatLab等目标格式、媒体收集、原子落盘、收据、取消和任务状态。"
+      ],
+      "alpha": {
+        "fieldNumber": 16,
+        "requestCodec": "ExportConversationRequest",
+        "responseCodec": "ExportConversationResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57977
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1540254,
+          "end": 1546796,
+          "startLine": 38566,
+          "endLine": 38735
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1546966,
+          "end": 1551751,
+          "startLine": 38739,
+          "endLine": 38872
+        },
+        "requestFields": [
+          "accountId",
+          "conversationId",
+          "format",
+          "destinationPath",
+          "page",
+          "includeMedia",
+          "startTimeUnixMs",
+          "endTimeUnixMs"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "searchMessages",
+      "domain": "search",
+      "status": "read_foundation",
+      "evidence": [
+        "messages",
+        "message_model"
+      ],
+      "reason": "存在sender和regexp keyword过滤，但不提供Alpha全账号搜索、分会话聚合和稳定cursor。",
+      "requiredWork": [
+        "区分文字搜索与正则；补全账号检索索引、上下文定位、排序及cursor；不能直接透传query。"
+      ],
+      "alpha": {
+        "fieldNumber": 17,
+        "requestCodec": "SearchMessagesRequest",
+        "responseCodec": "SearchMessagesResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57980
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1523480,
+          "end": 1530306,
+          "startLine": 38091,
+          "endLine": 38275
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1537514,
+          "end": 1540004,
+          "startLine": 38480,
+          "endLine": 38553
+        },
+        "requestFields": [
+          "accountId",
+          "query",
+          "conversationId",
+          "page",
+          "ascending",
+          "groupByConversation",
+          "senderId",
+          "fromUnixMs",
+          "toUnixMs"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "activateLicense",
+      "domain": "license",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "http_start"
+      ],
+      "reason": "Alpha这些分支承载entitlements/激活/刷新/注销；Chatlog未实现原产品授权服务。",
+      "requiredWork": [
+        "单独定义自有实现能力并保留原产品授权边界；不伪造签名、许可或lease。"
+      ],
+      "alpha": {
+        "fieldNumber": 18,
+        "requestCodec": "ActivateLicenseRequest",
+        "responseCodec": "ActivateLicenseResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57983
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1850002,
+          "end": 1851883,
+          "startLine": 47683,
+          "endLine": 47741
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1852026,
+          "end": 1856156,
+          "startLine": 47745,
+          "endLine": 47851
+        },
+        "requestFields": [
+          "activationCode"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "refreshLicense",
+      "domain": "license",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "http_start"
+      ],
+      "reason": "Alpha这些分支承载entitlements/激活/刷新/注销；Chatlog未实现原产品授权服务。",
+      "requiredWork": [
+        "单独定义自有实现能力并保留原产品授权边界；不伪造签名、许可或lease。"
+      ],
+      "alpha": {
+        "fieldNumber": 19,
+        "requestCodec": "RefreshLicenseRequest",
+        "responseCodec": "RefreshLicenseResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57986
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1856237,
+          "end": 1858083,
+          "startLine": 47855,
+          "endLine": 47913
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1858191,
+          "end": 1861157,
+          "startLine": 47917,
+          "endLine": 47993
+        },
+        "requestFields": [
+          "forceOnline"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "deactivateLicense",
+      "domain": "license",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "http_start"
+      ],
+      "reason": "Alpha这些分支承载entitlements/激活/刷新/注销；Chatlog未实现原产品授权服务。",
+      "requiredWork": [
+        "单独定义自有实现能力并保留原产品授权边界；不伪造签名、许可或lease。"
+      ],
+      "alpha": {
+        "fieldNumber": 20,
+        "requestCodec": "DeactivateLicenseRequest",
+        "responseCodec": "DeactivateLicenseResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57989
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1861221,
+          "end": 1862463,
+          "startLine": 47997,
+          "endLine": 48039
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1862594,
+          "end": 1866267,
+          "startLine": 48043,
+          "endLine": 48137
+        },
+        "requestFields": []
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getTelemetryStatus",
+      "domain": "telemetry",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "Chatlog没有Alpha遥测同意、队列和发送协议。",
+      "requiredWork": [
+        "实现可持久化的同意状态及真实队列，或明确停用遥测；不能假报flush成功。"
+      ],
+      "alpha": {
+        "fieldNumber": 21,
+        "requestCodec": "GetTelemetryStatusRequest",
+        "responseCodec": "GetTelemetryStatusResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57992
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1901928,
+          "end": 1903174,
+          "startLine": 49157,
+          "endLine": 49199
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1903409,
+          "end": 1909765,
+          "startLine": 49211,
+          "endLine": 49368
+        },
+        "requestFields": []
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "setTelemetryConsent",
+      "domain": "telemetry",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "Chatlog没有Alpha遥测同意、队列和发送协议。",
+      "requiredWork": [
+        "实现可持久化的同意状态及真实队列，或明确停用遥测；不能假报flush成功。"
+      ],
+      "alpha": {
+        "fieldNumber": 22,
+        "requestCodec": "SetTelemetryConsentRequest",
+        "responseCodec": "SetTelemetryConsentResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57995
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1909881,
+          "end": 1912786,
+          "startLine": 49372,
+          "endLine": 49460
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1912869,
+          "end": 1914841,
+          "startLine": 49464,
+          "endLine": 49520
+        },
+        "requestFields": [
+          "decision",
+          "categories",
+          "consentVersion"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "flushTelemetry",
+      "domain": "telemetry",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "Chatlog没有Alpha遥测同意、队列和发送协议。",
+      "requiredWork": [
+        "实现可持久化的同意状态及真实队列，或明确停用遥测；不能假报flush成功。"
+      ],
+      "alpha": {
+        "fieldNumber": 23,
+        "requestCodec": "FlushTelemetryRequest",
+        "responseCodec": "FlushTelemetryResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 57998
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1914902,
+          "end": 1916132,
+          "startLine": 49524,
+          "endLine": 49566
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1916286,
+          "end": 1921548,
+          "startLine": 49570,
+          "endLine": 49700
+        },
+        "requestFields": []
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "analyzeConversation",
+      "domain": "analytics",
+      "status": "compose_or_new",
+      "evidence": [
+        "messages",
+        "contacts",
+        "groups"
+      ],
+      "reason": "真实消息、联系人和群读取可作为统计输入；候选没有Alpha年度/关系/汇总分析算法。",
+      "requiredWork": [
+        "逐指标实现并核对时间区间、时区、去重和完整数据覆盖；聚合需作业服务。"
+      ],
+      "alpha": {
+        "fieldNumber": 24,
+        "requestCodec": "AnalyzeConversationRequest",
+        "responseCodec": "AnalyzeConversationResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58001
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1551894,
+          "end": 1555606,
+          "startLine": 38876,
+          "endLine": 38979
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1555736,
+          "end": 1558693,
+          "startLine": 38983,
+          "endLine": 39071
+        },
+        "requestFields": [
+          "accountId",
+          "conversationId",
+          "maxMessages",
+          "utcOffsetMinutes"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startOfficialExport",
+      "domain": "official_export",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "messages"
+      ],
+      "reason": "读取本地聊天分享链接不等于连接公众号历史文章并在线导出；未见对应实现。",
+      "requiredWork": [
+        "保留为独立功能后端及平台组件需求；需真实来源、任务进度和取消实现。"
+      ],
+      "alpha": {
+        "fieldNumber": 25,
+        "requestCodec": "StartOfficialExportRequest",
+        "responseCodec": "StartJobResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58004
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1781822,
+          "end": 1784612,
+          "startLine": 45703,
+          "endLine": 45776
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1833617,
+          "end": 1835426,
+          "startLine": 47161,
+          "endLine": 47217
+        },
+        "requestFields": [
+          "spec",
+          "deliveryTicket"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getJob",
+      "domain": "jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "export_http"
+      ],
+      "reason": "候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。",
+      "requiredWork": [
+        "新增统一job运行器、任务状态机、取消与重启恢复；保留全功能待实现项。"
+      ],
+      "alpha": {
+        "fieldNumber": 26,
+        "requestCodec": "GetJobRequest",
+        "responseCodec": "JobSummary",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58007
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1835490,
+          "end": 1837218,
+          "startLine": 47221,
+          "endLine": 47279
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 730845,
+          "end": 738144,
+          "startLine": 15152,
+          "endLine": 15342
+        },
+        "requestFields": [
+          "jobId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "watchJob",
+      "domain": "jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "export_http"
+      ],
+      "reason": "候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。",
+      "requiredWork": [
+        "新增统一job运行器、任务状态机、取消与重启恢复；保留全功能待实现项。"
+      ],
+      "alpha": {
+        "fieldNumber": 27,
+        "requestCodec": "WatchJobRequest",
+        "responseCodec": "WatchJobResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58010
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1837303,
+          "end": 1839912,
+          "startLine": 47283,
+          "endLine": 47359
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1844266,
+          "end": 1846540,
+          "startLine": 47500,
+          "endLine": 47573
+        },
+        "requestFields": [
+          "jobId",
+          "afterEventSeq"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "cancelJob",
+      "domain": "jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "export_http"
+      ],
+      "reason": "候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。",
+      "requiredWork": [
+        "新增统一job运行器、任务状态机、取消与重启恢复；保留全功能待实现项。"
+      ],
+      "alpha": {
+        "fieldNumber": 28,
+        "requestCodec": "CancelJobRequest",
+        "responseCodec": "CancelJobResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58013
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1839995,
+          "end": 1842302,
+          "startLine": 47363,
+          "endLine": 47436
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1842372,
+          "end": 1844185,
+          "startLine": 47440,
+          "endLine": 47496
+        },
+        "requestFields": [
+          "jobId",
+          "reasonCode"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "discoverAccounts",
+      "domain": "accounts",
+      "status": "compose_or_new",
+      "evidence": [
+        "account_scan",
+        "account_model",
+        "db_new"
+      ],
+      "reason": "候选能发现运行中的微信进程及目录；不能等价Alpha已保存账号清单、手动目录发现与读取状态。",
+      "requiredWork": [
+        "建立持久账号注册表；区分进程发现、数据源验证、打开句柄和selected。"
+      ],
+      "alpha": {
+        "fieldNumber": 29,
+        "requestCodec": "DiscoverAccountsRequest",
+        "responseCodec": "DiscoverAccountsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58016
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1348528,
+          "end": 1350413,
+          "startLine": 33073,
+          "endLine": 33131
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1367420,
+          "end": 1369963,
+          "startLine": 33605,
+          "endLine": 33678
+        },
+        "requestFields": [
+          "sourceLocation"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "importDatabaseKey",
+      "domain": "account_keys",
+      "status": "compose_or_new",
+      "evidence": [
+        "decrypt_validate",
+        "decrypt",
+        "key_config"
+      ],
+      "reason": "存在密钥验证和解密器；无Alpha按账号导入、受保护存储、复核与句柄结果。",
+      "requiredWork": [
+        "验证指定账号数据源；保存至自有安全存储；解密输出范围受控，不写原库。"
+      ],
+      "alpha": {
+        "fieldNumber": 30,
+        "requestCodec": "ImportDatabaseKeyRequest",
+        "responseCodec": "ImportDatabaseKeyResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58019
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1370074,
+          "end": 1372531,
+          "startLine": 33682,
+          "endLine": 33755
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1372613,
+          "end": 1374495,
+          "startLine": 33759,
+          "endLine": 33815
+        },
+        "requestFields": [
+          "accountId",
+          "databaseKey"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "transcribeVoice",
+      "domain": "voice_transcription",
+      "status": "missing",
+      "evidence": [
+        "voice",
+        "silk",
+        "surface"
+      ],
+      "reason": "SILK转MP3只是音频转换，候选未实现ASR、模型选择或批量转写。",
+      "requiredWork": [
+        "接入真实语音识别worker、模型管理、任务取消与转写结果持久化。"
+      ],
+      "alpha": {
+        "fieldNumber": 31,
+        "requestCodec": "TranscribeVoiceRequest",
+        "responseCodec": "TranscribeVoiceResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58022
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1594574,
+          "end": 1599639,
+          "startLine": 40090,
+          "endLine": 40238
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1599865,
+          "end": 1606018,
+          "startLine": 40252,
+          "endLine": 40433
+        },
+        "requestFields": [
+          "accountId",
+          "locator",
+          "backend",
+          "modelId",
+          "language",
+          "device",
+          "timeoutSeconds"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "transcribeVoiceBatch",
+      "domain": "voice_transcription",
+      "status": "missing",
+      "evidence": [
+        "voice",
+        "silk",
+        "surface"
+      ],
+      "reason": "SILK转MP3只是音频转换，候选未实现ASR、模型选择或批量转写。",
+      "requiredWork": [
+        "接入真实语音识别worker、模型管理、任务取消与转写结果持久化。"
+      ],
+      "alpha": {
+        "fieldNumber": 32,
+        "requestCodec": "TranscribeVoiceBatchRequest",
+        "responseCodec": "TranscribeVoiceBatchResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58025
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1608808,
+          "end": 1614357,
+          "startLine": 40523,
+          "endLine": 40686
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1618717,
+          "end": 1622101,
+          "startLine": 40812,
+          "endLine": 40915
+        },
+        "requestFields": [
+          "accountId",
+          "items",
+          "backend",
+          "modelId",
+          "language",
+          "device",
+          "timeoutSeconds",
+          "concurrency"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startMessageCapture",
+      "domain": "capture",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "account_key"
+      ],
+      "reason": "进程发现/密钥提取不是消息或公众号材料采集协议；无相应会话与事件。",
+      "requiredWork": [
+        "新增平台采集后端、活动证据和可撤销任务；不可把密钥提取成功等价采集完成。"
+      ],
+      "alpha": {
+        "fieldNumber": 33,
+        "requestCodec": "MessageCaptureStartRequest",
+        "responseCodec": "MessageCaptureStartResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58028
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1622184,
+          "end": 1624155,
+          "startLine": 40919,
+          "endLine": 40975
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1624240,
+          "end": 1626233,
+          "startLine": 40979,
+          "endLine": 41035
+        },
+        "requestFields": [
+          "request"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "watchMessageCapture",
+      "domain": "capture",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "account_key"
+      ],
+      "reason": "进程发现/密钥提取不是消息或公众号材料采集协议；无相应会话与事件。",
+      "requiredWork": [
+        "新增平台采集后端、活动证据和可撤销任务；不可把密钥提取成功等价采集完成。"
+      ],
+      "alpha": {
+        "fieldNumber": 34,
+        "requestCodec": "MessageCaptureWatchRequest",
+        "responseCodec": "MessageCaptureWatchResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58031
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1626316,
+          "end": 1628287,
+          "startLine": 41039,
+          "endLine": 41095
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1628397,
+          "end": 1631615,
+          "startLine": 41099,
+          "endLine": 41190
+        },
+        "requestFields": [
+          "request"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "reportMessageActivity",
+      "domain": "capture",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "account_key"
+      ],
+      "reason": "进程发现/密钥提取不是消息或公众号材料采集协议；无相应会话与事件。",
+      "requiredWork": [
+        "新增平台采集后端、活动证据和可撤销任务；不可把密钥提取成功等价采集完成。"
+      ],
+      "alpha": {
+        "fieldNumber": 35,
+        "requestCodec": "MessageActivityRequest",
+        "responseCodec": "MessageActivityResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58034
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1631694,
+          "end": 1633659,
+          "startLine": 41194,
+          "endLine": 41250
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1633740,
+          "end": 1635727,
+          "startLine": 41254,
+          "endLine": 41310
+        },
+        "requestFields": [
+          "request"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "cancelMessageCapture",
+      "domain": "capture",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "account_key"
+      ],
+      "reason": "进程发现/密钥提取不是消息或公众号材料采集协议；无相应会话与事件。",
+      "requiredWork": [
+        "新增平台采集后端、活动证据和可撤销任务；不可把密钥提取成功等价采集完成。"
+      ],
+      "alpha": {
+        "fieldNumber": 36,
+        "requestCodec": "MessageCaptureCancelRequest",
+        "responseCodec": "MessageCaptureCancelResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58037
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1635811,
+          "end": 1637791,
+          "startLine": 41314,
+          "endLine": 41370
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1637877,
+          "end": 1639879,
+          "startLine": 41374,
+          "endLine": 41430
+        },
+        "requestFields": [
+          "request"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "openMessageSession",
+      "domain": "writer_send",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选没有发消息或受控发送会话；现有业务接口是查询。",
+      "requiredWork": [
+        "新增真实平台发送实现、许可边界、幂等requestId、回执及不确定结果恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 37,
+        "requestCodec": "MessageSessionOpenRequest",
+        "responseCodec": "MessageSessionOpenResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58040
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1639961,
+          "end": 1641918,
+          "startLine": 41434,
+          "endLine": 41490
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1642002,
+          "end": 1643981,
+          "startLine": 41494,
+          "endLine": 41550
+        },
+        "requestFields": [
+          "request"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "closeMessageSession",
+      "domain": "writer_send",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选没有发消息或受控发送会话；现有业务接口是查询。",
+      "requiredWork": [
+        "新增真实平台发送实现、许可边界、幂等requestId、回执及不确定结果恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 38,
+        "requestCodec": "MessageSessionCloseRequest",
+        "responseCodec": "MessageSessionCloseResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58043
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1644064,
+          "end": 1646030,
+          "startLine": 41554,
+          "endLine": 41610
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1646115,
+          "end": 1648103,
+          "startLine": 41614,
+          "endLine": 41670
+        },
+        "requestFields": [
+          "request"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "sendMessage",
+      "domain": "writer_send",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选没有发消息或受控发送会话；现有业务接口是查询。",
+      "requiredWork": [
+        "新增真实平台发送实现、许可边界、幂等requestId、回执及不确定结果恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 39,
+        "requestCodec": "MessageSendRequest",
+        "responseCodec": "MessageSendResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58046
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1648178,
+          "end": 1650087,
+          "startLine": 41674,
+          "endLine": 41730
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1650164,
+          "end": 1652095,
+          "startLine": 41734,
+          "endLine": 41790
+        },
+        "requestFields": [
+          "request"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "watchMessageSend",
+      "domain": "writer_send",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选没有发消息或受控发送会话；现有业务接口是查询。",
+      "requiredWork": [
+        "新增真实平台发送实现、许可边界、幂等requestId、回执及不确定结果恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 40,
+        "requestCodec": "MessageSendWatchRequest",
+        "responseCodec": "MessageSendWatchResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58049
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1652175,
+          "end": 1654094,
+          "startLine": 41794,
+          "endLine": 41850
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1654201,
+          "end": 1657367,
+          "startLine": 41854,
+          "endLine": 41945
+        },
+        "requestFields": [
+          "request"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "cancelMessageSend",
+      "domain": "writer_send",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选没有发消息或受控发送会话；现有业务接口是查询。",
+      "requiredWork": [
+        "新增真实平台发送实现、许可边界、幂等requestId、回执及不确定结果恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 41,
+        "requestCodec": "MessageSendCancelRequest",
+        "responseCodec": "MessageSendCancelResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58052
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1657448,
+          "end": 1659376,
+          "startLine": 41949,
+          "endLine": 42005
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1659459,
+          "end": 1661409,
+          "startLine": 42009,
+          "endLine": 42065
+        },
+        "requestFields": [
+          "request"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listContacts",
+      "domain": "contacts",
+      "status": "read_foundation",
+      "evidence": [
+        "contacts",
+        "contact_model",
+        "groups"
+      ],
+      "reason": "存在联系人与群缓存查询基础；字段和查询前缀语义不同。",
+      "requiredWork": [
+        "适配精确用户名与分页；补头像/标签等缺失字段来源，保持账号隔离。"
+      ],
+      "alpha": {
+        "fieldNumber": 42,
+        "requestCodec": "ContactsRequest",
+        "responseCodec": "ContactsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58055
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1661564,
+          "end": 1666546,
+          "startLine": 42069,
+          "endLine": 42217
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1666620,
+          "end": 1668544,
+          "startLine": 42221,
+          "endLine": 42277
+        },
+        "requestFields": [
+          "accountId",
+          "query",
+          "limit",
+          "offset",
+          "ascending",
+          "directory",
+          "lookup"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listMoments",
+      "domain": "moments",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选数据源及HTTP路由中无朋友圈记录/作者/日期统计/表情/导出/防删除实现。",
+      "requiredWork": [
+        "新建朋友圈数据源、解析、媒体、导出与保全领域；防删除不是事后恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 43,
+        "requestCodec": "MomentsRequest",
+        "responseCodec": "MomentsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58058
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1691493,
+          "end": 1697390,
+          "startLine": 42954,
+          "endLine": 43123
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1697463,
+          "end": 1699378,
+          "startLine": 43127,
+          "endLine": 43183
+        },
+        "requestFields": [
+          "accountId",
+          "username",
+          "keyword",
+          "startTimeUnixMs",
+          "endTimeUnixMs",
+          "limit",
+          "offset",
+          "ascending"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listFavorites",
+      "domain": "favorites",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "聊天中的收藏式分享消息不等于微信收藏库；未见收藏库及媒体槽位实现。",
+      "requiredWork": [
+        "新增收藏数据源、分页及媒体解析，保留该域完整待实现。"
+      ],
+      "alpha": {
+        "fieldNumber": 44,
+        "requestCodec": "FavoritesRequest",
+        "responseCodec": "FavoritesResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58061
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1709931,
+          "end": 1716669,
+          "startLine": 43519,
+          "endLine": 43715
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1721994,
+          "end": 1727158,
+          "startLine": 43888,
+          "endLine": 44043
+        },
+        "requestFields": [
+          "accountId",
+          "type",
+          "limit",
+          "offset",
+          "ascending",
+          "skipSourceContext",
+          "query",
+          "includeTypeCounts",
+          "includeMedia",
+          "tagId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listGeneral",
+      "domain": "records",
+      "status": "compose_or_new",
+      "evidence": [
+        "message_model",
+        "messages",
+        "groups",
+        "group_model"
+      ],
+      "reason": "该分支复用其他资料、群成员和群置顶虚拟表；候选仅有部分聊天记录解析和群成员读取基础，好友请求/朋友圈互动/搜索历史/群置顶缺失。",
+      "requiredWork": [
+        "按8个虚拟tableName分别映射真实数据源，参见multiplexedBranches；不得将部分可读类别宣称为全部资料。"
+      ],
+      "alpha": {
+        "fieldNumber": 45,
+        "requestCodec": "GeneralRequest",
+        "responseCodec": "GeneralResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58064
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1743428,
+          "end": 1747606,
+          "startLine": 44554,
+          "endLine": 44687
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1747696,
+          "end": 1751431,
+          "startLine": 44691,
+          "endLine": 44803
+        },
+        "requestFields": [
+          "accountId",
+          "tableName",
+          "query",
+          "limit",
+          "offset",
+          "ascending"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "applyMessageMutation",
+      "domain": "writer_local",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "db_open"
+      ],
+      "reason": "未见消息编辑/插入/还原或资源修复事务；临时DB副本读取不是writer。",
+      "requiredWork": [
+        "实现独立事务writer、原始值日志、身份校验、备份/恢复与可核对回执。"
+      ],
+      "alpha": {
+        "fieldNumber": 46,
+        "requestCodec": "ApplyMessageMutationRequest",
+        "responseCodec": "ApplyMessageMutationResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58067
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1753781,
+          "end": 1756282,
+          "startLine": 44884,
+          "endLine": 44957
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1756367,
+          "end": 1758336,
+          "startLine": 44961,
+          "endLine": 45017
+        },
+        "requestFields": [
+          "operationId",
+          "spec"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "manageMomentsAntiDelete",
+      "domain": "moments",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选数据源及HTTP路由中无朋友圈记录/作者/日期统计/表情/导出/防删除实现。",
+      "requiredWork": [
+        "新建朋友圈数据源、解析、媒体、导出与保全领域；防删除不是事后恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 47,
+        "requestCodec": "ManageMomentsAntiDeleteRequest",
+        "responseCodec": "ManageMomentsAntiDeleteResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58070
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1767783,
+          "end": 1770306,
+          "startLine": 45297,
+          "endLine": 45370
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1770393,
+          "end": 1772366,
+          "startLine": 45374,
+          "endLine": 45430
+        },
+        "requestFields": [
+          "operationId",
+          "spec"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getApplicationLockStatus",
+      "domain": "application_security",
+      "status": "missing",
+      "evidence": [
+        "http_start",
+        "http_cors",
+        "key_config"
+      ],
+      "reason": "候选未实现Alpha应用锁、安全会话或受保护凭据存储。",
+      "requiredWork": [
+        "新增本工程安全存储与应用锁状态机；不要将查询服务Ready等价已解锁。"
+      ],
+      "alpha": {
+        "fieldNumber": 48,
+        "requestCodec": "GetApplicationLockStatusRequest",
+        "responseCodec": "GetApplicationLockStatusResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58073
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1231387,
+          "end": 1232657,
+          "startLine": 29669,
+          "endLine": 29711
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1232745,
+          "end": 1234712,
+          "startLine": 29715,
+          "endLine": 29771
+        },
+        "requestFields": []
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "provisionApplicationLock",
+      "domain": "application_security",
+      "status": "missing",
+      "evidence": [
+        "http_start",
+        "http_cors",
+        "key_config"
+      ],
+      "reason": "候选未实现Alpha应用锁、安全会话或受保护凭据存储。",
+      "requiredWork": [
+        "新增本工程安全存储与应用锁状态机；不要将查询服务Ready等价已解锁。"
+      ],
+      "alpha": {
+        "fieldNumber": 49,
+        "requestCodec": "ProvisionApplicationLockRequest",
+        "responseCodec": "ProvisionApplicationLockResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58076
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1234806,
+          "end": 1237047,
+          "startLine": 29775,
+          "endLine": 29836
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1237135,
+          "end": 1239102,
+          "startLine": 29840,
+          "endLine": 29896
+        },
+        "requestFields": [
+          "ownerWindowHandle"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "unlockApplication",
+      "domain": "application_security",
+      "status": "missing",
+      "evidence": [
+        "http_start",
+        "http_cors",
+        "key_config"
+      ],
+      "reason": "候选未实现Alpha应用锁、安全会话或受保护凭据存储。",
+      "requiredWork": [
+        "新增本工程安全存储与应用锁状态机；不要将查询服务Ready等价已解锁。"
+      ],
+      "alpha": {
+        "fieldNumber": 50,
+        "requestCodec": "UnlockApplicationRequest",
+        "responseCodec": "UnlockApplicationResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58079
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1239218,
+          "end": 1241959,
+          "startLine": 29900,
+          "endLine": 29976
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1242040,
+          "end": 1243979,
+          "startLine": 29980,
+          "endLine": 30036
+        },
+        "requestFields": [
+          "ownerWindowHandle",
+          "password"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "lockApplication",
+      "domain": "application_security",
+      "status": "missing",
+      "evidence": [
+        "http_start",
+        "http_cors",
+        "key_config"
+      ],
+      "reason": "候选未实现Alpha应用锁、安全会话或受保护凭据存储。",
+      "requiredWork": [
+        "新增本工程安全存储与应用锁状态机；不要将查询服务Ready等价已解锁。"
+      ],
+      "alpha": {
+        "fieldNumber": 51,
+        "requestCodec": "LockApplicationRequest",
+        "responseCodec": "LockApplicationResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58082
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1244041,
+          "end": 1245275,
+          "startLine": 30040,
+          "endLine": 30082
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1245354,
+          "end": 1247285,
+          "startLine": 30086,
+          "endLine": 30142
+        },
+        "requestFields": []
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getImageMediaStatus",
+      "domain": "media_keys",
+      "status": "compose_or_new",
+      "evidence": [
+        "image_decode",
+        "image_key",
+        "image_key_validate"
+      ],
+      "reason": "有图像解码、全局AES key设置和校验；没有Alpha逐账号状态、手动/内存模式及验证证明。",
+      "requiredWork": [
+        "改为按账号的安全key提供器和真实样本验证；配置状态与可解码状态分开。"
+      ],
+      "alpha": {
+        "fieldNumber": 52,
+        "requestCodec": "GetImageMediaStatusRequest",
+        "responseCodec": "GetImageMediaStatusResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58085
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1265252,
+          "end": 1267687,
+          "startLine": 30660,
+          "endLine": 30733
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1267770,
+          "end": 1269692,
+          "startLine": 30737,
+          "endLine": 30793
+        },
+        "requestFields": [
+          "accountId",
+          "verifySample"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "configureImageKey",
+      "domain": "media_keys",
+      "status": "compose_or_new",
+      "evidence": [
+        "image_decode",
+        "image_key",
+        "image_key_validate"
+      ],
+      "reason": "有图像解码、全局AES key设置和校验；没有Alpha逐账号状态、手动/内存模式及验证证明。",
+      "requiredWork": [
+        "改为按账号的安全key提供器和真实样本验证；配置状态与可解码状态分开。"
+      ],
+      "alpha": {
+        "fieldNumber": 53,
+        "requestCodec": "ConfigureImageKeyRequest",
+        "responseCodec": "ConfigureImageKeyResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58088
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1269818,
+          "end": 1273197,
+          "startLine": 30797,
+          "endLine": 30900
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1273296,
+          "end": 1275941,
+          "startLine": 30904,
+          "endLine": 30977
+        },
+        "requestFields": [
+          "accountId",
+          "mode",
+          "xorKey",
+          "aesKey"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "clearImageKey",
+      "domain": "media_keys",
+      "status": "compose_or_new",
+      "evidence": [
+        "image_key",
+        "key_config"
+      ],
+      "reason": "SetAesKey(空串)直接返回，无法充当清除；需自行实现密钥和缓存撤销。",
+      "requiredWork": [
+        "实现明确清零/移除安全存储、内存引用与相关缓存，并返回真实状态。"
+      ],
+      "alpha": {
+        "fieldNumber": 54,
+        "requestCodec": "ClearImageKeyRequest",
+        "responseCodec": "ClearImageKeyResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58091
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1276016,
+          "end": 1277824,
+          "startLine": 30981,
+          "endLine": 31039
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1277901,
+          "end": 1279799,
+          "startLine": 31043,
+          "endLine": 31099
+        },
+        "requestFields": [
+          "accountId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startMaterialCapture",
+      "domain": "capture",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "account_key"
+      ],
+      "reason": "进程发现/密钥提取不是消息或公众号材料采集协议；无相应会话与事件。",
+      "requiredWork": [
+        "新增平台采集后端、活动证据和可撤销任务；不可把密钥提取成功等价采集完成。"
+      ],
+      "alpha": {
+        "fieldNumber": 55,
+        "requestCodec": "StartMaterialCaptureRequest",
+        "responseCodec": "StartMaterialCaptureResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58094
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1279923,
+          "end": 1283408,
+          "startLine": 31103,
+          "endLine": 31206
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1283500,
+          "end": 1285800,
+          "startLine": 31210,
+          "endLine": 31283
+        },
+        "requestFields": [
+          "accountId",
+          "kind",
+          "processId",
+          "timeoutSeconds"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "watchMaterialCapture",
+      "domain": "capture",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "account_key"
+      ],
+      "reason": "进程发现/密钥提取不是消息或公众号材料采集协议；无相应会话与事件。",
+      "requiredWork": [
+        "新增平台采集后端、活动证据和可撤销任务；不可把密钥提取成功等价采集完成。"
+      ],
+      "alpha": {
+        "fieldNumber": 56,
+        "requestCodec": "WatchMaterialCaptureRequest",
+        "responseCodec": "WatchMaterialCaptureResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58097
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1285901,
+          "end": 1288610,
+          "startLine": 31287,
+          "endLine": 31363
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1305776,
+          "end": 1309013,
+          "startLine": 31854,
+          "endLine": 31945
+        },
+        "requestFields": [
+          "captureId",
+          "afterEventSeq"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "cancelMaterialCapture",
+      "domain": "capture",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "account_key"
+      ],
+      "reason": "进程发现/密钥提取不是消息或公众号材料采集协议；无相应会话与事件。",
+      "requiredWork": [
+        "新增平台采集后端、活动证据和可撤销任务；不可把密钥提取成功等价采集完成。"
+      ],
+      "alpha": {
+        "fieldNumber": 57,
+        "requestCodec": "CancelMaterialCaptureRequest",
+        "responseCodec": "CancelMaterialCaptureResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58100
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1309112,
+          "end": 1311519,
+          "startLine": 31949,
+          "endLine": 32022
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1311618,
+          "end": 1313626,
+          "startLine": 32026,
+          "endLine": 32084
+        },
+        "requestFields": [
+          "captureId",
+          "reasonCode"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startPersonaProfile",
+      "domain": "ai_persona",
+      "status": "missing",
+      "evidence": [
+        "mcp",
+        "surface"
+      ],
+      "reason": "MCP只暴露查询工具；无画像构建、模型推理、审批与运行生命周期。",
+      "requiredWork": [
+        "继续维护Alpha已有JS AI层，并接自有真实检索工具与推理运行时。"
+      ],
+      "alpha": {
+        "fieldNumber": 62,
+        "requestCodec": "StartPersonaProfileRequest",
+        "responseCodec": "StartPersonaProfileResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58103
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1313785,
+          "end": 1318457,
+          "startLine": 32088,
+          "endLine": 32221
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1318594,
+          "end": 1322469,
+          "startLine": 32225,
+          "endLine": 32331
+        },
+        "requestFields": [
+          "accountId",
+          "conversationId",
+          "perspective",
+          "pageSize",
+          "maxPages",
+          "maxMessages"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "watchPersonaProfile",
+      "domain": "ai_persona",
+      "status": "missing",
+      "evidence": [
+        "mcp",
+        "surface"
+      ],
+      "reason": "MCP只暴露查询工具；无画像构建、模型推理、审批与运行生命周期。",
+      "requiredWork": [
+        "继续维护Alpha已有JS AI层，并接自有真实检索工具与推理运行时。"
+      ],
+      "alpha": {
+        "fieldNumber": 63,
+        "requestCodec": "WatchPersonaProfileRequest",
+        "responseCodec": "WatchPersonaProfileResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58106
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1322548,
+          "end": 1324354,
+          "startLine": 32335,
+          "endLine": 32393
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1331701,
+          "end": 1339790,
+          "startLine": 32590,
+          "endLine": 32792
+        },
+        "requestFields": [
+          "buildId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "cancelPersonaProfile",
+      "domain": "ai_persona",
+      "status": "missing",
+      "evidence": [
+        "mcp",
+        "surface"
+      ],
+      "reason": "MCP只暴露查询工具；无画像构建、模型推理、审批与运行生命周期。",
+      "requiredWork": [
+        "继续维护Alpha已有JS AI层，并接自有真实检索工具与推理运行时。"
+      ],
+      "alpha": {
+        "fieldNumber": 64,
+        "requestCodec": "CancelPersonaProfileRequest",
+        "responseCodec": "CancelPersonaProfileResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58109
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1339870,
+          "end": 1341680,
+          "startLine": 32796,
+          "endLine": 32854
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1341801,
+          "end": 1344802,
+          "startLine": 32858,
+          "endLine": 32946
+        },
+        "requestFields": [
+          "buildId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getAdvancedComponentStatus",
+      "domain": "advanced_components",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选没有Alpha按平台动态组件清单、下载校验和激活生命周期。",
+      "requiredWork": [
+        "明确独立组件体系及真实支持状态，保留原有组件缺口。"
+      ],
+      "alpha": {
+        "fieldNumber": 65,
+        "requestCodec": "GetAdvancedComponentStatusRequest",
+        "responseCodec": "GetAdvancedComponentStatusResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58112
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1866354,
+          "end": 1868167,
+          "startLine": 48141,
+          "endLine": 48197
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1868594,
+          "end": 1879215,
+          "startLine": 48216,
+          "endLine": 48475
+        },
+        "requestFields": [
+          "component"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startAdvancedComponent",
+      "domain": "advanced_components",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选没有Alpha按平台动态组件清单、下载校验和激活生命周期。",
+      "requiredWork": [
+        "明确独立组件体系及真实支持状态，保留原有组件缺口。"
+      ],
+      "alpha": {
+        "fieldNumber": 66,
+        "requestCodec": "StartAdvancedComponentRequest",
+        "responseCodec": "StartAdvancedComponentResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58115
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1879298,
+          "end": 1881095,
+          "startLine": 48479,
+          "endLine": 48535
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1881182,
+          "end": 1883056,
+          "startLine": 48539,
+          "endLine": 48597
+        },
+        "requestFields": [
+          "component"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "watchAdvancedComponent",
+      "domain": "advanced_components",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选没有Alpha按平台动态组件清单、下载校验和激活生命周期。",
+      "requiredWork": [
+        "明确独立组件体系及真实支持状态，保留原有组件缺口。"
+      ],
+      "alpha": {
+        "fieldNumber": 67,
+        "requestCodec": "WatchAdvancedComponentRequest",
+        "responseCodec": "WatchAdvancedComponentResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58118
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1890327,
+          "end": 1893160,
+          "startLine": 48818,
+          "endLine": 48894
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1893314,
+          "end": 1898046,
+          "startLine": 48898,
+          "endLine": 49031
+        },
+        "requestFields": [
+          "operationId",
+          "afterEventSequence"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "cancelAdvancedComponent",
+      "domain": "advanced_components",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选没有Alpha按平台动态组件清单、下载校验和激活生命周期。",
+      "requiredWork": [
+        "明确独立组件体系及真实支持状态，保留原有组件缺口。"
+      ],
+      "alpha": {
+        "fieldNumber": 68,
+        "requestCodec": "CancelAdvancedComponentRequest",
+        "responseCodec": "CancelAdvancedComponentResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58121
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1898133,
+          "end": 1900007,
+          "startLine": 49035,
+          "endLine": 49093
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1900095,
+          "end": 1901863,
+          "startLine": 49097,
+          "endLine": 49153
+        },
+        "requestFields": [
+          "operationId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "acquireDatabaseKey",
+      "domain": "account_keys",
+      "status": "compose_or_new",
+      "evidence": [
+        "account_key",
+        "darwin_key",
+        "decrypt_validate"
+      ],
+      "reason": "有按平台提取/验证密钥实现，但无Alpha超时、操作身份和结构化证据封装。",
+      "requiredWork": [
+        "在用户授权后单独验证实际微信版本/权限；新增取消、超时及数据库验证证据。"
+      ],
+      "alpha": {
+        "fieldNumber": 69,
+        "requestCodec": "AcquireDatabaseKeyRequest",
+        "responseCodec": "AcquireDatabaseKeyResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58124
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1382390,
+          "end": 1385865,
+          "startLine": 34039,
+          "endLine": 34142
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1385966,
+          "end": 1388558,
+          "startLine": 34146,
+          "endLine": 34219
+        },
+        "requestFields": [
+          "accountId",
+          "processId",
+          "mode",
+          "timeoutSeconds"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "watchDatabaseKeyAcquisition",
+      "domain": "account_keys",
+      "status": "compose_or_new",
+      "evidence": [
+        "account_key",
+        "darwin_key"
+      ],
+      "reason": "候选提取函数返回最终结果，未见Alpha序列化进度事件/afterEventSeq重放。",
+      "requiredWork": [
+        "为真实提取过程建立进度事件流；不能模拟完成事件。"
+      ],
+      "alpha": {
+        "fieldNumber": 129,
+        "requestCodec": "WatchDatabaseKeyAcquisitionRequest",
+        "responseCodec": "WatchDatabaseKeyAcquisitionResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58127
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1388666,
+          "end": 1391403,
+          "startLine": 34223,
+          "endLine": 34299
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1397033,
+          "end": 1400353,
+          "startLine": 34458,
+          "endLine": 34549
+        },
+        "requestFields": [
+          "accountId",
+          "afterEventSeq"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "removeAccount",
+      "domain": "accounts",
+      "status": "compose_or_new",
+      "evidence": [
+        "db_start",
+        "db_new",
+        "account_model"
+      ],
+      "reason": "存在打开/关闭单一WorkDir的DB服务，无多账号选择事务、旧请求撤销与持久移除操作。",
+      "requiredWork": [
+        "增加按accountId的DB实例生命周期、切换epoch、缓存失效和可回读的选择结果。"
+      ],
+      "alpha": {
+        "fieldNumber": 70,
+        "requestCodec": "RemoveAccountRequest",
+        "responseCodec": "RemoveAccountResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58130
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1404948,
+          "end": 1406756,
+          "startLine": 34692,
+          "endLine": 34750
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1406856,
+          "end": 1409243,
+          "startLine": 34754,
+          "endLine": 34827
+        },
+        "requestFields": [
+          "accountId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startMaterialTextSend",
+      "domain": "writer_send",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选没有发消息或受控发送会话；现有业务接口是查询。",
+      "requiredWork": [
+        "新增真实平台发送实现、许可边界、幂等requestId、回执及不确定结果恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 71,
+        "requestCodec": "StartMaterialTextSendRequest",
+        "responseCodec": "StartMaterialTextSendResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58133
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1817635,
+          "end": 1820756,
+          "startLine": 46707,
+          "endLine": 46795
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1820856,
+          "end": 1823483,
+          "startLine": 46799,
+          "endLine": 46872
+        },
+        "requestFields": [
+          "accountId",
+          "materialBundleId",
+          "send"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startMaterialOfficialExport",
+      "domain": "official_export",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "messages"
+      ],
+      "reason": "读取本地聊天分享链接不等于连接公众号历史文章并在线导出；未见对应实现。",
+      "requiredWork": [
+        "保留为独立功能后端及平台组件需求；需真实来源、任务进度和取消实现。"
+      ],
+      "alpha": {
+        "fieldNumber": 72,
+        "requestCodec": "StartMaterialOfficialExportRequest",
+        "responseCodec": "StartJobResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58136
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1784739,
+          "end": 1787910,
+          "startLine": 45780,
+          "endLine": 45868
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1833617,
+          "end": 1835426,
+          "startLine": 47161,
+          "endLine": 47217
+        },
+        "requestFields": [
+          "spec",
+          "materialBundleId",
+          "operationId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "beginMaterialOfficialExport",
+      "domain": "official_export",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "messages"
+      ],
+      "reason": "读取本地聊天分享链接不等于连接公众号历史文章并在线导出；未见对应实现。",
+      "requiredWork": [
+        "保留为独立功能后端及平台组件需求；需真实来源、任务进度和取消实现。"
+      ],
+      "alpha": {
+        "fieldNumber": 73,
+        "requestCodec": "StartMaterialOfficialExportRequest",
+        "responseCodec": "MaterialOfficialExportStatus",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58139
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1784739,
+          "end": 1787910,
+          "startLine": 45780,
+          "endLine": 45868
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1790804,
+          "end": 1800244,
+          "startLine": 45963,
+          "endLine": 46210
+        },
+        "requestFields": [
+          "spec",
+          "materialBundleId",
+          "operationId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getMaterialOfficialExport",
+      "domain": "official_export",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "messages"
+      ],
+      "reason": "读取本地聊天分享链接不等于连接公众号历史文章并在线导出；未见对应实现。",
+      "requiredWork": [
+        "保留为独立功能后端及平台组件需求；需真实来源、任务进度和取消实现。"
+      ],
+      "alpha": {
+        "fieldNumber": 74,
+        "requestCodec": "MaterialOfficialExportOperationRequest",
+        "responseCodec": "MaterialOfficialExportStatus",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58142
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1788020,
+          "end": 1790480,
+          "startLine": 45872,
+          "endLine": 45945
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1790804,
+          "end": 1800244,
+          "startLine": 45963,
+          "endLine": 46210
+        },
+        "requestFields": [
+          "accountId",
+          "operationId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "cancelMaterialOfficialExport",
+      "domain": "official_export",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "messages"
+      ],
+      "reason": "读取本地聊天分享链接不等于连接公众号历史文章并在线导出；未见对应实现。",
+      "requiredWork": [
+        "保留为独立功能后端及平台组件需求；需真实来源、任务进度和取消实现。"
+      ],
+      "alpha": {
+        "fieldNumber": 75,
+        "requestCodec": "MaterialOfficialExportOperationRequest",
+        "responseCodec": "MaterialOfficialExportStatus",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58145
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1788020,
+          "end": 1790480,
+          "startLine": 45872,
+          "endLine": 45945
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1790804,
+          "end": 1800244,
+          "startLine": 45963,
+          "endLine": 46210
+        },
+        "requestFields": [
+          "accountId",
+          "operationId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listMaterialOfficialExports",
+      "domain": "official_export",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "messages"
+      ],
+      "reason": "读取本地聊天分享链接不等于连接公众号历史文章并在线导出；未见对应实现。",
+      "requiredWork": [
+        "保留为独立功能后端及平台组件需求；需真实来源、任务进度和取消实现。"
+      ],
+      "alpha": {
+        "fieldNumber": 76,
+        "requestCodec": "ListMaterialOfficialExportsRequest",
+        "responseCodec": "ListMaterialOfficialExportsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58148
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1800343,
+          "end": 1802655,
+          "startLine": 46214,
+          "endLine": 46287
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1802746,
+          "end": 1804798,
+          "startLine": 46291,
+          "endLine": 46349
+        },
+        "requestFields": [
+          "accountId",
+          "limit"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listOfficialScheduleRecords",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 77,
+        "requestCodec": "ListOfficialScheduleRecordsRequest",
+        "responseCodec": "ListOfficialScheduleRecordsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58151
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1933718,
+          "end": 1937239,
+          "startLine": 50020,
+          "endLine": 50123
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1937327,
+          "end": 1939319,
+          "startLine": 50127,
+          "endLine": 50185
+        },
+        "requestFields": [
+          "accountId",
+          "scheduleId",
+          "limit",
+          "includeArchived"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getOfficialScheduleRecord",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 78,
+        "requestCodec": "GetOfficialScheduleRecordRequest",
+        "responseCodec": "OfficialScheduleRecord",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58154
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1939423,
+          "end": 1941859,
+          "startLine": 50189,
+          "endLine": 50262
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1921970,
+          "end": 1933579,
+          "startLine": 49721,
+          "endLine": 50016
+        },
+        "requestFields": [
+          "accountId",
+          "operationId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "cancelOfficialScheduleRecord",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 79,
+        "requestCodec": "CancelOfficialScheduleRecordRequest",
+        "responseCodec": "OfficialScheduleRecord",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58157
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1941988,
+          "end": 1945361,
+          "startLine": 50266,
+          "endLine": 50357
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1921970,
+          "end": 1933579,
+          "startLine": 49721,
+          "endLine": 50016
+        },
+        "requestFields": [
+          "accountId",
+          "operationId",
+          "expectedRevision"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "archiveOfficialScheduleRecord",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 80,
+        "requestCodec": "ArchiveOfficialScheduleRecordRequest",
+        "responseCodec": "OfficialScheduleRecord",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58160
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1945508,
+          "end": 1949367,
+          "startLine": 50361,
+          "endLine": 50467
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1921970,
+          "end": 1933579,
+          "startLine": 49721,
+          "endLine": 50016
+        },
+        "requestFields": [
+          "accountId",
+          "operationId",
+          "expectedRevision",
+          "archived"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listOfficialSchedulePlans",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 81,
+        "requestCodec": "ListOfficialSchedulePlansRequest",
+        "responseCodec": "ListOfficialSchedulePlansResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58163
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2059908,
+          "end": 2062854,
+          "startLine": 53536,
+          "endLine": 53624
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2062956,
+          "end": 2065403,
+          "startLine": 53628,
+          "endLine": 53701
+        },
+        "requestFields": [
+          "accountId",
+          "includeDisabled",
+          "limit"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getOfficialSchedulePlan",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 82,
+        "requestCodec": "GetOfficialSchedulePlanRequest",
+        "responseCodec": "OfficialSchedulePlan",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58166
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2065504,
+          "end": 2067919,
+          "startLine": 53705,
+          "endLine": 53778
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2048591,
+          "end": 2059787,
+          "startLine": 53252,
+          "endLine": 53532
+        },
+        "requestFields": [
+          "accountId",
+          "scheduleId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "saveOfficialSchedulePlan",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 83,
+        "requestCodec": "SaveOfficialSchedulePlanRequest",
+        "responseCodec": "OfficialSchedulePlan",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58169
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2068042,
+          "end": 2071509,
+          "startLine": 53782,
+          "endLine": 53873
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2048591,
+          "end": 2059787,
+          "startLine": 53252,
+          "endLine": 53532
+        },
+        "requestFields": [
+          "plan",
+          "mode",
+          "expectedUpdatedAtUnixMs"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "deleteOfficialSchedulePlan",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 84,
+        "requestCodec": "DeleteOfficialSchedulePlanRequest",
+        "responseCodec": "DeleteOfficialSchedulePlanResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58172
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2071642,
+          "end": 2075122,
+          "startLine": 53877,
+          "endLine": 53968
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2075243,
+          "end": 2078145,
+          "startLine": 53972,
+          "endLine": 54060
+        },
+        "requestFields": [
+          "accountId",
+          "scheduleId",
+          "expectedUpdatedAtUnixMs"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "runOfficialSchedulePlanNow",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 85,
+        "requestCodec": "RunOfficialSchedulePlanNowRequest",
+        "responseCodec": "RunOfficialSchedulePlanNowResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58175
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2078278,
+          "end": 2081758,
+          "startLine": 54064,
+          "endLine": 54155
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2081859,
+          "end": 2084275,
+          "startLine": 54159,
+          "endLine": 54232
+        },
+        "requestFields": [
+          "accountId",
+          "scheduleId",
+          "expectedUpdatedAtUnixMs"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "putPendingOfficialPlanCreate",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 86,
+        "requestCodec": "PutPendingOfficialPlanCreateRequest",
+        "responseCodec": "PutPendingOfficialPlanCreateResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58178
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2087948,
+          "end": 2089934,
+          "startLine": 54343,
+          "endLine": 54399
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2090027,
+          "end": 2091815,
+          "startLine": 54403,
+          "endLine": 54459
+        },
+        "requestFields": [
+          "entry"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getPendingOfficialPlanCreate",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 87,
+        "requestCodec": "GetPendingOfficialPlanCreateRequest",
+        "responseCodec": "GetPendingOfficialPlanCreateResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58181
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2091905,
+          "end": 2093773,
+          "startLine": 54463,
+          "endLine": 54521
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2093864,
+          "end": 2095854,
+          "startLine": 54525,
+          "endLine": 54581
+        },
+        "requestFields": [
+          "accountId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "clearPendingOfficialPlanCreate",
+      "domain": "official_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "未见公众号导出计划、执行记录或pending创建意图存储。",
+      "requiredWork": [
+        "实现公众号任务域的持久状态机、幂等意图及归档/撤销，不能复用Webhook名称当等价。"
+      ],
+      "alpha": {
+        "fieldNumber": 88,
+        "requestCodec": "ClearPendingOfficialPlanCreateRequest",
+        "responseCodec": "ClearPendingOfficialPlanCreateResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58184
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2095978,
+          "end": 2098916,
+          "startLine": 54585,
+          "endLine": 54673
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2099010,
+          "end": 2100795,
+          "startLine": 54677,
+          "endLine": 54733
+        },
+        "requestFields": [
+          "accountId",
+          "scheduleId",
+          "generation"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listChatExportSchedules",
+      "domain": "scheduled_exports",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "fsnotify/Webhook不是定时导出计划、运行记录和重试尝试系统。",
+      "requiredWork": [
+        "独立实现计划持久化、定时触发、并发/重入控制、运行/尝试历史和重试语义。"
+      ],
+      "alpha": {
+        "fieldNumber": 89,
+        "requestCodec": "ListChatExportSchedulesRequest",
+        "responseCodec": "ListChatExportSchedulesResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58187
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1986826,
+          "end": 1989764,
+          "startLine": 51480,
+          "endLine": 51568
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1989864,
+          "end": 1992313,
+          "startLine": 51572,
+          "endLine": 51645
+        },
+        "requestFields": [
+          "accountId",
+          "includeDisabled",
+          "limit"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getChatExportSchedule",
+      "domain": "scheduled_exports",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "fsnotify/Webhook不是定时导出计划、运行记录和重试尝试系统。",
+      "requiredWork": [
+        "独立实现计划持久化、定时触发、并发/重入控制、运行/尝试历史和重试语义。"
+      ],
+      "alpha": {
+        "fieldNumber": 90,
+        "requestCodec": "GetChatExportScheduleRequest",
+        "responseCodec": "ChatExportSchedulePlan",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58190
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1992412,
+          "end": 1994819,
+          "startLine": 51649,
+          "endLine": 51722
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1949819,
+          "end": 1963289,
+          "startLine": 50489,
+          "endLine": 50808
+        },
+        "requestFields": [
+          "accountId",
+          "scheduleId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "saveChatExportSchedule",
+      "domain": "scheduled_exports",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "fsnotify/Webhook不是定时导出计划、运行记录和重试尝试系统。",
+      "requiredWork": [
+        "独立实现计划持久化、定时触发、并发/重入控制、运行/尝试历史和重试语义。"
+      ],
+      "alpha": {
+        "fieldNumber": 91,
+        "requestCodec": "SaveChatExportScheduleRequest",
+        "responseCodec": "ChatExportSchedulePlan",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58193
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1994940,
+          "end": 1998413,
+          "startLine": 51726,
+          "endLine": 51817
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1949819,
+          "end": 1963289,
+          "startLine": 50489,
+          "endLine": 50808
+        },
+        "requestFields": [
+          "plan",
+          "mode",
+          "expectedUpdatedAtUnixMs"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "deleteChatExportSchedule",
+      "domain": "scheduled_exports",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "fsnotify/Webhook不是定时导出计划、运行记录和重试尝试系统。",
+      "requiredWork": [
+        "独立实现计划持久化、定时触发、并发/重入控制、运行/尝试历史和重试语义。"
+      ],
+      "alpha": {
+        "fieldNumber": 92,
+        "requestCodec": "DeleteChatExportScheduleRequest",
+        "responseCodec": "DeleteChatExportScheduleResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58196
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1998544,
+          "end": 2002016,
+          "startLine": 51821,
+          "endLine": 51912
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2002135,
+          "end": 2005029,
+          "startLine": 51916,
+          "endLine": 52004
+        },
+        "requestFields": [
+          "accountId",
+          "scheduleId",
+          "expectedUpdatedAtUnixMs"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "runChatExportScheduleNow",
+      "domain": "scheduled_exports",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "fsnotify/Webhook不是定时导出计划、运行记录和重试尝试系统。",
+      "requiredWork": [
+        "独立实现计划持久化、定时触发、并发/重入控制、运行/尝试历史和重试语义。"
+      ],
+      "alpha": {
+        "fieldNumber": 93,
+        "requestCodec": "RunChatExportScheduleNowRequest",
+        "responseCodec": "RunChatExportScheduleNowResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58199
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2005160,
+          "end": 2008632,
+          "startLine": 52008,
+          "endLine": 52099
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2008731,
+          "end": 2011149,
+          "startLine": 52103,
+          "endLine": 52176
+        },
+        "requestFields": [
+          "accountId",
+          "scheduleId",
+          "expectedUpdatedAtUnixMs"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listChatExportRuns",
+      "domain": "scheduled_exports",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "fsnotify/Webhook不是定时导出计划、运行记录和重试尝试系统。",
+      "requiredWork": [
+        "独立实现计划持久化、定时触发、并发/重入控制、运行/尝试历史和重试语义。"
+      ],
+      "alpha": {
+        "fieldNumber": 94,
+        "requestCodec": "ListChatExportRunsRequest",
+        "responseCodec": "ListChatExportRunsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58202
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2018812,
+          "end": 2021655,
+          "startLine": 52381,
+          "endLine": 52469
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2021752,
+          "end": 2024186,
+          "startLine": 52473,
+          "endLine": 52546
+        },
+        "requestFields": [
+          "accountId",
+          "scheduleId",
+          "limit"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getChatExportRun",
+      "domain": "scheduled_exports",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "fsnotify/Webhook不是定时导出计划、运行记录和重试尝试系统。",
+      "requiredWork": [
+        "独立实现计划持久化、定时触发、并发/重入控制、运行/尝试历史和重试语义。"
+      ],
+      "alpha": {
+        "fieldNumber": 95,
+        "requestCodec": "GetChatExportRunRequest",
+        "responseCodec": "ChatExportRunRecord",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58205
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2024275,
+          "end": 2026597,
+          "startLine": 52550,
+          "endLine": 52623
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2011405,
+          "end": 2018706,
+          "startLine": 52190,
+          "endLine": 52377
+        },
+        "requestFields": [
+          "accountId",
+          "runId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listChatExportAttempts",
+      "domain": "scheduled_exports",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "fsnotify/Webhook不是定时导出计划、运行记录和重试尝试系统。",
+      "requiredWork": [
+        "独立实现计划持久化、定时触发、并发/重入控制、运行/尝试历史和重试语义。"
+      ],
+      "alpha": {
+        "fieldNumber": 96,
+        "requestCodec": "ListChatExportAttemptsRequest",
+        "responseCodec": "ListChatExportAttemptsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58208
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2036840,
+          "end": 2039699,
+          "startLine": 52895,
+          "endLine": 52983
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2039800,
+          "end": 2042270,
+          "startLine": 52987,
+          "endLine": 53060
+        },
+        "requestFields": [
+          "accountId",
+          "scheduleId",
+          "limit"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getChatExportAttempt",
+      "domain": "scheduled_exports",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "fsnotify/Webhook不是定时导出计划、运行记录和重试尝试系统。",
+      "requiredWork": [
+        "独立实现计划持久化、定时触发、并发/重入控制、运行/尝试历史和重试语义。"
+      ],
+      "alpha": {
+        "fieldNumber": 97,
+        "requestCodec": "GetChatExportAttemptRequest",
+        "responseCodec": "ChatExportAttemptRecord",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58211
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2042367,
+          "end": 2044757,
+          "startLine": 53064,
+          "endLine": 53137
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2026938,
+          "end": 2036730,
+          "startLine": 52641,
+          "endLine": 52891
+        },
+        "requestFields": [
+          "accountId",
+          "attemptId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "retryChatExportAttempt",
+      "domain": "scheduled_exports",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "webhook"
+      ],
+      "reason": "fsnotify/Webhook不是定时导出计划、运行记录和重试尝试系统。",
+      "requiredWork": [
+        "独立实现计划持久化、定时触发、并发/重入控制、运行/尝试历史和重试语义。"
+      ],
+      "alpha": {
+        "fieldNumber": 98,
+        "requestCodec": "RetryChatExportAttemptRequest",
+        "responseCodec": "ChatExportAttemptRecord",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58214
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2044878,
+          "end": 2048201,
+          "startLine": 53141,
+          "endLine": 53232
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2026938,
+          "end": 2036730,
+          "startLine": 52641,
+          "endLine": 52891
+        },
+        "requestFields": [
+          "accountId",
+          "attemptId",
+          "expectedRevision"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "manageMessageAntiRecall",
+      "domain": "retention",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "webhook"
+      ],
+      "reason": "文件变化Webhook不是防撤回保全、撤回记录库或逐会话保全状态。",
+      "requiredWork": [
+        "新增真实保全机制、变更来源和状态；不能声称恢复启用前已丢失消息。"
+      ],
+      "alpha": {
+        "fieldNumber": 99,
+        "requestCodec": "ManageMessageAntiRecallRequest",
+        "responseCodec": "ManageMessageAntiRecallResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58217
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1971154,
+          "end": 1973677,
+          "startLine": 51020,
+          "endLine": 51093
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1973764,
+          "end": 1975737,
+          "startLine": 51097,
+          "endLine": 51153
+        },
+        "requestFields": [
+          "operationId",
+          "spec"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listMessageRecallRecords",
+      "domain": "retention",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "webhook"
+      ],
+      "reason": "文件变化Webhook不是防撤回保全、撤回记录库或逐会话保全状态。",
+      "requiredWork": [
+        "新增真实保全机制、变更来源和状态；不能声称恢复启用前已丢失消息。"
+      ],
+      "alpha": {
+        "fieldNumber": 100,
+        "requestCodec": "ListMessageRecallRecordsRequest",
+        "responseCodec": "ListMessageRecallRecordsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58220
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1975865,
+          "end": 1979235,
+          "startLine": 51157,
+          "endLine": 51260
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1979336,
+          "end": 1981868,
+          "startLine": 51264,
+          "endLine": 51337
+        },
+        "requestFields": [
+          "accountId",
+          "conversationId",
+          "cursor",
+          "limit"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "maintainMessageResource",
+      "domain": "writer_local",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "db_open"
+      ],
+      "reason": "未见消息编辑/插入/还原或资源修复事务；临时DB副本读取不是writer。",
+      "requiredWork": [
+        "实现独立事务writer、原始值日志、身份校验、备份/恢复与可核对回执。"
+      ],
+      "alpha": {
+        "fieldNumber": 101,
+        "requestCodec": "MaintainMessageResourceRequest",
+        "responseCodec": "MaintainMessageResourceResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58223
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1758437,
+          "end": 1760970,
+          "startLine": 45021,
+          "endLine": 45094
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1761058,
+          "end": 1763059,
+          "startLine": 45098,
+          "endLine": 45154
+        },
+        "requestFields": [
+          "operationId",
+          "spec"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "discoverPendingMessageResources",
+      "domain": "writer_local",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "db_open"
+      ],
+      "reason": "未见消息编辑/插入/还原或资源修复事务；临时DB副本读取不是writer。",
+      "requiredWork": [
+        "实现独立事务writer、原始值日志、身份校验、备份/恢复与可核对回执。"
+      ],
+      "alpha": {
+        "fieldNumber": 102,
+        "requestCodec": "DiscoverPendingMessageResourcesRequest",
+        "responseCodec": "DiscoverPendingMessageResourcesResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58226
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1763162,
+          "end": 1765490,
+          "startLine": 45158,
+          "endLine": 45231
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1765588,
+          "end": 1767682,
+          "startLine": 45235,
+          "endLine": 45293
+        },
+        "requestFields": [
+          "accountId",
+          "limit"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "resolveMessageMedia",
+      "domain": "media",
+      "status": "read_foundation",
+      "evidence": [
+        "media",
+        "media_http",
+        "image_decode",
+        "message_wrap"
+      ],
+      "reason": "有本地媒体key/path查找和dat解码基础；无Alphaopaque token、proof或账号绑定。",
+      "requiredWork": [
+        "建立受控媒体引用、路径归属、缺失状态与缓存；补各种消息引用映射。"
+      ],
+      "alpha": {
+        "fieldNumber": 103,
+        "requestCodec": "ResolveMessageMediaRequest",
+        "responseCodec": "ResolveMessageMediaResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58229
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1463072,
+          "end": 1472526,
+          "startLine": 36404,
+          "endLine": 36633
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1472610,
+          "end": 1474500,
+          "startLine": 36637,
+          "endLine": 36693
+        },
+        "requestFields": [
+          "accountId",
+          "mediaResolveToken",
+          "recordOffset",
+          "preferLive",
+          "fetchRemote",
+          "expectedMediaMd5",
+          "expectedSentAtUnixMs",
+          "expectedSizeBytes",
+          "expectedConversationId",
+          "expectedMessageId",
+          "allowPending",
+          "liveVideo"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "analyzeAnnual",
+      "domain": "analytics",
+      "status": "compose_or_new",
+      "evidence": [
+        "messages",
+        "contacts",
+        "groups"
+      ],
+      "reason": "真实消息、联系人和群读取可作为统计输入；候选没有Alpha年度/关系/汇总分析算法。",
+      "requiredWork": [
+        "逐指标实现并核对时间区间、时区、去重和完整数据覆盖；聚合需作业服务。"
+      ],
+      "alpha": {
+        "fieldNumber": 104,
+        "requestCodec": "AnalyzeAnnualRequest",
+        "responseCodec": "AnalyzeAnnualResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58232
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1558803,
+          "end": 1561719,
+          "startLine": 39075,
+          "endLine": 39163
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1561849,
+          "end": 1564860,
+          "startLine": 39167,
+          "endLine": 39255
+        },
+        "requestFields": [
+          "accountId",
+          "year",
+          "utcOffsetMinutes"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getDataRevision",
+      "domain": "live_data",
+      "status": "compose_or_new",
+      "evidence": [
+        "db_watch",
+        "file_groups",
+        "webhook"
+      ],
+      "reason": "存在文件组监控与回调，但没有Alpha revision、targets身份与账号epoch协议。",
+      "requiredWork": [
+        "定义稳定revision来源，过滤授权路径、合并变化事件并处理切号/重启失效。"
+      ],
+      "alpha": {
+        "fieldNumber": 105,
+        "requestCodec": "GetDataRevisionRequest",
+        "responseCodec": "GetDataRevisionResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58235
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1424458,
+          "end": 1426274,
+          "startLine": 35262,
+          "endLine": 35320
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1426351,
+          "end": 1428080,
+          "startLine": 35324,
+          "endLine": 35380
+        },
+        "requestFields": [
+          "accountId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getDataWatchTargets",
+      "domain": "live_data",
+      "status": "compose_or_new",
+      "evidence": [
+        "db_watch",
+        "file_groups",
+        "webhook"
+      ],
+      "reason": "存在文件组监控与回调，但没有Alpha revision、targets身份与账号epoch协议。",
+      "requiredWork": [
+        "定义稳定revision来源，过滤授权路径、合并变化事件并处理切号/重启失效。"
+      ],
+      "alpha": {
+        "fieldNumber": 106,
+        "requestCodec": "GetDataWatchTargetsRequest",
+        "responseCodec": "GetDataWatchTargetsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58238
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1428161,
+          "end": 1429993,
+          "startLine": 35384,
+          "endLine": 35442
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1430077,
+          "end": 1431904,
+          "startLine": 35446,
+          "endLine": 35504
+        },
+        "requestFields": [
+          "accountId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getMessageSource",
+      "domain": "message_identity",
+      "status": "compose_or_new",
+      "evidence": [
+        "message_raw",
+        "message_wrap",
+        "message_model",
+        "messages"
+      ],
+      "reason": "底层表含server_id等线索，但归一模型未保留完整原始身份和source；没有对应定位API。",
+      "requiredWork": [
+        "扩展原始SQL和DTO，持久稳定id，验证定位结果属于正确账号/库/会话。"
+      ],
+      "alpha": {
+        "fieldNumber": 107,
+        "requestCodec": "GetMessageSourceRequest",
+        "responseCodec": "GetMessageSourceResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58241
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1456381,
+          "end": 1459954,
+          "startLine": 36192,
+          "endLine": 36295
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1460057,
+          "end": 1462689,
+          "startLine": 36299,
+          "endLine": 36387
+        },
+        "requestFields": [
+          "accountId",
+          "conversationId",
+          "messageId",
+          "sourceToken"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "readAccountDataKey",
+      "domain": "account_keys",
+      "status": "compose_or_new",
+      "evidence": [
+        "account_model",
+        "key_config"
+      ],
+      "reason": "候选对象/配置可持有Key，不等于经过解锁与调用方校验的安全读取接口。",
+      "requiredWork": [
+        "新增安全存储、显式解锁、scope和返回策略；不直接暴露配置文件。"
+      ],
+      "alpha": {
+        "fieldNumber": 108,
+        "requestCodec": "ReadAccountDataKeyRequest",
+        "responseCodec": "ReadAccountDataKeyResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58244
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1374611,
+          "end": 1377910,
+          "startLine": 33819,
+          "endLine": 33910
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1378052,
+          "end": 1382268,
+          "startLine": 33914,
+          "endLine": 34035
+        },
+        "requestFields": [
+          "accountId",
+          "keyKind",
+          "accountGeneration"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "recoverMaterialTextSend",
+      "domain": "writer_send",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选没有发消息或受控发送会话；现有业务接口是查询。",
+      "requiredWork": [
+        "新增真实平台发送实现、许可边界、幂等requestId、回执及不确定结果恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 109,
+        "requestCodec": "RecoverMaterialTextSendRequest",
+        "responseCodec": "RecoverMaterialTextSendResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58247
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1823585,
+          "end": 1826013,
+          "startLine": 46876,
+          "endLine": 46949
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1826316,
+          "end": 1833548,
+          "startLine": 46964,
+          "endLine": 47157
+        },
+        "requestFields": [
+          "accountId",
+          "operationId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startAggregateAnalysis",
+      "domain": "analytics",
+      "status": "compose_or_new",
+      "evidence": [
+        "messages",
+        "contacts",
+        "groups"
+      ],
+      "reason": "真实消息、联系人和群读取可作为统计输入；候选没有Alpha年度/关系/汇总分析算法。",
+      "requiredWork": [
+        "逐指标实现并核对时间区间、时区、去重和完整数据覆盖；聚合需作业服务。"
+      ],
+      "alpha": {
+        "fieldNumber": 110,
+        "requestCodec": "StartAggregateAnalysisRequest",
+        "responseCodec": "StartAggregateAnalysisResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58250
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1565097,
+          "end": 1571133,
+          "startLine": 39267,
+          "endLine": 39421
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1571263,
+          "end": 1574714,
+          "startLine": 39425,
+          "endLine": 39516
+        },
+        "requestFields": [
+          "accountId",
+          "scope",
+          "conversationId",
+          "excludedConversationIds",
+          "fromUnixMs",
+          "toUnixMs",
+          "utcOffsetMinutes"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "watchAggregateAnalysis",
+      "domain": "analytics_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "未见聚合分析作业、进度与取消服务。",
+      "requiredWork": [
+        "新增真实分析任务生命周期，与结果存档和账号epoch绑定。"
+      ],
+      "alpha": {
+        "fieldNumber": 111,
+        "requestCodec": "WatchAggregateAnalysisRequest",
+        "responseCodec": "WatchAggregateAnalysisResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58253
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1574799,
+          "end": 1576656,
+          "startLine": 39520,
+          "endLine": 39578
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1576897,
+          "end": 1582446,
+          "startLine": 39590,
+          "endLine": 39738
+        },
+        "requestFields": [
+          "analysisId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "cancelAggregateAnalysis",
+      "domain": "analytics_jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "未见聚合分析作业、进度与取消服务。",
+      "requiredWork": [
+        "新增真实分析任务生命周期，与结果存档和账号epoch绑定。"
+      ],
+      "alpha": {
+        "fieldNumber": 112,
+        "requestCodec": "CancelAggregateAnalysisRequest",
+        "responseCodec": "CancelAggregateAnalysisResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58256
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1582532,
+          "end": 1584393,
+          "startLine": 39742,
+          "endLine": 39800
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1584481,
+          "end": 1586249,
+          "startLine": 39804,
+          "endLine": 39860
+        },
+        "requestFields": [
+          "analysisId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "resolveFavoriteMedia",
+      "domain": "favorites",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "聊天中的收藏式分享消息不等于微信收藏库；未见收藏库及媒体槽位实现。",
+      "requiredWork": [
+        "新增收藏数据源、分页及媒体解析，保留该域完整待实现。"
+      ],
+      "alpha": {
+        "fieldNumber": 113,
+        "requestCodec": "ResolveFavoriteMediaRequest",
+        "responseCodec": "ResolveFavoriteMediaResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58259
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1731956,
+          "end": 1734232,
+          "startLine": 44201,
+          "endLine": 44274
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1739331,
+          "end": 1743294,
+          "startLine": 44432,
+          "endLine": 44550
+        },
+        "requestFields": [
+          "accountId",
+          "token"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listMomentAuthors",
+      "domain": "moments",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选数据源及HTTP路由中无朋友圈记录/作者/日期统计/表情/导出/防删除实现。",
+      "requiredWork": [
+        "新建朋友圈数据源、解析、媒体、导出与保全领域；防删除不是事后恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 114,
+        "requestCodec": "MomentAuthorsRequest",
+        "responseCodec": "MomentAuthorsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58262
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1699463,
+          "end": 1701719,
+          "startLine": 43187,
+          "endLine": 43260
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1701798,
+          "end": 1703767,
+          "startLine": 43264,
+          "endLine": 43320
+        },
+        "requestFields": [
+          "accountId",
+          "limit"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getContactProfile",
+      "domain": "contacts",
+      "status": "compose_or_new",
+      "evidence": [
+        "contact_one",
+        "contact_model",
+        "groups",
+        "group_model"
+      ],
+      "reason": "基础联系人和群成员可组合档案，但commonGroupLimit等完整个人档案未实现。",
+      "requiredWork": [
+        "组合共同群与资料查询，补缺失字段，限制查询成本。"
+      ],
+      "alpha": {
+        "fieldNumber": 115,
+        "requestCodec": "ContactProfileRequest",
+        "responseCodec": "ContactProfileResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58265
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1668655,
+          "end": 1671595,
+          "startLine": 42281,
+          "endLine": 42369
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1671675,
+          "end": 1673648,
+          "startLine": 42373,
+          "endLine": 42429
+        },
+        "requestFields": [
+          "accountId",
+          "username",
+          "commonGroupLimit"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listFavoriteMediaSlots",
+      "domain": "favorites",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "聊天中的收藏式分享消息不等于微信收藏库；未见收藏库及媒体槽位实现。",
+      "requiredWork": [
+        "新增收藏数据源、分页及媒体解析，保留该域完整待实现。"
+      ],
+      "alpha": {
+        "fieldNumber": 116,
+        "requestCodec": "FavoriteMediaSlotsRequest",
+        "responseCodec": "FavoriteMediaSlotsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58268
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1734328,
+          "end": 1736723,
+          "startLine": 44278,
+          "endLine": 44351
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1736816,
+          "end": 1739192,
+          "startLine": 44355,
+          "endLine": 44428
+        },
+        "requestFields": [
+          "accountId",
+          "favoriteId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "exportContacts",
+      "domain": "export",
+      "status": "compose_or_new",
+      "evidence": [
+        "export_contacts",
+        "contacts"
+      ],
+      "reason": "候选已有联系人输出基础，Alpha格式、路径校验和完整字段仍需实现。",
+      "requiredWork": [
+        "使用正确CSV转义及目标格式writer；验证实际输出与源记录数量。"
+      ],
+      "alpha": {
+        "fieldNumber": 117,
+        "requestCodec": "ExportContactsRequest",
+        "responseCodec": "ExportContactsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58271
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1673885,
+          "end": 1679666,
+          "startLine": 42442,
+          "endLine": 42605
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1679812,
+          "end": 1683939,
+          "startLine": 42609,
+          "endLine": 42727
+        },
+        "requestFields": [
+          "accountId",
+          "categories",
+          "query",
+          "format",
+          "includeProfile",
+          "includeAvatars",
+          "destinationPath",
+          "utcOffsetMinutes"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "resolveMomentEmoji",
+      "domain": "moments",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选数据源及HTTP路由中无朋友圈记录/作者/日期统计/表情/导出/防删除实现。",
+      "requiredWork": [
+        "新建朋友圈数据源、解析、媒体、导出与保全领域；防删除不是事后恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 118,
+        "requestCodec": "ResolveMomentEmojiRequest",
+        "responseCodec": "ResolveMomentEmojiResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58274
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1703859,
+          "end": 1706138,
+          "startLine": 43324,
+          "endLine": 43397
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1706261,
+          "end": 1709675,
+          "startLine": 43401,
+          "endLine": 43504
+        },
+        "requestFields": [
+          "accountId",
+          "source"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getMessageAntiRecallStatuses",
+      "domain": "retention",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "webhook"
+      ],
+      "reason": "文件变化Webhook不是防撤回保全、撤回记录库或逐会话保全状态。",
+      "requiredWork": [
+        "新增真实保全机制、变更来源和状态；不能声称恢复启用前已丢失消息。"
+      ],
+      "alpha": {
+        "fieldNumber": 119,
+        "requestCodec": "GetMessageAntiRecallStatusesRequest",
+        "responseCodec": "GetMessageAntiRecallStatusesResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58277
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1981979,
+          "end": 1984546,
+          "startLine": 51341,
+          "endLine": 51414
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1984636,
+          "end": 1986707,
+          "startLine": 51418,
+          "endLine": 51476
+        },
+        "requestFields": [
+          "accountId",
+          "conversationIds"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getChatExportStats",
+      "domain": "export",
+      "status": "compose_or_new",
+      "evidence": [
+        "messages",
+        "sessions"
+      ],
+      "reason": "可从读取数据组合统计；没有按类别/会话范围的现成导出统计服务。",
+      "requiredWork": [
+        "新增真实计数查询及过滤一致性，不能使用分页样本估计完整计数。"
+      ],
+      "alpha": {
+        "fieldNumber": 120,
+        "requestCodec": "GetChatExportStatsRequest",
+        "responseCodec": "GetChatExportStatsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58280
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2100912,
+          "end": 2103910,
+          "startLine": 54737,
+          "endLine": 54825
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2111828,
+          "end": 2114562,
+          "startLine": 55040,
+          "endLine": 55113
+        },
+        "requestFields": [
+          "accountId",
+          "conversationIds",
+          "refresh"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getChatExportCapabilities",
+      "domain": "export",
+      "status": "compose_or_new",
+      "evidence": [
+        "export_http"
+      ],
+      "reason": "只有TXT/JSON/CSV输出事实，没有Alpha format/options/capabilities协议。",
+      "requiredWork": [
+        "建立自有能力注册表，仅对已实现且测试通过的格式报告支持。"
+      ],
+      "alpha": {
+        "fieldNumber": 121,
+        "requestCodec": "GetChatExportCapabilitiesRequest",
+        "responseCodec": "GetChatExportCapabilitiesResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58283
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2114634,
+          "end": 2115908,
+          "startLine": 55117,
+          "endLine": 55159
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2116117,
+          "end": 2121189,
+          "startLine": 55170,
+          "endLine": 55303
+        },
+        "requestFields": []
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startChatExport",
+      "domain": "export",
+      "status": "compose_or_new",
+      "evidence": [
+        "export_http",
+        "messages"
+      ],
+      "reason": "已有消息CSV/JSON/文本输出，可复用数据与格式化基础；非Alpha完整导出任务。",
+      "requiredWork": [
+        "新增HTML/Markdown/XLSX/SQL/ChatLab等目标格式、媒体收集、原子落盘、收据、取消和任务状态。"
+      ],
+      "alpha": {
+        "fieldNumber": 122,
+        "requestCodec": "StartChatExportRequest",
+        "responseCodec": "StartChatExportResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58286
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2121635,
+          "end": 2133345,
+          "startLine": 55324,
+          "endLine": 55613
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2133419,
+          "end": 2135187,
+          "startLine": 55617,
+          "endLine": 55675
+        },
+        "requestFields": [
+          "accountId",
+          "conversationIds",
+          "format",
+          "outputDirectory",
+          "startTimeUnixMs",
+          "endTimeUnixMs",
+          "messageTypes",
+          "mediaKinds",
+          "voiceTranscripts",
+          "utcOffsetMinutes",
+          "outputLayout",
+          "conflictPolicy",
+          "displayNamePreference",
+          "xlsxColumns",
+          "avatars",
+          "cdnFillMissing"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "listChatExports",
+      "domain": "jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "export_http"
+      ],
+      "reason": "候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。",
+      "requiredWork": [
+        "新增统一job运行器、任务状态机、取消与重启恢复；保留全功能待实现项。"
+      ],
+      "alpha": {
+        "fieldNumber": 123,
+        "requestCodec": "ListChatExportsRequest",
+        "responseCodec": "ListChatExportsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58289
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2135264,
+          "end": 2137080,
+          "startLine": 55679,
+          "endLine": 55737
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2157674,
+          "end": 2159583,
+          "startLine": 56296,
+          "endLine": 56354
+        },
+        "requestFields": [
+          "accountId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "watchChatExport",
+      "domain": "jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "export_http"
+      ],
+      "reason": "候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。",
+      "requiredWork": [
+        "新增统一job运行器、任务状态机、取消与重启恢复；保留全功能待实现项。"
+      ],
+      "alpha": {
+        "fieldNumber": 124,
+        "requestCodec": "WatchChatExportRequest",
+        "responseCodec": "ChatExportJobSnapshot",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58292
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2159656,
+          "end": 2161420,
+          "startLine": 56358,
+          "endLine": 56416
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2148779,
+          "end": 2157601,
+          "startLine": 56060,
+          "endLine": 56292
+        },
+        "requestFields": [
+          "jobId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "cancelChatExport",
+      "domain": "jobs",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "export_http"
+      ],
+      "reason": "候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。",
+      "requiredWork": [
+        "新增统一job运行器、任务状态机、取消与重启恢复；保留全功能待实现项。"
+      ],
+      "alpha": {
+        "fieldNumber": 125,
+        "requestCodec": "CancelChatExportRequest",
+        "responseCodec": "CancelChatExportResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58295
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2161494,
+          "end": 2163262,
+          "startLine": 56420,
+          "endLine": 56478
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2163326,
+          "end": 2164568,
+          "startLine": 56482,
+          "endLine": 56524
+        },
+        "requestFields": [
+          "jobId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "locateMessage",
+      "domain": "message_identity",
+      "status": "compose_or_new",
+      "evidence": [
+        "message_raw",
+        "message_wrap",
+        "message_model",
+        "messages"
+      ],
+      "reason": "底层表含server_id等线索，但归一模型未保留完整原始身份和source；没有对应定位API。",
+      "requiredWork": [
+        "扩展原始SQL和DTO，持久稳定id，验证定位结果属于正确账号/库/会话。"
+      ],
+      "alpha": {
+        "fieldNumber": 126,
+        "requestCodec": "LocateMessageRequest",
+        "responseCodec": "LocateMessageResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58298
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1479197,
+          "end": 1482165,
+          "startLine": 36810,
+          "endLine": 36898
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1482308,
+          "end": 1485463,
+          "startLine": 36902,
+          "endLine": 36990
+        },
+        "requestFields": [
+          "accountId",
+          "conversationId",
+          "serverId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getConversationDayCounts",
+      "domain": "analytics",
+      "status": "compose_or_new",
+      "evidence": [
+        "messages"
+      ],
+      "reason": "可基于真实消息组合日期计数，无现成按本地时区的日计数接口。",
+      "requiredWork": [
+        "新增按时区与时间范围的完整计数查询，避免offset截断。"
+      ],
+      "alpha": {
+        "fieldNumber": 127,
+        "requestCodec": "GetConversationDayCountsRequest",
+        "responseCodec": "GetConversationDayCountsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58301
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1485620,
+          "end": 1490338,
+          "startLine": 36994,
+          "endLine": 37118
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1493210,
+          "end": 1495150,
+          "startLine": 37205,
+          "endLine": 37263
+        },
+        "requestFields": [
+          "accountId",
+          "conversationId",
+          "fromUnixMs",
+          "toUnixMs",
+          "utcOffsetMinutes"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "decodeVoicePlayback",
+      "domain": "voice_playback",
+      "status": "read_foundation",
+      "evidence": [
+        "voice",
+        "silk"
+      ],
+      "reason": "有本地语音读取和SILK转MP3，不包含Alpha完整媒体身份与播放缓存协议。",
+      "requiredWork": [
+        "包装真实读取、解码错误、输出格式和缓存路径；不可用转写状态代替播放结果。"
+      ],
+      "alpha": {
+        "fieldNumber": 128,
+        "requestCodec": "DecodeVoicePlaybackRequest",
+        "responseCodec": "DecodeVoicePlaybackResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58304
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1518929,
+          "end": 1521289,
+          "startLine": 37942,
+          "endLine": 38015
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1521372,
+          "end": 1523223,
+          "startLine": 38019,
+          "endLine": 38077
+        },
+        "requestFields": [
+          "accountId",
+          "mediaId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "configureApplicationLock",
+      "domain": "application_security",
+      "status": "missing",
+      "evidence": [
+        "http_start",
+        "http_cors",
+        "key_config"
+      ],
+      "reason": "候选未实现Alpha应用锁、安全会话或受保护凭据存储。",
+      "requiredWork": [
+        "新增本工程安全存储与应用锁状态机；不要将查询服务Ready等价已解锁。"
+      ],
+      "alpha": {
+        "fieldNumber": 131,
+        "requestCodec": "ConfigureApplicationLockRequest",
+        "responseCodec": "ConfigureApplicationLockResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58307
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1247452,
+          "end": 1251307,
+          "startLine": 30146,
+          "endLine": 30252
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1251395,
+          "end": 1253362,
+          "startLine": 30256,
+          "endLine": 30312
+        },
+        "requestFields": [
+          "action",
+          "password",
+          "newPassword",
+          "ownerWindowHandle"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "resetApplicationLock",
+      "domain": "application_security",
+      "status": "missing",
+      "evidence": [
+        "http_start",
+        "http_cors",
+        "key_config"
+      ],
+      "reason": "候选未实现Alpha应用锁、安全会话或受保护凭据存储。",
+      "requiredWork": [
+        "新增本工程安全存储与应用锁状态机；不要将查询服务Ready等价已解锁。"
+      ],
+      "alpha": {
+        "fieldNumber": 132,
+        "requestCodec": "ResetApplicationLockRequest",
+        "responseCodec": "ResetApplicationLockResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58310
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1253447,
+          "end": 1255236,
+          "startLine": 30316,
+          "endLine": 30372
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1255368,
+          "end": 1258803,
+          "startLine": 30376,
+          "endLine": 30464
+        },
+        "requestFields": [
+          "confirmation"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startMomentExport",
+      "domain": "moments",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选数据源及HTTP路由中无朋友圈记录/作者/日期统计/表情/导出/防删除实现。",
+      "requiredWork": [
+        "新建朋友圈数据源、解析、媒体、导出与保全领域；防删除不是事后恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 135,
+        "requestCodec": "StartMomentExportRequest",
+        "responseCodec": "StartChatExportResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58313
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2164831,
+          "end": 2171827,
+          "startLine": 56538,
+          "endLine": 56722
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2133419,
+          "end": 2135187,
+          "startLine": 55617,
+          "endLine": 55675
+        },
+        "requestFields": [
+          "accountId",
+          "format",
+          "outputDirectory",
+          "usernames",
+          "keyword",
+          "startTimeUnixMs",
+          "endTimeUnixMs",
+          "mediaKinds",
+          "utcOffsetMinutes"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startRecordExport",
+      "domain": "records_export",
+      "status": "compose_or_new",
+      "evidence": [
+        "message_model",
+        "export_http"
+      ],
+      "reason": "可复用部分消息记录与输出基础；无Alpha其他资料全类别导出任务。",
+      "requiredWork": [
+        "先补记录数据源，再增加任务与格式writer；按类别验证完整性。"
+      ],
+      "alpha": {
+        "fieldNumber": 136,
+        "requestCodec": "StartRecordExportRequest",
+        "responseCodec": "StartChatExportResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58316
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2174923,
+          "end": 2179186,
+          "startLine": 56818,
+          "endLine": 56936
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2133419,
+          "end": 2135187,
+          "startLine": 55617,
+          "endLine": 55675
+        },
+        "requestFields": [
+          "accountId",
+          "format",
+          "outputDirectory",
+          "categories",
+          "utcOffsetMinutes"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "browseConversationMessages",
+      "domain": "media_browse",
+      "status": "compose_or_new",
+      "evidence": [
+        "messages",
+        "message_model",
+        "media"
+      ],
+      "reason": "可读取消息并识别媒体类型，但无按类型/全账号聚合的稳定分页接口。",
+      "requiredWork": [
+        "新增类型筛选与跨会话索引、游标，补充来源及缺失媒体状态。"
+      ],
+      "alpha": {
+        "fieldNumber": 137,
+        "requestCodec": "BrowseConversationMessagesRequest",
+        "responseCodec": "BrowseConversationMessagesResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58319
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1502562,
+          "end": 1508280,
+          "startLine": 37480,
+          "endLine": 37634
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1508396,
+          "end": 1510909,
+          "startLine": 37638,
+          "endLine": 37711
+        },
+        "requestFields": [
+          "accountId",
+          "conversationId",
+          "category",
+          "senderId",
+          "fromUnixMs",
+          "toUnixMs",
+          "page"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "browseAccountMedia",
+      "domain": "media_browse",
+      "status": "compose_or_new",
+      "evidence": [
+        "messages",
+        "message_model",
+        "media"
+      ],
+      "reason": "可读取消息并识别媒体类型，但无按类型/全账号聚合的稳定分页接口。",
+      "requiredWork": [
+        "新增类型筛选与跨会话索引、游标，补充来源及缺失媒体状态。"
+      ],
+      "alpha": {
+        "fieldNumber": 138,
+        "requestCodec": "BrowseAccountMediaRequest",
+        "responseCodec": "BrowseAccountMediaResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58322
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1511101,
+          "end": 1516246,
+          "startLine": 37722,
+          "endLine": 37861
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1516354,
+          "end": 1518835,
+          "startLine": 37865,
+          "endLine": 37938
+        },
+        "requestFields": [
+          "accountId",
+          "conversationId",
+          "category",
+          "fromUnixMs",
+          "toUnixMs",
+          "page"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "exportGroupMembers",
+      "domain": "export",
+      "status": "compose_or_new",
+      "evidence": [
+        "groups",
+        "group_model",
+        "export_groups"
+      ],
+      "reason": "候选有群成员数据，但HTTP只导出群摘要；不能当作群成员导出已完成。",
+      "requiredWork": [
+        "枚举成员并补资料，新增导出格式、目标路径与结果统计。"
+      ],
+      "alpha": {
+        "fieldNumber": 139,
+        "requestCodec": "ExportGroupMembersRequest",
+        "responseCodec": "ExportGroupMembersResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58325
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1684089,
+          "end": 1688220,
+          "startLine": 42731,
+          "endLine": 42849
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1688335,
+          "end": 1691284,
+          "startLine": 42853,
+          "endLine": 42941
+        },
+        "requestFields": [
+          "accountId",
+          "chatroomId",
+          "format",
+          "destinationPath",
+          "utcOffsetMinutes"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "previewMaterialOfficialArticles",
+      "domain": "official_export",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes",
+        "messages"
+      ],
+      "reason": "读取本地聊天分享链接不等于连接公众号历史文章并在线导出；未见对应实现。",
+      "requiredWork": [
+        "保留为独立功能后端及平台组件需求；需真实来源、任务进度和取消实现。"
+      ],
+      "alpha": {
+        "fieldNumber": 140,
+        "requestCodec": "PreviewMaterialOfficialArticlesRequest",
+        "responseCodec": "PreviewMaterialOfficialArticlesResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58328
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1804976,
+          "end": 1809218,
+          "startLine": 46353,
+          "endLine": 46471
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1814396,
+          "end": 1817516,
+          "startLine": 46615,
+          "endLine": 46703
+        },
+        "requestFields": [
+          "accountId",
+          "materialBundleId",
+          "officialAccountId",
+          "cursor",
+          "maxPages"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getMomentDayCounts",
+      "domain": "moments",
+      "status": "missing",
+      "evidence": [
+        "surface",
+        "http_routes"
+      ],
+      "reason": "候选数据源及HTTP路由中无朋友圈记录/作者/日期统计/表情/导出/防删除实现。",
+      "requiredWork": [
+        "新建朋友圈数据源、解析、媒体、导出与保全领域；防删除不是事后恢复。"
+      ],
+      "alpha": {
+        "fieldNumber": 141,
+        "requestCodec": "GetMomentDayCountsRequest",
+        "responseCodec": "GetMomentDayCountsResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58331
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1495295,
+          "end": 1499843,
+          "startLine": 37267,
+          "endLine": 37391
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 1499937,
+          "end": 1502344,
+          "startLine": 37395,
+          "endLine": 37468
+        },
+        "requestFields": [
+          "accountId",
+          "fromUnixMs",
+          "toUnixMs",
+          "utcOffsetMinutes",
+          "username"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "startCdnMediaFetch",
+      "domain": "media_cdn",
+      "status": "missing",
+      "evidence": [
+        "media",
+        "media_http",
+        "surface"
+      ],
+      "reason": "候选是本地媒体读取；未见利用登录微信补齐CDN资源的会话、任务与取消实现。",
+      "requiredWork": [
+        "独立实现实际平台支持的在线媒体获取，不把本地文件响应视为已补齐。"
+      ],
+      "alpha": {
+        "fieldNumber": 142,
+        "requestCodec": "StartCdnMediaFetchRequest",
+        "responseCodec": "StartCdnMediaFetchResponse",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58334
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2186857,
+          "end": 2190073,
+          "startLine": 57154,
+          "endLine": 57242
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2190150,
+          "end": 2191930,
+          "startLine": 57246,
+          "endLine": 57304
+        },
+        "requestFields": [
+          "accountId",
+          "single",
+          "conversation"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "getCdnMediaFetch",
+      "domain": "media_cdn",
+      "status": "missing",
+      "evidence": [
+        "media",
+        "media_http",
+        "surface"
+      ],
+      "reason": "候选是本地媒体读取；未见利用登录微信补齐CDN资源的会话、任务与取消实现。",
+      "requiredWork": [
+        "独立实现实际平台支持的在线媒体获取，不把本地文件响应视为已补齐。"
+      ],
+      "alpha": {
+        "fieldNumber": 143,
+        "requestCodec": "GetCdnMediaFetchRequest",
+        "responseCodec": "CdnMediaFetchStatus",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58337
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2192019,
+          "end": 2194341,
+          "startLine": 57308,
+          "endLine": 57381
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2197592,
+          "end": 2206367,
+          "startLine": 57489,
+          "endLine": 57718
+        },
+        "requestFields": [
+          "accountId",
+          "jobId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    },
+    {
+      "request": "cancelCdnMediaFetch",
+      "domain": "media_cdn",
+      "status": "missing",
+      "evidence": [
+        "media",
+        "media_http",
+        "surface"
+      ],
+      "reason": "候选是本地媒体读取；未见利用登录微信补齐CDN资源的会话、任务与取消实现。",
+      "requiredWork": [
+        "独立实现实际平台支持的在线媒体获取，不把本地文件响应视为已补齐。"
+      ],
+      "alpha": {
+        "fieldNumber": 144,
+        "requestCodec": "CancelCdnMediaFetchRequest",
+        "responseCodec": "CdnMediaFetchStatus",
+        "dispatch": {
+          "file": "src/main/index.js",
+          "line": 58340
+        },
+        "requestDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2206459,
+          "end": 2208793,
+          "startLine": 57722,
+          "endLine": 57795
+        },
+        "responseDeclaration": {
+          "file": "src/main/index.js",
+          "start": 2197592,
+          "end": 2206367,
+          "startLine": 57489,
+          "endLine": 57718
+        },
+        "requestFields": [
+          "accountId",
+          "jobId"
+        ]
+      },
+      "confidence": "static-source",
+      "dropInCompatible": false,
+      "runtimeValidated": false
+    }
+  ],
+  "multiplexedBranches": [
+    {
+      "domain": "listGeneral virtual tables",
+      "alphaEvidence": [
+        {
+          "file": "src/main/index.js",
+          "line": 75164,
+          "symbol": "listGroupMembers handler"
+        },
+        {
+          "file": "src/main/index.js",
+          "line": 64564,
+          "symbol": "EngineClient.listGroupMembers"
+        }
+      ],
+      "candidateEvidence": [
+        "groups",
+        "group_model",
+        "contacts"
+      ],
+      "status": "compose_or_new",
+      "note": "群成员通过listGeneral + __alpha_group_members复用协议分支（main:64564），不是独立的第129个请求。该分支还复用其他资料与群置顶。",
+      "suboperations": [
+        {
+          "table": "__alpha_group_members",
+          "status": "compose_or_new",
+          "evidence": [
+            "groups",
+            "group_model",
+            "contacts"
+          ],
+          "work": "将真实群成员/群内昵称/群主映射为GeneralRecord.fields；管理员字段需要额外真实来源。"
+        },
+        {
+          "table": "__alpha_group_pins",
+          "status": "missing",
+          "evidence": [
+            "surface"
+          ],
+          "work": "候选没有群置顶消息读取实现。"
+        },
+        {
+          "table": "__alpha_general_payments",
+          "status": "compose_or_new",
+          "evidence": [
+            "message_model",
+            "messages"
+          ],
+          "work": "仅可复用聊天转账/红包解析基础，补完整支付记录语义和去重。"
+        },
+        {
+          "table": "__alpha_general_calls",
+          "status": "compose_or_new",
+          "evidence": [
+            "message_model",
+            "messages"
+          ],
+          "work": "可复用聊天通话类型材料，独立构建通话记录查询。"
+        },
+        {
+          "table": "__alpha_general_revokes",
+          "status": "compose_or_new",
+          "evidence": [
+            "message_model",
+            "messages"
+          ],
+          "work": "系统撤回消息可作事件输入；原文保全与完整撤回记录库未实现。"
+        },
+        {
+          "table": "__alpha_general_friend_requests",
+          "status": "missing",
+          "evidence": [
+            "surface"
+          ],
+          "work": "新增好友请求专用数据源。"
+        },
+        {
+          "table": "__alpha_general_moment_interactions",
+          "status": "missing",
+          "evidence": [
+            "surface"
+          ],
+          "work": "新增朋友圈互动专用数据源。"
+        },
+        {
+          "table": "__alpha_general_searches",
+          "status": "missing",
+          "evidence": [
+            "surface"
+          ],
+          "work": "新增搜索历史专用数据源。"
+        }
+      ]
+    }
+  ]
+}

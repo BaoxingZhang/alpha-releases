@@ -1,0 +1,42 @@
+{
+  "schema": "alpha.component-trust.v2",
+  "delivery_mode": "signed-plaintext",
+  "target": "windows-x64",
+  "keys": {
+    "artifact": {
+      "purpose": "artifact_manifest",
+      "algorithm": "Ed25519",
+      "kid": "alpha-server-20261008-manifest",
+      "file": "alpha-component-artifact.ed25519.pub",
+      "sha256": "ec5041022fa308f96a27275bee96204376727bad9f40996ea79a79994d4eb0b2"
+    },
+    "catalog": {
+      "purpose": "component_catalog",
+      "algorithm": "Ed25519",
+      "kid": "alpha-server-20261008-catalog",
+      "file": "alpha-component-catalog.ed25519.pub",
+      "sha256": "f0283f0c466acc00ece47a2e493ae6478a137f0f668bf6f500c3a7ca84a4b502"
+    },
+    "delivery": {
+      "purpose": "delivery_envelope",
+      "algorithm": "Ed25519",
+      "kid": "alpha-server-20261008-delivery",
+      "file": "alpha-component-delivery.ed25519.pub",
+      "sha256": "59ebe0a9162777d0ac7b88fd3b88bc305549ad13ddea91cd4de7ef1533744847"
+    },
+    "revocation": {
+      "purpose": "component_revocation",
+      "algorithm": "Ed25519",
+      "kid": "alpha-server-20261008-revocation",
+      "file": "alpha-component-revocation.ed25519.pub",
+      "sha256": "72ac612b601b2b040a77a0449018587be2a4f1539e617188e7fd9a3b523a40fb"
+    },
+    "permit": {
+      "purpose": "operation_permit",
+      "algorithm": "Ed25519",
+      "kid": "alpha-server-20261008-delivery",
+      "file": "alpha-component-permit.ed25519.pub",
+      "sha256": "59ebe0a9162777d0ac7b88fd3b88bc305549ad13ddea91cd4de7ef1533744847"
+    }
+  }
+}

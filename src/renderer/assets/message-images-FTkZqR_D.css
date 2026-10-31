@@ -1,0 +1,134 @@
+/* Shared by Select menus and tooltips: enter/exit keyframes and the export failsafe. Tokens only. */
+@keyframes ui-pop-in { from { opacity: 0; transform: translateY(var(--ui-enter-y, -4px)) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes ui-pop-out { to { opacity: 0; transform: scale(.98); } }
+:root[data-report-exporting='true'] :is(.ui-select-menu, .ui-tooltip) { display: none !important; }
+/* Tooltips: opaque surface, arrow, hover bridge, body layout and the InfoHint button. Tokens only. */
+.ui-tooltip { position: fixed; z-index: var(--z-tooltip); top: 0; left: 0; max-width: var(--ui-tooltip-max, 280px); padding: 8px 10px;
+  border: 1px solid var(--glass-border); border-radius: 10px; background: var(--tooltip-surface); box-shadow: var(--shadow-overlay);
+  color: var(--foreground); font: 400 12px/1.55 var(--font-sans); overflow-wrap: anywhere; pointer-events: auto;
+  transform: translate3d(var(--ui-x, 0), var(--ui-y, 0), 0); --chart-ink: var(--primary); }
+.ui-tooltip[data-state='measuring'] { visibility: hidden; }
+.ui-tooltip[data-state='closing'] { pointer-events: none; }
+.ui-tooltip[data-chart='true'] { min-width: 148px; pointer-events: none; }
+/* Slide between marks only once the first placement has painted. */
+.ui-tooltip[data-chart='true'][data-settled='true'] { transition: transform 90ms var(--ease-out); }
+.ui-tooltip[data-chart='true']::before { display: none; }
+/* The mark is out of sight (scrolled away or under a sticky bar): never cling to the window edge. */
+.ui-tooltip[data-detached='true'] { visibility: hidden; }
+.ui-tooltip[data-accent='time'] { --chart-ink: var(--accent-time-fill); }
+.ui-tooltip[data-accent='people'] { --chart-ink: var(--accent-people-fill); }
+/* Hover bridge: covers the gap toward the anchor. */
+.ui-tooltip::before { content: ''; position: absolute; }
+.ui-tooltip[data-side='top']::before { top: 100%; right: 0; left: 0; height: 10px; }
+.ui-tooltip[data-side='bottom']::before { right: 0; bottom: 100%; left: 0; height: 10px; }
+.ui-tooltip[data-side='left']::before { top: 0; bottom: 0; left: 100%; width: 10px; }
+.ui-tooltip[data-side='right']::before { top: 0; right: 100%; bottom: 0; width: 10px; }
+/* Arrow: a 10px square with two visible borders, rotated. */
+.ui-tooltip-arrow { position: absolute; width: 10px; height: 10px; border: 1px solid var(--glass-border); background: var(--tooltip-surface); transform: rotate(45deg); }
+.ui-tooltip[data-side='top'] .ui-tooltip-arrow { bottom: -6px; left: calc(var(--ui-arrow) - 5px); border-top-color: transparent; border-left-color: transparent; border-radius: 0 0 2px 0; }
+.ui-tooltip[data-side='bottom'] .ui-tooltip-arrow { top: -6px; left: calc(var(--ui-arrow) - 5px); border-right-color: transparent; border-bottom-color: transparent; border-radius: 2px 0 0 0; }
+.ui-tooltip[data-side='left'] .ui-tooltip-arrow { top: calc(var(--ui-arrow) - 5px); right: -6px; border-bottom-color: transparent; border-left-color: transparent; border-radius: 0 2px 0 0; }
+.ui-tooltip[data-side='right'] .ui-tooltip-arrow { top: calc(var(--ui-arrow) - 5px); left: -6px; border-top-color: transparent; border-right-color: transparent; border-radius: 0 0 0 2px; }
+.ui-tooltip[data-side='top'] { --ui-enter: 0 4px; }
+.ui-tooltip[data-side='bottom'] { --ui-enter: 0 -4px; }
+.ui-tooltip[data-side='left'] { --ui-enter: 4px 0; }
+.ui-tooltip[data-side='right'] { --ui-enter: -4px 0; }
+.ui-tooltip[data-state='open'] { animation: ui-tip-in 140ms var(--ease-out) both; }
+.ui-tooltip[data-state='closing'] { animation: ui-tip-out 90ms var(--ease-in) both; }
+@keyframes ui-tip-in { from { opacity: 0; translate: var(--ui-enter); } to { opacity: 1; translate: 0 0; } }
+@keyframes ui-tip-out { to { opacity: 0; } }
+
+/* Body: title pill, label · leader · value rows, free text. */
+.ui-tooltip-title { display: inline-flex; height: 20px; max-width: 100%; align-items: center; margin-bottom: 6px; padding: 0 8px; overflow: hidden;
+  border-radius: var(--radius-pill); background: var(--muted); color: var(--muted-foreground); font-size: 11px; font-weight: 600;
+  font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.ui-tooltip-rows { display: grid; min-width: 168px; gap: 3px; }
+.ui-tooltip-row { display: grid; grid-template-columns: auto minmax(12px, 1fr) auto; align-items: baseline; gap: 6px; }
+.ui-tooltip-key { display: inline-flex; align-items: center; gap: 6px; color: var(--muted-foreground); }
+.ui-tooltip-leader { border-bottom: 1px dotted color-mix(in srgb, var(--muted-foreground) 45%, transparent); transform: translateY(-3px); }
+.ui-tooltip-value { color: var(--foreground); font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ui-tooltip-swatch { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 2px; background: var(--chart-ink); }
+.ui-tooltip-swatch[data-swatch='first'] { background: var(--primary); }
+.ui-tooltip-swatch[data-swatch='second'] { background: var(--accent-people-fill); }
+.ui-tooltip-swatch[data-swatch='tone-1'] { background: var(--chart-1); }
+.ui-tooltip-swatch[data-swatch='tone-2'] { background: var(--chart-2); }
+.ui-tooltip-swatch[data-swatch='tone-3'] { background: var(--chart-3); }
+.ui-tooltip-swatch[data-swatch='tone-4'] { background: var(--chart-4); }
+.ui-tooltip-swatch[data-swatch='tone-5'] { background: var(--chart-5); }
+.ui-tooltip-swatch[data-swatch='tone-6'] { background: var(--chart-6); }
+.ui-tooltip-swatch[data-swatch='tone-7'] { background: var(--chart-7); }
+.ui-tooltip-swatch[data-swatch='tone-8'] { background: var(--chart-8); }
+.ui-tooltip-swatch[data-swatch='other'] { background: var(--chart-other); }
+.ui-tooltip-text { max-width: 32em; margin: 0; color: var(--foreground); line-height: 1.65; }
+.ui-tooltip-title + .ui-tooltip-text { margin-top: 0; }
+.ui-tooltip-rows + .ui-tooltip-text { margin-top: 6px; }
+
+/* InfoHint: a quiet "i" that turns primary while its explanation shows. */
+.ui-info-hint { display: inline-grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: var(--muted-foreground); cursor: help; vertical-align: middle;
+  transition: color var(--motion-fast) var(--ease-out), background-color var(--motion-fast) var(--ease-out); }
+.ui-info-hint:hover, .ui-info-hint[data-open='true'] { background: var(--muted); color: var(--primary); }
+.ui-info-hint:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+/* Title bars of the main window, the image viewer and the record windows: the drag area,
+   Alpha's own window buttons and room for the macOS traffic lights. Tokens only. */
+.window-titlebar {
+  --titlebar-ink: var(--muted-foreground);
+  --titlebar-strong: var(--foreground);
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+  height: var(--titlebar-height);
+  padding-left: var(--titlebar-inset, 12px);
+  color: var(--titlebar-ink);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-app-region: drag;
+  app-region: drag;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+/* An inactive window's bar fades back, as the system's does. */
+.window-titlebar[data-focused='false'] {
+  --titlebar-ink: color-mix(in srgb, var(--muted-foreground) 58%, transparent);
+  --titlebar-strong: color-mix(in srgb, var(--foreground) 52%, transparent);
+}
+/* The traffic lights sit at 14px and span about 54px; full screen hides them. */
+.window-titlebar[data-platform='darwin']:not([data-full-screen='true']) { padding-left: 80px; }
+.window-titlebar[data-platform='darwin'] { padding-right: 12px; }
+/* Anything interactive in the bar stays clickable; the rest of it drags the window. */
+.window-titlebar :is(button, a, input, select, textarea, [role='button'], [role='group'], [role='toolbar'], [tabindex]) { -webkit-app-region: no-drag; app-region: no-drag; }
+.window-titlebar-leading { display: flex; min-width: 0; flex: 0 1 auto; align-items: center; gap: 8px; }
+.window-titlebar-content { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; justify-content: flex-end; gap: 8px; }
+
+/* Full-height hit areas flush with the window edge (a maximized window closes from the corner);
+   the hover shows as a rounded pill inside, red for close. */
+.window-controls { display: flex; flex: 0 0 auto; align-self: stretch; color: var(--titlebar-ink, var(--muted-foreground)); }
+.window-control { position: relative; display: grid; width: 46px; height: 100%; min-height: 32px; place-items: center; padding: 0; border: 0; background: transparent; color: inherit; cursor: default; }
+.window-control::before { content: ''; position: absolute; inset: 5px 4px; border-radius: var(--radius-sm); background: transparent; transition: background-color var(--motion-fast) var(--ease-out); }
+.window-control svg { position: relative; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1; }
+.window-control:hover { color: var(--titlebar-strong, var(--foreground)); }
+.window-control:hover::before { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
+.window-control:active::before { background: color-mix(in srgb, var(--foreground) 14%, transparent); }
+.window-control[data-tone='close']:hover { color: var(--window-close-foreground); }
+.window-control[data-tone='close']:hover::before { background: var(--window-close); }
+.window-control[data-tone='close']:active::before { background: color-mix(in srgb, var(--window-close) 84%, black); }
+
+/* The copy inside the top modal dialog, fixed exactly over the title bar's own buttons. */
+.window-controls-float { position: fixed; z-index: 2147483647; top: 0; right: 0; display: flex; height: var(--titlebar-height); margin: 0; padding: 0; -webkit-app-region: no-drag; app-region: no-drag; }
+
+@media (prefers-reduced-motion: reduce) {
+  .window-titlebar, .window-control::before { transition: none; }
+}
+/* Floating panels anchored to a field (date pickers, suggestion lists): the glass of Select's menu. Tokens only. */
+.ui-popover { position: fixed; z-index: var(--z-popover); display: flex; min-width: 0; flex-direction: column; padding: 8px; overflow: auto;
+  border: 1px solid var(--glass-border); border-radius: var(--radius-md); background: var(--glass-surface);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: var(--shadow-overlay); color: var(--foreground); font: 400 13px/1.4 var(--font-sans); overscroll-behavior: contain; scrollbar-width: thin;
+  transform-origin: var(--ui-origin-x, 50%) var(--ui-origin-y, 0%); --ui-enter-y: -4px; }
+.ui-popover[data-side='top'] { --ui-enter-y: 4px; }
+.ui-popover[data-state='measuring'] { visibility: hidden; }
+.ui-popover[data-state='open'] { animation: ui-pop-in var(--motion-pop) var(--ease-out) both; }
+.ui-popover[data-state='closing'] { animation: ui-pop-out var(--motion-fast) var(--ease-in) both; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .ui-popover[data-state='open'], .ui-popover[data-state='closing'] { animation: none; } }

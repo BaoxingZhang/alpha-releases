@@ -1,0 +1,95 @@
+{
+  "method": "Compare declared SHA-256/size to exact shipped regular bytes; no trust/signature authentication.",
+  "schema": "alpha.peer-manifest-hashed.v1",
+  "identity_mode": "ed25519-image-v1",
+  "peers": [
+    {
+      "file_name": "alpha-analysis",
+      "exists": true,
+      "declared_size": 449808,
+      "actual_size": 449808,
+      "size_match": true,
+      "sha256_match": true,
+      "roles": [
+        "gateway"
+      ]
+    },
+    {
+      "file_name": "alpha-cli",
+      "exists": true,
+      "declared_size": 1913496,
+      "actual_size": 1913496,
+      "size_match": true,
+      "sha256_match": true,
+      "roles": [
+        "gateway"
+      ]
+    },
+    {
+      "file_name": "alpha-data-host",
+      "exists": true,
+      "declared_size": 16905936,
+      "actual_size": 16905936,
+      "size_match": true,
+      "sha256_match": true,
+      "roles": [
+        "data-host"
+      ]
+    },
+    {
+      "file_name": "alpha-engine",
+      "exists": true,
+      "declared_size": 18293856,
+      "actual_size": 18293856,
+      "size_match": true,
+      "sha256_match": true,
+      "roles": [
+        "engine"
+      ]
+    },
+    {
+      "file_name": "alpha-key-worker",
+      "exists": true,
+      "declared_size": 2277152,
+      "actual_size": 2277152,
+      "size_match": true,
+      "sha256_match": true,
+      "roles": [
+        "key-worker"
+      ]
+    },
+    {
+      "file_name": "alpha-mcp-stdio",
+      "exists": true,
+      "declared_size": 15090464,
+      "actual_size": 15090464,
+      "size_match": true,
+      "sha256_match": true,
+      "roles": [
+        "gateway"
+      ]
+    },
+    {
+      "file_name": "alpha-security-host",
+      "exists": true,
+      "declared_size": 9112272,
+      "actual_size": 9112272,
+      "size_match": true,
+      "sha256_match": true,
+      "roles": [
+        "component-broker"
+      ]
+    },
+    {
+      "file_name": "alpha-server",
+      "exists": true,
+      "declared_size": 25172512,
+      "actual_size": 25172512,
+      "size_match": true,
+      "sha256_match": true,
+      "roles": [
+        "gateway"
+      ]
+    }
+  ]
+}

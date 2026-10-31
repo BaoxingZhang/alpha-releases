@@ -1,0 +1,243 @@
+{
+  "architecture": "arm64",
+  "artifacts": [
+    {
+      "path": "ALPHA_PROFILE.md",
+      "sha256": "f796c44f2ddca7351bb5ed665bcd4f506ce1723894d18a99d4b45fdfd26eb393",
+      "size": 1286
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "89c7d946e2a6e7356ec5a2f1db30d053f6f5e8bbcf9ec4575e5a98a35eff616e",
+      "size": 2058
+    },
+    {
+      "path": "README.md",
+      "sha256": "e17577f25e93b5e63fd8dcc7c2a93c1fbb887c87b60920e190d3b48ad4f6a913",
+      "size": 2850
+    },
+    {
+      "path": "alpha-wcdb.component.json",
+      "sha256": "ea2e9f0f56e25538e58b43f752d15969bddebbbac823d4ce7a4caa5f392370a4",
+      "size": 23827
+    },
+    {
+      "path": "bin/alpha-data-analysis",
+      "sha256": "42d136f8260217ec14de557123cc0d7d6800ea1f908d0df73ccd9ba9488664d6",
+      "size": 1964768
+    },
+    {
+      "path": "bin/alpha-data-host",
+      "sha256": "a594b57bd7ec51efb0ef683808637a17d08ee622ed880db1a4426e7431b282a0",
+      "size": 16905936
+    },
+    {
+      "path": "bin/libalpha_native.dylib",
+      "sha256": "be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c",
+      "size": 2104544
+    },
+    {
+      "path": "bin/libalpha_sqlcipher_readonly.dylib",
+      "sha256": "90bbfd625de14ceac0b9d47fbe820f4a2bf67c9d9a5f8706a92980bb8144ccfe",
+      "size": 2036224
+    },
+    {
+      "path": "bin/libalpha_sqlcipher_retention_writer.dylib",
+      "sha256": "4c13205b3049a099403e35ae1621eb33a72deca63c8a7b60c883db5648b2e8b9",
+      "size": 1924896
+    },
+    {
+      "path": "include/alpha_moments_projection.h",
+      "sha256": "ae0760238ecf959913eb15176ed721faa458369a0911c2fa3b853512526db0b2",
+      "size": 911
+    },
+    {
+      "path": "include/alpha_native.h",
+      "sha256": "d49edb540eb07e8947987fc21167654ca5d0376692da69750e6d82b892064491",
+      "size": 3068
+    },
+    {
+      "path": "include/alpha_sqlite_controlled_writer.h",
+      "sha256": "4be9383f6c47b2104bd68c69d6fbe18376bbcf92593f22027eb0f743a2d164d9",
+      "size": 6449
+    },
+    {
+      "path": "include/alpha_sqlite_readonly.h",
+      "sha256": "96b4c574f847609827e172317d6eae0caa12436c19a728e3b5c5602407f8223e",
+      "size": 3185
+    },
+    {
+      "path": "include/alpha_wcdb_policy.h",
+      "sha256": "e1415b37c4b2ea7ffdb8822eedc50e939bf64e0023022ffea0c7b52240a9b694",
+      "size": 1155
+    },
+    {
+      "path": "licenses/SQLCipher-LICENSE",
+      "sha256": "3eee3c7964a9becc94d747bd36703d31fc86eb994680b06a61bfd4f2661eaac8",
+      "size": 1463
+    },
+    {
+      "path": "licenses/Tencent-WCDB-LICENSE",
+      "sha256": "a4f22734425182c5937bdcf0dd317ba5039088599464a1f9bd9ba284621f2719",
+      "size": 22752
+    },
+    {
+      "path": "manifest/alpha-media-locator-v1.schema.json",
+      "sha256": "25eb03315747d5d6a777cffb2c60e41b42869bca6698bf4b1e29e13822143df2",
+      "size": 3015
+    },
+    {
+      "path": "manifest/alpha-source-message-lookup-v1.schema.json",
+      "sha256": "66c03af60c71d63aedb5b3ec74626a5d25cbe2a196340a35cf7eaf6f2ac93df0",
+      "size": 2085
+    },
+    {
+      "path": "manifest/alpha-wcdb-runtime-manifest-v3.schema.json",
+      "sha256": "911674cd430b389def81522a833e7976ba03782a01190b6ca205eb2f3b1cdd8b",
+      "size": 1740
+    },
+    {
+      "path": "policies/alpha-data-analysis.artifact-attestation.json",
+      "sha256": "4429747229c762beb881f77a70499032def3182b9bfc113b64b1a572364aee3d",
+      "size": 1757
+    },
+    {
+      "path": "policies/alpha-data-analysis.date-decoys-provenance.json",
+      "sha256": "1bb011e5a4086f3de3bc64131a7b92a06478a93b18b4dc57f2fc3599c8a30bf5",
+      "size": 764
+    },
+    {
+      "path": "policies/alpha-data-analysis.json",
+      "sha256": "d8dfb77bfb90f05b31262fa3afc79fe3dfb2b80558661b39c6acf3a501a9fbd1",
+      "size": 1530
+    },
+    {
+      "path": "policies/alpha-data-analysis.json.sig.json",
+      "sha256": "1345cd00b11a20b9aa4b1171d676f6dad6fdc90560ae27601922ceaa41379cd5",
+      "size": 414
+    },
+    {
+      "path": "policies/alpha-data-analysis.policy-provenance.json",
+      "sha256": "df74530e7179138361cd5acb77beb6e6a0a0f730adec9bea0a6f62b1de7611fa",
+      "size": 2026
+    },
+    {
+      "path": "policies/alpha-data-host.artifact-attestation.json",
+      "sha256": "3733e2edd08788ac3d1d56e5c4e855ee70dea492efa368b1f7c2ece309574148",
+      "size": 1836
+    },
+    {
+      "path": "policies/alpha-data-host.date-decoys-provenance.json",
+      "sha256": "2a38999ee8ac1339ae44c647c247f56fed16648ea52b636ebe15ec3c7fbb5a7c",
+      "size": 846
+    },
+    {
+      "path": "policies/alpha-data-host.json",
+      "sha256": "491c6fbeb1a7b2aa839d6a1890f0313e1cb1d1477ef160ac690e96f6b7783705",
+      "size": 3395
+    },
+    {
+      "path": "policies/alpha-data-host.json.sig.json",
+      "sha256": "84aea1314c5f82da1a29cc0c3a655473625134256e88a483c054946e27dd2c42",
+      "size": 414
+    },
+    {
+      "path": "policies/alpha-data-host.policy-provenance.json",
+      "sha256": "13bdaa8056f968c3b8a6d8898723a8d80d842af5e185dcbbc89c1b999644f8ec",
+      "size": 3891
+    },
+    {
+      "path": "policies/alpha-native.artifact-attestation.json",
+      "sha256": "c446fca34d17c048dc729b3bf562b86f85e45dcac0b248569e89ab123ff87b36",
+      "size": 1732
+    },
+    {
+      "path": "policies/alpha-native.date-decoys-provenance.json",
+      "sha256": "c002938fd841efb0b2ea8f89e4ea3386f514732a6690edd943cf01f4acc98e9b",
+      "size": 750
+    },
+    {
+      "path": "policies/alpha-native.json",
+      "sha256": "3195f98608c6186acc1e2545127cfb285fe9c038e68310457ce6a7a21a614139",
+      "size": 1136
+    },
+    {
+      "path": "policies/alpha-native.json.sig.json",
+      "sha256": "9aa5b5aed0e00b210aa12f1b62eb317ee0edfbd94192ccf9e6cc798095e2c2c7",
+      "size": 414
+    },
+    {
+      "path": "policies/alpha-native.policy-provenance.json",
+      "sha256": "65372144c9188e8ab19c9628ebdb38e81ace16888e1d573b6a47aee6a840c59d",
+      "size": 1632
+    },
+    {
+      "path": "policies/alpha-sqlcipher-readonly.artifact-attestation.json",
+      "sha256": "830ffacfbbb2a4acc233d8909649aff442b12a926af9166ce821160adef679e4",
+      "size": 1768
+    },
+    {
+      "path": "policies/alpha-sqlcipher-readonly.date-decoys-provenance.json",
+      "sha256": "a6b2ed0bc04b5702d16705216f638d7608b78eb486cdd56fa326c850ffa45cde",
+      "size": 774
+    },
+    {
+      "path": "policies/alpha-sqlcipher-readonly.json",
+      "sha256": "e74d3fbed6cc2f0d19a47b0f3506873c0b9b0acee24fdc504d2ee4f33fa6200a",
+      "size": 1364
+    },
+    {
+      "path": "policies/alpha-sqlcipher-readonly.json.sig.json",
+      "sha256": "b3f35dfc49e41213dbc7c8e58939c9b4333ab5e71cf82e619ed6be3059e445ec",
+      "size": 414
+    },
+    {
+      "path": "policies/alpha-sqlcipher-readonly.policy-provenance.json",
+      "sha256": "3ebb90da8b7f4f85055f796bb89d5feb32d9f51acc2e319c9ac1f18155807606",
+      "size": 1860
+    },
+    {
+      "path": "policies/alpha-sqlcipher-retention-writer.artifact-attestation.json",
+      "sha256": "b4ea17d48e7cc09cab6fb100c95259873706232fba9e13761750ceed794d97d1",
+      "size": 1792
+    },
+    {
+      "path": "policies/alpha-sqlcipher-retention-writer.date-decoys-provenance.json",
+      "sha256": "0f8e12f3ae979e27f1bd4d7f7c743e23cc8b2e1417187d8cb7ef9b367a0c95da",
+      "size": 790
+    },
+    {
+      "path": "policies/alpha-sqlcipher-retention-writer.json",
+      "sha256": "62f1c48185b64d16ba892881ee7eda092bffe60ae20a367ed2ba89f35a3a5df8",
+      "size": 1150
+    },
+    {
+      "path": "policies/alpha-sqlcipher-retention-writer.json.sig.json",
+      "sha256": "30098ac06732d0a46130d11a352d0d327e28ac8a4053973456d63ae9c2257203",
+      "size": 414
+    },
+    {
+      "path": "policies/alpha-sqlcipher-retention-writer.policy-provenance.json",
+      "sha256": "3123469152d5911163445534c63759ef53f8e1553a151b2f62a82a2aa5aa17bd",
+      "size": 1646
+    }
+  ],
+  "component": "alpha-wcdb",
+  "component_manifest": "alpha-wcdb.component.json",
+  "platform": "macos",
+  "runtime_mode": "runtime",
+  "schema": "alpha-wcdb.package-manifest.v2",
+  "source_commit": "50d908958d8162bc3a6738a00b4a476ff97c65d5",
+  "source_dirty": false,
+  "vendor": {
+    "commit": "df808591b9f9a9ab42156006819c3550d5af13a3",
+    "nested_submodules": {
+      "openssl": "081314d07705aa58912845c213a48414d8f616a9",
+      "sqlcipher": "f049bed66ca26741f09a6e4f0603ed3af195ac96",
+      "zstd": "69036dffe50f385bd3b7b187e3fd230f4b2ef97e"
+    },
+    "repository": "https://github.com/Tencent/wcdb.git",
+    "version": "2.1.16"
+  },
+  "version": "0.4.0"
+}

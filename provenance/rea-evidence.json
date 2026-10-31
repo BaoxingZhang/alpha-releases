@@ -1,0 +1,16 @@
+{
+  "tool": "REA",
+  "version": "6.8.0",
+  "source_dmg": "/Users/baoxingzhang/Downloads/Alpha-0.3.5-arm64.dmg",
+  "source_sha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
+  "analysis_directory": "/Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101",
+  "dmg_evidence": "ev_e902968574e5a249f818d31f4d71adf3a391dc034b8100e087c290b24eeba16d",
+  "javascript_evidence": "ev_d980eb4ed29e8755b01e02fc500e4b69b415856c115224bf764960de8c4e8c49",
+  "rust_evidence": "ev_6c17b28a4e220f30d4de9f708636a5b599575faefc7551c9b280a2cb9fd3dfc0",
+  "limitations": [
+    "The REA JavaScript graph is partial: main and preload were analyzed before the 300000ms timeout in the React runtime chunk.",
+    "Source organization also uses the complete unpacked ASAR and direct static inspection; it does not claim a complete REA graph.",
+    "Native binaries were inventoried and copied without recovering a full Rust/C++ source workspace.",
+    "Fresh source maps and build configuration belong to this reconstruction, not the original release."
+  ]
+}

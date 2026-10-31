@@ -1,0 +1,78 @@
+{
+  "testedAt": "2026-10-31T17:52:19.944Z",
+  "session": "smoke-1793469139944",
+  "checks": {
+    "projectReadable": true,
+    "personalFileReadDenied": true,
+    "remoteNetworkDenied": true,
+    "mainRendererLoaded": true,
+    "keychainDisabled": true,
+    "backendReady": false,
+    "emptyAccounts": null
+  },
+  "errors": [],
+  "windows": [
+    "(splash data URL)",
+    "file:///Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/renderer/index.html"
+  ],
+  "backend": {
+    "state": "unavailable",
+    "components": [],
+    "errorCode": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY",
+    "update": {
+      "state": "unconfigured",
+      "currentVersion": "0.3.5",
+      "download": {
+        "phase": "idle"
+      }
+    }
+  },
+  "app": {
+    "name": "Alpha Recovered",
+    "version": "0.3.5",
+    "isPackaged": false,
+    "appPath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app",
+    "userData": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/smoke-1793469139944/userData",
+    "home": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/smoke-1793469139944/home",
+    "electron": "44.0.0"
+  },
+  "bridge": [
+    "chatExport",
+    "windowChrome",
+    "messageRecall",
+    "agentChat",
+    "chatSummary",
+    "agentSettings",
+    "networkProxy",
+    "externalMcp",
+    "system",
+    "license",
+    "security",
+    "accounts",
+    "conversations",
+    "jobs",
+    "messages",
+    "data",
+    "analysis",
+    "media",
+    "capture",
+    "voice",
+    "persona",
+    "storage",
+    "agentMemory"
+  ],
+  "body": "Alpha\nAlpha\n01\n连接微信\n选择账号与数据目录\n02\n获取图片密钥\n查看聊天图片，可跳过\n03\n缓存位置\n选择缓存存放目录\n04\n完成\n开始使用 Alpha\n\n连接本机微信记录\n\n首次设置 · 1 / 4\n连接你的微信\n\n先让电脑版微信停在未登录状态，再选择数据目录，然后点击“连接微信”并按下面的步骤操作。自动获取需要一次系统授权：在弹出的密码框中输入 Mac 登录密码。\n\n从本机读取聊天记录；导出保存到你选择的位置。首次连接不会发送消息或修改原聊天记录。\n\n我已了解，开始连接本地数据\n微信保持打开，但先退出登录；或彻底退出后重新打开，停在登录界面。\n选择数据目录后点击“连接微信”，在系统弹出的密码框中输入 Mac 登录密码。这是系统授权，Alpha 不会保存这个密码。\n授权通过后，在微信中登录该账号，并在手机上确认登录。\n密钥获取后 Alpha 会自动验证并连接，无需再操作。\n返回\n连接微信",
+  "update": {
+    "state": "unconfigured",
+    "currentVersion": "0.3.5",
+    "download": {
+      "phase": "idle"
+    }
+  },
+  "accounts": {
+    "error": "Error invoking remote method 'alpha:accounts:list': Error: ENGINE_NOT_STARTED"
+  },
+  "capabilities": {
+    "error": "Error invoking remote method 'alpha:license:capabilities': Error: ENGINE_NOT_STARTED"
+  }
+}

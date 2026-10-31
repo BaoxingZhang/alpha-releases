@@ -1,0 +1,481 @@
+{
+  "builtAt": "2026-10-31T17:50:22.938Z",
+  "node": "v24.21.0",
+  "electron": "44.0.0",
+  "esbuild": "0.28.2",
+  "sourceKind": "recovered emitted JavaScript; not original TypeScript",
+  "nativeRecompiled": false,
+  "outputs": [
+    {
+      "inputs": {
+        "src/main/index.js": {
+          "bytes": 3180527,
+          "imports": [],
+          "format": "cjs"
+        }
+      },
+      "outputs": {
+        "dist/app/out/main/index.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 5340446
+        },
+        "dist/app/out/main/index.js": {
+          "imports": [
+            {
+              "path": "node:crypto",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "node:fs",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "node:fs/promises",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "node:path",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "electron",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "node:http",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "node:os",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "node:child_process",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "@bufbuild/protobuf/wire",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "node:util",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "@hicccc77/electron-liquid-glass",
+              "kind": "require-call",
+              "external": true
+            }
+          ],
+          "exports": [],
+          "entryPoint": "src/main/index.js",
+          "inputs": {
+            "src/main/index.js": {
+              "bytesInOutput": 3201636
+            }
+          },
+          "bytes": 3201684
+        }
+      }
+    },
+    {
+      "inputs": {
+        "src/preload/image-viewer.js": {
+          "bytes": 1838,
+          "imports": []
+        },
+        "src/preload/index.js": {
+          "bytes": 52648,
+          "imports": []
+        },
+        "src/preload/notification.js": {
+          "bytes": 1805,
+          "imports": []
+        }
+      },
+      "outputs": {
+        "dist/app/out/preload/image-viewer.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 3112
+        },
+        "dist/app/out/preload/image-viewer.js": {
+          "imports": [
+            {
+              "path": "electron",
+              "kind": "require-call",
+              "external": true
+            }
+          ],
+          "exports": [],
+          "entryPoint": "src/preload/image-viewer.js",
+          "inputs": {
+            "src/preload/image-viewer.js": {
+              "bytesInOutput": 1824
+            }
+          },
+          "bytes": 1879
+        },
+        "dist/app/out/preload/index.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 80121
+        },
+        "dist/app/out/preload/index.js": {
+          "imports": [
+            {
+              "path": "electron",
+              "kind": "require-call",
+              "external": true
+            }
+          ],
+          "exports": [],
+          "entryPoint": "src/preload/index.js",
+          "inputs": {
+            "src/preload/index.js": {
+              "bytesInOutput": 52634
+            }
+          },
+          "bytes": 52682
+        },
+        "dist/app/out/preload/notification.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 3048
+        },
+        "dist/app/out/preload/notification.js": {
+          "imports": [
+            {
+              "path": "electron",
+              "kind": "require-call",
+              "external": true
+            }
+          ],
+          "exports": [],
+          "entryPoint": "src/preload/notification.js",
+          "inputs": {
+            "src/preload/notification.js": {
+              "bytesInOutput": 1791
+            }
+          },
+          "bytes": 1846
+        }
+      }
+    },
+    {
+      "inputs": {
+        "src/renderer/assets/client-Bg2hQ5uk.js": {
+          "bytes": 554778,
+          "imports": [],
+          "format": "esm"
+        },
+        "src/renderer/assets/image-viewer-BiP1Iv4A.js": {
+          "bytes": 50044,
+          "imports": [],
+          "format": "esm"
+        },
+        "src/renderer/assets/index-DPCwIOAb.js": {
+          "bytes": 2863507,
+          "imports": [],
+          "format": "esm"
+        },
+        "src/renderer/assets/message-images-Dl-McHRQ.js": {
+          "bytes": 145330,
+          "imports": [],
+          "format": "esm"
+        },
+        "src/renderer/assets/notification-BiBtnUUc.js": {
+          "bytes": 10427,
+          "imports": [],
+          "format": "esm"
+        },
+        "src/renderer/assets/segments-CBPICGMn.js": {
+          "bytes": 13667,
+          "imports": [],
+          "format": "esm"
+        }
+      },
+      "outputs": {
+        "dist/app/out/renderer/assets/client-Bg2hQ5uk.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 853928
+        },
+        "dist/app/out/renderer/assets/client-Bg2hQ5uk.js": {
+          "imports": [],
+          "exports": [
+            "R",
+            "a",
+            "b",
+            "j",
+            "r"
+          ],
+          "entryPoint": "src/renderer/assets/client-Bg2hQ5uk.js",
+          "inputs": {
+            "src/renderer/assets/client-Bg2hQ5uk.js": {
+              "bytesInOutput": 554665
+            }
+          },
+          "bytes": 554822
+        },
+        "dist/app/out/renderer/assets/image-viewer-BiP1Iv4A.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 88418
+        },
+        "dist/app/out/renderer/assets/image-viewer-BiP1Iv4A.js": {
+          "imports": [
+            {
+              "path": "./client-Bg2hQ5uk.js",
+              "kind": "import-statement",
+              "external": true
+            },
+            {
+              "path": "./message-images-Dl-McHRQ.js",
+              "kind": "import-statement",
+              "external": true
+            }
+          ],
+          "exports": [],
+          "entryPoint": "src/renderer/assets/image-viewer-BiP1Iv4A.js",
+          "inputs": {
+            "src/renderer/assets/image-viewer-BiP1Iv4A.js": {
+              "bytesInOutput": 51610
+            }
+          },
+          "bytes": 51660
+        },
+        "dist/app/out/renderer/assets/index-DPCwIOAb.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 4979074
+        },
+        "dist/app/out/renderer/assets/index-DPCwIOAb.js": {
+          "imports": [
+            {
+              "path": "./client-Bg2hQ5uk.js",
+              "kind": "import-statement",
+              "external": true
+            },
+            {
+              "path": "./message-images-Dl-McHRQ.js",
+              "kind": "import-statement",
+              "external": true
+            },
+            {
+              "path": "./segments-CBPICGMn.js",
+              "kind": "import-statement",
+              "external": true
+            }
+          ],
+          "exports": [],
+          "entryPoint": "src/renderer/assets/index-DPCwIOAb.js",
+          "inputs": {
+            "src/renderer/assets/index-DPCwIOAb.js": {
+              "bytesInOutput": 3081448
+            }
+          },
+          "bytes": 3081491
+        },
+        "dist/app/out/renderer/assets/message-images-Dl-McHRQ.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 234971
+        },
+        "dist/app/out/renderer/assets/message-images-Dl-McHRQ.js": {
+          "imports": [
+            {
+              "path": "./client-Bg2hQ5uk.js",
+              "kind": "import-statement",
+              "external": true
+            }
+          ],
+          "exports": [
+            "$",
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J",
+            "K",
+            "L",
+            "M",
+            "N",
+            "O",
+            "P",
+            "Q",
+            "R",
+            "S",
+            "T",
+            "U",
+            "V",
+            "W",
+            "X",
+            "Y",
+            "Z",
+            "_",
+            "a",
+            "a0",
+            "a1",
+            "a2",
+            "a3",
+            "a4",
+            "a5",
+            "b",
+            "c",
+            "d",
+            "e",
+            "f",
+            "g",
+            "h",
+            "i",
+            "j",
+            "k",
+            "l",
+            "m",
+            "n",
+            "o",
+            "p",
+            "q",
+            "r",
+            "s",
+            "t",
+            "u",
+            "v",
+            "w",
+            "x",
+            "y",
+            "z"
+          ],
+          "entryPoint": "src/renderer/assets/message-images-Dl-McHRQ.js",
+          "inputs": {
+            "src/renderer/assets/message-images-Dl-McHRQ.js": {
+              "bytesInOutput": 144007
+            }
+          },
+          "bytes": 145466
+        },
+        "dist/app/out/renderer/assets/notification-BiBtnUUc.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 18542
+        },
+        "dist/app/out/renderer/assets/notification-BiBtnUUc.js": {
+          "imports": [
+            {
+              "path": "./client-Bg2hQ5uk.js",
+              "kind": "import-statement",
+              "external": true
+            },
+            {
+              "path": "./segments-CBPICGMn.js",
+              "kind": "import-statement",
+              "external": true
+            }
+          ],
+          "exports": [],
+          "entryPoint": "src/renderer/assets/notification-BiBtnUUc.js",
+          "inputs": {
+            "src/renderer/assets/notification-BiBtnUUc.js": {
+              "bytesInOutput": 10493
+            }
+          },
+          "bytes": 10543
+        },
+        "dist/app/out/renderer/assets/segments-CBPICGMn.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 28550
+        },
+        "dist/app/out/renderer/assets/segments-CBPICGMn.js": {
+          "imports": [],
+          "exports": [
+            "m"
+          ],
+          "entryPoint": "src/renderer/assets/segments-CBPICGMn.js",
+          "inputs": {
+            "src/renderer/assets/segments-CBPICGMn.js": {
+              "bytesInOutput": 17051
+            }
+          },
+          "bytes": 17136
+        }
+      }
+    },
+    {
+      "inputs": {
+        "src/agent-host/index.cjs": {
+          "bytes": 269724,
+          "imports": [],
+          "format": "cjs"
+        }
+      },
+      "outputs": {
+        "workers/agent/dist/index.cjs.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 454408
+        },
+        "workers/agent/dist/index.cjs": {
+          "imports": [
+            {
+              "path": "node:timers/promises",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "node:fs",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "node:path",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "node:crypto",
+              "kind": "require-call",
+              "external": true
+            }
+          ],
+          "exports": [],
+          "entryPoint": "src/agent-host/index.cjs",
+          "inputs": {
+            "src/agent-host/index.cjs": {
+              "bytesInOutput": 267583
+            }
+          },
+          "bytes": 267652
+        }
+      }
+    }
+  ]
+}

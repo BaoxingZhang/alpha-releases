@@ -1,0 +1,234 @@
+{
+  "source": "official release documentation, declarations only; not runtime verified",
+  "checkedAt": "2026-11-01",
+  "references": [
+    {
+      "url": "https://github.com/xunchahaha/alpha-releases/blob/main/docs/api/http-api.md",
+      "blobSha": "c9368ae12af6877392f9629517749a1ddb10b6bf"
+    },
+    {
+      "url": "https://github.com/xunchahaha/alpha-releases/blob/main/docs/api/mcp.md",
+      "blobSha": "72577b36099ac8bd5a7253f1fc26256c8fd634e4"
+    }
+  ],
+  "http": [
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/health"
+    },
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/api/v1/health"
+    },
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/api/v1/accounts"
+    },
+    {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "path": "/api/v1/sessions"
+    },
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/api/v1/sessions/{session_id}/messages"
+    },
+    {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "path": "/api/v1/messages"
+    },
+    {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "path": "/api/v1/search"
+    },
+    {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "path": "/api/v1/contacts"
+    },
+    {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "path": "/api/v1/group-members"
+    },
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/api/v1/exports/formats"
+    },
+    {
+      "methods": [
+        "POST"
+      ],
+      "path": "/api/v1/exports"
+    },
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/api/v1/media/{opaque_id}"
+    },
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/api/v1/media/by-md5/{md5}"
+    },
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/api/v1/media/proxy/{token}"
+    },
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/api/v1/sns/timeline"
+    },
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/api/v1/sns/usernames"
+    },
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/api/v1/sns/export/stats"
+    },
+    {
+      "methods": [
+        "POST"
+      ],
+      "path": "/api/v1/sns/export"
+    },
+    {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "path": "/api/v1/sns/media/proxy"
+    },
+    {
+      "methods": [
+        "GET"
+      ],
+      "path": "/api/v1/push/status"
+    },
+    {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "path": "/api/v1/push/messages"
+    },
+    {
+      "methods": [
+        "POST"
+      ],
+      "path": "/api/v1/messages/send-text"
+    },
+    {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "path": "/api/v1/messages/send-text/status"
+    },
+    {
+      "methods": [
+        "POST"
+      ],
+      "path": "/mcp"
+    }
+  ],
+  "mcp": {
+    "declaredReadOnlyCount": 58,
+    "declaredSendCount": 2,
+    "tools": [
+      "wechat.core.get_status",
+      "wechat.core.list_tools",
+      "wechat.core.list_accounts",
+      "wechat.core.get_account_info",
+      "wechat.contacts.list_contacts",
+      "wechat.contacts.resolve_contact",
+      "wechat.contacts.get_contact_profile",
+      "wechat.contacts.get_group_members",
+      "wechat.chat.list_sessions",
+      "wechat.chat.resolve_session",
+      "wechat.chat.get_messages",
+      "wechat.chat.search_messages",
+      "wechat.chat.list_search_senders",
+      "wechat.chat.get_message_around",
+      "wechat.chat.get_message_anchor",
+      "wechat.chat.get_daily_message_counts",
+      "wechat.chat.get_message_raw",
+      "wechat.chat.resolve_chat_history",
+      "wechat.chat.resolve_app_message",
+      "alpha.messages.search_page",
+      "alpha.messages.resolve_search_hit",
+      "wechat.moments.get_self_info",
+      "wechat.moments.list_timeline",
+      "wechat.moments.search_moments",
+      "wechat.moments.list_users",
+      "wechat.moments.get_media_url",
+      "wechat.moments.get_article_thumb_url",
+      "wechat.moments.get_remote_video_url",
+      "wechat.moments.get_local_video_url",
+      "wechat.biz.list_accounts",
+      "wechat.biz.get_messages",
+      "wechat.biz.get_pay_records",
+      "wechat.biz.get_proxy_image_url",
+      "wechat.analytics.get_wrapped_meta",
+      "wechat.analytics.get_wrapped_card",
+      "wechat.analytics.get_wrapped_annual",
+      "wechat.media.get_avatar_url",
+      "wechat.media.get_chat_image_url",
+      "wechat.media.get_chat_emoji_url",
+      "wechat.media.get_chat_video_thumb_url",
+      "wechat.media.get_chat_video_url",
+      "wechat.media.get_chat_voice_url",
+      "wechat.media.get_decrypted_resource_url",
+      "wechat.media.get_proxy_image_url",
+      "wechat.media.get_favicon_url",
+      "wechat.mobile.get_overview",
+      "wechat.mobile.get_home_snapshot",
+      "wechat.mobile.resolve_target",
+      "wechat.mobile.search_context",
+      "wechat.mobile.search_chat",
+      "wechat.mobile.get_chat_context",
+      "wechat.mobile.get_session_bundle",
+      "wechat.mobile.search_moments",
+      "wechat.mobile.get_media_links",
+      "wechat.mobile.get_message_media_bundle",
+      "wechat.mobile.get_analytics",
+      "wechat.favorites.list_items",
+      "wechat.forensics.list_records",
+      "wechat.chat.send_text",
+      "wechat.chat.get_send_status"
+    ]
+  }
+}

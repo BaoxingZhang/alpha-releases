@@ -1,0 +1,155 @@
+{
+  "architecture": "arm64",
+  "artifacts": [
+    {
+      "path": "bin/alpha-key-worker",
+      "role": "key-worker",
+      "sha512": "4b726e0d5bceb10c07f229a760afcb46ca2a2246b4137176fc1ed2acc7bbde7170301f2e18e5c2383d08a0b047a0ef398cc1477e3c69af79d695f75c7f01b88d",
+      "size": 2277152
+    },
+    {
+      "path": "bin/alpha-security-host",
+      "role": "security-host",
+      "sha512": "9e1e780a4c51cb74b279b4bfd1499d7d1689570460df4e86063a46f8b8e2503605c857df977bced2dcffc34f9796788ca14fb33ad482c700442debde587ffcff",
+      "size": 9112272
+    },
+    {
+      "path": "bin/alpha_xkey.dylib",
+      "role": "key-library",
+      "sha512": "a1727ca46a95d9b2b9b73049beda0981fcfbdea11d4f3a4498dfb7b63fe375e6ff13b1f73d7fdb6672b82549a476c23b7015f96beac13656cea5dc55dbdbb5ab",
+      "size": 515552
+    },
+    {
+      "path": "bin/alpha_xkey_helper",
+      "role": "key-helper",
+      "sha512": "11dc4122cf89fdc26a9a96418c6ce90734eeaac241d18dd2152d08364be1dea886427b77bfe092043472b621e19dc418cb3958e0896dd81bf3780a20e5607dd1",
+      "size": 513440
+    }
+  ],
+  "capabilities": {
+    "image_key": {
+      "abi": "alpha_xkey_recover_image_key_v1",
+      "algorithm": "code-wxid-md5-prefix-aes128-ecb-v2-dat-v1",
+      "automatic_targets": [
+        "windows-x64",
+        "macos-arm64",
+        "linux-x64"
+      ],
+      "helper_operation": "image_key",
+      "manual_targets": [
+        "windows-arm64",
+        "macos-x64"
+      ],
+      "memory_scanner": "verified-candidate-adapter",
+      "verified_dat_required": true
+    },
+    "vault_root": {
+      "providers": [
+        "file",
+        "windows-hello",
+        "dpapi"
+      ]
+    }
+  },
+  "component": "alpha-xkey",
+  "guard_policies": {
+    "key-helper": {
+      "expires_at_utc": "2026-11-18T00:00:00Z",
+      "native_image_seal": "macho-code-and-readonly",
+      "not_before_utc": "2026-10-19T00:00:00Z",
+      "policy_sequence": 15,
+      "policy_sha256": "a04dbaa0d201852ab0225c7c76ef89d5bbd3ef6dd79b1dbc25a04bb2bb2605b9",
+      "policy_signature": {
+        "algorithm": "Ed25519",
+        "key_id": "alpha-build-policy-20261011",
+        "policy_sha256": "a04dbaa0d201852ab0225c7c76ef89d5bbd3ef6dd79b1dbc25a04bb2bb2605b9",
+        "purpose": "alpha.runtime-policy.expiry-enforcement.v1",
+        "schema": "alpha.runtime-policy-signature.v1",
+        "signature": "570945fb8b01b420d3406fac47a0205869ebf172e9e7371d1935ceb6c31c3065344ef12e6f0fd31e2f81ad43f23d7df6905bc293682ec406e3ea09ce3dc26b07"
+      },
+      "profile": "production"
+    },
+    "key-library": {
+      "expires_at_utc": "2026-11-18T00:00:00Z",
+      "native_image_seal": "macho-code-and-readonly",
+      "not_before_utc": "2026-10-19T00:00:00Z",
+      "policy_sequence": 15,
+      "policy_sha256": "768828c7379557ac4f01a47c91daa3df4afc0e1a16c590aac84aa45e87fe3e7a",
+      "policy_signature": {
+        "algorithm": "Ed25519",
+        "key_id": "alpha-build-policy-20261011",
+        "policy_sha256": "768828c7379557ac4f01a47c91daa3df4afc0e1a16c590aac84aa45e87fe3e7a",
+        "purpose": "alpha.runtime-policy.expiry-enforcement.v1",
+        "schema": "alpha.runtime-policy-signature.v1",
+        "signature": "9e950b5cf1cd596b4d9f79603231ae28c7ce4f4804665c9efdf1dcc75c2e08eea2ebe197914c288ec943fb7639d2ca83fae18ec1bde0991b3d99298e026de600"
+      },
+      "profile": "production"
+    },
+    "key-worker": {
+      "expires_at_utc": "2026-11-18T00:00:00Z",
+      "native_image_seal": "macho-code-and-readonly",
+      "not_before_utc": "2026-10-19T00:00:00Z",
+      "policy_sequence": 15,
+      "policy_sha256": "bc471eb7d587e545cba2809413cbd13e5d3fb4581cb808177e4141836a854b6f",
+      "policy_signature": {
+        "algorithm": "Ed25519",
+        "key_id": "alpha-build-policy-20261011",
+        "policy_sha256": "bc471eb7d587e545cba2809413cbd13e5d3fb4581cb808177e4141836a854b6f",
+        "purpose": "alpha.runtime-policy.expiry-enforcement.v1",
+        "schema": "alpha.runtime-policy-signature.v1",
+        "signature": "acab913114b79da4c611846cb8b466dfeb6b50417e6854e6396183481ff08388eedf0cd5d7b978b8e94de0793d11a8f76e4251ba278611675926982c32e7b100"
+      },
+      "profile": "production"
+    },
+    "security-host": {
+      "expires_at_utc": "2026-11-18T00:00:00Z",
+      "native_image_seal": "macho-code-and-readonly",
+      "not_before_utc": "2026-10-19T00:00:00Z",
+      "policy_sequence": 16,
+      "policy_sha256": "174305ce787097decbc450b745eca7b5266e0b4719b777c4d42ef87eba16fae0",
+      "policy_signature": {
+        "algorithm": "Ed25519",
+        "key_id": "alpha-build-policy-20261011",
+        "policy_sha256": "174305ce787097decbc450b745eca7b5266e0b4719b777c4d42ef87eba16fae0",
+        "purpose": "alpha.runtime-policy.expiry-enforcement.v1",
+        "schema": "alpha.runtime-policy-signature.v1",
+        "signature": "327c12d42f9256e845a743b0989c5fea6e4e57c88446b27eb079dfc5d0783edeafba03cd4eb3f35490c84c66acdc69a344352570600bcf3dea3a8b771a289a07"
+      },
+      "profile": "production"
+    }
+  },
+  "platform": "macos",
+  "protocol": {
+    "abi": 1,
+    "helper": "alpha-xkey-helper-v1",
+    "key_encoding": "hex-64-over-stdio-only"
+  },
+  "runtime_security": {
+    "guard_sdk_commit": "b512a0d0a4d8607a365c0b6df626e838d3a48b95",
+    "guard_sdk_provenance": "policies/guard-sdk-provenance.json",
+    "guard_sdk_revision": "alpha-guard-sdk-v2.1.0",
+    "guard_sdk_source_sha256": "8636733f62cbf4087f468312885e20499e0ae18822fd997dea599a7b79552512",
+    "guard_sdk_version": "2.1.0",
+    "peer_identity_mode": "ed25519-image-v1",
+    "peer_manifest": "bin/peer-manifest.json",
+    "peer_manifest_owner": "distribution",
+    "peer_manifest_schema": "alpha.peer-envelope.v2",
+    "peer_trust": "policies/peer-trust.json",
+    "policy_directory": "policies",
+    "qualification": "policies/runtime-qualification.json",
+    "validity_days": 30
+  },
+  "schema": "alpha-xkey.component-manifest.v2",
+  "security": {
+    "auth_nonce_single_use": true,
+    "auth_transport": "loopback-challenge",
+    "caller_auth": "alpha-xkey-auth-v1",
+    "database_access": "read-only-probe",
+    "debug_build_allowed": false,
+    "key_logs": false,
+    "library_paths": "absolute-only"
+  },
+  "source_commit": "b94eac22c3cb9c1544c3a776590143d1c10ce2fa",
+  "source_dirty": false,
+  "version": "1.1.0"
+}

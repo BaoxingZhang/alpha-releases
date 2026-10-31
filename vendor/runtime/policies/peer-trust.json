@@ -1,0 +1,8 @@
+{
+  "identity_mode": "ed25519-image-v1",
+  "keys": {
+    "alpha-peer-prod-1": "Faz-4HsfaFqrKv7nkIf08LHlkDb1UTwH370vxE8b-w4"
+  },
+  "minimum_sequence": 1,
+  "schema": "alpha.peer-trust.v2"
+}
