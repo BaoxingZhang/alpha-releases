@@ -1,0 +1,118 @@
+{
+  "testedAt": "2026-10-31T18:40:09.943Z",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "node": "v24.21.0",
+  "scope": "Manual existing-key import of explicit offline encrypted WeChat v4 copies; validation uses synthetic data only.",
+  "sourceHashes": {
+    "packages/alpha-engine/index.cjs": "3dfae180d62fed8b5ba78bb0995fd4bcaeb3a1fd8e823b6f4f95d0edf7609a9a",
+    "packages/alpha-engine/cli.cjs": "02d03fb01927c05a6d3589ebb8e43c33136c0bfd7f5706071553068213f1e791",
+    "packages/alpha-engine/snapshot-store.cjs": "d5f4bb5885fc4bc05f80fcb762c0cdf799a98b486de7db900d5882edd191acf5",
+    "packages/alpha-engine/importer-client.cjs": "40aec83c82f23ea77620117d869044f9eb431f8e6444771c8b6682fb36791041",
+    "packages/alpha-snapshot-import/main.go": "ed3e7e7e167ed3b96ba69385832f63082d248abb01022a02f0110a749326a869",
+    "packages/alpha-snapshot-import/publish_darwin.go": "ac3ccb7674f85a18ab80129f448bf027c6fcd495cb3dc203441da1c8cbcb727d",
+    "scripts/environment.mjs": "489c637f057e397a3e0eafe3a8496c3898cf06ec43305a7c550be15491439794",
+    "scripts/launch.mjs": "72ba9714e4c6c86f883c33500cbf485d22c56cb0157373f6b7a1e667256e3ca8",
+    "scripts/demo.mjs": "e10a7f4d0842d0fd09505be3c2e156311a8c7871cbe45596b86f1c011c265962",
+    "tests/encrypted-fixture.mjs": "477d5ee5e61e20dec3308f09b5093f3ddc2ee4ef7a3c3bb6b4cff9f5b246b22d",
+    "tests/encrypted-fixture-native.c": "f131a1c97f30059b27352d14fe2fdfe941113cbe1434bbfadc7304440ca739be",
+    "tests/encrypted-smoke.mjs": "be5ed98702744f386995a0a2f8683ba91087fb98066ea9feb8f94cd6a5e5d773",
+    "src/main/index.js": "5a53b5625c997111d44a7b00984fde29ce178e23b5dd4c7c761d82b2ab23e7ca",
+    "src/renderer/assets/index-DPCwIOAb.js": "257a5e9cb695c173b77360e31e691e1be0cfe804cc49fd17af9bbdcf87f6f370",
+    "tests/independent-import-queue.test.mjs": "251b5b29b3240c1d0fcab34a2e6a76c2724f336e6ae04c59d5687fcc7cef3d0e",
+    "scripts/record-maintenance.mjs": "04f1a1841299ea88a7a8ff352b06a8e2886ac15d5c8b418a1287aa1cbbe903e7"
+  },
+  "protocol": {
+    "requestBranches": 128,
+    "implementedBranches": 14,
+    "unimplementedBranches": 114,
+    "supportedMethods": [
+      "hello",
+      "getCapabilities",
+      "listAccounts",
+      "selectAccount",
+      "listConversations",
+      "listMessages",
+      "discoverAccounts",
+      "importDatabaseKey",
+      "listContacts",
+      "getApplicationLockStatus",
+      "unlockApplication",
+      "lockApplication",
+      "configureApplicationLock",
+      "getDataRevision"
+    ],
+    "productCompletionPercent": null
+  },
+  "checks": {
+    "buildJavaScript": true,
+    "buildSnapshotImporter": true,
+    "fullJavaScriptTests": {
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0,
+      "log": "docs/encrypted-tests.log",
+      "logSha256": "ef9c4b63bd2e5a41d73146b0502f71a0750ba4e4c0f75afde71e4e816bfe2bf0"
+    },
+    "snapshotImporterGoTestGroups": 5,
+    "encryptedDesktop": {
+      "waitingForKeyBeforeImport": true,
+      "wrongKeyRejectedWithoutReady": true,
+      "manualKeyOnboardingToMessages": true,
+      "sourceUnchangedAndPlaintextMatches": true,
+      "desktopLockCancelsRunningImport": true,
+      "priorSnapshotSurvivesCanceledReimport": true,
+      "restartReusesVerifiedSnapshot": true,
+      "noDatabaseKeyFoundInPersistedAppDataOrLogs": true
+    },
+    "plaintextDesktop": {
+      "independentBackendReady": true,
+      "realSqliteThroughDesktopIpc": true,
+      "noOriginalAlphaChildObserved": true,
+      "originalOnboardingCompleted": true,
+      "messageRendered": true,
+      "lockEnforcesReadAccess": true,
+      "sourceUnchanged": true
+    },
+    "originalDesktop": {
+      "projectReadable": true,
+      "personalFileReadDenied": true,
+      "remoteNetworkDenied": true,
+      "mainRendererLoaded": true,
+      "keychainDisabled": true,
+      "backendReady": false,
+      "emptyAccounts": null
+    },
+    "originalBackendError": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY",
+    "originalRuntimeFilesVerified": 43,
+    "sourceRecovery": {
+      "totalFiles": 169,
+      "maintainedFiles": 2,
+      "byteIdenticalFiles": 167
+    },
+    "desktopQueueTests": 4
+  },
+  "snapshotImporter": {
+    "sha256": "8113cf0aa212b00dff7032b9c12347c82e237d820118d704ada44fa5f04f50f0",
+    "profile": "wechat-v4-sqlcipher4-4096-kdf256000",
+    "record": "packages/alpha-snapshot-import/build-validation.json"
+  },
+  "evidence": [
+    "docs/encrypted-import.md",
+    "docs/encrypted-run.json",
+    "docs/encrypted-run.png",
+    "docs/independent-run.json",
+    "docs/local-run.json",
+    "docs/independent-review.md",
+    "provenance/maintenance-changes.json"
+  ],
+  "limitations": [
+    "No real user WeChat database or key tested.",
+    "No automatic key acquisition, active WAL consistency, media, search, export, AI or message mutations added in this stage.",
+    "Published snapshots contain plaintext SQLite; the application lock is access control, not disk encryption.",
+    "Normal failure, lock, EOF and cancellation cleanup tested; whole-process-tree SIGKILL or power loss may leave private unfinished directories.",
+    "Original packaged binaries remain unchanged and still fail runtime integrity policy.",
+    "Full-feature Alpha maintenance remains in progress; request-branch counts are not a product completion percentage."
+  ],
+  "remotePublished": false
+}

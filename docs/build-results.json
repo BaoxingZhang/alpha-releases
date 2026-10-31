@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-31T18:21:22.115Z",
+  "builtAt": "2026-10-31T18:39:22.716Z",
   "node": "v24.21.0",
   "electron": "44.0.0",
   "esbuild": "0.28.2",
@@ -9,7 +9,7 @@
     {
       "inputs": {
         "src/main/index.js": {
-          "bytes": 3182669,
+          "bytes": 3182931,
           "imports": [],
           "format": "cjs"
         }
@@ -19,7 +19,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 5343736
+          "bytes": 5344145
         },
         "dist/app/out/main/index.js": {
           "imports": [
@@ -88,10 +88,10 @@
           "entryPoint": "src/main/index.js",
           "inputs": {
             "src/main/index.js": {
-              "bytesInOutput": 3203710
+              "bytesInOutput": 3203972
             }
           },
-          "bytes": 3203758
+          "bytes": 3204020
         }
       }
     },
@@ -195,7 +195,7 @@
           "format": "esm"
         },
         "src/renderer/assets/index-DPCwIOAb.js": {
-          "bytes": 2864181,
+          "bytes": 2865160,
           "imports": [],
           "format": "esm"
         },
@@ -271,7 +271,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 4980319
+          "bytes": 4982130
         },
         "dist/app/out/renderer/assets/index-DPCwIOAb.js": {
           "imports": [
@@ -295,10 +295,10 @@
           "entryPoint": "src/renderer/assets/index-DPCwIOAb.js",
           "inputs": {
             "src/renderer/assets/index-DPCwIOAb.js": {
-              "bytesInOutput": 3082530
+              "bytesInOutput": 3084103
             }
           },
-          "bytes": 3082573
+          "bytes": 3084146
         },
         "dist/app/out/renderer/assets/message-images-Dl-McHRQ.js.map": {
           "imports": [],

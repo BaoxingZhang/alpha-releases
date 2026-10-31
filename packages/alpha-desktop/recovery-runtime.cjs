@@ -21,6 +21,8 @@ function independentRuntime({ workspace, userData, execPath, environment }) {
     ALPHA_INDEPENDENT_BRIDGE_PATH: bridge,
     ALPHA_INDEPENDENT_STATE_DIR: stateDir,
     ALPHA_INDEPENDENT_DATA_DIR: environment.ALPHA_INDEPENDENT_DATA_DIR || '',
+    ALPHA_INDEPENDENT_ENCRYPTED_DIR: environment.ALPHA_INDEPENDENT_ENCRYPTED_DIR || '',
+    ALPHA_INDEPENDENT_IMPORTER_PATH: environment.ALPHA_INDEPENDENT_IMPORTER_PATH || path.join(workspace, 'build/candidates/alpha-snapshot-import'),
     ALPHA_INDEPENDENT_ACCOUNT_ID: environment.ALPHA_INDEPENDENT_ACCOUNT_ID || ''
   });
   return { executable, args: [entry], environment: env };

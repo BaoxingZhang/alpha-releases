@@ -1,0 +1,71 @@
+{
+  "recordedAt": "2026-10-31T18:36:57.907Z",
+  "status": "passed",
+  "scope": "Synthetic fixture only; no real WeChat account, database or key accessed.",
+  "build": {
+    "startedAt": "2026-10-31T18:36:06.875Z",
+    "status": "passed",
+    "sourceFiles": {
+      "go.mod": "f5e412c57b71aef2e37530556aae8eea490a855eb421366dafe90ef68dd757a2",
+      "go.sum": "185c1a07ca10fae6ce64ae27b0bb1688eae23b4eb8d07ee825face41787c8d47",
+      "main.go": "ed3e7e7e167ed3b96ba69385832f63082d248abb01022a02f0110a749326a869",
+      "main_test.go": "6b2cd0815353e070c3295c00dc2cb4fcd0c71a1667841942391ab99c95d14deb",
+      "publish_darwin.go": "ac3ccb7674f85a18ab80129f448bf027c6fcd495cb3dc203441da1c8cbcb727d"
+    },
+    "scope": "Build only; no key, decrypt, or real-data operation is executed.",
+    "toolchain": {
+      "version": "go1.24.13",
+      "archiveSha256": "f282d882c3353485e2fc6c634606d85caf36e855167d59b996dbeae19fa7629a",
+      "binary": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/toolchains/go1.24.13/bin/go"
+    },
+    "artifact": {
+      "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-snapshot-import",
+      "bytes": 7816610,
+      "sha256": "8113cf0aa212b00dff7032b9c12347c82e237d820118d704ada44fa5f04f50f0",
+      "file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-snapshot-import: Mach-O 64-bit executable arm64",
+      "buildInfo": "build/snapshot-import-build-info.txt"
+    },
+    "finishedAt": "2026-10-31T18:36:08.773Z"
+  },
+  "validation": {
+    "go": {
+      "command": "node scripts/build-snapshot-import.mjs",
+      "testGroups": 5,
+      "status": "passed"
+    },
+    "integration": {
+      "command": "node --test tests/snapshot-import.test.mjs tests/import-boundary.test.mjs",
+      "tests": 18,
+      "passed": 18,
+      "failed": 0,
+      "durationMs": 4953.987125,
+      "assertions": [
+        "Every authenticated multi-page database is decrypted and can be queried by the real data bridge.",
+        "The final directory is absent while private plaintext already exists; a single RENAME_EXCL rename publishes the complete directory.",
+        "A destination created concurrently is preserved without overwrite.",
+        "SIGTERM while decrypting or awaiting key stdin returns IMPORT_CANCELED and leaves no private temporary output.",
+        "Added database shards, directories and ordinary files invalidate the in-progress import.",
+        "FIFO, symlink, active sidecar, overlapping source/output paths, incorrect key, modified HMAC, truncated and all-zero pages fail.",
+        "Question mark, fragment and percent characters remain filesystem path data in SQLite URI.",
+        "Oversized second stdin lines, trailing JSON and malformed keys are rejected without key logging."
+      ]
+    },
+    "sourceHashes": {
+      "packages/alpha-snapshot-import/main.go": "ed3e7e7e167ed3b96ba69385832f63082d248abb01022a02f0110a749326a869",
+      "packages/alpha-snapshot-import/main_test.go": "6b2cd0815353e070c3295c00dc2cb4fcd0c71a1667841942391ab99c95d14deb",
+      "packages/alpha-snapshot-import/publish_darwin.go": "ac3ccb7674f85a18ab80129f448bf027c6fcd495cb3dc203441da1c8cbcb727d",
+      "tests/snapshot-import.test.mjs": "9f76329251a447e64b8b04dcef3f7ce3886d9de36585b3f33c6034c5c65daf21",
+      "tests/import-boundary.test.mjs": "61ee30fecb42a3ab79bd0aadfce8410e8bd584dd3be8ab8b0a5f67e3648b4e95"
+    }
+  },
+  "limitations": [
+    "Manual valid key and already-quiescent offline encrypted copy required.",
+    "Fixed macOS WeChat v4 SQLCipher4 profile only.",
+    "SIGKILL, crashes or power loss cannot guarantee Go defer cleanup; the engine must own its job directory lifecycle.",
+    "Atomic directory visibility is not a crash-durability guarantee.",
+    "Not hardened against every same-user hostile instantaneous path swap.",
+    "Key byte buffers are wiped; Go string and crypto-internal copies are not guaranteed to be erased.",
+    "128 GiB per database and 512 GiB total are input limits, not measured capacity or performance.",
+    "No real-data compatibility or full Alpha feature-parity claim."
+  ]
+}

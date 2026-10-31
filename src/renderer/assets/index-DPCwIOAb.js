@@ -6558,6 +6558,7 @@ function OnboardingWizard({ onComplete, onCancel, status }) {
       if (!alive.current) return;
       setDetection(found ?? null);
       setAccounts(saved2);
+      if (independentSource && saved2.some((account) => account.sourceProfile === "alpha-independent-encrypted-v4" && account.handleState === "waiting_for_key")) setManual(true);
       if (!state.manualPath && !accountId && found?.candidates.length === 1) changeSource(found.candidates[0].path);
     });
   }
@@ -6610,7 +6611,7 @@ function OnboardingWizard({ onComplete, onCancel, status }) {
   const detected = detectedAccountChoices(candidates);
   const saved = savedAccountChoices(accounts, candidates);
   const platform = window.alpha.windowChrome?.platform;
-  const keyCopy = independentSource ? { intro: "打开启动时指定的微信 v4 离线数据副本，读取其中的联系人、会话和消息。此模式不获取微信密钥；图片、AI 与导出等功能仍在接入中。", busy: "正在验证并打开数据副本…" } : autoDatabaseKeyCopy(platform);
+  const keyCopy = independentSource ? { intro: "打开启动时指定的微信 v4 离线数据副本。加密副本需要手动输入已有密钥，验证成功后生成本地解密副本；不会自动获取密钥。图片、AI 与导出等功能仍在接入中。", busy: "正在验证并打开数据副本…" } : autoDatabaseKeyCopy(platform);
   const nextLabel = step === 0 ? connected ? "继续" : manual ? "验证并连接" : independentSource ? "打开数据副本" : "连接微信" : step === 1 ? imageConfigured ? "继续" : "暂时跳过" : step === 2 ? "继续" : "进入 Alpha";
   return /* @__PURE__ */ jsxRuntimeExports.jsx("section", { className: "setup-screen", "aria-label": "Alpha 首次设置", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "setup-window", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "setup-sidebar", children: [
@@ -6710,7 +6711,7 @@ function OnboardingWizard({ onComplete, onCancel, status }) {
               /* @__PURE__ */ jsxRuntimeExports.jsx("summary", { onClick: (event) => {
                 if (busyRef.current) event.preventDefault();
               }, children: "手动输入数据库密钥" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "自动连接失败时使用。密钥仅用于本次连接，不保存在页面配置中。" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: independentSource ? "密钥只用于本次解密，不保存到配置或日志。解密副本保存在本机应用目录，供后续只读查询；应用锁不提供磁盘加密。" : "自动连接失败时使用。密钥仅用于本次连接，不保存在页面配置中。" }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "setup-field", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "数据库密钥" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "password", autoComplete: "off", spellCheck: false, placeholder: "64 位十六进制密钥", value: key, onChange: (event) => setKey(event.target.value), "aria-describedby": "database-key-help" })
@@ -6808,6 +6809,12 @@ function OnboardingWizard({ onComplete, onCancel, status }) {
 function SetupError({ code: input }) {
   const code = publicDiagnosticCode(input);
   const local = {
+    KEY_AUTHENTICATION_FAILED: "密钥不匹配，或加密副本已有损坏。请核对密钥与数据副本。",
+    ACTIVE_DATABASE_DENIED: "副本仍包含 WAL、SHM 或日志文件，请先准备完整、静止的数据库副本。",
+    SOURCE_CHANGED: "导入期间源数据库发生变化。请重新准备静止副本后再连接。",
+    SQLITE_INTEGRITY_FAILED: "解密结果未通过数据库完整性检查，未保存可用快照。",
+    IMPORT_CANCELED: "导入已取消，未连接数据。",
+    IMPORT_TIMEOUT: "本次解密超过时限，未连接数据。",
     ONBOARDING_ACCOUNT_SELECTION_REQUIRED: "这个目录包含多个账号，请选择具体的账号目录后重试。",
     ONBOARDING_SOURCE_ACCOUNT_MISMATCH: "账号与目录不匹配，请重新选择当前账号的目录。",
     ONBOARDING_ACCOUNT_NOT_FOUND: "没有找到该账号，请重新选择数据目录。",

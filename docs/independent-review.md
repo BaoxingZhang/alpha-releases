@@ -7,7 +7,7 @@
 - `src/main/index.js` 的 `EngineClient.startOnce()` 仅在开发模式且显式选择 `ALPHA_RECOVERY_BACKEND=independent` 时调用自有运行器；原模式继续保留原启动和校验流程。
 - 独立引擎使用自己的组件标识 `alpha-independent-engine`，协议为 1.0。桌面启动会验证协议和身份。账号就绪来自实际 Go 进程对显式 SQLite 副本的检查，不使用固定的假账号。
 - `getCapabilities()` 不提供原产品 entitlement；原桌面映射结果为 `null`。独立实现不签发原作者许可，不修改原二进制、签名或策略。
-- 无数据源配置时账号列表确实为空。已配置但缺失或无效的数据源会使握手失败，不能变成空列表成功。重启后已配置密码锁处于锁定状态时，Hello 仅确认独立 Node 服务初始化，不初始化数据源；数据请求返回 `APP_LOCK_LOCKED`。
+- 无数据源配置时账号列表确实为空。未锁定的明文源缺失或无效时握手失败；新增加密模式的 Hello 只确认服务，首次账号查询再验证来源并报告等待密钥或错误，不能变成空列表成功。重启后已配置密码锁处于锁定状态时，Hello 仅确认独立 Node 服务初始化，不初始化数据源；数据请求返回 `APP_LOCK_LOCKED`。
 - 联系人、会话、消息能力由 Go `account.info.capabilities` 派生。只有会话库的合法副本可以列出会话，以用户名显示未提供的联系人名称；不会宣称具备联系人库或消息库能力。
 - 账号和 revision 查询会重新调用 `account.info`，触发源文件检查；已打开副本改变后返回 `DATASET_CHANGED`，不继续返回旧的 ready/revision。
 
@@ -56,8 +56,32 @@ Go 组件另有驱动级只读写入拒绝、数据库字节不变、侧文件�
 
 ## 保留的实际限制
 
-- 当前数据源是明确指定的、稳定的、已解密 SQLite 离线副本。账号 ID 是调用者给数据集分配的标签，Go 明确返回 `idProvenance=caller-supplied-dataset-label`；不把它当成从微信验证出的登录身份。
+- 当前读取的数据源是明确指定的、稳定的 SQLite 离线副本；本轮后续新增手动密钥导入器，可先将限定 SQLCipher4 profile 的加密副本验证后转成这样的快照，见下节。账号 ID 是调用者给数据集分配的标签，Go 明确返回 `idProvenance=caller-supplied-dataset-label`；不把它当成从微信验证出的登录身份。
 - SQLite 使用 `mode=ro`、`immutable=1`、`query_only=1`，请求前后校验文件身份、大小、修改时间，拒绝 WAL/SHM/journal 和符号链接。这里验证的是静态副本，不声称能够抵抗恶意进程在检查与打开之间瞬时交换目录。
 - 应用密码锁是本地访问控制。它有真实 scrypt 校验和持久化限流，但不加密原数据副本，不提供原 vault 或系统硬件保护，也不让来源目录对操作系统账户的所有者不可读。
 - 启动器限制数据源位于项目 `.runtime/`，外层 Seatbelt 阻止实际用户目录内容读取和远程 IP 连接；Electron 仍使用现有路径隔离。没有覆盖系统 `HOME`。Chromium 的 `--no-sandbox` 依赖文档所述的外层 Seatbelt，不能脱离该启动器将其描述为已验证隔离。
 - 真实微信自动发现/密钥、实时数据变化、媒体完整解析、搜索/导出、消息修改/发送、AI/外部服务、原许可和发布升级等未由本次测试验证。未实现请求保持明确错误；完整接手进度应继续在 `MAINTENANCE.md` 记录。
+
+## 手动加密快照导入：后续独立验证
+
+测试使用 `tests/encrypted-fixture.mjs` 和 `tests/encrypted-fixture-native.c`，没有使用真实微信数据或真实密钥。生成器先调用系统 SQLite 的 `SQLITE_FCNTL_RESERVE_BYTES` 并 `VACUUM`，建立页长 4096、每页真实保留 80 字节的有效 SQLite。没有通过截掉普通 SQLite 页尾制作测试输入。4 个数据库分别为 2、3、3、2 页，包含已知联系人、会话和消息。
+
+加密由独立 Node crypto 实现：32 字节测试 key 作为 PBKDF2 输入，SHA512/256000 次派生 AES 密钥，盐异或 `0x3a` 后以 AES 密钥做 2 次 PBKDF2 得到 MAC 密钥；AES-256-CBC 不填充，HMAC-SHA512 覆盖密文、IV 和小端页号。算法依据为 [SQLCipher 官方设计](https://www.zetetic.net/sqlcipher/design/) 与 [官方 codec 源码](https://github.com/sqlcipher/sqlcipher/blob/master/src/sqlcipher.c)。fixture 使用确定的测试盐和 IV 以便复现，不能用于真实数据加密。
+
+生成器返回明文与密文路径、逐库 SHA256、页数和预期业务内容。原生辅助程序缓存在项目 `.runtime/`，可用 `cleanupEncryptedFixtureHelper()` 清理，进程正常退出也会清理。早期试验生成的系统临时目录已删除。
+
+本轮独立测试结果：
+
+| 测试 | 结果 | 关键观察 |
+| --- | --- | --- |
+| `tests/import-boundary.test.mjs` | 6/6 通过 | 正确 key 解密后逐库明文哈希一致，真实 bridge 查询得到已知联系人和消息；错误 key/密文/MAC/截断/全零页不发布；已有目标、符号链接、WAL 拒绝；stdin 限制与不回显密钥；URI 特殊字符路径 |
+| `tests/import-security-boundary.test.mjs` | 8/8 通过 | 明文合法篡改并恢复 mtime 后重启拒绝；manifest 不能指向外部目录；锁定初始化不访问暂时不可用的源；早失败 key 缓冲擦除；临时明文已经写出后关闭/锁定会取消并清理；manifest 提交后锁定保留完整快照；持久化状态不含测试 key 或应用密码 |
+| `tests/snapshot-import.test.mjs` 中原子发布与并发目标两项 | 2/2 独立复跑通过 | 临时明文阶段最终目录不存在；最终目录出现时内容完整；并发创建的目标和标记文件保持原样 |
+
+源码审查确认，Go 使用 macOS `renamex_np(..., RENAME_EXCL)` 完成整个目录的原子提交，没有逐文件发布或覆盖已有目标的回退。SIGTERM 通过 context 进入清理路径；Node 为每次导入建立独占工作目录，等待子进程结束后清理，覆盖强制结束无法执行 Go defer 的情况。
+
+manifest 的 version 为 2，文件名仍为 `manifest.v1.json`。它仅接受本状态根内 `snapshots/snapshot-UUID/data`，重启后校验源和输出的内容哈希、文件清单与长度；锁定期间不做这些数据读取。manifest 原子提交之后若发生锁定，磁盘保留完整可验证快照，调用返回锁定错误并关闭读取句柄，不删除已提交快照而留下悬空 manifest。
+
+最后的桌面接入审查发现原 `EngineRequestQueue` 会把锁控制排在长导入之后。现仅在独立开发模式将 `importDatabaseKey` 分入 bypass 队列，后端仍只允许一个导入；原模式与 packaged 行为保留。`tests/independent-import-queue.test.mjs` 的4项测试直接执行真实队列与调用方法，验证导入未完成时状态/锁定可发出及原模式行为。`tests/encrypted-smoke.mjs` 另在实际 Electron 中暂停本应用的真实导入进程，验证状态响应、锁定取消、子进程退出、工作目录清理与旧快照继续可读。
+
+这些检查证明合成数据的算法、文件一致性和隔离行为；没有验证真实微信数据库的全部版本变体，也不包含自动获取密钥。应用锁仍不是磁盘加密，导入后的明文快照受项目目录权限和访问锁管理。manifest 哈希用于本地状态的一致性检查，不宣称是原作者签名或外部可信来源认证。

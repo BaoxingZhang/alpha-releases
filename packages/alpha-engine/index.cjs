@@ -2,13 +2,15 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const snapshot = require('./snapshot-store.cjs');
+const { runImporter } = require('./importer-client.cjs');
 const zlib = require('node:zlib');
 const protocol = require('../alpha-protocol/index.cjs');
 const { BridgeClient } = require('./bridge-client.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, discoverAccounts: 29, listContacts: 42, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getDataRevision: 105 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getDataRevision: 105 });
 const EXACT_CONTACT = '__alpha_contact_exact:';
 const error = code => new Error(code);
 const sha = text => crypto.createHash('sha256').update(text).digest('hex');
@@ -54,15 +56,25 @@ function safeStateDirectory(directory) {
   for (const part of directory.split(path.sep).filter(Boolean)) { current = path.join(current, part); const stat = fs.lstatSync(current); if (!stat.isDirectory() || stat.isSymbolicLink()) throw error('ENGINE_STATE_PATH_INVALID'); }
 }
 
-async function createEngine({ lock, stateDir, bridgePath, dataDir = '', accountId = '', selfUsername = '', bridgeFactory = options => new BridgeClient(options) }) {
+async function createEngine({ lock, stateDir, bridgePath, importerPath = '', encryptedDir = '', snapshotRoot = '', dataDir = '', accountId = '', selfUsername = '', importerTimeoutMs = 115000, bridgeFactory = options => new BridgeClient(options) }) {
   if (!lock || typeof lock.assertAccess !== 'function') throw error('SECURITY_PROVIDER_REQUIRED');
   safeStateDirectory(stateDir);
-  if (dataDir && (!path.isAbsolute(dataDir) || !accountId || accountId.length > 256 || /[\x00-\x1f]/.test(accountId))) throw error('DATA_SOURCE_CONFIGURATION_INVALID');
-  if (dataDir && (!bridgePath || !path.isAbsolute(bridgePath))) throw error('BRIDGE_PATH_INVALID');
+  if (dataDir && encryptedDir) throw error('DATA_SOURCE_CONFIGURATION_INVALID');
+  if ((dataDir || encryptedDir) && (!accountId || accountId.length > 256 || /[\x00-\x1f]/.test(accountId))) throw error('DATA_SOURCE_CONFIGURATION_INVALID');
+  if (dataDir && !path.isAbsolute(dataDir)) throw error('DATA_SOURCE_CONFIGURATION_INVALID');
+  if (encryptedDir && !path.isAbsolute(encryptedDir)) throw error('ENCRYPTED_SOURCE_PATH_INVALID');
+  if ((dataDir || encryptedDir) && (!bridgePath || !path.isAbsolute(bridgePath))) throw error('BRIDGE_PATH_INVALID');
+  if (encryptedDir && (!importerPath || !path.isAbsolute(importerPath))) throw error('IMPORTER_PATH_INVALID');
+  if (!snapshotRoot) snapshotRoot = path.join(stateDir, 'snapshots');
+  if (snapshotRoot !== path.join(stateDir, 'snapshots')) throw error('SNAPSHOT_ROOT_INVALID');
+  if (!Number.isSafeInteger(importerTimeoutMs) || importerTimeoutMs < 1 || importerTimeoutMs > 115000) throw error('IMPORT_TIMEOUT_INVALID');
   if (selfUsername && /[\x00-\x1f]/.test(selfUsername)) throw error('SELF_USERNAME_INVALID');
   const selectionFile = path.join(stateDir, 'selected-source.v1.json');
   let selectedId = '', selectedPath = '', bridge = null, info = null, helloDone = false;
+  let activeImport = null, snapshotLoaded = false, sourceInventory = null, outputInventory = null, sourceFailure = '', closed = false;
+  const snapshotOptions = { snapshotRoot, accountId, encryptedDir };
   const names = new Map();
+  const configuredSourcePath = encryptedDir || dataDir;
   try {
     const fd = fs.openSync(selectionFile, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
     try {
@@ -75,28 +87,53 @@ async function createEngine({ lock, stateDir, bridgePath, dataDir = '', accountI
   function saveSelection() {
     safeStateDirectory(stateDir);
     const temporary = path.join(stateDir, `.selected-${crypto.randomUUID()}`);
-    try { fs.writeFileSync(temporary, JSON.stringify({ version: 1, id: accountId, path: dataDir }) + '\n', { flag: 'wx', mode: 0o600 }); fs.renameSync(temporary, selectionFile); }
+    try { fs.writeFileSync(temporary, JSON.stringify({ version: 1, id: accountId, path: configuredSourcePath }) + '\n', { flag: 'wx', mode: 0o600 }); fs.renameSync(temporary, selectionFile); }
     finally { fs.rmSync(temporary, { force: true }); }
-    selectedId = accountId; selectedPath = dataDir;
+    selectedId = accountId; selectedPath = configuredSourcePath;
+  }
+  function guard(signal) { lock.assertAccess(); if (closed) throw error('ENGINE_CLOSED'); if (signal?.aborted) throw error(signal.reason?.message === 'IMPORT_TIMEOUT' ? 'IMPORT_TIMEOUT' : 'IMPORT_CANCELED'); }
+  async function dropBridge() { const old = bridge; bridge = null; info = null; names.clear(); if (old) await old.close(); }
+  function checkedInfo(value) {
+    if (!value || value.id !== accountId || value.readOnly !== true || value.sourceKind !== 'offline-wechat-v4' || typeof value.snapshotId !== 'string' || !value.snapshotId || !Array.isArray(value.capabilities) || !value.capabilities.includes('account.info')) throw error('BRIDGE_ACCOUNT_INVALID');
+    return value;
+  }
+  async function restoreSnapshot() {
+    guard(); if (!encryptedDir || snapshotLoaded) return;
+    const manifest = await snapshot.readManifest(snapshotOptions, guard); guard();
+    // Validate the explicitly configured source even before returning discovered.
+    const original = await snapshot.inventory(encryptedDir, guard); guard();
+    if (!manifest || original.fingerprint !== manifest.sourceFingerprint) {
+      dataDir = ''; sourceInventory = original; outputInventory = null; snapshotLoaded = true; return;
+    }
+    const output = await snapshot.inventory(manifest.outputDir, guard, true); guard();
+    snapshot.matchInventory(original, output, manifest.databases);
+    dataDir = manifest.outputDir; sourceInventory = original; outputInventory = output; snapshotLoaded = true;
   }
   async function source() {
-    lock.assertAccess();
-    if (!dataDir) throw error('ACCOUNT_NOT_FOUND');
-    if (!bridge || bridge.closed) { bridge = bridgeFactory({ executable: bridgePath, dataDir, accountId }); info = null; names.clear(); }
-    // This is also the Go process's immutable-snapshot verification barrier.
-    // Never answer ready/revision solely from cached metadata after a file changed.
-    const value = await bridge.call('account.info'); lock.assertAccess();
-    if (!value || value.id !== accountId || value.readOnly !== true || value.sourceKind !== 'offline-wechat-v4' || typeof value.snapshotId !== 'string' || !value.snapshotId || !Array.isArray(value.capabilities) || !value.capabilities.includes('account.info')) throw error('BRIDGE_ACCOUNT_INVALID');
-    if (info && info.snapshotId !== value.snapshotId) names.clear();
-    info = value;
-    return info;
+    guard(); if (activeImport) throw error('IMPORT_IN_PROGRESS');
+    if (sourceFailure) throw error(sourceFailure);
+    await restoreSnapshot(); guard();
+    if (!dataDir) throw error(encryptedDir ? 'DATABASE_KEY_REQUIRED' : 'ACCOUNT_NOT_FOUND');
+    try {
+      if (encryptedDir) { await snapshot.verifyStamps(sourceInventory, guard); await snapshot.verifyStamps(outputInventory, guard); }
+      if (!bridge || bridge.closed) { bridge = bridgeFactory({ executable: bridgePath, dataDir, accountId }); info = null; names.clear(); }
+      const value = checkedInfo(await bridge.call('account.info')); guard();
+      if (info && info.snapshotId !== value.snapshotId) names.clear();
+      info = value; return info;
+    } catch (failure) {
+      // Reopening after DATASET_CHANGED would silently bless a new dataset.
+      // Keep the failure for this engine lifetime or an explicit new import.
+      sourceFailure = /^[A-Z][A-Z0-9_]{1,95}$/.test(failure.message || '') ? failure.message : 'SOURCE_UNAVAILABLE';
+      await dropBridge(); throw failure;
+    }
   }
-  async function callData(op, params) { await source(); const result = await bridge.call(op, params); lock.assertAccess(); return result; }
-  async function requireAccount(id) { lock.assertAccess(); if (id !== accountId || !dataDir) throw error('ACCOUNT_NOT_FOUND'); return source(); }
+  async function callData(op, params) { await source(); const current = bridge; const result = await current.call(op, params); guard(); return result; }
+  async function requireAccount(id) { guard(); if (id !== accountId || !configuredSourcePath) throw error('ACCOUNT_NOT_FOUND'); return source(); }
   function account(value) {
-    const selected = selectedId === accountId && selectedPath === dataDir;
+    const selected = selectedId === accountId && selectedPath === configuredSourcePath;
+    if (!value) return { id: accountId, sourceProfile: 'alpha-independent-encrypted-v4', subjectId: selfUsername, displayName: `加密数据源 · ${accountId}`, dataSourcePath: encryptedDir, schemaProfile: 'wechat-v4-encrypted', state: 1, handleState: 3, handleGeneration: 0n, activeHandleGeneration: 0n, selected, capabilities: ['offline-encrypted'], detected: true, usable: false, enabled: false, verified: false, ready: false };
     const capabilities = ['offline-readonly', ...Object.entries({ 'contacts.list': 'contacts', 'sessions.list': 'conversations', 'messages.list': 'messages' }).filter(([operation]) => value.capabilities.includes(operation)).map(([, capability]) => capability)];
-    return { id: accountId, sourceProfile: 'alpha-independent-offline-v4', subjectId: selfUsername, displayName: `离线数据源 · ${accountId}`, dataSourcePath: dataDir, schemaProfile: 'wechat-v4-offline', state: 2, handleState: 4, handleGeneration: 1n, activeHandleGeneration: 1n, selected, capabilities, detected: true, usable: true, enabled: true, verified: true, ready: true };
+    return { id: accountId, sourceProfile: 'alpha-independent-offline-v4', subjectId: selfUsername, displayName: `离线数据源 · ${accountId}`, dataSourcePath: configuredSourcePath, schemaProfile: 'wechat-v4-offline', state: 2, handleState: 4, handleGeneration: 1n, activeHandleGeneration: 1n, selected, capabilities, detected: true, usable: true, enabled: true, verified: true, ready: true };
   }
   async function contactName(username) {
     if (names.has(username)) return names.get(username);
@@ -106,21 +143,74 @@ async function createEngine({ lock, stateDir, bridgePath, dataDir = '', accountI
     const name = found ? text(found.remark) || text(found.nickName) || username : username;
     names.set(username, name); return name;
   }
+  async function cancelImport() {
+    const operation = activeImport;
+    if (operation) { operation.controller.abort(); await operation.done; }
+  }
+  async function importKey(request) {
+    guard();
+    if (!encryptedDir) throw error('ENCRYPTED_SOURCE_NOT_CONFIGURED');
+    if (request.accountId !== accountId || !(request.databaseKey instanceof Uint8Array) || request.databaseKey.length !== 32) throw error('DATABASE_KEY_INVALID');
+    if (activeImport) throw error('IMPORT_BUSY');
+    let done; const operation = { controller: new AbortController(), done: new Promise(resolve => { done = resolve; }) }; activeImport = operation;
+    const deadline = setTimeout(() => operation.controller.abort(error('IMPORT_TIMEOUT')), importerTimeoutMs);
+    const check = () => guard(operation.controller.signal);
+    let workDir, finalDir, candidate = null, published = false;
+    try {
+      check(); await dropBridge(); dataDir = ''; sourceInventory = null; outputInventory = null; snapshotLoaded = false; sourceFailure = '';
+      await snapshot.safeDirectory(stateDir, check);
+      try { await fs.promises.mkdir(snapshotRoot, { mode: 0o700 }); } catch (failure) { if (failure.code !== 'EEXIST') throw failure; }
+      await snapshot.safeDirectory(snapshotRoot, check, true);
+      workDir = await fs.promises.mkdtemp(path.join(snapshotRoot, '.work-')); await fs.promises.chmod(workDir, 0o700); check();
+      const outputDir = path.join(workDir, 'data');
+      const original = await snapshot.inventory(encryptedDir, check); check();
+      const summary = await runImporter({ executable: importerPath, sourceDir: encryptedDir, outputDir, key: request.databaseKey, signal: operation.controller.signal, timeoutMs: importerTimeoutMs }); check();
+      if (!summary || summary.ok !== true || summary.profile !== snapshot.PROFILE || summary.sourceUnchanged !== true || summary.reservedBytesZeroed !== true || summary.outputDir !== outputDir || summary.sourceFingerprint !== original.fingerprint) throw error('IMPORT_SUMMARY_INVALID');
+      snapshot.records(summary.databases);
+      await snapshot.verifyStamps(original, check);
+      const output = await snapshot.inventory(outputDir, check, true); check(); snapshot.matchInventory(original, output, summary.databases);
+      candidate = bridgeFactory({ executable: bridgePath, dataDir: outputDir, accountId }); checkedInfo(await candidate.call('account.info')); check(); await candidate.close(); candidate = null;
+      finalDir = path.join(snapshotRoot, `snapshot-${crypto.randomUUID()}`); await fs.promises.rename(workDir, finalDir); workDir = null; check();
+      const finalData = path.join(finalDir, 'data');
+      const finalInventory = await snapshot.inventory(finalData, check, true); snapshot.matchInventory(original, finalInventory, summary.databases); check();
+      candidate = bridgeFactory({ executable: bridgePath, dataDir: finalData, accountId }); const checked = checkedInfo(await candidate.call('account.info')); check();
+      const manifest = { version: 2, accountId, encryptedDir, outputDir: finalData, profile: snapshot.PROFILE, sourceFingerprint: original.fingerprint, databases: summary.databases };
+      // Atomic manifest rename is the commit point. Cancellation afterwards may
+      // suppress the response and close handles, but must retain this valid cache.
+      await snapshot.writeManifest(manifest, snapshotOptions, check);
+      dataDir = finalData; bridge = candidate; candidate = null; info = checked; sourceInventory = original; outputInventory = finalInventory; snapshotLoaded = true; published = true;
+      return account(checked);
+    } finally {
+      clearTimeout(deadline); request.databaseKey.fill(0);
+      try {
+        if (candidate) await candidate.close();
+        if (workDir) await fs.promises.rm(workDir, { recursive: true, force: true });
+        if (finalDir && !published) await fs.promises.rm(finalDir, { recursive: true, force: true });
+      } finally { if (activeImport === operation) activeImport = null; done(); }
+    }
+  }
   const handlers = {
     async hello(request) {
       if (request.protocol?.major !== 1) throw error('PROTOCOL_VERSION_UNSUPPORTED');
-      if (dataDir && !lock.status().locked) await source();
+      if (!encryptedDir && dataDir && !lock.status().locked) await source();
       helloDone = true;
       return { negotiatedProtocol: { major: 1, minor: 0 }, components: [{ component: 'alpha-independent-engine', version: '0.1.0', buildId: 'independent-node-stdio-v1', protocolMajor: 1, protocolMinor: 0 }], serverNonce: crypto.randomBytes(16), supportedMethodIds: Object.values(SUPPORTED).sort((a, b) => a - b), supportsExportTimeRange: false };
     },
     async getCapabilities() { return {}; }, // No original product entitlements exist in this backend.
     async getApplicationLockStatus() { return { status: lock.status() }; },
     async unlockApplication(request) { return { status: await lock.unlock(request.password) }; },
-    async lockApplication() { const status = lock.lock(); if (bridge) await bridge.close(); bridge = null; info = null; names.clear(); return { status }; },
+    async lockApplication() { const status = lock.lock(); await cancelImport(); await dropBridge(); if (encryptedDir) { dataDir = ''; snapshotLoaded = false; sourceInventory = outputInventory = null; } return { status }; },
     async configureApplicationLock(request) { return { status: await lock.configure(request) }; },
-    async listAccounts() { lock.assertAccess(); if (!dataDir) return { accounts: [], selectedAccountId: '' }; const value = await source(); return { accounts: [account(value)], selectedAccountId: selectedId === accountId && selectedPath === dataDir ? accountId : '' }; },
-    async discoverAccounts(request) { lock.assertAccess(); if (!dataDir || request.sourceLocation !== dataDir) throw error('SOURCE_NOT_AUTHORIZED'); return handlers.listAccounts(); },
-    async selectAccount(request) { const value = await requireAccount(request.accountId); const previousAccountId = selectedId; lock.assertAccess(); saveSelection(); return { account: account(value), previousAccountId }; },
+    async importDatabaseKey(request) { return { account: await importKey(request) }; },
+    async listAccounts() {
+      guard(); if (activeImport) throw error('IMPORT_IN_PROGRESS');
+      await restoreSnapshot(); guard();
+      if (encryptedDir && !dataDir) { await snapshot.verifyStamps(sourceInventory, guard); return { accounts: [account(null)], selectedAccountId: '' }; }
+      if (!dataDir) return { accounts: [], selectedAccountId: '' };
+      const value = await source(); return { accounts: [account(value)], selectedAccountId: selectedId === accountId && selectedPath === configuredSourcePath ? accountId : '' };
+    },
+    async discoverAccounts(request) { guard(); if (!configuredSourcePath || request.sourceLocation !== configuredSourcePath) throw error('SOURCE_NOT_AUTHORIZED'); return handlers.listAccounts(); },
+    async selectAccount(request) { const value = await requireAccount(request.accountId); const previousAccountId = selectedId; guard(); saveSelection(); return { account: account(value), previousAccountId }; },
     async getDataRevision(request) { const value = await requireAccount(request.accountId); return { revision: sha(value.snapshotId).slice(0, 16) }; },
     async listContacts(request) {
       await requireAccount(request.accountId);
@@ -197,13 +287,15 @@ async function createEngine({ lock, stateDir, bridgePath, dataDir = '', accountI
         const code = /^[A-Z][A-Z0-9_]{1,95}$/.test(failure.message ?? '') ? failure.message : 'INTERNAL_ERROR';
         return EngineServerFrame.fromPartial({ requestId, error: { code, category: code === 'UNIMPLEMENTED' ? 'independent.unsupported' : 'independent.backend', retryable: false, userMessageKey: code, diagnosticId: crypto.randomUUID() } });
       } finally {
+        if (request.importDatabaseKey?.databaseKey instanceof Uint8Array) request.importDatabaseKey.databaseKey.fill(0);
         for (const payload of [request.unlockApplication, request.configureApplicationLock]) {
           if (payload?.password instanceof Uint8Array) payload.password.fill(0);
           if (payload?.newPassword instanceof Uint8Array) payload.newPassword.fill(0);
         }
       }
     },
-    async close() { if (bridge) await bridge.close(); bridge = null; info = null; names.clear(); }
+    async cancelPending() { await cancelImport(); },
+    async close() { closed = true; await cancelImport(); await dropBridge(); }
   };
 }
 
@@ -214,22 +306,46 @@ async function runStdio(engine, input = process.stdin, output = process.stdout) 
     if (bytes.byteLength > DEFAULT_MAX_FRAME_BYTES) bytes = EngineServerFrame.encode(EngineServerFrame.fromPartial({ requestId: response.requestId, error: { code: 'FRAME_TOO_LARGE', category: 'transport' } })).finish();
     await new Promise((resolve, reject) => output.write(encodeLengthDelimitedFrame(bytes), err => err ? reject(err) : resolve()));
   };
-  let failed = false;
+  let failed = false, writes = Promise.resolve(), serial = Promise.resolve(), transportFailure = null, ending = false;
+  const inflight = new Set();
+  function schedule(request) {
+    let resolveWork; const work = new Promise(resolve => { resolveWork = resolve; });
+    const isImport = request.importDatabaseKey !== undefined;
+    const started = serial.then(() => {
+      if (ending && isImport) {
+        request.importDatabaseKey.databaseKey?.fill(0);
+        resolveWork(EngineServerFrame.fromPartial({ requestId: request.requestId, error: { code: 'IMPORT_CANCELED', category: 'transport' } }));
+      } else resolveWork(engine.dispatch(request));
+    });
+    serial = isImport ? started : work.then(() => {});
+    const task = work.then(response => { writes = writes.then(() => write(response)); return writes; });
+    inflight.add(task);
+    task.then(() => inflight.delete(task), failure => { inflight.delete(task); transportFailure = failure; });
+  }
   try {
     for await (const chunk of input) {
       for (const frame of decoder.push(chunk)) {
+        if (transportFailure) throw transportFailure;
+        if (inflight.size >= 32) await Promise.race(inflight);
         let request;
         try { request = EngineClientFrame.decode(frame); }
-        catch { await write(EngineServerFrame.fromPartial({ requestId: 0n, error: { code: 'INVALID_PROTOBUF', category: 'transport' } })); continue; }
-        await write(await engine.dispatch(request));
+        catch {
+          writes = writes.then(() => write(EngineServerFrame.fromPartial({ requestId: 0n, error: { code: 'INVALID_PROTOBUF', category: 'transport' } })));
+          await writes; continue;
+        }
+        schedule(request);
       }
     }
-    decoder.finish();
+    decoder.finish(); ending = true; await engine.cancelPending?.();
+    await Promise.allSettled([...inflight]); await writes;
+    if (transportFailure) throw transportFailure;
   } catch (failure) {
-    failed = true;
+    failed = true; ending = true; await engine.cancelPending?.();
+    await Promise.allSettled([...inflight]);
     const code = failure.code === 'TRUNCATED_FRAME' || failure.code === 'FRAME_TOO_LARGE' ? failure.code : 'TRANSPORT_FAILED';
-    try { await write(EngineServerFrame.fromPartial({ requestId: 0n, error: { code, category: 'transport' } })); } catch {}
+    try { await writes; await write(EngineServerFrame.fromPartial({ requestId: 0n, error: { code, category: 'transport' } })); } catch {}
   } finally { await engine.close(); }
+
   return { failed };
 }
 module.exports = { createEngine, runStdio, SUPPORTED, ALL_METHODS };

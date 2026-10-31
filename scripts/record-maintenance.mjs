@@ -14,8 +14,8 @@ await fs.writeFile(path.join(root, 'provenance/maintenance-changes.json'), JSON.
   recordedAt: new Date().toISOString(), sourceDmgSha256: baseline.source_dmg_sha256,
   originalManifest: 'provenance/recovered-files.json', originalFiles: baseline.files.length,
   unchangedOriginalFiles: baseline.files.length - changed.length, changed,
-  reason: 'Explicit independent backend startup, data-source discovery, unsupported original gateway boundaries, and accurate offline-source onboarding text.',
-  authoredModules: ['packages/alpha-engine', 'packages/alpha-data-bridge', 'packages/alpha-security', 'packages/alpha-desktop'],
+  reason: 'Explicit independent backend startup, data-source discovery, original gateway boundaries, offline manual-key onboarding, and independent import timeout/queue routing.',
+  authoredModules: ['packages/alpha-engine', 'packages/alpha-data-bridge', 'packages/alpha-snapshot-import', 'packages/alpha-security', 'packages/alpha-desktop'],
   originalNativeArtifactsModified: false,
   note: 'Recovered declarations in alpha-protocol remain generated from main. The current source hash is recorded separately from original provenance. Native hashes must also pass verify:vendor.'
 }, null, 2) + '\n');

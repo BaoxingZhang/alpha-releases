@@ -1,0 +1,213 @@
+{
+  "testedAt": "2026-10-31T18:39:23.188Z",
+  "session": "encrypted-smoke-1793471962922",
+  "sourceKind": "synthetic SQLCipher4 encrypted fixture",
+  "realUserDataAccessed": false,
+  "checks": {
+    "waitingForKeyBeforeImport": true,
+    "wrongKeyRejectedWithoutReady": true,
+    "manualKeyOnboardingToMessages": true,
+    "sourceUnchangedAndPlaintextMatches": true,
+    "desktopLockCancelsRunningImport": true,
+    "priorSnapshotSurvivesCanceledReimport": true,
+    "restartReusesVerifiedSnapshot": true,
+    "noDatabaseKeyFoundInPersistedAppDataOrLogs": true
+  },
+  "rendererErrors": [],
+  "backend": {
+    "state": "ready",
+    "components": [
+      {
+        "component": "alpha-independent-engine",
+        "version": "0.1.0",
+        "buildId": "independent-node-stdio-v1",
+        "protocol": "1.0"
+      }
+    ],
+    "update": {
+      "state": "unconfigured",
+      "currentVersion": "0.3.5",
+      "download": {
+        "phase": "idle"
+      }
+    }
+  },
+  "initialAccounts": [
+    {
+      "id": "synthetic-account",
+      "sourceProfile": "alpha-independent-encrypted-v4",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/encrypted-smoke-1793471962922/fixture/encrypted",
+      "subjectId": "",
+      "displayName": "加密数据源 · synthetic-account",
+      "schemaProfile": "wechat-v4-encrypted",
+      "state": "discovered",
+      "handleGeneration": "0",
+      "lastErrorCode": "",
+      "selected": false,
+      "handleState": "waiting_for_key",
+      "activeHandleGeneration": "0",
+      "handleErrorCode": "",
+      "capabilities": [
+        "offline-encrypted"
+      ],
+      "detected": true,
+      "usable": false,
+      "enabled": false,
+      "verified": false,
+      "ready": false
+    }
+  ],
+  "accounts": [
+    {
+      "id": "synthetic-account",
+      "sourceProfile": "alpha-independent-offline-v4",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/encrypted-smoke-1793471962922/fixture/encrypted",
+      "subjectId": "",
+      "displayName": "离线数据源 · synthetic-account",
+      "schemaProfile": "wechat-v4-offline",
+      "state": "ready",
+      "handleGeneration": "1",
+      "lastErrorCode": "",
+      "selected": true,
+      "handleState": "open",
+      "activeHandleGeneration": "1",
+      "handleErrorCode": "",
+      "capabilities": [
+        "offline-readonly",
+        "contacts",
+        "conversations",
+        "messages"
+      ],
+      "detected": true,
+      "usable": true,
+      "enabled": true,
+      "verified": true,
+      "ready": true
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-b9fbe03c21dbdea6f1cbff765350e9dc23eefc899885365c006b0e27b70cdc1f",
+      "localId": 1,
+      "serverId": "9007199254740997",
+      "conversationId": "wxid_alpha",
+      "sourceId": "source-f1b5f8a88d80d63ca9cef037129f807df1c0bb1445428a35ad4a482e3c0d0fd3",
+      "sentAtUnixMs": "1699999999000",
+      "direction": 0,
+      "kind": "text",
+      "text": "earlier shard",
+      "refs": [],
+      "senderId": "wxid_alpha",
+      "platformMessageId": "9007199254740997",
+      "sourceType": "1"
+    },
+    {
+      "id": "msg-64c97a224bfe89a56f7d4b4d4e45dbdbe65027214aa9a200904ef53d6c88467a",
+      "localId": 0,
+      "serverId": "9223372036854775807",
+      "conversationId": "wxid_alpha",
+      "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+      "sentAtUnixMs": "1700000000000",
+      "direction": 0,
+      "kind": "text",
+      "text": "first source",
+      "refs": [],
+      "senderId": "wxid_alpha",
+      "platformMessageId": "9223372036854775807",
+      "sourceType": "1"
+    },
+    {
+      "id": "msg-c41a8e279b60afbbb8ce72edb0eb81642fb4e19f24585c8cf2ee5a87ad26f697",
+      "localId": 2,
+      "serverId": "9007199254740995",
+      "conversationId": "wxid_alpha",
+      "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+      "sentAtUnixMs": "1700000001000",
+      "direction": 0,
+      "kind": "text",
+      "text": "second source",
+      "refs": [],
+      "senderId": "wxid_self",
+      "platformMessageId": "9007199254740995",
+      "sourceType": "1"
+    },
+    {
+      "id": "msg-19a723d5a38c10c121b8b58b7a966f6f9a0950a5df6661e49039147ba272b847",
+      "localId": 3,
+      "serverId": "0",
+      "conversationId": "wxid_alpha",
+      "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+      "sentAtUnixMs": "1700000002000",
+      "direction": 0,
+      "kind": "text",
+      "text": "same sequence",
+      "refs": [],
+      "senderId": "wxid_alpha",
+      "platformMessageId": "0",
+      "sourceType": "1"
+    },
+    {
+      "id": "msg-b32fceb97cf94f3863f2b80c6e3ea2b24033d84abd291f86327aa0f5e3e0bc78",
+      "localId": 4,
+      "serverId": "9007199254740999",
+      "conversationId": "wxid_alpha",
+      "sourceId": "source-f1b5f8a88d80d63ca9cef037129f807df1c0bb1445428a35ad4a482e3c0d0fd3",
+      "sentAtUnixMs": "1700000003000",
+      "direction": 0,
+      "kind": "text",
+      "text": "cross shard tie",
+      "refs": [],
+      "senderId": "wxid_alpha",
+      "platformMessageId": "9007199254740999",
+      "sourceType": "1"
+    },
+    {
+      "id": "msg-36c4a5f67cfdea758738f9492a047e4c462a33c41a71dafcd04c15b87e854b06",
+      "localId": 5,
+      "serverId": "9007199254741001",
+      "conversationId": "wxid_alpha",
+      "sourceId": "source-f1b5f8a88d80d63ca9cef037129f807df1c0bb1445428a35ad4a482e3c0d0fd3",
+      "sentAtUnixMs": "1700000004000",
+      "direction": 0,
+      "kind": "share",
+      "text": "",
+      "refs": [],
+      "senderId": "wxid_self",
+      "platformMessageId": "9007199254741001",
+      "sourceType": "49"
+    }
+  ],
+  "importedFiles": [
+    {
+      "path": "contact/contact.db",
+      "pages": 2,
+      "sourceSha256": "86a8593baec23b9b5660fd933b624a0d1cd4744c505bcfbb9b3f0185ab9f167a",
+      "outputSha256": "51092021f5641111dc12a2d0e54e40aef347fbcd695a6299195621d38b1debe8"
+    },
+    {
+      "path": "message/message_0.db",
+      "pages": 3,
+      "sourceSha256": "4569a957a854be02e3a33911bd6d37031626f1814795c382b51816fe8fb5c60e",
+      "outputSha256": "49c67d7d51ddf0c7793aea3e4a53ea077cc9ffc94a9c3572533950dd5acef490"
+    },
+    {
+      "path": "message/message_1.db",
+      "pages": 3,
+      "sourceSha256": "14fe7d254eb3ee795a19c604630a2ac57eb7bf6ed2dbca0b0f38d35526822b0c",
+      "outputSha256": "0e3b3b33884534801d3e2ee1dadef45870786804ec36054866c853497dc8263b"
+    },
+    {
+      "path": "session/session.db",
+      "pages": 2,
+      "sourceSha256": "5d382129255c52c7424cf61ac43f0e26e2091b105688fab901a4eeb3b63d359d",
+      "outputSha256": "4d156c513b11d6307b48b13b4555d3e5314b5424e32d10906af5aa008cebbb6e"
+    }
+  ],
+  "importCancellation": {
+    "elapsedMs": 1006,
+    "error": "Error invoking remote method 'alpha:accounts:import-database-key': Error: IMPORT_CANCELED",
+    "childExited": true,
+    "workDirectoryRemoved": true
+  },
+  "appFilesInspected": 9
+}

@@ -2,7 +2,7 @@
 
 这是自有后端的真实适配层。输入为恢复的 `EngineClientFrame`，输出为 `EngineServerFrame`，均使用 4 字节大端长度前缀。数据库读取委托同项目的 Go `alpha-data-bridge`，应用锁委托 `alpha-security`；不加载 Electron、恢复后的整份 main 或原闭源引擎。
 
-当前实现 128 个请求分支中的 13 个，其余 115 个明确返回 `UNIMPLEMENTED`。这只是完整功能接手的第一步：搜索、媒体解析、朋友圈、导出、任务、统计、AI、账号密钥和写入等功能仍需逐项实现，不把页面能打开视作功能完成。完整范围仍见 `docs/backend-compatibility-map.json`。
+当前实现 128 个请求分支中的 14 个，其余 114 个明确返回 `UNIMPLEMENTED`。这只是完整功能接手的第一步：搜索、媒体解析、朋友圈、导出、任务、统计、AI、账号密钥和写入等功能仍需逐项实现，不把页面能打开视作功能完成。完整范围仍见 `docs/backend-compatibility-map.json`。
 
 ## 启动与模块边界
 
@@ -13,15 +13,19 @@
 | `ALPHA_INDEPENDENT_STATE_DIR` | 必填，应用锁和选中数据源的独立状态目录 |
 | `ALPHA_INDEPENDENT_BRIDGE_PATH` | 配置数据时必填，Go 可执行文件绝对路径 |
 | `ALPHA_INDEPENDENT_DATA_DIR` | 可选，经过授权的离线 SQLite 副本目录绝对路径 |
+| `ALPHA_INDEPENDENT_ENCRYPTED_DIR` | 可选，显式加密源绝对路径；与 DATA_DIR 互斥 |
+| `ALPHA_INDEPENDENT_IMPORTER_PATH` | 配置加密源时必填，Go importer 可执行文件绝对路径 |
 | `ALPHA_INDEPENDENT_ACCOUNT_ID` | 配置数据时必填，调用者指定的数据集标识，不代表验证过的微信登录身份 |
 | `ALPHA_INDEPENDENT_SELF_USERNAME` | 可选，显式提供的自身 username；缺失时消息方向为 unknown |
 
-无数据配置时，账号清单真实为空。配置错误或 Go 退出会返回错误，不变成成功的空清单。正常未锁定启动只有在 `account.info` 验证实际 SQLite 成功后才接受 Hello。已锁定启动只初始化自己的安全与协议层，Hello 不声明源已验证，所有账号和数据请求仍受锁限制。
+无数据配置时，账号清单真实为空。配置错误或 Go 退出会返回错误，不变成成功的空清单。明文源在未锁定启动时，只有 `account.info` 验证实际 SQLite 成功后才接受 Hello。加密源的 Hello 仅声明自有协议层可用；首次未锁定账号/数据请求再验证源和已有快照，导入前账号为 discovered / waiting_for_key。已锁定启动不访问加密源或明文快照，所有账号和数据请求受锁限制。
 
 模块用途：
 
 - `index.cjs`：方法分派、协议 DTO 映射、账号选择及 `runStdio`。`createEngine` 要求真实 `lock`，每个数据请求在异步工作前后检查访问状态。
 - `bridge-client.cjs`：独立 Go 子进程、JSONL 请求相关性、大小/超时限制和故障传播。
+- `snapshot-store.cjs`：有界目录清单、异步分块哈希、严格 manifest、源和解密快照的完整性验证。
+- `importer-client.cjs`：一次性 stdin 密钥缓冲、导入器超时/输出上限、取消并等待子进程退出。
 - `cli.cjs`：读取明确配置、创建真实安全模块、传输生命周期；EOF、SIGINT、SIGTERM 都关闭 Go 子进程。
 
 stdout 只输出二进制协议。stderr 仅输出初始化错误码，不转发 Go 的源路径或数据内容。
@@ -39,6 +43,7 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | listConversations | 14 | 真实会话表分页，联系人备注/昵称为名称；无 contact.db 时回退 username |
 | listMessages | 15 | 跨分库稳定分页、顺序和排他毫秒时间范围 |
 | discoverAccounts | 29 | 仅接受与已配置源路径完全一致的 sourceLocation |
+| importDatabaseKey | 30 | 仅对显式加密源接收一次性 32 字节 key；导入成功前保持 waiting_for_key |
 | listContacts | 42 | 升序、offset/limit 和 `__alpha_contact_exact:` 精确 username 查询 |
 | getApplicationLockStatus | 48 | 真实独立密码锁状态 |
 | unlockApplication | 50 | 真实密码校验、失败退避和持久状态 |
@@ -50,9 +55,15 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 
 `detectAccountDataSources` 是桌面 main 的本地 IPC，不在这 128 个协议方法中，需由桌面独立适配器把验证过的账号映射成候选。原许可证、在线密钥获取、锁 provision/reset 均未模拟；重置必须先设计安全状态清理语义。
 
+加密源通过 `ALPHA_INDEPENDENT_ENCRYPTED_DIR` 和 `ALPHA_INDEPENDENT_IMPORTER_PATH` 显式配置，并与明文 `ALPHA_INDEPENDENT_DATA_DIR` 互斥。导入器只从 stdin 接收 key，Node 不把 key 放入参数、环境、日志或快照 manifest。成功后在状态目录的 `snapshots/` 下原子发布 0600 manifest 和 0600 数据文件；重启仅在加密源指纹相同且已有快照通过 Go `account.info` 验证时复用，绝不自动重新解密。失败或锁定会删除未发布目录。
+
+manifest 文件名保持 `snapshots/manifest.v1.json`，内容版本为 2，严格限定输出到 `snapshots/snapshot-UUID/data`。重启复用前重新验证源和输出文件的 SHA-256、大小、页数与路径；损坏 manifest 或输出不当作成功。输入文件流式读取，最多 10,000 个目录成员、8 层子目录、单库 128 GiB、总库 512 GiB。目录祖先和成员拒绝符号链接，非普通文件及活动 SQLite sidecar 被拒绝。
+
+完整导入流程最长 115 秒，stdout 限 2 MiB、stderr 限 4 KiB。仅 importDatabaseKey 与其他协议处理并行，其他请求顺序执行；导入进行中拒绝重复导入和数据读取，锁状态查询与锁定保持可用。锁定、EOF 和进程关闭等待导入器退出后清理整个私有工作目录。原子 manifest rename 是提交点；若锁定恰好发生在提交之后，保留已经完整验证的快照，关闭访问并不返回 ready 响应，避免悬空 manifest。
+
 ## 数据与兼容限制
 
-目前只接受 Go bridge 支持的离线明文 SQLite v4 schema。查询使用只读数据源；缺库、schema 不兼容、目录或文件改变、活动 WAL/SHM/journal 均按真实错误传播。
+查询使用 Go bridge 支持的离线明文 SQLite v4 schema；加密导入支持独立 importer 的 SQLCipher 4 / 4096 字节页 / PBKDF2-HMAC-SHA512 256000 次 profile。缺库、schema 不兼容、目录或文件改变、活动 WAL/SHM/journal 均按真实错误传播。已打开的源发生变化后，本次引擎会话保持错误，不自动重新打开以认可变化。
 
 - Go 游标保留原不透明字符串，放入 protobuf bytes；不修改其内部 snapshot/query 绑定。
 - serverId 保持 int64 BigInt。原协议 Message.localId 是 int32，超过范围时此旧字段为 0（不可用），完整字符串保存在独立 `sourceToken`，稳定消息 ID 也包含数据库/表/完整 localId。原桌面转换仅接受原 `media1_` 格式，会过滤独立 token，因此旧 UI 尚无完整 localId 新字段；后续应扩展自有 DTO，不能假装原媒体/写入 token。所有写入方法目前均未实现。
@@ -63,10 +74,10 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 
 ## 验证
 
-在项目根目录，先构建 `build/candidates/alpha-data-bridge`，再运行：
+在项目根目录，先构建 `build/candidates/alpha-data-bridge` 和 `build/candidates/alpha-snapshot-import`，再运行：
 
 ```sh
-node --test tests/engine.test.mjs tests/independent-boundary-engine.test.mjs
+node --test tests/engine.test.mjs tests/engine-import.test.mjs tests/independent-boundary-engine.test.mjs tests/import-security-boundary.test.mjs
 ```
 
-测试仅由 `tests/data-bridge-fixture.mjs` 创建合成 SQLite，并通过真实 Node 子进程 → protobuf → 真实 Go 子进程验证。覆盖分片/粘包、协议方法编号、115 个未实现分支、账号选择重启、联系人/会话/跨分库消息、64 位 ID、时间范围和游标绑定、密码锁/退避/重启、超长/截断/无效帧、子进程失败和源改变。故障注入的小脚本只用于超时/无效输出测试，不作为正常数据实现。
+测试只使用 `tests/data-bridge-fixture.mjs` 与 `tests/encrypted-fixture.mjs` 的合成数据，主路径使用真实 Node stdio → protobuf → Go importer / Go bridge。覆盖分片/粘包、协议编号、114 个未实现分支、64 位 ID、分页、锁/重启、真实加密源导入、错误密钥、manifest 越界/篡改、导入中状态查询/锁定/EOF、提交时锁定、超时和源改变。小脚本仅用于故障注入，不作为正常导入或数据实现。

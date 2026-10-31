@@ -2,9 +2,24 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { root } from './environment.mjs';
 import { createFixture } from '../tests/data-bridge-fixture.mjs';
-const fixture = await createFixture(path.join(root, '.runtime', `demo-${Date.now()}`, 'fixture'));
-console.log('Opening synthetic WeChat v4 SQLite data. No personal WeChat files are used.');
-const child = spawn(process.execPath, [path.join(root, 'scripts/launch.mjs'), '--independent', '--data-dir', fixture.directory, '--account-id', fixture.accountId], { cwd: root, stdio: 'inherit' });
+const args = process.argv.slice(2);
+if (args.length > 1 || (args.length && args[0] !== '--encrypted')) throw new Error('Usage: npm run demo [-- --encrypted]');
+const session = `demo-${args.includes('--encrypted') ? 'encrypted-' : ''}${Date.now()}`;
+const directory = path.join(root, '.runtime', session, 'fixture');
+let sourceDir, accountId, encrypted = args.includes('--encrypted');
+if (encrypted) {
+  const { createEncryptedFixture, cleanupEncryptedFixtureHelper } = await import('../tests/encrypted-fixture.mjs');
+  const fixture = await createEncryptedFixture({ directory });
+  sourceDir = fixture.sourceDir; accountId = fixture.expected.accountId;
+  await cleanupEncryptedFixtureHelper();
+  console.log('Opening synthetic encrypted WeChat v4 data. This key is for generated demo data only:');
+  console.log(fixture.keyHex);
+} else {
+  const fixture = await createFixture(directory);
+  sourceDir = fixture.directory; accountId = fixture.accountId;
+  console.log('Opening synthetic WeChat v4 SQLite data. No personal WeChat files are used.');
+}
+const child = spawn(process.execPath, [path.join(root, 'scripts/launch.mjs'), '--independent', '--session', session, encrypted ? '--encrypted-dir' : '--data-dir', sourceDir, '--account-id', accountId], { cwd: root, stdio: 'inherit' });
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
 child.on('error', e => { console.error(e); process.exitCode = 1; });
 child.on('exit', code => { process.exitCode = code ?? 1; });

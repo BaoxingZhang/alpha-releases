@@ -28,16 +28,26 @@ export function launchEnvironment(session = 'manual', options = {}) {
   if (options.backend !== undefined && !['original', 'independent'].includes(options.backend)) throw new Error('Invalid backend');
   if (options.backend === 'independent') {
     env.ALPHA_RECOVERY_BACKEND = 'independent';
+    const base = path.join(root, '.runtime');
+    const validateDatasetDirectory = (value, optionName) => {
+      const candidate = path.resolve(value);
+      if (!candidate.startsWith(base + path.sep) || fs.realpathSync(candidate) !== candidate || !fs.statSync(candidate).isDirectory()) throw new Error(`${optionName} must be an explicit project .runtime directory without symlinks`);
+      return candidate;
+    };
     if (options.dataDir) {
       // This local verification launcher accepts only explicitly supplied
       // snapshots in the project's disposable runtime tree.
-      const base = path.join(root, '.runtime');
-      const candidate = path.resolve(options.dataDir);
-      if (!candidate.startsWith(base + path.sep) || fs.realpathSync(candidate) !== candidate || !fs.statSync(candidate).isDirectory()) throw new Error('Independent data must be an explicit project .runtime snapshot directory without symlinks');
+      const candidate = validateDatasetDirectory(options.dataDir, 'Independent data');
       if (!/^[a-zA-Z0-9_@.-]{1,128}$/.test(options.accountId || '')) throw new Error('Explicit account ID required');
       env.ALPHA_INDEPENDENT_DATA_DIR = candidate;
       env.ALPHA_INDEPENDENT_ACCOUNT_ID = options.accountId;
+    } else if (options.encryptedDir) {
+      const candidate = validateDatasetDirectory(options.encryptedDir, 'Independent encrypted data');
+      if (!/^[a-zA-Z0-9_@.-]{1,128}$/.test(options.accountId || '')) throw new Error('Explicit account ID required');
+      env.ALPHA_INDEPENDENT_ENCRYPTED_DIR = candidate;
+      env.ALPHA_INDEPENDENT_ACCOUNT_ID = options.accountId;
     } else if (options.accountId) throw new Error('Account ID requires a data directory');
+    if (options.dataDir && options.encryptedDir) throw new Error('Choose either decrypted data or encrypted data');
   }
   return env;
 }

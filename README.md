@@ -2,7 +2,7 @@
 
 这是从 `Alpha-0.3.5-arm64.dmg` 整理出的可编辑工程：重建 Electron 主进程、预加载、React 界面和 AI worker 的 JavaScript，复用原包 macOS arm64 原生二进制。
 
-**已能本地编译，并使用自有后端在原界面中读取离线微信 v4 SQLite 数据副本。** 合成数据库已经走通首次设置、联系人/会话/消息读取、跨分库分页和应用锁。完整 Alpha 功能仍未恢复；真实微信数据、自动取钥、媒体、AI、导出等尚待接手。详见 [独立后端与实测](docs/independent-backend.md)。
+**已能本地编译，并使用自有后端在原界面中读取离线微信 v4 SQLite 数据副本。** 新增已有密钥的手动导入与加密副本解密，生成明文快照后接入同一读取流程。合成数据库覆盖首次设置、联系人/会话/消息读取、跨分库分页和应用锁。完整 Alpha 功能仍未恢复；真实微信数据、自动取钥、媒体、AI、导出等尚待接手。详见 [独立后端与实测](docs/independent-backend.md) 和 [加密导入说明](docs/encrypted-import.md)。
 
 原包模式仍保留，启动仍返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，记录见 [local-run.json](docs/local-run.json)。这是恢复后的 JavaScript 工程与新增维护模块，并非作者原始 TypeScript/Rust/C++ 源码仓库。
 
@@ -19,7 +19,9 @@ npm run demo
 
 打开后勾选本地数据说明，点击“打开数据副本”，跳过图片密钥步骤并完成向导，即可查看合成会话。演示不读取个人微信数据。
 
-修改 `src/` 或 `packages/` 后可运行 `npm run build`；改 Go 桥接后运行 `npm run build:bridge`。以下命令启动保留的原包模式：
+要演示加密副本的手动密钥流程，运行 `npm run demo:encrypted`，将终端显示的合成测试密钥输入首次设置页。解密结果保存在项目内；不持久保存密钥，应用锁不加密磁盘上的明文快照。每次演示使用新配置目录。
+
+修改 `src/` 或 `packages/` 后可运行 `npm run build`；改 Go 桥接或解密模块后分别运行 `npm run build:bridge`、`npm run build:snapshot-import`。以下命令启动保留的原包模式：
 
 ```sh
 npm run build
@@ -52,6 +54,7 @@ macOS 不允许 Chromium 在已受 Seatbelt 约束的子进程中再次初始化
 | `packages/alpha-protocol/` | 独立提取的真实请求/响应编解码与stdio分帧，含来源清单和测试 |
 | `packages/alpha-engine/` | 自有 Node stdio 协议服务，连接原桌面 IPC 与只读数据桥接 |
 | `packages/alpha-data-bridge/` | 自有可编译 Go 模块，读取显式指定的离线微信 v4 SQLite 数据副本 |
+| `packages/alpha-snapshot-import/` | 自有 Go 逐页认证解密、SQLite 完整性校验与离线快照发布 |
 | `packages/alpha-security/` | 自有密码应用锁，不存储微信或模型凭据 |
 | `vendor/chatlog/` | 固定版本的Go源码参考子模块；未修改，也不作为新桥接的运行依赖 |
 | `scripts/` | 新增构建、隔离启动和资源校验工具 |
@@ -73,6 +76,7 @@ npm run verify:protocol # 校验独立协议模块仍与恢复源一致
 npm run test:protocol   # 编解码、分帧边界与来源测试
 npm run verify:vendor   # 核对43个原包运行时文件的SHA256和权限
 npm run test:smoke      # 隔离检查、实际Electron界面、IPC与后端状态诊断
+npm run test:encrypted  # 原UI手动密钥、错误密钥拒绝、消息读取与重启复用
 npm run index          # 根据当前src重新生成导航索引
 ```
 

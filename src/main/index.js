@@ -12622,7 +12622,8 @@ function messageMediaResponse(response, token) {
     message: messagePageResponse({ items: [message], nextCursor: new Uint8Array() }, message.conversationId, new Uint8Array(), 1).items[0]
   };
 }
-function engineRequestPriority(frame) {
+function engineRequestPriority(frame, independent = false) {
+  if (independent && frame.importDatabaseKey) return "bypass";
   if (frame.watchDatabaseKeyAcquisition) return "bypass";
   if (frame.resolveMessageMedia) return frame.resolveMessageMedia.preferLive === true ? "interactive" : "normal";
   if (frame.getDataRevision || frame.getDataWatchTargets) return "background";
@@ -63572,7 +63573,7 @@ class EngineClient {
       const response = await this.call({
         requestId: this.nextRequestId++,
         importDatabaseKey: { accountId: trimmedAccount, databaseKey: key }
-      });
+      }, !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent" ? 125e3 : 5e3);
       if (response.error) throw new Error(response.error.code);
       if (!response.importDatabaseKey?.account) throw new Error("ACCOUNT_RESPONSE_MISSING");
       return mapAccount(response.importDatabaseKey.account);
@@ -64747,7 +64748,7 @@ class EngineClient {
         this.failAll(error);
         if (!child.killed) child.kill();
       });
-    }, timeoutMs, engineRequestPriority(frame));
+    }, timeoutMs, engineRequestPriority(frame, !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent"));
   }
   onData(child, chunk) {
     if (this.child !== child) return;

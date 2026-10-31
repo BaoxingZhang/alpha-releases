@@ -1,0 +1,28 @@
+Error occurred in handler for 'alpha:accounts:import-database-key': Error: KEY_AUTHENTICATION_FAILED
+    at EngineClient.importDatabaseKey (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63575:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74342:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72000:14
+    at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
+Error occurred in handler for 'alpha:media:image-status': Error: UNIMPLEMENTED
+    at EngineClient.getImageMediaStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63130:28)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72000:14
+    at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
+Error occurred in handler for 'alpha:accounts:import-database-key': Error: IMPORT_CANCELED
+    at EngineClient.importDatabaseKey (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63575:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74342:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72000:14
+    at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
+Debugger ending on ws://127.0.0.1:52084/dad0cd6b-fef8-45f7-aa97-d43e51b30dba
+For help, see: https://nodejs.org/learn/getting-started/debugging
+Debugger ending on ws://127.0.0.1:52099/e494557b-5dd3-499f-858c-1a90aeb5d8be
+For help, see: https://nodejs.org/learn/getting-started/debugging
+Error occurred in handler for 'alpha:conversations:page': Error: ENGINE_STOPPED
+    at EngineClient.stop (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64669:24)
+    at EventEmitter.<anonymous> (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:76085:12)
+    at EventEmitter.emit (node:events:509:28)
+    at eval (eval at evaluate (:370:30), <anonymous>:1:18)
+    at UtilityScript.evaluate (<anonymous>:372:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
