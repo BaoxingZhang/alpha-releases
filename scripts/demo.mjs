@@ -1,0 +1,10 @@
+import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { root } from './environment.mjs';
+import { createFixture } from '../tests/data-bridge-fixture.mjs';
+const fixture = await createFixture(path.join(root, '.runtime', `demo-${Date.now()}`, 'fixture'));
+console.log('Opening synthetic WeChat v4 SQLite data. No personal WeChat files are used.');
+const child = spawn(process.execPath, [path.join(root, 'scripts/launch.mjs'), '--independent', '--data-dir', fixture.directory, '--account-id', fixture.accountId], { cwd: root, stdio: 'inherit' });
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
+child.on('error', e => { console.error(e); process.exitCode = 1; });
+child.on('exit', code => { process.exitCode = code ?? 1; });

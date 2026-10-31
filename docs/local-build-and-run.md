@@ -1,4 +1,6 @@
-# 本地构建与运行验证
+# 原包模式本地构建与运行验证
+
+本页保留原二进制模式的实测结论。新增独立后端已接入原界面并通过合成数据端到端验证，当前两种模式的区别见 [independent-backend.md](independent-backend.md)。
 
 结论：可从恢复的 JavaScript 重新构建并启动 Electron 界面；原生后端启动失败，尚不能作为完整聊天工具使用。当前 Alpha 启动链路中的原生组件均为原包二进制复用，没有重新编译其原始 Rust/C++ 工程。另行构建的开源 Go 候选尚未接入这条链路。
 
@@ -34,7 +36,7 @@
 - `npm start` 和 smoke 统一使用外层 macOS Seatbelt。由于 macOS 拒绝嵌套 sandbox 初始化，Chromium 以 `--no-sandbox` 在该外层沙箱内运行。没有将它变成无外层限制的启动命令。
 - 在隔离环境中，原 `safeStorage.isEncryptionAvailable()` 可能阻塞于系统钥匙串 `SecItemAdd → AuthorizationCopyRights`。采样定位后，恢复入口将此功能关闭并使加解密调用直接失败；没有添加明文、固定密钥或虚假许可回退。该适配之后，最终记录从 bootstrap 到首次主页面 `did-finish-load` 小于一秒。
 
-`src/` 与 `vendor/runtime/` 保留原提取内容；适配均放在新建工具中。源码目录内文件 SHA256、原生资源哈希及权限的最终检查见 [recovery-validation.json](recovery-validation.json)。
+在本页最初基线验证时，`src/` 与 `vendor/runtime/` 均为原提取内容。本轮维护已增加 main 与 renderer 的明确源码修改；原 `vendor/runtime/` 仍保持原样。源码目录内文件 SHA256、原生资源哈希及权限的最终检查见 [recovery-validation.json](recovery-validation.json)。
 
 ## 原生阻塞的已知边界
 

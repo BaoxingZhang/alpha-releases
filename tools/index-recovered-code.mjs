@@ -132,14 +132,17 @@ function functionBody(mask, start) {
 
 const originals = options.original ? await filesBelow(options.original) : [];
 const originalsByRelative = new Map(originals.map((file) => [posix(path.relative(options.original, file)), file]));
+const recoveredManifest = options.original ? [] : JSON.parse(await readFile(path.join(projectRoot, 'provenance/recovered-files.json'), 'utf8')).files;
+const recoveredByRelative = new Map(recoveredManifest.map(entry => [entry.path.replace(/^src\//, ''), entry]));
 const modules = [];
 for (const file of await filesBelow(options.source)) {
   if (!/\.(?:[cm]?js|jsx|ts|tsx)$/.test(file)) continue;
   const bytes = await readFile(file);
   const source = bytes.toString('utf8');
   const relative = posix(path.relative(options.source, file));
-  const original = originalsByRelative.get(relative) ?? originalsByRelative.get(relative.replace(/^(src|out)\//, ''));
-  const originalSha256 = original ? hash(await readFile(original)) : null;
+  const recovered = recoveredByRelative.get(relative);
+  const original = originalsByRelative.get(relative) ?? originalsByRelative.get(relative.replace(/^(src|out)\//, '')) ?? recovered?.original;
+  const originalSha256 = recovered?.sha256 ?? (original ? hash(await readFile(original)) : null);
   const sha256 = hash(bytes);
   const exactOriginal = original && originalSha256 === sha256 ? original : null;
   const starts = lineStarts(source);
@@ -186,7 +189,7 @@ for (const file of await filesBelow(options.source)) {
       const body = source.slice(starts[index], endOffset ?? starts[index] + line.length);
       const component = kind === 'function' && /^[A-Z]/.test(name) && /(?:\.jsx(?:s)?\s*\(|\.createElement\s*\(|\.(?:memo|forwardRef)\s*\()/.test(body);
       symbols.push({ name, kind, componentCandidate: component, line: index + 1, endLine, scopeDepth: depth,
-        originalLocation: exactOriginal ? { file: posix(path.relative(options.original, exactOriginal)), line: index + 1, endLine } : null });
+        originalLocation: exactOriginal ? { file: options.original ? posix(path.relative(options.original, exactOriginal)) : exactOriginal, line: index + 1, endLine } : null });
     }
     for (const c of line) { if (c === '{') depth++; else if (c === '}') depth--; }
   }
@@ -201,7 +204,7 @@ for (const file of await filesBelow(options.source)) {
   }
   modules.push({ path: relative, bytes: bytes.length, lines: starts.length, sha256,
     format: /^\s*(?:import\s|export\s)/m.test(mask) ? 'esm' : /\brequire\s*\(|\bexports\b/.test(mask) ? 'commonjs' : 'script',
-    original: original ? { path: posix(path.relative(options.original, original)), sha256: originalSha256,
+    original: original ? { path: options.original ? posix(path.relative(options.original, original)) : original, sha256: originalSha256,
       mapping: exactOriginal ? 'byte-identical: line numbers preserved' : 'changed: original line mapping not asserted' } : null,
     imports, symbols });
 }

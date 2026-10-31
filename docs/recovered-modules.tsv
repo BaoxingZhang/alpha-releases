@@ -1,12 +1,12 @@
 path	format	lines	bytes	sha256	original
-agent-host/index.cjs	commonjs	7183	269724	f3ca767b4c58a3fbf98ef3bc95d3333d3c515c357e93502a0cc4aaf844c50555	not supplied/matched
-main/index.js	commonjs	76067	3180527	7e8fabf836059696bc00ecf9266b68cbed4b0cd690e3ffe6f80e1755a72c193a	byte-identical: line numbers preserved
+agent-host/index.cjs	commonjs	7183	269724	f3ca767b4c58a3fbf98ef3bc95d3333d3c515c357e93502a0cc4aaf844c50555	byte-identical: line numbers preserved
+main/index.js	commonjs	76094	3182669	def4c9e2bd6f2d2406ed951e0a8d37cffefaa97c12e3dec9e852d11010c0ccb4	changed: original line mapping not asserted
 preload/image-viewer.js	commonjs	42	1838	c1c25e455edd7eb9d6c8d1e85a8bb670d1c1a07fa7e888c6b6dab72fef96c728	byte-identical: line numbers preserved
 preload/index.js	commonjs	762	52648	3dda505f7afc673cbf476f1d040b12f7e8613f29c225ba78d8e413e7e48d8068	byte-identical: line numbers preserved
 preload/notification.js	commonjs	44	1805	521b7c93fd7d408e57f5644c9df500321a39c573996a2089d4d23228fcf42533	byte-identical: line numbers preserved
 renderer/assets/client-Bg2hQ5uk.js	esm	12464	554778	59968640056a2fe659d14f43f59a5f273fc92729911e477d2fa15d569c86084a	byte-identical: line numbers preserved
 renderer/assets/image-viewer-BiP1Iv4A.js	esm	1010	50044	6a17d1256b05892d3da5424718411e6da4bbbdfb4d6868f6e9d8d4da6a72b84e	byte-identical: line numbers preserved
-renderer/assets/index-DPCwIOAb.js	esm	53023	2863507	8547e1338248bf174063cf7153c398a6d1a7d8c72ec0e6780e25ed01a954bde3	byte-identical: line numbers preserved
+renderer/assets/index-DPCwIOAb.js	esm	53024	2864181	dddf2ddd8c66c14950ef85c40f7a58823f2c84f2361f0b2ef49c80c9050a5c62	changed: original line mapping not asserted
 renderer/assets/message-images-Dl-McHRQ.js	esm	4298	145330	ce904108976b2ab13691e9d5f23e63f00e67eba3630c4d6eaf6bb961cf0ef0a2	byte-identical: line numbers preserved
 renderer/assets/notification-BiBtnUUc.js	esm	221	10427	a9039a97248d39f00d975c0fed9ea33225bfb05154852023b5eb78e9b4237fe7	byte-identical: line numbers preserved
 renderer/assets/segments-CBPICGMn.js	esm	170	13667	c71f1cbc9d80763fbda747bb3afe2b65370420cc19035978c02fedd55b6a54e4	byte-identical: line numbers preserved

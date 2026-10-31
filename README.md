@@ -2,13 +2,24 @@
 
 这是从 `Alpha-0.3.5-arm64.dmg` 整理出的可编辑工程：重建 Electron 主进程、预加载、React 界面和 AI worker 的 JavaScript，复用原包 macOS arm64 原生二进制。
 
-**已实际构建并打开首次设置界面；尚未达到完整业务可运行状态。** 原生后端返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，账号读取和授权能力随之不可用。最终运行记录见 [local-run.json](docs/local-run.json)，截图见 [local-run.png](docs/local-run.png)。这是恢复后的 JavaScript 工程，并非作者原始 TypeScript/Rust/C++ 源码仓库。
+**已能本地编译，并使用自有后端在原界面中读取离线微信 v4 SQLite 数据副本。** 合成数据库已经走通首次设置、联系人/会话/消息读取、跨分库分页和应用锁。完整 Alpha 功能仍未恢复；真实微信数据、自动取钥、媒体、AI、导出等尚待接手。详见 [独立后端与实测](docs/independent-backend.md)。
+
+原包模式仍保留，启动仍返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，记录见 [local-run.json](docs/local-run.json)。这是恢复后的 JavaScript 工程与新增维护模块，并非作者原始 TypeScript/Rust/C++ 源码仓库。
 
 长期维护以尽量完整保留现有功能为目标，范围与逐项验收条件见 [MAINTENANCE.md](MAINTENANCE.md)。
 
 ## 本机使用
 
-当前依赖和 Electron 已安装。修改 `src/` 后，在项目目录执行：
+当前依赖、Electron 和项目内 Go 工具链已安装。先运行合成数据演示：
+
+```sh
+npm run build:independent
+npm run demo
+```
+
+打开后勾选本地数据说明，点击“打开数据副本”，跳过图片密钥步骤并完成向导，即可查看合成会话。演示不读取个人微信数据。
+
+修改 `src/` 或 `packages/` 后可运行 `npm run build`；改 Go 桥接后运行 `npm run build:bridge`。以下命令启动保留的原包模式：
 
 ```sh
 npm run build
@@ -39,7 +50,10 @@ macOS 不允许 Chromium 在已受 Seatbelt 约束的子进程中再次初始化
 | `src/renderer/` | HTML、CSS、React 编译后 JS、图片及静态资源 |
 | `src/agent-host/index.cjs` | 可编辑的 AI worker，保留原 `src/*.ts` 模块标记 |
 | `packages/alpha-protocol/` | 独立提取的真实请求/响应编解码与stdio分帧，含来源清单和测试 |
-| `vendor/chatlog/` | 固定版本的Go源码候选子模块，尚未接入Alpha |
+| `packages/alpha-engine/` | 自有 Node stdio 协议服务，连接原桌面 IPC 与只读数据桥接 |
+| `packages/alpha-data-bridge/` | 自有可编译 Go 模块，读取显式指定的离线微信 v4 SQLite 数据副本 |
+| `packages/alpha-security/` | 自有密码应用锁，不存储微信或模型凭据 |
+| `vendor/chatlog/` | 固定版本的Go源码参考子模块；未修改，也不作为新桥接的运行依赖 |
 | `scripts/` | 新增构建、隔离启动和资源校验工具 |
 | `vendor/runtime/` | 原包运行时的未修改副本，43 个文件，SHA256 和权限有记录 |
 | `dist/app/` | JavaScript 构建产物及开发启动适配入口 |
@@ -48,7 +62,7 @@ macOS 不允许 Chromium 在已受 Seatbelt 约束的子进程中再次初始化
 | `provenance/` | 原包 package.json、恢复文件 SHA256、REA 证据引用 |
 | `docs/` | 源码导航、缺口、构建和本地运行证据 |
 
-`src/` 的 169 个文件在首次整理时与提取内容逐字节一致。未将大 bundle 机械拆成假定的原始模块；可使用 [修改指南](docs/editing-guide.md) 和 [代码索引](docs/recovered-code-index.json) 定位。索引包括 11 个 JS 模块、5806 个函数/类、562 个 React 组件候选，含第三方代码。
+`src/` 的 169 个文件在首次整理时与提取内容逐字节一致。本轮已修改 main 的独立后端选择/数据目录/网关边界，以及 renderer 的离线连接说明；变更摘要见 [维护来源记录](provenance/maintenance-changes.json)。未将大 bundle 机械拆成假定的原始模块；可使用 [修改指南](docs/editing-guide.md) 和 [代码索引](docs/recovered-code-index.json) 定位。索引包括 11 个 JS 模块、5805 个函数/类、562 个 React 组件候选，含第三方代码。
 
 esbuild 会重新处理 11 个 JS 文件并生成调试 source map。这里的映射回到 `src/` 中的恢复 JavaScript，不是原始 TS/TSX。renderer chunk 文件名和相互导入路径保留，防止破坏原 HTML、动态加载与资源引用。
 
@@ -70,9 +84,9 @@ npm run index          # 根据当前src重新生成导航索引
 
 ## 独立后端接手基础
 
-已从实际main的AST依赖闭包中提取独立 [协议模块](packages/alpha-protocol/README.md)：900个顶层绑定，128类请求、129类响应，12项测试通过。它仅加载protobuf wire，不启动Electron，也不提供或伪造后端业务结果。原桌面入口当前仍使用原恢复逻辑；协议模块供后续兼容后端和模块化迁移使用。
+已从实际main的AST依赖闭包中提取独立 [协议模块](packages/alpha-protocol/README.md)：900个顶层绑定，128类请求、129类响应，12项测试通过。它仅加载protobuf wire，不启动Electron，也不提供或伪造后端业务结果。原桌面 main 的内嵌编解码仍保留，独立引擎已实际使用此协议模块，通过原有 framing 与桌面通信。
 
-已固定引入 [imldy/chatlog](https://github.com/imldy/chatlog/tree/a7162bca9454fa43b5950a2414670983fe180e56) 源码子模块，提交 `a7162bca9454fa43b5950a2414670983fe180e56`。它提供一部分可维护的数据读取基础，但不是Alpha引擎的直接替代品，也没有接入当前界面。范围见 [候选核查](docs/native-backend-candidates.md)；新增源码保留原许可证及依赖许可。
+已固定引入 [imldy/chatlog](https://github.com/imldy/chatlog/tree/a7162bca9454fa43b5950a2414670983fe180e56) 源码子模块，提交 `a7162bca9454fa43b5950a2414670983fe180e56`。它用于理解一部分微信 v4 数据结构。本轮新桥接为自有 Go module，直接使用固定的 go-sqlite3 依赖，不导入 Chatlog internal 包或运行其取钥逻辑。范围见 [候选核查](docs/native-backend-candidates.md)；新增源码保留原许可证及依赖许可。
 
 以后克隆本项目时需同时取得子模块：
 
@@ -91,4 +105,4 @@ node scripts/build-chatlog.mjs
 
 Go工具链和缓存均放在项目 `.runtime/`，安装包摘要来自 [Go官方下载目录](https://go.dev/dl/)，不会修改系统Go或shell配置。原生完整性问题的已确认调用链见 [诊断报告](docs/native-startup-diagnosis.json)。
 
-完整 [128项后端请求对照](docs/backend-compatibility-map.md) 已建立：候选提供读取基础6项、需要组合或新建30项、缺失92项，当前直接兼容0项。此统计是请求契约层面的覆盖，不能换算成已恢复功能百分比。
+完整 [128项后端请求对照](docs/backend-compatibility-map.md) 记录的是 Chatlog 候选映射（直接兼容0项），不是新独立引擎的实现数量。新引擎支持与未实现分支见 [当前接手状态](docs/independent-backend.md)，不能把请求数量换算成完整功能百分比。

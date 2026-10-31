@@ -1,0 +1,2 @@
+# Empty final TSV columns require trailing tab delimiters.
+docs/*.tsv whitespace=-blank-at-eol

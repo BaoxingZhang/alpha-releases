@@ -1,0 +1,571 @@
+{
+  "recordedAt": "2026-10-31T18:21:47.081Z",
+  "scope": "Independent offline data backend first stage; not full Alpha parity",
+  "javascriptTests": {
+    "command": "node --test tests/*.test.mjs tests/*.test.cjs",
+    "passed": 43,
+    "failed": 0,
+    "finalEngineSubsetPassed": 12
+  },
+  "goBuild": {
+    "record": "packages/alpha-data-bridge/build-validation.json",
+    "status": "passed",
+    "artifact": {
+      "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge",
+      "bytes": 7740802,
+      "sha256": "7191a351d12884db79ac49995748de6ef479ab7cf1ff14fa03f0cc9ef944a50d",
+      "file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge: Mach-O 64-bit executable arm64",
+      "buildInfo": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge: go1.24.13\n\tpath\talpha.local/data-bridge\n\tmod\talpha.local/data-bridge\tv0.0.0-20261031180805-b4e56618b9ac+dirty\t\n\tdep\tgithub.com/mattn/go-sqlite3\tv1.14.32\th1:JD12Ag3oLy1zQA+BNn74xRgaBbdhbNIDYvQUEuuErjs=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=1\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=b4e56618b9ac3a8cd8dd3fe9f6cb7db5755aa014\n\tbuild\tvcs.time=2026-10-31T18:08:05Z\n\tbuild\tvcs.modified=true"
+    }
+  },
+  "desktopIndependent": {
+    "record": "docs/independent-run.json",
+    "checks": {
+      "independentBackendReady": true,
+      "realSqliteThroughDesktopIpc": true,
+      "noOriginalAlphaChildObserved": true,
+      "originalOnboardingCompleted": true,
+      "messageRendered": true,
+      "lockEnforcesReadAccess": true,
+      "sourceUnchanged": true
+    }
+  },
+  "desktopOriginal": {
+    "record": "docs/local-run.json",
+    "checks": {
+      "projectReadable": true,
+      "personalFileReadDenied": true,
+      "remoteNetworkDenied": true,
+      "mainRendererLoaded": true,
+      "keychainDisabled": true,
+      "backendReady": false,
+      "emptyAccounts": null
+    },
+    "backendError": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
+  },
+  "protocol": {
+    "totalRequestBranches": 128,
+    "implementedRequestBranches": 13,
+    "unsupportedRequestBranches": 115,
+    "methods": [
+      {
+        "method": "hello",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "getCapabilities",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "listAccounts",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "selectAccount",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "listConversations",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "listMessages",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "exportConversation",
+        "status": "unimplemented"
+      },
+      {
+        "method": "searchMessages",
+        "status": "unimplemented"
+      },
+      {
+        "method": "activateLicense",
+        "status": "unimplemented"
+      },
+      {
+        "method": "refreshLicense",
+        "status": "unimplemented"
+      },
+      {
+        "method": "deactivateLicense",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getTelemetryStatus",
+        "status": "unimplemented"
+      },
+      {
+        "method": "setTelemetryConsent",
+        "status": "unimplemented"
+      },
+      {
+        "method": "flushTelemetry",
+        "status": "unimplemented"
+      },
+      {
+        "method": "analyzeConversation",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startOfficialExport",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getJob",
+        "status": "unimplemented"
+      },
+      {
+        "method": "watchJob",
+        "status": "unimplemented"
+      },
+      {
+        "method": "cancelJob",
+        "status": "unimplemented"
+      },
+      {
+        "method": "discoverAccounts",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "importDatabaseKey",
+        "status": "unimplemented"
+      },
+      {
+        "method": "transcribeVoice",
+        "status": "unimplemented"
+      },
+      {
+        "method": "transcribeVoiceBatch",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startMessageCapture",
+        "status": "unimplemented"
+      },
+      {
+        "method": "watchMessageCapture",
+        "status": "unimplemented"
+      },
+      {
+        "method": "reportMessageActivity",
+        "status": "unimplemented"
+      },
+      {
+        "method": "cancelMessageCapture",
+        "status": "unimplemented"
+      },
+      {
+        "method": "openMessageSession",
+        "status": "unimplemented"
+      },
+      {
+        "method": "closeMessageSession",
+        "status": "unimplemented"
+      },
+      {
+        "method": "sendMessage",
+        "status": "unimplemented"
+      },
+      {
+        "method": "watchMessageSend",
+        "status": "unimplemented"
+      },
+      {
+        "method": "cancelMessageSend",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listContacts",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "listMoments",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listFavorites",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listGeneral",
+        "status": "unimplemented"
+      },
+      {
+        "method": "applyMessageMutation",
+        "status": "unimplemented"
+      },
+      {
+        "method": "manageMomentsAntiDelete",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getApplicationLockStatus",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "provisionApplicationLock",
+        "status": "unimplemented"
+      },
+      {
+        "method": "unlockApplication",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "lockApplication",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "getImageMediaStatus",
+        "status": "unimplemented"
+      },
+      {
+        "method": "configureImageKey",
+        "status": "unimplemented"
+      },
+      {
+        "method": "clearImageKey",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startMaterialCapture",
+        "status": "unimplemented"
+      },
+      {
+        "method": "watchMaterialCapture",
+        "status": "unimplemented"
+      },
+      {
+        "method": "cancelMaterialCapture",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startPersonaProfile",
+        "status": "unimplemented"
+      },
+      {
+        "method": "watchPersonaProfile",
+        "status": "unimplemented"
+      },
+      {
+        "method": "cancelPersonaProfile",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getAdvancedComponentStatus",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startAdvancedComponent",
+        "status": "unimplemented"
+      },
+      {
+        "method": "watchAdvancedComponent",
+        "status": "unimplemented"
+      },
+      {
+        "method": "cancelAdvancedComponent",
+        "status": "unimplemented"
+      },
+      {
+        "method": "acquireDatabaseKey",
+        "status": "unimplemented"
+      },
+      {
+        "method": "watchDatabaseKeyAcquisition",
+        "status": "unimplemented"
+      },
+      {
+        "method": "removeAccount",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startMaterialTextSend",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startMaterialOfficialExport",
+        "status": "unimplemented"
+      },
+      {
+        "method": "beginMaterialOfficialExport",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getMaterialOfficialExport",
+        "status": "unimplemented"
+      },
+      {
+        "method": "cancelMaterialOfficialExport",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listMaterialOfficialExports",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listOfficialScheduleRecords",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getOfficialScheduleRecord",
+        "status": "unimplemented"
+      },
+      {
+        "method": "cancelOfficialScheduleRecord",
+        "status": "unimplemented"
+      },
+      {
+        "method": "archiveOfficialScheduleRecord",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listOfficialSchedulePlans",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getOfficialSchedulePlan",
+        "status": "unimplemented"
+      },
+      {
+        "method": "saveOfficialSchedulePlan",
+        "status": "unimplemented"
+      },
+      {
+        "method": "deleteOfficialSchedulePlan",
+        "status": "unimplemented"
+      },
+      {
+        "method": "runOfficialSchedulePlanNow",
+        "status": "unimplemented"
+      },
+      {
+        "method": "putPendingOfficialPlanCreate",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getPendingOfficialPlanCreate",
+        "status": "unimplemented"
+      },
+      {
+        "method": "clearPendingOfficialPlanCreate",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listChatExportSchedules",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getChatExportSchedule",
+        "status": "unimplemented"
+      },
+      {
+        "method": "saveChatExportSchedule",
+        "status": "unimplemented"
+      },
+      {
+        "method": "deleteChatExportSchedule",
+        "status": "unimplemented"
+      },
+      {
+        "method": "runChatExportScheduleNow",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listChatExportRuns",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getChatExportRun",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listChatExportAttempts",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getChatExportAttempt",
+        "status": "unimplemented"
+      },
+      {
+        "method": "retryChatExportAttempt",
+        "status": "unimplemented"
+      },
+      {
+        "method": "manageMessageAntiRecall",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listMessageRecallRecords",
+        "status": "unimplemented"
+      },
+      {
+        "method": "maintainMessageResource",
+        "status": "unimplemented"
+      },
+      {
+        "method": "discoverPendingMessageResources",
+        "status": "unimplemented"
+      },
+      {
+        "method": "resolveMessageMedia",
+        "status": "unimplemented"
+      },
+      {
+        "method": "analyzeAnnual",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getDataRevision",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "getDataWatchTargets",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getMessageSource",
+        "status": "unimplemented"
+      },
+      {
+        "method": "readAccountDataKey",
+        "status": "unimplemented"
+      },
+      {
+        "method": "recoverMaterialTextSend",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startAggregateAnalysis",
+        "status": "unimplemented"
+      },
+      {
+        "method": "watchAggregateAnalysis",
+        "status": "unimplemented"
+      },
+      {
+        "method": "cancelAggregateAnalysis",
+        "status": "unimplemented"
+      },
+      {
+        "method": "resolveFavoriteMedia",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listMomentAuthors",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getContactProfile",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listFavoriteMediaSlots",
+        "status": "unimplemented"
+      },
+      {
+        "method": "exportContacts",
+        "status": "unimplemented"
+      },
+      {
+        "method": "resolveMomentEmoji",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getMessageAntiRecallStatuses",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getChatExportStats",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getChatExportCapabilities",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startChatExport",
+        "status": "unimplemented"
+      },
+      {
+        "method": "listChatExports",
+        "status": "unimplemented"
+      },
+      {
+        "method": "watchChatExport",
+        "status": "unimplemented"
+      },
+      {
+        "method": "cancelChatExport",
+        "status": "unimplemented"
+      },
+      {
+        "method": "locateMessage",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getConversationDayCounts",
+        "status": "unimplemented"
+      },
+      {
+        "method": "decodeVoicePlayback",
+        "status": "unimplemented"
+      },
+      {
+        "method": "configureApplicationLock",
+        "status": "implemented-with-documented-scope"
+      },
+      {
+        "method": "resetApplicationLock",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startMomentExport",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startRecordExport",
+        "status": "unimplemented"
+      },
+      {
+        "method": "browseConversationMessages",
+        "status": "unimplemented"
+      },
+      {
+        "method": "browseAccountMedia",
+        "status": "unimplemented"
+      },
+      {
+        "method": "exportGroupMembers",
+        "status": "unimplemented"
+      },
+      {
+        "method": "previewMaterialOfficialArticles",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getMomentDayCounts",
+        "status": "unimplemented"
+      },
+      {
+        "method": "startCdnMediaFetch",
+        "status": "unimplemented"
+      },
+      {
+        "method": "getCdnMediaFetch",
+        "status": "unimplemented"
+      },
+      {
+        "method": "cancelCdnMediaFetch",
+        "status": "unimplemented"
+      }
+    ]
+  },
+  "vendorVerification": {
+    "files": 43,
+    "result": "SHA256 and permissions unchanged"
+  },
+  "realWeChatDataTested": false,
+  "fullFeatureParity": false
+}

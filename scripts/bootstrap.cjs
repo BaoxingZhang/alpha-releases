@@ -1,4 +1,4 @@
-// Recovery adapter. The files under src/ remain byte-identical to the package.
+// Recovery adapter. src/main now includes the documented backend selection.
 const { app, safeStorage } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');

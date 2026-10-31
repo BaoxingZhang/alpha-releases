@@ -3871,8 +3871,9 @@ class HttpApiService {
     }
     try {
       await this.deps.allowed();
-    } catch {
+    } catch (error) {
       this.blocked = true;
+      if (error?.message === "INDEPENDENT_FEATURE_UNIMPLEMENTED") this.errorCode = "INDEPENDENT_FEATURE_UNIMPLEMENTED";
       await this.close();
       return;
     }
@@ -62898,10 +62899,25 @@ class EngineClient {
   }
   async startOnce() {
     const workspace = node_path.resolve(electron.app.getAppPath(), "../..");
-    const executable = electron.app.isPackaged ? node_path.resolve(process.resourcesPath, "bin", process.platform === "win32" ? "alpha-engine.exe" : "alpha-engine") : developmentEnginePath(node_path.resolve(workspace, "target", "debug", process.platform === "win32" ? "alpha-engine.exe" : "alpha-engine"), process.env.ALPHA_ENGINE_PATH);
+    // Maintenance addition: select the independent implementation explicitly.
+    // Original runtime preparation and trust checks remain unchanged below.
+    const independentMode = !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent";
+    let executable, childEnvironment;
+    let executableArgs = [];
+    if (independentMode) {
+      try {
+        const runtime = require("./recovery-runtime.cjs").independentRuntime({ workspace, userData: electron.app.getPath("userData"), execPath: process.execPath, environment: process.env });
+        executable = runtime.executable;
+        executableArgs = runtime.args;
+        childEnvironment = runtime.environment;
+      } catch (error) {
+        return this.status = { state: "unavailable", components: [], errorCode: error.message || "INDEPENDENT_RUNTIME_UNAVAILABLE" };
+      }
+    } else {
+      executable = electron.app.isPackaged ? node_path.resolve(process.resourcesPath, "bin", process.platform === "win32" ? "alpha-engine.exe" : "alpha-engine") : developmentEnginePath(node_path.resolve(workspace, "target", "debug", process.platform === "win32" ? "alpha-engine.exe" : "alpha-engine"), process.env.ALPHA_ENGINE_PATH);
     const nativeHost = electron.app.isPackaged ? node_path.resolve(process.resourcesPath, "bin", process.platform === "win32" ? "alpha-data-host.exe" : "alpha-data-host") : node_path.resolve(workspace, "build", "runtime-bundle", "bin", process.platform === "win32" ? "alpha-data-host.exe" : "alpha-data-host");
     const inherited = electron.app.isPackaged ? packagedHostEnvironment(nativeHost, process.env) : process.env;
-    const childEnvironment = runtimeEnvironment(workspace, nativeHost, electron.app.getPath("userData"), inherited, (status) => {
+    childEnvironment = runtimeEnvironment(workspace, nativeHost, electron.app.getPath("userData"), inherited, (status) => {
       if (status.errorCode && status.errorCode !== "WCDB_WRITER_NOT_CONFIGURED") {
         process.stderr.write(`[alpha-wcdb-writer] ${status.errorCode}
 `);
@@ -62943,8 +62959,9 @@ class EngineClient {
     } catch (error) {
       return this.status = { state: "unavailable", components: [], errorCode: runtimePreparationCode(error) };
     }
+    }
     this.artifactRoot = childEnvironment.ALPHA_ARTIFACT_DIR ?? "";
-    const child = node_child_process.spawn(executable, [], {
+    const child = node_child_process.spawn(executable, executableArgs, {
       cwd: workspace,
       env: childEnvironment,
       stdio: ["pipe", "pipe", "pipe"],
@@ -62996,6 +63013,9 @@ class EngineClient {
       }, ENGINE_STARTUP_TIMEOUT_MS);
       if (response.error) throw new Error(response.error.code);
       if (!response.hello) throw new Error("ENGINE_HELLO_MISSING");
+      if (independentMode && (response.hello.negotiatedProtocol?.major !== 1 || response.hello.negotiatedProtocol?.minor !== 0 || !response.hello.components.some((component) => component.component === "alpha-independent-engine"))) {
+        throw new Error("INDEPENDENT_ENGINE_PROTOCOL_MISMATCH");
+      }
       this.exportTimeRangeSupported = response.hello.supportsExportTimeRange;
       this.chatExportJobsSupported = [121, 122, 123, 124, 125].every((id2) => response.hello.supportedMethodIds.includes(id2));
       this.datasetExportsSupported = this.chatExportJobsSupported && DATASET_EXPORT_METHOD_IDS.every((id2) => response.hello.supportedMethodIds.includes(id2));
@@ -67440,6 +67460,7 @@ class PersonaGatewayService {
     return this.connection ? { ...this.connection } : null;
   }
   async getOrStart() {
+    if (!electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent") throw new PersonaGatewayError("INDEPENDENT_FEATURE_UNIMPLEMENTED", "INDEPENDENT_FEATURE_UNIMPLEMENTED");
     const epoch = this.lifecycleEpoch;
     if (!this.options.agentConfiguration && !this.options.externalMcpRuntimeConfiguration) return this.startConfigured({}, epoch);
     const operation = this.configurationOperation.catch(() => void 0).then(async () => {
@@ -73388,6 +73409,7 @@ async function stopOwnedGateway() {
   await personaGateway?.stop();
 }
 async function assertHttpApiAllowed() {
+  if (!electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent") throw new Error("INDEPENDENT_FEATURE_UNIMPLEMENTED");
   if (apiLockTransition || gatewayWindowSuspended || shutdownStarted || blocksBusinessOperations()) throw new Error("HTTP_API_OPERATION_BLOCKED");
   const lock = await engine.getApplicationLockStatus();
   if (lock.locked || apiLockTransition || gatewayWindowSuspended || shutdownStarted || blocksBusinessOperations()) throw new Error("HTTP_API_OPERATION_BLOCKED");
@@ -73981,7 +74003,7 @@ if (primaryInstance) electron.app.whenReady().then(async () => {
   electron.ipcMain.handle(IPC_CHANNELS.chatSummaryPreferences, (event) => guardedChatSummary(event, () => chatSummaries.preferences()));
   electron.ipcMain.handle(IPC_CHANNELS.chatSummarySetPreferences, (event, value) => guardedChatSummary(event, () => chatSummaries.setPreferences(value)));
   const mcpStdioName = process.platform === "win32" ? "alpha-mcp-stdio.exe" : "alpha-mcp-stdio";
-  const mcpStdioPath = (electron.app.isPackaged ? [node_path.join(process.resourcesPath, "bin", mcpStdioName)] : [process.env.ALPHA_GATEWAY_PATH ? node_path.join(node_path.dirname(process.env.ALPHA_GATEWAY_PATH), mcpStdioName) : "", node_path.join(workspaceRoot, "target", "debug", mcpStdioName)]).find((path) => path && node_fs.existsSync(path));
+  const mcpStdioPath = !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent" ? void 0 : (electron.app.isPackaged ? [node_path.join(process.resourcesPath, "bin", mcpStdioName)] : [process.env.ALPHA_GATEWAY_PATH ? node_path.join(node_path.dirname(process.env.ALPHA_GATEWAY_PATH), mcpStdioName) : "", node_path.join(workspaceRoot, "target", "debug", mcpStdioName)]).find((path) => path && node_fs.existsSync(path));
   httpApi = new HttpApiService(node_path.resolve(electron.app.getPath("userData"), "http-api-v1.json"), {
     connection: async () => {
       const status = httpApi?.status();
@@ -74264,6 +74286,11 @@ if (primaryInstance) electron.app.whenReady().then(async () => {
   electron.ipcMain.handle(IPC_CHANNELS.installUpdate, installUpdate);
   electron.ipcMain.handle(IPC_CHANNELS.detectAccountDataSources, async (event) => {
     await checkAccountDiscoveryAccess(event);
+    if (!electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent") {
+      const accounts = await engine.listAccounts();
+      await checkAccountDiscoveryAccess(event);
+      return { ...emptyDetection(), candidates: accounts.map((account) => ({ path: account.dataSourcePath, accountDirectory: account.id, nickname: account.displayName, origin: "explicit-snapshot" })) };
+    }
     const result = await detectAccountDataSources({
       platform: process.platform,
       home: electron.app.getPath("home"),

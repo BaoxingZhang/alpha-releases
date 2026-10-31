@@ -1,0 +1,302 @@
+{
+  "testedAt": "2026-10-31T18:21:22.386Z",
+  "session": "independent-smoke-1793470882344",
+  "fixture": {
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793470882344/fixture",
+    "accountId": "synthetic-account",
+    "conversationId": "wxid_alpha",
+    "selfUsername": "wxid_self",
+    "messageCount": 6,
+    "table": "Msg_7bb4baf3ba51e2b4d2c4b53ebd645e40"
+  },
+  "realUserDataAccessed": false,
+  "checks": {
+    "independentBackendReady": true,
+    "realSqliteThroughDesktopIpc": true,
+    "noOriginalAlphaChildObserved": true,
+    "originalOnboardingCompleted": true,
+    "messageRendered": true,
+    "lockEnforcesReadAccess": true,
+    "sourceUnchanged": true
+  },
+  "rendererErrors": [],
+  "backend": {
+    "state": "ready",
+    "components": [
+      {
+        "component": "alpha-independent-engine",
+        "version": "0.1.0",
+        "buildId": "independent-node-stdio-v1",
+        "protocol": "1.0"
+      }
+    ],
+    "update": {
+      "state": "unconfigured",
+      "currentVersion": "0.3.5",
+      "download": {
+        "phase": "idle"
+      }
+    }
+  },
+  "accounts": [
+    {
+      "id": "synthetic-account",
+      "sourceProfile": "alpha-independent-offline-v4",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793470882344/fixture",
+      "subjectId": "",
+      "displayName": "离线数据源 · synthetic-account",
+      "schemaProfile": "wechat-v4-offline",
+      "state": "ready",
+      "handleGeneration": "1",
+      "lastErrorCode": "",
+      "selected": false,
+      "handleState": "open",
+      "activeHandleGeneration": "1",
+      "handleErrorCode": "",
+      "capabilities": [
+        "offline-readonly",
+        "contacts",
+        "conversations",
+        "messages"
+      ],
+      "detected": true,
+      "usable": true,
+      "enabled": true,
+      "verified": true,
+      "ready": true
+    }
+  ],
+  "capabilities": null,
+  "read": {
+    "contacts": [
+      {
+        "username": "wxid_alpha",
+        "displayName": "合成联系人甲",
+        "alias": "alpha",
+        "remark": "合成联系人甲",
+        "nickname": "Alpha",
+        "avatarRef": "",
+        "localType": 1,
+        "flags": "0",
+        "sourceTable": "contact",
+        "fields": []
+      },
+      {
+        "username": "wxid_beta",
+        "displayName": "Beta",
+        "alias": "beta",
+        "remark": "",
+        "nickname": "Beta",
+        "avatarRef": "",
+        "localType": 1,
+        "flags": "0",
+        "sourceTable": "contact",
+        "fields": []
+      },
+      {
+        "username": "wxid_self",
+        "displayName": "自己",
+        "alias": "self",
+        "remark": "自己",
+        "nickname": "Self",
+        "avatarRef": "",
+        "localType": 1,
+        "flags": "0",
+        "sourceTable": "contact",
+        "fields": []
+      }
+    ],
+    "conversations": [
+      {
+        "id": "wxid_alpha",
+        "accountId": "synthetic-account",
+        "kind": 1,
+        "displayName": "合成联系人甲",
+        "avatarUri": "",
+        "preview": "synthetic alpha",
+        "lastActivityUnixMs": "1700000004000",
+        "sortTimestamp": "1700000004000"
+      },
+      {
+        "id": "wxid_beta",
+        "accountId": "synthetic-account",
+        "kind": 1,
+        "displayName": "Beta",
+        "avatarUri": "",
+        "preview": "synthetic beta",
+        "lastActivityUnixMs": "1700000004000",
+        "sortTimestamp": "1700000004000"
+      }
+    ],
+    "messages": [
+      {
+        "id": "msg-b9fbe03c21dbdea6f1cbff765350e9dc23eefc899885365c006b0e27b70cdc1f",
+        "localId": 1,
+        "serverId": "9007199254740997",
+        "conversationId": "wxid_alpha",
+        "sourceId": "source-f1b5f8a88d80d63ca9cef037129f807df1c0bb1445428a35ad4a482e3c0d0fd3",
+        "sentAtUnixMs": "1699999999000",
+        "direction": 0,
+        "kind": "text",
+        "text": "earlier shard",
+        "refs": [],
+        "senderId": "wxid_alpha",
+        "platformMessageId": "9007199254740997",
+        "sourceType": "1"
+      },
+      {
+        "id": "msg-64c97a224bfe89a56f7d4b4d4e45dbdbe65027214aa9a200904ef53d6c88467a",
+        "localId": 0,
+        "serverId": "9223372036854775807",
+        "conversationId": "wxid_alpha",
+        "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+        "sentAtUnixMs": "1700000000000",
+        "direction": 0,
+        "kind": "text",
+        "text": "first source",
+        "refs": [],
+        "senderId": "wxid_alpha",
+        "platformMessageId": "9223372036854775807",
+        "sourceType": "1"
+      },
+      {
+        "id": "msg-c41a8e279b60afbbb8ce72edb0eb81642fb4e19f24585c8cf2ee5a87ad26f697",
+        "localId": 2,
+        "serverId": "9007199254740995",
+        "conversationId": "wxid_alpha",
+        "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+        "sentAtUnixMs": "1700000001000",
+        "direction": 0,
+        "kind": "text",
+        "text": "second source",
+        "refs": [],
+        "senderId": "wxid_self",
+        "platformMessageId": "9007199254740995",
+        "sourceType": "1"
+      },
+      {
+        "id": "msg-19a723d5a38c10c121b8b58b7a966f6f9a0950a5df6661e49039147ba272b847",
+        "localId": 3,
+        "serverId": "0",
+        "conversationId": "wxid_alpha",
+        "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+        "sentAtUnixMs": "1700000002000",
+        "direction": 0,
+        "kind": "text",
+        "text": "same sequence",
+        "refs": [],
+        "senderId": "wxid_alpha",
+        "platformMessageId": "0",
+        "sourceType": "1"
+      },
+      {
+        "id": "msg-b32fceb97cf94f3863f2b80c6e3ea2b24033d84abd291f86327aa0f5e3e0bc78",
+        "localId": 4,
+        "serverId": "9007199254740999",
+        "conversationId": "wxid_alpha",
+        "sourceId": "source-f1b5f8a88d80d63ca9cef037129f807df1c0bb1445428a35ad4a482e3c0d0fd3",
+        "sentAtUnixMs": "1700000003000",
+        "direction": 0,
+        "kind": "text",
+        "text": "cross shard tie",
+        "refs": [],
+        "senderId": "wxid_alpha",
+        "platformMessageId": "9007199254740999",
+        "sourceType": "1"
+      },
+      {
+        "id": "msg-36c4a5f67cfdea758738f9492a047e4c462a33c41a71dafcd04c15b87e854b06",
+        "localId": 5,
+        "serverId": "9007199254741001",
+        "conversationId": "wxid_alpha",
+        "sourceId": "source-f1b5f8a88d80d63ca9cef037129f807df1c0bb1445428a35ad4a482e3c0d0fd3",
+        "sentAtUnixMs": "1700000004000",
+        "direction": 0,
+        "kind": "share",
+        "text": "",
+        "refs": [],
+        "senderId": "wxid_self",
+        "platformMessageId": "9007199254741001",
+        "sourceType": "49"
+      }
+    ]
+  },
+  "ownedChildProcesses": [
+    {
+      "pid": 88693,
+      "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
+    },
+    {
+      "pid": 88696,
+      "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
+    },
+    {
+      "pid": 88791,
+      "executable": ""
+    },
+    {
+      "pid": 88815,
+      "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
+    },
+    {
+      "pid": 88869,
+      "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge"
+    },
+    {
+      "pid": 88894,
+      "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
+    }
+  ],
+  "lock": {
+    "configured": {
+      "detected": true,
+      "usable": true,
+      "enabled": true,
+      "verified": true,
+      "locked": false,
+      "availability": "ready",
+      "hardwareProtection": "software-backed",
+      "provider": "alpha-independent-password-v1",
+      "errorCode": "",
+      "helloConfigured": false,
+      "helloAvailable": false,
+      "passwordConfigured": true,
+      "passwordRetryAfterMs": 0,
+      "passwordFailedAttempts": 0
+    },
+    "locked": {
+      "detected": true,
+      "usable": true,
+      "enabled": true,
+      "verified": false,
+      "locked": true,
+      "availability": "ready",
+      "hardwareProtection": "software-backed",
+      "provider": "alpha-independent-password-v1",
+      "errorCode": "",
+      "helloConfigured": false,
+      "helloAvailable": false,
+      "passwordConfigured": true,
+      "passwordRetryAfterMs": 0,
+      "passwordFailedAttempts": 0
+    },
+    "denied": "Error invoking remote method 'alpha:messages:list': Error: APP_LOCK_LOCKED",
+    "unlocked": {
+      "detected": true,
+      "usable": true,
+      "enabled": true,
+      "verified": true,
+      "locked": false,
+      "availability": "ready",
+      "hardwareProtection": "software-backed",
+      "provider": "alpha-independent-password-v1",
+      "errorCode": "",
+      "helloConfigured": false,
+      "helloAvailable": false,
+      "passwordConfigured": true,
+      "passwordRetryAfterMs": 0,
+      "passwordFailedAttempts": 0
+    },
+    "resumedCount": 6
+  }
+}

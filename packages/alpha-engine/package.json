@@ -1,0 +1,9 @@
+{
+  "name": "@alpha-recovered/engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "index.cjs",
+  "bin": { "alpha-independent-engine": "cli.cjs" },
+  "engines": { "node": ">=24.15 <25" }
+}

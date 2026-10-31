@@ -6490,7 +6490,8 @@ function detectGpu() {
     return { detected: false };
   }
 }
-function OnboardingWizard({ onComplete, onCancel }) {
+function OnboardingWizard({ onComplete, onCancel, status }) {
+  const independentSource = status?.components?.some((component) => component.component === "alpha-independent-engine") === true;
   const [state, setState] = reactExports.useState(() => loadOnboardingState());
   const [step, setStep] = reactExports.useState(0);
   const [detection, setDetection] = reactExports.useState(null);
@@ -6609,8 +6610,8 @@ function OnboardingWizard({ onComplete, onCancel }) {
   const detected = detectedAccountChoices(candidates);
   const saved = savedAccountChoices(accounts, candidates);
   const platform = window.alpha.windowChrome?.platform;
-  const keyCopy = autoDatabaseKeyCopy(platform);
-  const nextLabel = step === 0 ? connected ? "继续" : manual ? "验证并连接" : "连接微信" : step === 1 ? imageConfigured ? "继续" : "暂时跳过" : step === 2 ? "继续" : "进入 Alpha";
+  const keyCopy = independentSource ? { intro: "打开启动时指定的微信 v4 离线数据副本，读取其中的联系人、会话和消息。此模式不获取微信密钥；图片、AI 与导出等功能仍在接入中。", busy: "正在验证并打开数据副本…" } : autoDatabaseKeyCopy(platform);
+  const nextLabel = step === 0 ? connected ? "继续" : manual ? "验证并连接" : independentSource ? "打开数据副本" : "连接微信" : step === 1 ? imageConfigured ? "继续" : "暂时跳过" : step === 2 ? "继续" : "进入 Alpha";
   return /* @__PURE__ */ jsxRuntimeExports.jsx("section", { className: "setup-screen", "aria-label": "Alpha 首次设置", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "setup-window", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "setup-sidebar", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "setup-brand", children: [
@@ -6642,7 +6643,7 @@ function OnboardingWizard({ onComplete, onCancel }) {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "setup-content", ref: content, children: [
         step === 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "setup-title", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { children: "连接你的微信" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { children: independentSource ? "打开离线数据副本" : "连接你的微信" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: keyCopy.intro })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "setup-privacy", children: [
@@ -6665,7 +6666,7 @@ function OnboardingWizard({ onComplete, onCancel }) {
                 /* @__PURE__ */ jsxRuntimeExports.jsx(Tooltip, { content: "浏览数据库目录", describe: false, children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", "aria-label": "浏览数据库目录", onClick: () => void chooseDirectory(), children: /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }) }) })
               ] })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "settings-note", children: "先点文件夹按钮选择目录。在电脑版微信设置中查找“存储位置”或“文件管理”（名称随版本不同），打开后选择含有 db_storage 文件夹的账号目录；不要选择某个 .db 文件。多个账号时，请确认选的是要查看的账号。" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "settings-note", children: independentSource ? "此处只接受启动时指定的数据副本。演示数据中的账号和消息均为人工合成。要更换副本，请使用相应目录重新启动。" : "先点文件夹按钮选择目录。在电脑版微信设置中查找“存储位置”或“文件管理”（名称随版本不同），打开后选择含有 db_storage 文件夹的账号目录；不要选择某个 .db 文件。多个账号时，请确认选的是要查看的账号。" }),
             detected.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "setup-field", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "检测到的账号" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(

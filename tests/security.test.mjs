@@ -1,0 +1,72 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { root } from '../scripts/environment.mjs';
+const { createSecurity } = createRequire(import.meta.url)('../packages/alpha-security/index.cjs');
+const bytes = x => Buffer.from(x);
+const password = bytes('synthetic-password-123');
+function directory(t) {
+  fs.mkdirSync(path.join(root, '.runtime'), { recursive: true });
+  const value = fs.mkdtempSync(path.join(root, '.runtime/security-test-'));
+  t.after(() => fs.rmSync(value, { recursive: true, force: true }));
+  return value;
+}
+test('password lock persists hashes, blocks reads, and starts locked after restart', async t => {
+  const stateDir = directory(t);
+  let lock = await createSecurity({ stateDir });
+  assert.equal(lock.status().enabled, false);
+  assert.equal(lock.status().verified, false);
+  lock.assertAccess();
+  await lock.configure({ action: 'enable_password', newPassword: password });
+  const raw = fs.readFileSync(path.join(stateDir, 'password-lock.v1.json'), 'utf8');
+  assert.equal(raw.includes(password.toString()), false);
+  assert.equal(fs.statSync(path.join(stateDir, 'password-lock.v1.json')).mode & 0o777, 0o600);
+  lock.lock(); assert.throws(() => lock.assertAccess(), /APP_LOCK_LOCKED/);
+  await lock.unlock(password); lock.assertAccess();
+  lock = await createSecurity({ stateDir });
+  assert.equal(lock.status().locked, true);
+  await lock.unlock(password);
+  const next = bytes('new-synthetic-password');
+  await lock.configure({ action: 'change_password', password, newPassword: next });
+  lock.lock();
+  await lock.unlock(next);
+  await lock.configure({ action: 'disable', password: next });
+  assert.equal(lock.status().enabled, false);
+  assert.equal((await createSecurity({ stateDir })).status().enabled, false);
+});
+test('wrong password throttles across restart; no unauthenticated disable or reset', async t => {
+  const stateDir = directory(t);
+  let lock = await createSecurity({ stateDir });
+  await lock.configure({ action: 'enable_password', newPassword: password });
+  lock.lock();
+  await assert.rejects(lock.configure({ action: 'disable', password: bytes('wrong-password') }), /APP_LOCK_PASSWORD_INCORRECT/);
+  assert.throws(() => lock.assertAccess(), /APP_LOCK_LOCKED/);
+  lock = await createSecurity({ stateDir });
+  assert.equal(lock.status().passwordFailedAttempts, 1);
+  assert.ok(lock.status().passwordRetryAfterMs > 0n);
+  await assert.rejects(lock.unlock(password), /APP_LOCK_PASSWORD_THROTTLED/);
+  await assert.rejects(lock.configure({ action: 'reset' }), /APP_LOCK_ACTION_UNSUPPORTED/);
+});
+test('corrupt, missing or symlinked state fails closed', async t => {
+  const stateDir = directory(t);
+  const lock = await createSecurity({ stateDir });
+  await lock.configure({ action: 'enable_password', newPassword: password });
+  const file = path.join(stateDir, 'password-lock.v1.json');
+  fs.writeFileSync(file, '{}');
+  await assert.rejects(createSecurity({ stateDir }), /APP_LOCK_STATE_INVALID/);
+  fs.rmSync(file);
+  assert.throws(() => lock.assertAccess(), /APP_LOCK_STATE_INVALID/);
+  fs.symlinkSync(path.join(stateDir, 'missing'), file);
+  await assert.rejects(createSecurity({ stateDir }));
+});
+test('weak/invalid passwords and concurrent configuration do not expose data', async t => {
+  const lock = await createSecurity({ stateDir: directory(t) });
+  await assert.rejects(lock.configure({ action: 'enable_password', newPassword: bytes('short') }), /TOO_SHORT/);
+  await assert.rejects(lock.configure({ action: 'enable_password', newPassword: Buffer.from([255]) }), /INVALID_CHARACTERS/);
+  const configuring = lock.configure({ action: 'enable_password', newPassword: password });
+  assert.throws(() => lock.assertAccess(), /APP_LOCK_LOCKED/);
+  await assert.rejects(lock.configure({ action: 'enable_password', newPassword: password }), /APP_LOCK_BUSY/);
+  await configuring;
+});

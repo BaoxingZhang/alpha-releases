@@ -1,0 +1,860 @@
+// Alpha's independent offline data bridge. This is an original implementation;
+// schema references are documented in README.md, not imported from Chatlog internals.
+package main
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"crypto/md5"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"log"
+	"net/url"
+	"os"
+	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+	"unicode/utf8"
+
+	_ "github.com/mattn/go-sqlite3"
+)
+
+type bridgeError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func (e *bridgeError) Error() string  { return e.Code + ": " + e.Message }
+func fail(code, message string) error { return &bridgeError{code, message} }
+
+type request struct {
+	ID     string          `json:"id"`
+	Op     string          `json:"op"`
+	Params json.RawMessage `json:"params"`
+}
+type response struct {
+	ID     string       `json:"id"`
+	OK     bool         `json:"ok"`
+	Result any          `json:"result,omitempty"`
+	Error  *bridgeError `json:"error,omitempty"`
+}
+type params struct {
+	Limit          int    `json:"limit"`
+	Cursor         string `json:"cursor"`
+	ConversationID string `json:"conversationId"`
+	Ascending      *bool  `json:"ascending"`
+	AfterTime      string `json:"afterTime"`
+	BeforeTime     string `json:"beforeTime"`
+	UsernameExact  string `json:"usernameExact"`
+}
+type sourceRef struct {
+	Database string `json:"database"`
+	Table    string `json:"table"`
+	LocalID  string `json:"localId,omitempty"`
+	RowID    string `json:"rowId,omitempty"`
+}
+type contact struct {
+	Username  string    `json:"username"`
+	LocalType string    `json:"localType"`
+	Alias     string    `json:"alias"`
+	Remark    string    `json:"remark"`
+	NickName  string    `json:"nickName"`
+	Source    sourceRef `json:"source"`
+}
+type session struct {
+	Username              string    `json:"username"`
+	Summary               string    `json:"summary"`
+	LastTimestamp         string    `json:"lastTimestamp"`
+	SortTimestamp         string    `json:"sortTimestamp"`
+	LastMsgSender         string    `json:"lastMsgSender"`
+	LastSenderDisplayName string    `json:"lastSenderDisplayName"`
+	Source                sourceRef `json:"source"`
+}
+type message struct {
+	ConversationID   string    `json:"conversationId"`
+	LocalID          string    `json:"localId"`
+	ServerID         string    `json:"serverId"`
+	SortSeq          string    `json:"sortSeq"`
+	LocalType        string    `json:"localType"`
+	CreateTime       string    `json:"createTime"`
+	Sender           string    `json:"sender"`
+	RealSenderID     string    `json:"realSenderId"`
+	Status           string    `json:"status"`
+	Content          string    `json:"content"`
+	ContentBase64    string    `json:"contentBase64"`
+	ContentEncoding  string    `json:"contentEncoding"`
+	PackedInfoBase64 string    `json:"packedInfoBase64"`
+	Source           sourceRef `json:"source"`
+}
+type page[T any] struct {
+	Items      []T    `json:"items"`
+	NextCursor string `json:"nextCursor"`
+	HasMore    bool   `json:"hasMore"`
+}
+type cursor struct {
+	Snapshot string `json:"snapshot"`
+	Query    string `json:"query"`
+	Name     string `json:"name,omitempty"`
+	Number   string `json:"number,omitempty"`
+	Database string `json:"database,omitempty"`
+	RowID    string `json:"rowId"`
+}
+type database struct {
+	relative, path string
+	info           os.FileInfo
+	db             *sql.DB
+	tables         map[string]bool
+}
+type directoryStamp struct {
+	path string
+	info os.FileInfo
+}
+type bridge struct {
+	root, accountID, snapshot string
+	databases                 []*database
+	contactDB, sessionDB      *database
+	messageDBs                []*database
+	directories               []directoryStamp
+}
+
+var messageName = regexp.MustCompile(`^message(?:_[0-9]+)?\.db$`)
+var integer = regexp.MustCompile(`^-?(0|[1-9][0-9]*)$`)
+
+func checkPath(name string) error {
+	if !filepath.IsAbs(name) || filepath.Clean(name) != name || name == string(os.PathSeparator) {
+		return fail("PATH_INVALID", "An explicit clean absolute dataset path is required")
+	}
+	current := string(os.PathSeparator)
+	for _, part := range strings.Split(strings.TrimPrefix(name, current), string(os.PathSeparator)) {
+		current = filepath.Join(current, part)
+		info, err := os.Lstat(current)
+		if err != nil {
+			return fail("PATH_UNAVAILABLE", "Dataset path is missing or inaccessible")
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return fail("SYMLINK_DENIED", "Symlink paths are not allowed")
+		}
+	}
+	return nil
+}
+
+func openBridge(root, accountID string) (_ *bridge, err error) {
+	if len(accountID) == 0 || len(accountID) > 256 || strings.IndexByte(accountID, 0) >= 0 {
+		return nil, fail("ACCOUNT_ID_REQUIRED", "An explicit dataset account ID is required")
+	}
+	if err := checkPath(root); err != nil {
+		return nil, err
+	}
+	info, err := os.Stat(root)
+	if err != nil || !info.IsDir() {
+		return nil, fail("PATH_INVALID", "Dataset path must be a directory")
+	}
+	b := &bridge{root: root, accountID: accountID}
+	defer func() {
+		if err != nil {
+			b.close()
+		}
+	}()
+	count := 0
+	err = filepath.WalkDir(root, func(name string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return fail("PATH_UNAVAILABLE", "Dataset member is inaccessible")
+		}
+		count++
+		relative, e := filepath.Rel(root, name)
+		if e != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(os.PathSeparator)) {
+			return fail("PATH_ESCAPE", "Dataset member escaped its root")
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			return fail("SYMLINK_DENIED", "Dataset cannot contain symlinks")
+		}
+		if count > 10000 || strings.Count(relative, string(os.PathSeparator)) > 8 {
+			return fail("DATASET_TOO_LARGE", "Dataset directory inventory exceeds limits")
+		}
+		if entry.IsDir() {
+			directoryInfo, err := entry.Info()
+			if err != nil {
+				return fail("PATH_UNAVAILABLE", "Dataset directory is inaccessible")
+			}
+			b.directories = append(b.directories, directoryStamp{name, directoryInfo})
+			return nil
+		}
+		base := entry.Name()
+		if base != "contact.db" && base != "session.db" && !messageName.MatchString(base) {
+			return nil
+		}
+		if len(b.databases) >= 128 {
+			return fail("DATASET_TOO_LARGE", "Too many database shards")
+		}
+		d, e := openDatabase(root, relative)
+		if e != nil {
+			return e
+		}
+		b.databases = append(b.databases, d)
+		switch base {
+		case "contact.db":
+			if b.contactDB != nil {
+				return fail("AMBIGUOUS_DATABASE", "Multiple contact databases require separate datasets")
+			}
+			if !d.tables["contact"] {
+				return fail("SCHEMA_UNSUPPORTED", "contact table is missing")
+			}
+			b.contactDB = d
+		case "session.db":
+			if b.sessionDB != nil {
+				return fail("AMBIGUOUS_DATABASE", "Multiple session databases require separate datasets")
+			}
+			if !d.tables["SessionTable"] {
+				return fail("SCHEMA_UNSUPPORTED", "SessionTable is missing")
+			}
+			b.sessionDB = d
+		default:
+			b.messageDBs = append(b.messageDBs, d)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(b.databases) == 0 {
+		return nil, fail("NO_DATABASES", "No supported offline WeChat v4 databases were found")
+	}
+	sort.Slice(b.databases, func(i, j int) bool { return b.databases[i].relative < b.databases[j].relative })
+	sort.Slice(b.messageDBs, func(i, j int) bool { return b.messageDBs[i].relative < b.messageDBs[j].relative })
+	digest := sha256.New()
+	fmt.Fprintf(digest, "%s\x00%s\x00", root, accountID)
+	for _, d := range b.databases {
+		fmt.Fprintf(digest, "%s\x00%d\x00%d\n", d.relative, d.info.Size(), d.info.ModTime().UnixNano())
+	}
+	b.snapshot = hex.EncodeToString(digest.Sum(nil))
+	if err := b.verify(); err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func openDatabase(root, relative string) (_ *database, err error) {
+	name := filepath.Join(root, relative)
+	if err := checkPath(name); err != nil {
+		return nil, err
+	}
+	info, err := os.Stat(name)
+	if err != nil || !info.Mode().IsRegular() {
+		return nil, fail("DATABASE_INVALID", "Database must be a regular file")
+	}
+	if err := rejectSidecars(name); err != nil {
+		return nil, err
+	}
+	file, err := os.Open(name)
+	if err != nil {
+		return nil, fail("DATABASE_UNAVAILABLE", "Cannot read database")
+	}
+	header := make([]byte, 16)
+	_, err = io.ReadFull(file, header)
+	file.Close()
+	if err != nil || string(header) != "SQLite format 3\x00" {
+		return nil, fail("NOT_PLAINTEXT_SQLITE", "Only offline decrypted SQLite copies are supported")
+	}
+	uri := url.URL{Scheme: "file", Path: name}
+	q := uri.Query()
+	q.Set("mode", "ro")
+	q.Set("immutable", "1")
+	q.Set("_query_only", "1")
+	q.Set("_busy_timeout", "1000")
+	uri.RawQuery = q.Encode()
+	db, err := sql.Open("sqlite3", uri.String())
+	if err != nil {
+		return nil, fail("DATABASE_UNAVAILABLE", "Cannot open read-only SQLite")
+	}
+	defer func() {
+		if err != nil {
+			db.Close()
+		}
+	}()
+	db.SetMaxOpenConns(1)
+	var queryOnly int
+	if e := db.QueryRow("PRAGMA query_only").Scan(&queryOnly); e != nil || queryOnly != 1 {
+		return nil, fail("READONLY_REQUIRED", "Read-only SQLite connection could not be verified")
+	}
+	tables := map[string]bool{}
+	rows, err := db.Query("SELECT name FROM sqlite_master WHERE type='table'")
+	if err != nil {
+		return nil, fail("DATABASE_INVALID", "Cannot read database schema")
+	}
+	for rows.Next() {
+		var table string
+		if e := rows.Scan(&table); e != nil {
+			rows.Close()
+			return nil, fail("DATABASE_INVALID", "Invalid table metadata")
+		}
+		tables[table] = true
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return nil, fail("DATABASE_INVALID", "Cannot finish reading schema")
+	}
+	d := &database{relative: filepath.ToSlash(relative), path: name, info: info, db: db, tables: tables}
+	required := map[string][]string{}
+	switch filepath.Base(relative) {
+	case "contact.db":
+		required["contact"] = []string{"username", "local_type", "alias", "remark", "nick_name"}
+	case "session.db":
+		required["SessionTable"] = []string{"username", "summary", "last_timestamp", "sort_timestamp", "last_msg_sender", "last_sender_display_name"}
+	default:
+		required["Name2Id"] = []string{"user_name"}
+		for table := range tables {
+			if regexp.MustCompile(`^Msg_[0-9a-f]{32}$`).MatchString(table) {
+				required[table] = []string{"local_id", "server_id", "sort_seq", "local_type", "create_time", "real_sender_id", "status", "message_content", "packed_info_data"}
+			}
+		}
+	}
+	for table, columns := range required {
+		if err := validateColumns(db, table, columns); err != nil {
+			return nil, err
+		}
+	}
+	if e := d.verify(); e != nil {
+		return nil, e
+	}
+	return d, nil
+}
+
+func validateColumns(db *sql.DB, table string, required []string) error {
+	// Table names here are fixed literals or an exact Msg_<hex-md5> identifier.
+	rows, err := db.Query(`PRAGMA table_info("` + table + `")`)
+	if err != nil {
+		return fail("SCHEMA_UNSUPPORTED", "Cannot inspect expected table")
+	}
+	columns := map[string]bool{}
+	primaryColumns, localIDPrimary := 0, false
+	rowIDShadowed := false
+	for rows.Next() {
+		var cid, notnull, pk int
+		var name, kind string
+		var defaultValue any
+		if err := rows.Scan(&cid, &name, &kind, &notnull, &defaultValue, &pk); err != nil {
+			rows.Close()
+			return fail("SCHEMA_UNSUPPORTED", "Invalid column metadata")
+		}
+		columns[name] = true
+		if pk > 0 {
+			primaryColumns++
+		}
+		if name == "local_id" && pk == 1 && strings.EqualFold(kind, "INTEGER") {
+			localIDPrimary = true
+		}
+		if strings.EqualFold(name, "rowid") {
+			rowIDShadowed = true
+		}
+	}
+	rowError := rows.Err()
+	rows.Close()
+	if rowError != nil {
+		return fail("SCHEMA_UNSUPPORTED", "Cannot finish inspecting table")
+	}
+	for _, name := range required {
+		if !columns[name] {
+			return fail("SCHEMA_UNSUPPORTED", "Missing expected column in "+table+": "+name)
+		}
+	}
+	if strings.HasPrefix(table, "Msg_") {
+		if !localIDPrimary || primaryColumns != 1 {
+			return fail("SCHEMA_UNSUPPORTED", "Message local_id must be a single INTEGER primary key")
+		}
+	} else {
+		if rowIDShadowed {
+			return fail("SCHEMA_UNSUPPORTED", "Expected SQLite rowid cannot be shadowed")
+		}
+		probe, err := db.Query(`SELECT rowid FROM "` + table + `" LIMIT 0`)
+		if err != nil {
+			return fail("SCHEMA_UNSUPPORTED", "Expected SQLite rowid is unavailable")
+		}
+		probe.Close()
+	}
+	return nil
+}
+
+func rejectSidecars(name string) error {
+	for _, suffix := range []string{"-wal", "-shm", "-journal"} {
+		if _, err := os.Lstat(name + suffix); err == nil {
+			return fail("ACTIVE_DATABASE_DENIED", "Offline copies must not contain WAL, SHM or journal sidecars")
+		} else if !os.IsNotExist(err) {
+			return fail("PATH_UNAVAILABLE", "Cannot validate database sidecars")
+		}
+	}
+	return nil
+}
+func (d *database) verify() error {
+	if err := checkPath(d.path); err != nil {
+		return err
+	}
+	current, err := os.Stat(d.path)
+	if err != nil || !os.SameFile(d.info, current) || d.info.Size() != current.Size() || !d.info.ModTime().Equal(current.ModTime()) {
+		return fail("DATASET_CHANGED", "Offline dataset changed; reopen a stable copy")
+	}
+	return rejectSidecars(d.path)
+}
+func (b *bridge) close() {
+	for _, d := range b.databases {
+		d.db.Close()
+	}
+}
+func (b *bridge) verify() error {
+	for _, directory := range b.directories {
+		current, err := os.Lstat(directory.path)
+		if err != nil || !current.IsDir() || !os.SameFile(directory.info, current) || !directory.info.ModTime().Equal(current.ModTime()) {
+			return fail("DATASET_CHANGED", "Offline dataset directory changed; reopen a stable copy")
+		}
+	}
+	for _, d := range b.databases {
+		if err := d.verify(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *bridge) info() any {
+	capabilities := []string{"account.info"}
+	if b.contactDB != nil {
+		capabilities = append(capabilities, "contacts.list")
+	}
+	if b.sessionDB != nil {
+		capabilities = append(capabilities, "sessions.list")
+	}
+	if len(b.messageDBs) > 0 {
+		capabilities = append(capabilities, "messages.list")
+	}
+	files := []string{}
+	for _, d := range b.databases {
+		files = append(files, d.relative)
+	}
+	return map[string]any{"id": b.accountID, "idProvenance": "caller-supplied-dataset-label", "sourceKind": "offline-wechat-v4", "readOnly": true, "snapshotId": b.snapshot, "capabilities": capabilities, "databases": files, "live": false}
+}
+
+func decodeStrict(data []byte, target any) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return fail("INVALID_REQUEST", "Invalid JSON fields or types")
+	}
+	if decoder.Decode(new(any)) != io.EOF {
+		return fail("INVALID_REQUEST", "Expected one JSON value")
+	}
+	return nil
+}
+func parseInteger(text string) (int64, error) {
+	if !integer.MatchString(text) {
+		return 0, fail("INVALID_PARAMS", "Expected a decimal integer string")
+	}
+	value, err := strconv.ParseInt(text, 10, 64)
+	if err != nil {
+		return 0, fail("INVALID_PARAMS", "Integer is outside signed 64-bit range")
+	}
+	return value, nil
+}
+func number(n int64) string { return strconv.FormatInt(n, 10) }
+func queryKey(op string, p params) string {
+	p.Cursor = ""
+	p.Limit = 0
+	data, _ := json.Marshal(p)
+	sum := sha256.Sum256(append([]byte(op+"\x00"), data...))
+	return hex.EncodeToString(sum[:])
+}
+func (b *bridge) readCursor(p params, key string) (*cursor, error) {
+	if p.Cursor == "" {
+		return nil, nil
+	}
+	if len(p.Cursor) > 4096 {
+		return nil, fail("INVALID_CURSOR", "Cursor exceeds size limit")
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(p.Cursor)
+	if err != nil {
+		return nil, fail("INVALID_CURSOR", "Malformed cursor")
+	}
+	var c cursor
+	if decodeStrict(raw, &c) != nil || c.Snapshot != b.snapshot || c.Query != key {
+		return nil, fail("INVALID_CURSOR", "Cursor does not match this dataset and query")
+	}
+	if _, err := parseInteger(c.RowID); err != nil {
+		return nil, fail("INVALID_CURSOR", "Invalid row cursor")
+	}
+	if c.Number != "" {
+		if _, err := parseInteger(c.Number); err != nil {
+			return nil, fail("INVALID_CURSOR", "Invalid order cursor")
+		}
+	}
+	return &c, nil
+}
+func (b *bridge) encodeCursor(key string, c cursor) string {
+	c.Snapshot = b.snapshot
+	c.Query = key
+	raw, _ := json.Marshal(c)
+	return base64.RawURLEncoding.EncodeToString(raw)
+}
+
+func (b *bridge) contacts(ctx context.Context, p params, key string, c *cursor) (any, error) {
+	d := b.contactDB
+	if d == nil {
+		return nil, fail("CAPABILITY_UNAVAILABLE", "contact.db is not present")
+	}
+	query := `SELECT rowid,username,local_type,COALESCE(alias,''),COALESCE(remark,''),COALESCE(nick_name,'') FROM contact WHERE 1=1`
+	args := []any{}
+	if p.UsernameExact != "" {
+		query += ` AND username COLLATE BINARY=?`
+		args = append(args, p.UsernameExact)
+	}
+	if c != nil {
+		query += ` AND (username COLLATE BINARY>? OR (username COLLATE BINARY=? AND rowid>?))`
+		args = append(args, c.Name, c.Name, c.RowID)
+	}
+	query += ` ORDER BY username COLLATE BINARY ASC,rowid ASC LIMIT ?`
+	args = append(args, p.Limit+1)
+	rows, err := d.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fail("SCHEMA_UNSUPPORTED", "Cannot query expected contact schema")
+	}
+	defer rows.Close()
+	result := page[contact]{Items: []contact{}}
+	for rows.Next() {
+		var item contact
+		var row, kind int64
+		if err := rows.Scan(&row, &item.Username, &kind, &item.Alias, &item.Remark, &item.NickName); err != nil {
+			return nil, fail("ROW_INVALID", "Invalid contact record")
+		}
+		item.LocalType = number(kind)
+		item.Source = sourceRef{Database: d.relative, Table: "contact", RowID: number(row)}
+		result.Items = append(result.Items, item)
+	}
+	if rows.Err() != nil {
+		return nil, fail("QUERY_FAILED", "Contact query failed")
+	}
+	if len(result.Items) > p.Limit {
+		result.HasMore = true
+		result.Items = result.Items[:p.Limit]
+		last := result.Items[len(result.Items)-1]
+		result.NextCursor = b.encodeCursor(key, cursor{Name: last.Username, RowID: last.Source.RowID})
+	}
+	return result, nil
+}
+func (b *bridge) sessions(ctx context.Context, p params, key string, c *cursor) (any, error) {
+	d := b.sessionDB
+	if d == nil {
+		return nil, fail("CAPABILITY_UNAVAILABLE", "session.db is not present")
+	}
+	query := `SELECT rowid,username,COALESCE(summary,''),last_timestamp,sort_timestamp,COALESCE(last_msg_sender,''),COALESCE(last_sender_display_name,'') FROM SessionTable`
+	args := []any{}
+	if c != nil {
+		if c.Number == "" {
+			return nil, fail("INVALID_CURSOR", "Session cursor requires timestamp")
+		}
+		query += ` WHERE (sort_timestamp<? OR (sort_timestamp=? AND (username COLLATE BINARY>? OR (username COLLATE BINARY=? AND rowid>?))))`
+		args = append(args, c.Number, c.Number, c.Name, c.Name, c.RowID)
+	}
+	query += ` ORDER BY sort_timestamp DESC,username COLLATE BINARY ASC,rowid ASC LIMIT ?`
+	args = append(args, p.Limit+1)
+	rows, err := d.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fail("SCHEMA_UNSUPPORTED", "Cannot query expected session schema")
+	}
+	defer rows.Close()
+	result := page[session]{Items: []session{}}
+	for rows.Next() {
+		var item session
+		var row, last, order int64
+		if err := rows.Scan(&row, &item.Username, &item.Summary, &last, &order, &item.LastMsgSender, &item.LastSenderDisplayName); err != nil {
+			return nil, fail("ROW_INVALID", "Invalid session record")
+		}
+		item.LastTimestamp = number(last)
+		item.SortTimestamp = number(order)
+		item.Source = sourceRef{Database: d.relative, Table: "SessionTable", RowID: number(row)}
+		result.Items = append(result.Items, item)
+	}
+	if rows.Err() != nil {
+		return nil, fail("QUERY_FAILED", "Session query failed")
+	}
+	if len(result.Items) > p.Limit {
+		result.HasMore = true
+		result.Items = result.Items[:p.Limit]
+		last := result.Items[len(result.Items)-1]
+		result.NextCursor = b.encodeCursor(key, cursor{Name: last.Username, Number: last.SortTimestamp, RowID: last.Source.RowID})
+	}
+	return result, nil
+}
+
+func (b *bridge) messages(ctx context.Context, p params, key string, c *cursor) (any, error) {
+	if len(b.messageDBs) == 0 {
+		return nil, fail("CAPABILITY_UNAVAILABLE", "No message database is present")
+	}
+	if p.ConversationID == "" || len(p.ConversationID) > 512 || strings.IndexByte(p.ConversationID, 0) >= 0 {
+		return nil, fail("INVALID_PARAMS", "conversationId is required")
+	}
+	ascending := p.Ascending == nil || *p.Ascending
+	order, greater := "ASC", ">"
+	if !ascending {
+		order, greater = "DESC", "<"
+	}
+	sum := md5.Sum([]byte(p.ConversationID))
+	table := "Msg_" + hex.EncodeToString(sum[:])
+	result := page[message]{Items: []message{}}
+	for _, d := range b.messageDBs {
+		if !d.tables[table] {
+			continue
+		}
+		if !d.tables["Name2Id"] {
+			return nil, fail("SCHEMA_UNSUPPORTED", "Name2Id table is missing")
+		}
+		clauses := []string{"1=1"}
+		args := []any{}
+		if p.AfterTime != "" {
+			value, err := parseInteger(p.AfterTime)
+			if err != nil {
+				return nil, err
+			}
+			clauses = append(clauses, "m.create_time>=?")
+			args = append(args, value)
+		}
+		if p.BeforeTime != "" {
+			value, err := parseInteger(p.BeforeTime)
+			if err != nil {
+				return nil, err
+			}
+			clauses = append(clauses, "m.create_time<=?")
+			args = append(args, value)
+		}
+		if c != nil {
+			if c.Number == "" || c.Database == "" {
+				return nil, fail("INVALID_CURSOR", "Message cursor requires source and order")
+			}
+			if d.relative == c.Database {
+				clauses = append(clauses, "(m.sort_seq"+greater+"? OR (m.sort_seq=? AND m.local_id"+greater+"?))")
+				args = append(args, c.Number, c.Number, c.RowID)
+			} else {
+				inclusive := (ascending && d.relative > c.Database) || (!ascending && d.relative < c.Database)
+				op := greater
+				if inclusive {
+					op += "="
+				}
+				clauses = append(clauses, "m.sort_seq"+op+"?")
+				args = append(args, c.Number)
+			}
+		}
+		query := `SELECT m.local_id,m.server_id,m.sort_seq,m.local_type,m.create_time,COALESCE(n.user_name,''),m.real_sender_id,m.status,m.message_content,m.packed_info_data FROM "` + table + `" m LEFT JOIN Name2Id n ON m.real_sender_id=n.rowid WHERE ` + strings.Join(clauses, " AND ") + ` ORDER BY m.sort_seq ` + order + `,m.local_id ` + order + ` LIMIT ?`
+		args = append(args, p.Limit+1)
+		rows, err := d.db.QueryContext(ctx, query, args...)
+		if err != nil {
+			return nil, fail("SCHEMA_UNSUPPORTED", "Cannot query expected message schema")
+		}
+		for rows.Next() {
+			var item message
+			var local, server, seq, kind, created, senderID, status int64
+			var content, packed []byte
+			if err := rows.Scan(&local, &server, &seq, &kind, &created, &item.Sender, &senderID, &status, &content, &packed); err != nil {
+				rows.Close()
+				return nil, fail("ROW_INVALID", "Invalid message record")
+			}
+			item.ConversationID = p.ConversationID
+			item.LocalID = number(local)
+			item.ServerID = number(server)
+			item.SortSeq = number(seq)
+			item.LocalType = number(kind)
+			item.CreateTime = number(created)
+			item.RealSenderID = number(senderID)
+			item.Status = number(status)
+			item.ContentBase64 = base64.StdEncoding.EncodeToString(content)
+			item.PackedInfoBase64 = base64.StdEncoding.EncodeToString(packed)
+			item.ContentEncoding = "binary"
+			if utf8.Valid(content) {
+				item.Content = string(content)
+				item.ContentEncoding = "utf8"
+			}
+			item.Source = sourceRef{Database: d.relative, Table: table, LocalID: item.LocalID}
+			result.Items = append(result.Items, item)
+		}
+		rowError := rows.Err()
+		rows.Close()
+		if rowError != nil {
+			return nil, fail("QUERY_FAILED", "Message query failed")
+		}
+	}
+	sort.Slice(result.Items, func(i, j int) bool {
+		a, z := result.Items[i], result.Items[j]
+		an, _ := strconv.ParseInt(a.SortSeq, 10, 64)
+		zn, _ := strconv.ParseInt(z.SortSeq, 10, 64)
+		cmp := 0
+		if an < zn {
+			cmp = -1
+		} else if an > zn {
+			cmp = 1
+		} else if a.Source.Database < z.Source.Database {
+			cmp = -1
+		} else if a.Source.Database > z.Source.Database {
+			cmp = 1
+		} else {
+			ai, _ := strconv.ParseInt(a.LocalID, 10, 64)
+			zi, _ := strconv.ParseInt(z.LocalID, 10, 64)
+			if ai < zi {
+				cmp = -1
+			} else if ai > zi {
+				cmp = 1
+			}
+		}
+		if ascending {
+			return cmp < 0
+		}
+		return cmp > 0
+	})
+	if len(result.Items) > p.Limit {
+		result.HasMore = true
+		result.Items = result.Items[:p.Limit]
+		last := result.Items[len(result.Items)-1]
+		result.NextCursor = b.encodeCursor(key, cursor{Number: last.SortSeq, Database: last.Source.Database, RowID: last.LocalID})
+	}
+	return result, nil
+}
+
+func (b *bridge) handle(ctx context.Context, r request) response {
+	out := response{ID: r.ID}
+	result, err := b.dispatch(ctx, r)
+	if err == nil {
+		out.OK = true
+		out.Result = result
+		return out
+	}
+	var known *bridgeError
+	if errors.As(err, &known) {
+		out.Error = known
+	} else {
+		out.Error = &bridgeError{"INTERNAL_ERROR", "Request failed"}
+		log.Print("Internal bridge request failure")
+	}
+	return out
+}
+func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
+	if r.ID == "" || len(r.ID) > 128 {
+		return nil, fail("INVALID_REQUEST", "A bounded string request id is required")
+	}
+	if err := b.verify(); err != nil {
+		return nil, err
+	}
+	var p params
+	if len(r.Params) > 0 && string(r.Params) != "null" {
+		if err := decodeStrict(r.Params, &p); err != nil {
+			return nil, err
+		}
+	}
+	if p.Limit == 0 {
+		p.Limit = 100
+	}
+	if p.Limit < 1 || p.Limit > 500 {
+		return nil, fail("INVALID_PARAMS", "limit must be between 1 and 500")
+	}
+	if r.Op == "account.info" || r.Op == "accounts.info" {
+		if p.Cursor != "" || p.ConversationID != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Ascending != nil || p.UsernameExact != "" {
+			return nil, fail("INVALID_PARAMS", "account.info has no query parameters")
+		}
+		return b.info(), nil
+	}
+	if r.Op != "contacts.list" && r.Op != "sessions.list" && r.Op != "messages.list" {
+		return nil, fail("UNSUPPORTED_OPERATION", "This read-only operation is not implemented")
+	}
+	if r.Op != "messages.list" && (p.ConversationID != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Ascending != nil) {
+		return nil, fail("INVALID_PARAMS", "Message filters are only supported by messages.list")
+	}
+	if p.UsernameExact != "" && (r.Op != "contacts.list" || len(p.UsernameExact) > 512 || strings.IndexByte(p.UsernameExact, 0) >= 0) {
+		return nil, fail("INVALID_PARAMS", "usernameExact is only available for bounded contact lookups")
+	}
+	if p.AfterTime != "" {
+		if _, err := parseInteger(p.AfterTime); err != nil {
+			return nil, err
+		}
+	}
+	if p.BeforeTime != "" {
+		if _, err := parseInteger(p.BeforeTime); err != nil {
+			return nil, err
+		}
+	}
+	if p.AfterTime != "" && p.BeforeTime != "" {
+		a, _ := parseInteger(p.AfterTime)
+		z, _ := parseInteger(p.BeforeTime)
+		if a > z {
+			return nil, fail("INVALID_PARAMS", "afterTime exceeds beforeTime")
+		}
+	}
+	key := queryKey(r.Op, p)
+	c, err := b.readCursor(p, key)
+	if err != nil {
+		return nil, err
+	}
+	var value any
+	switch r.Op {
+	case "contacts.list":
+		value, err = b.contacts(ctx, p, key, c)
+	case "sessions.list":
+		value, err = b.sessions(ctx, p, key, c)
+	case "messages.list":
+		value, err = b.messages(ctx, p, key, c)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := b.verify(); err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
+func serve(b *bridge, input io.Reader, output io.Writer) error {
+	scanner := bufio.NewScanner(input)
+	scanner.Buffer(make([]byte, 4096), 1024*1024)
+	encoder := json.NewEncoder(output)
+	encoder.SetEscapeHTML(false)
+	for scanner.Scan() {
+		var r request
+		var out response
+		if err := decodeStrict(scanner.Bytes(), &r); err != nil {
+			out = response{ID: r.ID, Error: &bridgeError{"INVALID_REQUEST", "Invalid JSON request"}}
+		} else {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			out = b.handle(ctx, r)
+			cancel()
+		}
+		if err := encoder.Encode(out); err != nil {
+			return err
+		}
+	}
+	return scanner.Err()
+}
+func main() {
+	log.SetOutput(os.Stderr)
+	log.SetFlags(0)
+	root := flag.String("data-dir", "", "Explicit absolute directory of offline decrypted WeChat v4 copies")
+	account := flag.String("account-id", "", "Caller-assigned dataset account identifier")
+	flag.Parse()
+	if flag.NArg() != 0 {
+		log.Print("INVALID_ARGUMENTS: no positional arguments are accepted")
+		os.Exit(2)
+	}
+	b, err := openBridge(*root, *account)
+	if err != nil {
+		log.Print(err)
+		os.Exit(2)
+	}
+	defer b.close()
+	if err := serve(b, os.Stdin, os.Stdout); err != nil {
+		log.Print("TRANSPORT_ERROR: input/output failed")
+		os.Exit(1)
+	}
+}

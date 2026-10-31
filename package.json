@@ -15,7 +15,18 @@
     "setup": "node node_modules/electron/install.js && node node_modules/esbuild/install.js",
     "extract:protocol": "node tools/extract-protocol.mjs",
     "verify:protocol": "node tools/extract-protocol.mjs --check",
-    "test:protocol": "node --test tests/protocol.test.mjs"
+    "test:protocol": "node --test tests/protocol.test.mjs",
+    "build:bridge": "node scripts/build-data-bridge.mjs",
+    "build:independent": "npm run build:bridge && npm run build",
+    "start:independent": "node scripts/launch.mjs --independent",
+    "test:security": "node --test tests/security.test.mjs tests/independent-boundary-security.test.cjs",
+    "test:bridge": "node --test tests/data-bridge.test.mjs",
+    "test:engine": "node --test tests/engine*.test.mjs",
+    "test:independent": "node tests/independent-smoke.mjs",
+    "demo": "node scripts/demo.mjs",
+    "test:boundaries": "node --test tests/independent-boundary-*.test.*",
+    "test": "node --test tests/*.test.mjs tests/*.test.cjs",
+    "record:maintenance": "node scripts/record-maintenance.mjs"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.14.0",

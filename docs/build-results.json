@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-31T17:50:22.938Z",
+  "builtAt": "2026-10-31T18:21:22.115Z",
   "node": "v24.21.0",
   "electron": "44.0.0",
   "esbuild": "0.28.2",
@@ -9,7 +9,7 @@
     {
       "inputs": {
         "src/main/index.js": {
-          "bytes": 3180527,
+          "bytes": 3182669,
           "imports": [],
           "format": "cjs"
         }
@@ -19,7 +19,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 5340446
+          "bytes": 5343736
         },
         "dist/app/out/main/index.js": {
           "imports": [
@@ -74,6 +74,11 @@
               "external": true
             },
             {
+              "path": "./recovery-runtime.cjs",
+              "kind": "require-call",
+              "external": true
+            },
+            {
               "path": "@hicccc77/electron-liquid-glass",
               "kind": "require-call",
               "external": true
@@ -83,10 +88,10 @@
           "entryPoint": "src/main/index.js",
           "inputs": {
             "src/main/index.js": {
-              "bytesInOutput": 3201636
+              "bytesInOutput": 3203710
             }
           },
-          "bytes": 3201684
+          "bytes": 3203758
         }
       }
     },
@@ -190,7 +195,7 @@
           "format": "esm"
         },
         "src/renderer/assets/index-DPCwIOAb.js": {
-          "bytes": 2863507,
+          "bytes": 2864181,
           "imports": [],
           "format": "esm"
         },
@@ -266,7 +271,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 4979074
+          "bytes": 4980319
         },
         "dist/app/out/renderer/assets/index-DPCwIOAb.js": {
           "imports": [
@@ -290,10 +295,10 @@
           "entryPoint": "src/renderer/assets/index-DPCwIOAb.js",
           "inputs": {
             "src/renderer/assets/index-DPCwIOAb.js": {
-              "bytesInOutput": 3081448
+              "bytesInOutput": 3082530
             }
           },
-          "bytes": 3081491
+          "bytes": 3082573
         },
         "dist/app/out/renderer/assets/message-images-Dl-McHRQ.js.map": {
           "imports": [],

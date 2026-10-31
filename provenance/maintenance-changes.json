@@ -1,0 +1,30 @@
+{
+  "recordedAt": "2026-10-31T18:21:47.162Z",
+  "sourceDmgSha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
+  "originalManifest": "provenance/recovered-files.json",
+  "originalFiles": 169,
+  "unchangedOriginalFiles": 167,
+  "changed": [
+    {
+      "path": "src/main/index.js",
+      "originalSha256": "7e8fabf836059696bc00ecf9266b68cbed4b0cd690e3ffe6f80e1755a72c193a",
+      "currentSha256": "def4c9e2bd6f2d2406ed951e0a8d37cffefaa97c12e3dec9e852d11010c0ccb4",
+      "currentBytes": 3182669
+    },
+    {
+      "path": "src/renderer/assets/index-DPCwIOAb.js",
+      "originalSha256": "8547e1338248bf174063cf7153c398a6d1a7d8c72ec0e6780e25ed01a954bde3",
+      "currentSha256": "dddf2ddd8c66c14950ef85c40f7a58823f2c84f2361f0b2ef49c80c9050a5c62",
+      "currentBytes": 2864181
+    }
+  ],
+  "reason": "Explicit independent backend startup, data-source discovery, unsupported original gateway boundaries, and accurate offline-source onboarding text.",
+  "authoredModules": [
+    "packages/alpha-engine",
+    "packages/alpha-data-bridge",
+    "packages/alpha-security",
+    "packages/alpha-desktop"
+  ],
+  "originalNativeArtifactsModified": false,
+  "note": "Recovered declarations in alpha-protocol remain generated from main. The current source hash is recorded separately from original provenance. Native hashes must also pass verify:vendor."
+}

@@ -17,6 +17,10 @@ const outputs = await Promise.all([
   build({ ...common, entryPoints: [path.join(src, 'agent-host/index.cjs')], outfile: path.join(root, 'workers/agent/dist/index.cjs'), platform: 'node', format: 'cjs', target: 'node24' })
 ]);
 await fs.copyFile(path.join(root, 'scripts/bootstrap.cjs'), path.join(app, 'bootstrap.cjs'));
+await fs.copyFile(path.join(root, 'packages/alpha-desktop/recovery-runtime.cjs'), path.join(app, 'out/main/recovery-runtime.cjs'));
+for (const name of ['alpha-engine', 'alpha-security', 'alpha-protocol']) {
+  await fs.cp(path.join(root, 'packages', name), path.join(app, 'packages', name), { recursive: true });
+}
 await fs.writeFile(path.join(app, 'package.json'), JSON.stringify({ name: 'alpha-recovered-local', productName: 'Alpha Recovered', version: '0.3.5', private: true, main: 'bootstrap.cjs' }, null, 2) + '\n');
 await fs.mkdir(path.join(root, 'build'), { recursive: true });
 const runtimeBundle = path.join(root, 'build/runtime-bundle');
