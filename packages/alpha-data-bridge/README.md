@@ -43,6 +43,7 @@ build/candidates/alpha-data-bridge --data-dir /absolute/offline-copy --account-i
 | `messages.locate` | `conversationId`、`serverId`（正 uint64 十进制字符串） | message 或 null，及 beforeCursor/afterCursor |
 | `messages.dayCounts` | `conversationId`、`fromUnixMs`、`toUnixMs`（十进制字符串）、`utcOffsetMinutes`（整数） | `{days:[{localDay,count}]}`，数字为字符串；毫秒范围半开、最多 62 天 |
 | `messages.stats` | 可选 `conversationId`，空表示整个账号 | `{conversationId,messageCount,firstTime,lastTime,counts:[{localType,count}]}`；first/last 为秒字符串，空集合为空字符串 |
+| `general.list` | `tableName=__alpha_group_members`、`query=<chatroom>@chatroom`、`offset`、`limit`、`ascending=true` | 从 v4 `chat_room.ext_buffer` 解析真实成员，补充 contact 表中的昵称/备注/别名和 `isOwner`；不伪造头像/管理员 |
 
 Cursor 是 bridge 产生的不透明 base64url 字符串，绑定本次数据快照和全部筛选/排序参数；调用者原样传回，不能拿另一个查询的 cursor 继续读取。limit 可以调整。消息跨所有分库按 `(create_time, database, table, local_id)` 全局排序，再截取一页；反向分页反转完整排序，不依赖分库的 Timestamp 范围声明。`sort_seq` 作为原始信息保留，不参与新排序。这样原界面按时间跳转、搜索上下文读取与分页保持一致；本轮并未证明原厂 native 的全部排序细节。cursor-v2 绑定新排序语义，旧 cursor 明确拒绝。查询不存在的 `Msg_<MD5(conversationId)>` 表会返回真实空页；缺失整个消息库则返回明确不可用。
 
@@ -52,11 +53,17 @@ Cursor 是 bridge 产生的不透明 base64url 字符串，绑定本次数据快
 
 - Contact：`username, localType, alias, remark, nickName, source:{database,table,rowId}`。
 - Session：`username, summary, lastTimestamp, sortTimestamp, lastMsgSender, lastSenderDisplayName, source:{database,table,rowId}`。lastSenderDisplayName 是最后发言人名，不是会话名称。
-- Message：`conversationId, localId, serverId, sortSeq, localType, createTime, sender, realSenderId, status, content, contentBase64, contentEncoding, packedInfoBase64, source:{database,table,localId}`。
+- Message：`conversationId, localId, serverId, sortSeq, localType, createTime, sender, realSenderId, status, content, contentBase64, contentEncoding, packedInfoBase64, refs, source:{database,table,localId}`。
 
 `source.database` 是相对输入根目录的路径。外层 Alpha 协议如果只允许 int32 localId，必须把完整字符串和 source locator 保存在自己的 opaque source token/映射里，不能截断、取模或转成失真的 Number。`status` 保留原值，不代表已验证的消息方向；方向需要明确自己的 username。
 
-`contentBase64` 和 `packedInfoBase64` 在各自不超过 4 MiB 时保留原始字节。SQL 查询在物化前拦截更大的字段；超大 content 返回 `contentDecodeStatus=too-large`、空 content/raw，超大 packed metadata 返回空字段及 `packedInfoOmitted=true`。UTF-8 和正常 zstd 帧由列表、搜索和定位共享同一解码器，成功时 `contentEncoding=utf8`，zstd 额外标记 `contentCompression=zstd`；压缩输入、解压结果、窗口均最多 4 MiB。解码失败保留 `binary` 与具体 `contentDecodeStatus`，调用方不能再次采用更宽松解码然后声称搜索完整。尚未实现 XML/卡片/protobuf 业务内容提取、媒体或引用结构；当前搜索的是实际显示的原始可读文本，未知消息类型不会被假定为文本类型。
+`contentBase64` 和 `packedInfoBase64` 在各自不超过 4 MiB 时保留原始字节。SQL 查询在物化前拦截更大的字段；超大 content 返回 `contentDecodeStatus=too-large`、空 content/raw，超大 packed metadata 返回空字段及 `packedInfoOmitted=true`。UTF-8 和正常 zstd 帧由列表、搜索和定位共享同一解码器，成功时 `contentEncoding=utf8`，zstd 额外标记 `contentCompression=zstd`；压缩输入、解压结果、窗口均最多 4 MiB。解码失败保留 `binary` 与具体 `contentDecodeStatus`，调用方不能再次采用更宽松解码然后声称搜索完整。XML/卡片/protobuf 业务内容仍未完整解析，当前搜索的是实际显示的原始可读文本，未知消息类型不会被假定为文本类型。
+
+### 媒体引用（只读声明）
+
+`refs` 只在消息内容明确声明媒体标识或 URL 时出现，字段为 `kind`（`image`、`video` 或 `voice`）、可选 `id`、可选 `uri`、可选 `mimeType` 和 `rendition`。图片（`localType=3`）提取文本中的 `md5`/`rawmd5` 与 `cdnthumburl`/`cdnurl`/`url` 属性；视频（`localType=43`）使用相同规则；语音（`localType=34`）仅使用该行真实 `serverId` 作为引用 ID。每条消息最多返回两条引用，重复哈希去重，属性和长度均有上限。
+
+这些是消息内容中的声明性引用，不是已经验证的文件。bridge 不推断本地路径、不读取或解密 `.dat`/语音/视频、不联网下载 CDN，也不生成 `media1_...` 解析令牌。图片/视频没有可解析声明、内容损坏或超限时返回空 `refs`；语音的 `serverId` 引用独立于正文编码状态。任何情况下都不会伪造路径或 token；上层若收到不支持的 URI scheme 会明确拒绝该消息 DTO。
 
 ## 读取边界
 
@@ -80,4 +87,4 @@ SQLite URI 固定 `mode=ro&immutable=1&_query_only=1`。没有原始 SQL、写�
 
 日期统计严格采用 `[fromUnixMs,toUnixMs)`，对秒数据库做精确 ceil 边界转换，按 `floor((create_time + utcOffsetMinutes*60)/86400)` 聚合；UTC offset 范围为 -720 至 +840，负 localDay 也向负无穷取整。只返回 count>0 的日，按 localDay 升序。stats 直接计原始 local_type，并提供真实最早/最晚时间；上层负责将已知类型归类，未知 subtype 不能伪装成已解析类型。
 
-新增合成数据入口为 [createSearchFixture](../../tests/search-fixture.mjs)，生成 10 条、3 个会话、9 条“维护”命中，含合法 zstd、无 session 的 Name2Id 会话、跨库重复 server_id、64 位 ID、时间与 sort_seq 故意不一致的消息。新增测试覆盖全局/会话/分组/筛选/分页、定位两侧游标、uint64、日期半开边界/时区、partial coverage 与超大字段；没有读取真实微信数据。
+新增合成数据入口为 [createSearchFixture](../../tests/search-fixture.mjs)，生成 10 条、3 个会话、9 条“维护”命中，含合法 zstd、无 session 的 Name2Id 会话、跨库重复 server_id、64 位 ID、时间与 sort_seq 故意不一致的消息。新增测试覆盖全局/会话/分组/筛选/分页、定位两侧游标、uint64、日期半开边界/时区、partial coverage、超大字段和声明性媒体 refs；没有读取真实微信数据。

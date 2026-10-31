@@ -49,7 +49,9 @@ type response struct {
 }
 type params struct {
 	Limit               int    `json:"limit"`
+	Offset              int    `json:"offset"`
 	Cursor              string `json:"cursor"`
+	TableName           string `json:"tableName"`
 	ConversationID      string `json:"conversationId"`
 	Ascending           *bool  `json:"ascending"`
 	AfterTime           string `json:"afterTime"`
@@ -87,24 +89,25 @@ type session struct {
 	Source                sourceRef `json:"source"`
 }
 type message struct {
-	ConversationID      string    `json:"conversationId"`
-	LocalID             string    `json:"localId"`
-	ServerID            string    `json:"serverId"`
-	SortSeq             string    `json:"sortSeq"`
-	LocalType           string    `json:"localType"`
-	CreateTime          string    `json:"createTime"`
-	Sender              string    `json:"sender"`
-	RealSenderID        string    `json:"realSenderId"`
-	Status              string    `json:"status"`
-	Content             string    `json:"content"`
-	ContentBase64       string    `json:"contentBase64"`
-	ContentEncoding     string    `json:"contentEncoding"`
-	ContentCompression  string    `json:"contentCompression,omitempty"`
-	ContentDecodeStatus string    `json:"contentDecodeStatus"`
-	MatchCount          string    `json:"matchCount,omitempty"`
-	PackedInfoBase64    string    `json:"packedInfoBase64"`
-	PackedInfoOmitted   bool      `json:"packedInfoOmitted,omitempty"`
-	Source              sourceRef `json:"source"`
+	ConversationID      string     `json:"conversationId"`
+	LocalID             string     `json:"localId"`
+	ServerID            string     `json:"serverId"`
+	SortSeq             string     `json:"sortSeq"`
+	LocalType           string     `json:"localType"`
+	CreateTime          string     `json:"createTime"`
+	Sender              string     `json:"sender"`
+	RealSenderID        string     `json:"realSenderId"`
+	Status              string     `json:"status"`
+	Content             string     `json:"content"`
+	ContentBase64       string     `json:"contentBase64"`
+	ContentEncoding     string     `json:"contentEncoding"`
+	ContentCompression  string     `json:"contentCompression,omitempty"`
+	ContentDecodeStatus string     `json:"contentDecodeStatus"`
+	MatchCount          string     `json:"matchCount,omitempty"`
+	PackedInfoBase64    string     `json:"packedInfoBase64"`
+	PackedInfoOmitted   bool       `json:"packedInfoOmitted,omitempty"`
+	Refs                []mediaRef `json:"refs,omitempty"`
+	Source              sourceRef  `json:"source"`
 }
 type page[T any] struct {
 	Items      []T    `json:"items"`
@@ -219,6 +222,11 @@ func openBridge(root, accountID string) (_ *bridge, err error) {
 			}
 			if !d.tables["contact"] {
 				return fail("SCHEMA_UNSUPPORTED", "contact table is missing")
+			}
+			if d.tables["chat_room"] {
+				if err := validateColumns(d.db, "chat_room", []string{"username", "owner", "ext_buffer"}); err != nil {
+					return err
+				}
 			}
 			b.contactDB = d
 		case "session.db":
@@ -440,6 +448,9 @@ func (b *bridge) info() any {
 	capabilities := []string{"account.info"}
 	if b.contactDB != nil {
 		capabilities = append(capabilities, "contacts.list")
+		if b.contactDB.tables["chat_room"] {
+			capabilities = append(capabilities, "groups.members")
+		}
 	}
 	if b.sessionDB != nil {
 		capabilities = append(capabilities, "sessions.list")
@@ -712,11 +723,15 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 	if p.Limit == 0 {
 		p.Limit = 100
 	}
-	if p.Limit < 1 || p.Limit > 500 {
-		return nil, fail("INVALID_PARAMS", "limit must be between 1 and 500")
+	maxLimit := 500
+	if r.Op == "general.list" {
+		maxLimit = 1000
+	}
+	if p.Limit < 1 || p.Limit > maxLimit {
+		return nil, fail("INVALID_PARAMS", fmt.Sprintf("limit must be between 1 and %d", maxLimit))
 	}
 	if r.Op == "account.info" || r.Op == "accounts.info" {
-		if p.Cursor != "" || p.ConversationID != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Ascending != nil || p.UsernameExact != "" || p.Query != "" || p.Sender != "" || p.GroupByConversation || p.ServerID != "" || p.FromUnixMs != "" || p.ToUnixMs != "" || p.UTCOffsetMinutes != nil {
+		if p.Limit != 100 || p.Offset != 0 || p.TableName != "" || p.Cursor != "" || p.ConversationID != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Ascending != nil || p.UsernameExact != "" || p.Query != "" || p.Sender != "" || p.GroupByConversation || p.ServerID != "" || p.FromUnixMs != "" || p.ToUnixMs != "" || p.UTCOffsetMinutes != nil {
 			return nil, fail("INVALID_PARAMS", "account.info has no query parameters")
 		}
 		return b.info(), nil
@@ -731,6 +746,8 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 	}
 	var value any
 	switch r.Op {
+	case "general.list":
+		value, err = b.general(ctx, p)
 	case "contacts.list":
 		value, err = b.contacts(ctx, p, key, c)
 	case "sessions.list":

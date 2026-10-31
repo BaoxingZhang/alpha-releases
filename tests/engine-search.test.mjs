@@ -147,3 +147,30 @@ test('epoch-zero date jump uses after=-1 and real zero timestamps survive statis
   const stats = ok(await f.call('getChatExportStats', { conversationIds: [f.conversationId] }), 'getChatExportStats');
   assert.equal(stats.items[0].firstMessageUnixMs, 0n); assert.equal(stats.items[0].total, 6n);
 });
+
+test('engine preserves validated media refs with omitted optional DTO fields', async t => {
+  const f = await setup(t, async fixture => {
+    const script = `import sqlite3,sys,hashlib
+c=sqlite3.connect(sys.argv[1]);table=sys.argv[2]
+c.execute('UPDATE "'+table+'" SET local_type=3,message_content=? WHERE local_id=2',('<img md5="0123456789abcdef0123456789abcdef" cdnthumburl="https://cdn.example/thumb" />',))
+c.execute('UPDATE "'+table+'" SET local_type=43,message_content=? WHERE local_id=3',("<videomsg rawmd5='fedcba9876543210fedcba9876543210' cdnurl='https://cdn.example/video' />",))
+beta='Msg_'+hashlib.md5(b'wxid_beta').hexdigest()
+c.execute('UPDATE "'+beta+'" SET local_type=34,message_content=? WHERE local_id=1',(b'\\x00\\xff\\xfe',));c.commit();c.close()`;
+    await execute('/usr/bin/python3', ['-c', script, path.join(fixture.directory, 'message/message_0.db'), fixture.table]);
+  });
+  const alpha = await f.pages('listMessages', { conversationId: f.conversationId, ascending: true }, 20);
+  assert.deepEqual(alpha.find(row => row.localId === 2).refs, [{ kind: 'image', id: '0123456789abcdef0123456789abcdef', uri: '', mimeType: 'image/*', rendition: 'source' }, { kind: 'image', id: '', uri: 'https://cdn.example/thumb', mimeType: 'image/*', rendition: 'thumbnail' }]);
+  assert.deepEqual(alpha.find(row => row.localId === 3).refs, [{ kind: 'video', id: 'fedcba9876543210fedcba9876543210', uri: '', mimeType: 'video/*', rendition: 'source' }, { kind: 'video', id: '', uri: 'https://cdn.example/video', mimeType: 'video/*', rendition: 'source' }]);
+  const voice = (await f.pages('listMessages', { conversationId: f.secondConversationId, ascending: true }, 20)).find(row => row.localId === 1);
+  assert.equal(voice.kind, 'unsupported');
+  assert.deepEqual(voice.refs, [{ kind: 'voice', id: '77', uri: '', mimeType: 'audio/amr', rendition: 'voice-data' }]);
+});
+
+test('engine rejects declared media refs with unsupported URI schemes', async t => {
+  const f = await setup(t, async fixture => {
+    const script = `import sqlite3,sys
+c=sqlite3.connect(sys.argv[1]);c.execute('UPDATE "'+sys.argv[2]+'" SET local_type=3,message_content=? WHERE local_id=2',('<img cdnurl="file:///tmp/alpha.png" />',));c.commit();c.close()`;
+    await execute('/usr/bin/python3', ['-c', script, path.join(fixture.directory, 'message/message_0.db'), fixture.table]);
+  });
+  assert.equal((await f.call('listMessages', { conversationId: f.conversationId, ascending: true, page: { pageSize: 20 } })).error?.code, 'BRIDGE_MESSAGE_REFS_INVALID');
+});

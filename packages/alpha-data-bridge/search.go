@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -46,11 +47,23 @@ func conversationTable(name string) string {
 func boolPointer(v bool) *bool { return &v }
 func validateOperationParams(op string, p *params) error {
 	switch op {
-	case "contacts.list", "sessions.list", "messages.list", "messages.search", "messages.locate", "messages.dayCounts", "messages.stats":
+	case "general.list", "contacts.list", "sessions.list", "messages.list", "messages.search", "messages.locate", "messages.dayCounts", "messages.stats":
 	default:
 		return fail("UNSUPPORTED_OPERATION", "This read-only operation is not implemented")
 	}
 	isMessage := strings.HasPrefix(op, "messages.")
+	if op == "general.list" {
+		if p.Cursor != "" || p.TableName == "" || p.Query == "" || p.Offset < 0 || p.Offset > maxRoomMembers || p.ConversationID != "" || p.UsernameExact != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Sender != "" || p.GroupByConversation || p.ServerID != "" || p.FromUnixMs != "" || p.ToUnixMs != "" || p.UTCOffsetMinutes != nil {
+			return fail("INVALID_PARAMS", "Invalid general record parameters")
+		}
+		if p.Ascending == nil || !*p.Ascending {
+			return fail("INVALID_PARAMS", "General records require ascending order")
+		}
+		return nil
+	}
+	if p.Offset != 0 || p.TableName != "" {
+		return fail("INVALID_PARAMS", "General record parameters require general.list")
+	}
 	if !isMessage && (p.ConversationID != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Ascending != nil) {
 		return fail("INVALID_PARAMS", "Message filters require a message operation")
 	}
@@ -154,6 +167,68 @@ func messageQuery(table string) string {
 
 type messageScanner interface{ Scan(...any) error }
 
+type mediaRef struct {
+	Kind      string `json:"kind"`
+	ID        string `json:"id,omitempty"`
+	URI       string `json:"uri,omitempty"`
+	MimeType  string `json:"mimeType,omitempty"`
+	Rendition string `json:"rendition,omitempty"`
+}
+
+var mediaHashPattern = regexp.MustCompile(`(?i)(?:md5|rawmd5)=["']([0-9a-f]{32})["']`)
+var mediaURLPattern = regexp.MustCompile(`(?i)(cdnthumburl|cdnurl|url)=["']([^"'<>\x00-\x1f]{1,1000})["']`)
+
+// mediaReferences only exposes identifiers that are present in the decoded
+// message itself. It never turns an inferred path into a local file URI or a
+// mediaResolveToken; resolving bytes requires a separately verified media
+// index and is deliberately left unavailable in the independent backend.
+func mediaReferences(localType, serverID, content string) []mediaRef {
+	kind := ""
+	mime := ""
+	switch localType {
+	case "3":
+		kind, mime = "image", "image/*"
+	case "34":
+		if serverID == "" || serverID == "0" {
+			return nil
+		}
+		return []mediaRef{{Kind: "voice", ID: serverID, MimeType: "audio/amr", Rendition: "voice-data"}}
+	case "43":
+		kind, mime = "video", "video/*"
+	default:
+		return nil
+	}
+	hashes := mediaHashPattern.FindAllStringSubmatch(content, -1)
+	urls := mediaURLPattern.FindAllStringSubmatch(content, -1)
+	if len(hashes) == 0 && len(urls) == 0 {
+		return nil
+	}
+	refs := make([]mediaRef, 0, 2)
+	seen := map[string]bool{}
+	for _, match := range hashes {
+		id := strings.ToLower(match[1])
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		refs = append(refs, mediaRef{Kind: kind, ID: id, MimeType: mime, Rendition: "source"})
+		if len(refs) == 2 {
+			break
+		}
+	}
+	for _, match := range urls {
+		if len(refs) >= 2 {
+			break
+		}
+		r := "source"
+		if strings.EqualFold(match[1], "cdnthumburl") {
+			r = "thumbnail"
+		}
+		refs = append(refs, mediaRef{Kind: kind, URI: match[2], MimeType: mime, Rendition: r})
+	}
+	return refs
+}
+
 func scanMessage(rows messageScanner, d *database, table, conversation string) (message, error) {
 	var item message
 	var local, server, seq, kind, created, senderID, status int64
@@ -179,6 +254,11 @@ func scanMessage(rows messageScanner, d *database, table, conversation string) (
 		item.ContentDecodeStatus = "too-large"
 	}
 	item.PackedInfoOmitted = packedSize > maxTextBytes
+	// Voice references are carried by the row's real server_id and remain
+	// verifiable even when the encoded audio payload is not UTF-8 text.
+	if item.ContentDecodeStatus == "decoded" || item.LocalType == "34" {
+		item.Refs = mediaReferences(item.LocalType, item.ServerID, item.Content)
+	}
 	item.Source = sourceRef{Database: d.relative, Table: table, LocalID: item.LocalID}
 	return item, nil
 }

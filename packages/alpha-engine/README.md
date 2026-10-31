@@ -2,7 +2,7 @@
 
 这是自有后端的真实适配层。输入为恢复的 `EngineClientFrame`，输出为 `EngineServerFrame`，均使用 4 字节大端长度前缀。数据库读取委托同项目的 Go `alpha-data-bridge`，应用锁委托 `alpha-security`；不加载 Electron、恢复后的整份 main 或原闭源引擎。
 
-当前实现 128 个请求分支中的 18 个，其余 110 个明确返回 `UNIMPLEMENTED`。已接入基础聊天、搜索、日期导航、手动解密与密码锁。媒体解析、朋友圈、导出、任务、分析报表、AI、自动获取密钥和写入等功能仍需逐项实现，不把页面能打开视作功能完成。完整范围仍见 `docs/backend-compatibility-map.json`。
+当前实现 128 个请求分支中的 20 个，其余 108 个明确返回 `UNIMPLEMENTED`。已接入基础聊天、搜索、日期导航、群成员读取、文本/JSON/Markdown 导出、消息中的声明性媒体引用、手动解密与密码锁。媒体文件解析/播放、朋友圈、导出任务、分析报表、AI、自动获取密钥和写入等功能仍需逐项实现，不把页面能打开视作功能完成。完整范围仍见 `docs/backend-compatibility-map.json`。
 
 ## 启动与模块边界
 
@@ -41,11 +41,13 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | listAccounts | 12 | 显式离线数据源的实时验证及账号状态 |
 | selectAccount | 13 | 成功验证后持久保存选择 |
 | listConversations | 14 | 真实会话表分页，联系人备注/昵称为名称；无 contact.db 时回退 username |
-| listMessages | 15 | 跨分库稳定分页、顺序和排他毫秒时间范围 |
+| listMessages | 15 | 跨分库稳定分页、顺序和排他毫秒时间范围；保留可验证的消息 `refs` |
+| exportConversation | 16 | 只读 JSON/Markdown/TXT 导出，支持精确毫秒范围和安全新文件发布；不含媒体 |
 | searchMessages | 17 | 全局/会话搜索、Unicode 小写字面匹配、发送者/闭区间时间筛选、按会话分组及真实数量 |
 | discoverAccounts | 29 | 仅接受与已配置源路径完全一致的 sourceLocation |
 | importDatabaseKey | 30 | 仅对显式加密源接收一次性 32 字节 key；导入成功前保持 waiting_for_key |
 | listContacts | 42 | 升序、offset/limit 和 `__alpha_contact_exact:` 精确 username 查询 |
+| listGeneral | 45 | 从 v4 `chat_room.ext_buffer` 解析群成员；补充联系人备注/昵称/别名和 `isOwner` |
 | getApplicationLockStatus | 48 | 真实独立密码锁状态 |
 | unlockApplication | 50 | 真实密码校验、失败退避和持久状态 |
 | lockApplication | 51 | 关闭数据桥并锁定访问 |
@@ -75,7 +77,7 @@ manifest 文件名保持 `snapshots/manifest.v1.json`，内容版本为 2，严�
 
 - Go 游标保留原不透明字符串，放入 protobuf bytes；不修改其内部 snapshot/query 绑定。
 - serverId 保持 int64 BigInt。原协议 Message.localId 是 int32，超过范围时此旧字段为 0（不可用），完整字符串保存在独立 `sourceToken`，稳定消息 ID 也包含数据库/表/完整 localId。原桌面转换仅接受原 `media1_` 格式，会过滤独立 token，因此旧 UI 尚无完整 localId 新字段；后续应扩展自有 DTO，不能假装原媒体/写入 token。所有写入方法目前均未实现。
-- 消息文本保持原 UTF-8。zstd 内容在当前运行时支持并能安全解压时读取，否则返回 kind=`unsupported` 和明确的占位说明“[未支持的二进制消息内容]”；占位文本不是原始消息内容。XML/富媒体业务结构尚未完整解析，媒体文件不自动读取。
+- 消息文本保持原 UTF-8。zstd 内容在当前运行时支持并能安全解压时读取，否则返回 kind=`unsupported` 和明确的占位说明“[未支持的二进制消息内容]”；占位文本不是原始消息内容。`refs` 仅承载消息中明确提供的图片/视频/语音 ID 或 http(s) URI，字段可选但至少含 ID 或 URI；Node 会限制类型、字符集、长度和 URI scheme。正文不可读时仍可保留由真实语音 `serverId` 验证的 voice ref，图片/视频 refs 则为空。refs 不代表本地文件可用，媒体文件不自动读取、解密、下载或播放，也不会生成原 Alpha 的 `media1_...` token。
 - 消息方向仅依赖显式 SELF_USERNAME 与真实 sender；缺失任一时为 unknown，不从状态字段猜测。
 - 联系人高级 directory/lookup、模糊查询和降序尚未实现，直接返回 `UNIMPLEMENTED`。每次页大小最多 500；会话/消息通过 nextCursor 继续读取。
 - 密码请求的 Uint8Array 在分派 finally 中清零，安全模块不持久保存明文；该锁是应用访问控制，不是对离线数据库的磁盘加密。
@@ -88,4 +90,4 @@ manifest 文件名保持 `snapshots/manifest.v1.json`，内容版本为 2，严�
 node --test tests/engine.test.mjs tests/engine-import.test.mjs tests/engine-search.test.mjs tests/independent-boundary-engine.test.mjs tests/import-security-boundary.test.mjs
 ```
 
-测试只使用合成普通/加密/搜索 SQLite 数据，主路径使用真实 Node stdio → protobuf → Go importer / Go bridge。覆盖分片/粘包、协议编号、110 个未实现分支、64 位 ID、分页、全局与会话搜索、分组/筛选/覆盖、日期与定位、锁/重启、真实加密源导入、错误密钥、manifest 越界/篡改、导入中状态查询/锁定/EOF、提交时锁定、超时和源改变。小脚本仅用于故障注入，不作为正常导入或数据实现。
+测试只使用合成普通/加密/搜索 SQLite 数据，主路径使用真实 Node stdio → protobuf → Go importer / Go bridge。覆盖分片/粘包、协议编号、108 个未实现分支、64 位 ID、分页、群成员 RoomData、JSON/Markdown/TXT 导出、全局与会话搜索、分组/筛选/覆盖、日期与定位、声明性媒体 refs DTO 校验、锁/重启、真实加密源导入、错误密钥、manifest 越界/篡改、导入中状态查询/锁定/EOF、提交时锁定、超时和源改变。小脚本仅用于故障注入，不作为正常导入或数据实现。

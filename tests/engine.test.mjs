@@ -158,7 +158,7 @@ test('all unimplemented request branches and unsupported contact modes fail expl
   assert.equal((await c.send('hello', { protocol: { major: 2 } })).error.code, 'PROTOCOL_VERSION_UNSUPPORTED');
   await handshake(c);
   const unsupported = ALL_METHODS.filter(name => !Object.hasOwn(SUPPORTED, name));
-  assert.equal(ALL_METHODS.length, 128); assert.equal(unsupported.length, 110);
+  assert.equal(ALL_METHODS.length, 128); assert.equal(unsupported.length, 108);
   for (const method of unsupported) assert.equal((await c.send(method)).error?.code, 'UNIMPLEMENTED', method);
   for (const payload of [{ query: 'fuzzy' }, { query: '__alpha_contact_exact:' }, { directory: {} }, { lookup: {} }, { ascending: false }]) {
     const result = await c.send('listContacts', { accountId, ascending: true, ...payload });

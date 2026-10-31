@@ -10,7 +10,7 @@ const { BridgeClient } = require('./bridge-client.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, searchMessages: 17, getChatExportStats: 120, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getDataRevision: 105 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, getChatExportStats: 120, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, listGeneral: 45, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getDataRevision: 105 });
 const EXACT_CONTACT = '__alpha_contact_exact:';
 const error = code => new Error(code);
 const sha = text => crypto.createHash('sha256').update(text).digest('hex');
@@ -52,6 +52,12 @@ function checkedPage(result, limit) {
 }
 const INT64_MAX = (1n << 63n) - 1n;
 const MAX_SAFE_COUNT = BigInt(Number.MAX_SAFE_INTEGER);
+const MAX_EXPORT_MESSAGES = 100000;
+const MAX_EXPORT_BYTES = 64 * 1024 * 1024;
+const MAX_EXPORT_RUNTIME_MS = 30000;
+// Keep normal exports efficient while reducing the page if a bridge response
+// is too large for an unusually big decoded/base64 payload.
+const EXPORT_PAGE_SIZE = 100;
 function requestTime(value, code, optional = false) {
   if (optional && value === undefined) return undefined;
   if (typeof value !== 'bigint' || value < 0n || value > INT64_MAX) throw error(code);
@@ -79,6 +85,73 @@ function safeStateDirectory(directory) {
   if (!path.isAbsolute(directory)) throw error('ENGINE_STATE_PATH_INVALID');
   let current = path.parse(directory).root;
   for (const part of directory.split(path.sep).filter(Boolean)) { current = path.join(current, part); const stat = fs.lstatSync(current); if (!stat.isDirectory() || stat.isSymbolicLink()) throw error('ENGINE_STATE_PATH_INVALID'); }
+}
+function safeExportParent(destinationPath) {
+  if (typeof destinationPath !== 'string' || !path.isAbsolute(destinationPath) || destinationPath.length > 4096 || /[\u0000-\u001f\u007f]/.test(destinationPath)) throw error('EXPORT_DESTINATION_INVALID');
+  const normalized = path.resolve(destinationPath);
+  if (normalized === path.parse(normalized).root) throw error('EXPORT_DESTINATION_INVALID');
+  let current = path.parse(normalized).root;
+  for (const part of path.dirname(normalized).split(path.sep).filter(Boolean)) {
+    current = path.join(current, part);
+    let stat;
+    try { stat = fs.lstatSync(current); } catch (failure) { if (failure.code === 'ENOENT') throw error('EXPORT_PARENT_MISSING'); throw error('EXPORT_DESTINATION_INVALID'); }
+    if (!stat.isDirectory() || stat.isSymbolicLink()) throw error('EXPORT_DESTINATION_INVALID');
+  }
+  try {
+    const stat = fs.lstatSync(normalized);
+    if (stat.isSymbolicLink()) throw error('EXPORT_DESTINATION_INVALID');
+    throw error('EXPORT_OUTPUT_EXISTS');
+  } catch (failure) {
+    if (failure.code !== 'ENOENT') throw failure;
+  }
+  return normalized;
+}
+function pathWithinDirectory(directory, target) {
+  const relative = path.relative(path.resolve(directory), path.resolve(target));
+  return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
+function exportIsoTime(unixMs) {
+  const maxDate = 8640000000000000n;
+  if (unixMs > maxDate) return unixMs.toString();
+  try { return new Date(Number(unixMs)).toISOString(); } catch { return unixMs.toString(); }
+}
+function exportMessage(message) {
+  const source = message.rawSource || {};
+  return {
+    id: message.id,
+    accountId: source.accountId || '',
+    conversationId: message.conversationId,
+    localId: message.rawLocalId || String(message.localId),
+    serverId: message.rawServerId || message.serverId.toString(),
+    localType: message.rawLocalType || message.sourceType.toString(),
+    sentAtUnixMs: message.sentAtUnixMs.toString(),
+    sentAt: exportIsoTime(message.sentAtUnixMs),
+    senderId: message.senderId,
+    direction: message.direction,
+    kind: message.kind,
+    text: message.text,
+    contentDecodeStatus: message.contentDecodeStatus,
+    source: { database: source.database || '', table: source.table || '', localId: source.localId || '' },
+    refs: message.refs || []
+  };
+}
+function markdownExport(meta, items) {
+  const lines = ['# Alpha conversation export', '', `- accountId: ${meta.accountId}`, `- conversationId: ${meta.conversationId}`, `- itemCount: ${items.length}`];
+  if (meta.startTimeUnixMs !== undefined) lines.push(`- startTimeUnixMs: ${meta.startTimeUnixMs}`);
+  if (meta.endTimeUnixMs !== undefined) lines.push(`- endTimeUnixMs: ${meta.endTimeUnixMs}`);
+  lines.push('');
+  for (const item of items) {
+    lines.push(`## ${item.sentAt} · ${item.senderId || '(unknown sender)'}`, '', `- localId: ${item.localId}`, `- serverId: ${item.serverId}`, `- localType: ${item.localType}`, `- kind: ${item.kind}`, '', item.text, '');
+  }
+  return lines.join('\n') + '\n';
+}
+function textExport(meta, items) {
+  const lines = [`Alpha conversation export`, `accountId: ${meta.accountId}`, `conversationId: ${meta.conversationId}`, `itemCount: ${items.length}`];
+  if (meta.startTimeUnixMs !== undefined) lines.push(`startTimeUnixMs: ${meta.startTimeUnixMs}`);
+  if (meta.endTimeUnixMs !== undefined) lines.push(`endTimeUnixMs: ${meta.endTimeUnixMs}`);
+  lines.push('');
+  for (const item of items) lines.push(`[${item.sentAt}] ${item.senderId || '(unknown sender)'} <${item.kind}> ${item.text}`, '');
+  return lines.join('\n');
 }
 
 async function createEngine({ lock, stateDir, bridgePath, importerPath = '', encryptedDir = '', snapshotRoot = '', dataDir = '', accountId = '', selfUsername = '', importerTimeoutMs = 115000, bridgeFactory = options => new BridgeClient(options) }) {
@@ -154,6 +227,21 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   }
   async function callData(op, params) { await source(); const current = bridge; const result = await current.call(op, params); guard(); return result; }
   async function requireAccount(id) { guard(); if (id !== accountId || !configuredSourcePath) throw error('ACCOUNT_NOT_FOUND'); return source(); }
+  function messageRefs(row) {
+    if (row?.refs === undefined) return [];
+    if (!Array.isArray(row.refs) || row.refs.length > 4) throw error('BRIDGE_MESSAGE_REFS_INVALID');
+    return row.refs.map(ref => {
+      if (!ref || typeof ref !== 'object' || !['image', 'video', 'voice'].includes(ref.kind)) throw error('BRIDGE_MESSAGE_REFS_INVALID');
+      for (const [field, maximum] of [['id', 128], ['uri', 4096], ['mimeType', 128], ['rendition', 64]]) {
+        if (ref[field] !== undefined && (typeof ref[field] !== 'string' || ref[field].length > maximum || ref[field].includes('\0'))) throw error('BRIDGE_MESSAGE_REFS_INVALID');
+      }
+      const id = ref.id || '', uri = ref.uri || '';
+      if (!id && !uri) throw error('BRIDGE_MESSAGE_REFS_INVALID');
+      if (uri && !/^https?:\/\/[^\s<>]+$/i.test(uri)) throw error('BRIDGE_MESSAGE_REFS_INVALID');
+      if (id && !/^[A-Za-z0-9._:-]+$/.test(id)) throw error('BRIDGE_MESSAGE_REFS_INVALID');
+      return { kind: ref.kind, ...(ref.id ? { id: ref.id } : {}), ...(ref.uri ? { uri: ref.uri } : {}), ...(ref.mimeType ? { mimeType: ref.mimeType } : {}), ...(ref.rendition ? { rendition: ref.rendition } : {}) };
+    });
+  }
   function messageFromRow(row, conversationId) {
     if (typeof row?.conversationId !== 'string' || !row.conversationId || (conversationId && row.conversationId !== conversationId)) throw error('BRIDGE_MESSAGE_SCOPE_INVALID');
     const local = decimal(row.localId), server = decimal(row.serverId, true), sentAt = milliseconds(row.createTime);
@@ -171,12 +259,26 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     } else throw error('BRIDGE_MESSAGE_ENCODING_INVALID');
     const rawType = decimal(row.localType), type = Number(rawType & 0xffffffffn);
     const kind = unsupportedContent ? 'unsupported' : ({ 1: 'text', 3: 'image', 34: 'voice', 42: 'contact', 43: 'video', 47: 'sticker', 48: 'location', 49: 'share', 10000: 'system' })[type] || 'unknown';
-    return { id: `msg-${sha(JSON.stringify(identity))}`, localId: local <= 2147483647n ? Number(local) : 0, serverId: server, conversationId: row.conversationId, sourceId: `source-${sha(JSON.stringify([accountId, identity.database]))}`, sentAtUnixMs: sentAt, direction: selfUsername && row.sender ? row.sender === selfUsername ? 2 : 1 : 0, kind, text: content, senderId: text(row.sender), sourceType: rawType, platformMessageId: row.serverId, sourceToken: 'independent1_' + Buffer.from(JSON.stringify(identity)).toString('base64url'), refs: [] };
+    const refs = messageRefs(row);
+    // A voice ref is verified from the row's real server_id, so retain it
+    // when the encoded audio payload itself is not decodable as message text.
+    return { id: `msg-${sha(JSON.stringify(identity))}`, localId: local <= 2147483647n ? Number(local) : 0, serverId: server, conversationId: row.conversationId, sourceId: `source-${sha(JSON.stringify([accountId, identity.database]))}`, sentAtUnixMs: sentAt, direction: selfUsername && row.sender ? row.sender === selfUsername ? 2 : 1 : 0, kind, text: content, senderId: text(row.sender), sourceType: rawType, platformMessageId: row.serverId, sourceToken: 'independent1_' + Buffer.from(JSON.stringify(identity)).toString('base64url'), refs: unsupportedContent ? refs.filter(ref => ref.kind === 'voice') : refs,
+      // Keep exact bridge identity and decode state available to the offline exporter.
+      rawLocalId: row.localId, rawServerId: row.serverId, rawLocalType: row.localType, rawSource: identity, contentDecodeStatus: unsupportedContent ? (row.contentDecodeStatus || 'unsupported') : 'decoded' };
+  }
+  function generalRecordFromRow(row) {
+    if (!row || row.tableName !== '__alpha_group_members' || typeof row.id !== 'string' || row.id.length > 2048 || row.id.includes('\0') || typeof row.eventAtUnixMs !== 'string' || typeof row.actor !== 'string' || typeof row.content !== 'string' || !Array.isArray(row.fields) || row.fields.length > 32) throw error('BRIDGE_GENERAL_RECORD_INVALID');
+    const eventAtUnixMs = decimal(row.eventAtUnixMs, true);
+    const fields = row.fields.map(field => {
+      if (!field || typeof field.name !== 'string' || field.name.length > 256 || field.name.includes('\0') || typeof field.value !== 'string' || field.value.length > 4096 || field.value.includes('\0') || !Number.isInteger(field.valueKind) || field.valueKind < 0 || field.valueKind > 16 || typeof field.truncated !== 'boolean') throw error('BRIDGE_GENERAL_RECORD_INVALID');
+      return { name: field.name, value: field.value, valueKind: field.valueKind, truncated: field.truncated };
+    });
+    return { tableName: row.tableName, id: row.id, eventAtUnixMs, actor: text(row.actor), content: text(row.content), fields };
   }
   function account(value) {
     const selected = selectedId === accountId && selectedPath === configuredSourcePath;
     if (!value) return { id: accountId, sourceProfile: 'alpha-independent-encrypted-v4', subjectId: selfUsername, displayName: `加密数据源 · ${accountId}`, dataSourcePath: encryptedDir, schemaProfile: 'wechat-v4-encrypted', state: 1, handleState: 3, handleGeneration: 0n, activeHandleGeneration: 0n, selected, capabilities: ['offline-encrypted'], detected: true, usable: false, enabled: false, verified: false, ready: false };
-    const capabilities = ['offline-readonly', ...Object.entries({ 'contacts.list': 'contacts', 'sessions.list': 'conversations', 'messages.list': 'messages' }).filter(([operation]) => value.capabilities.includes(operation)).map(([, capability]) => capability)];
+    const capabilities = ['offline-readonly', ...Object.entries({ 'contacts.list': 'contacts', 'groups.members': 'group-members', 'sessions.list': 'conversations', 'messages.list': 'messages' }).filter(([operation]) => value.capabilities.includes(operation)).map(([, capability]) => capability)];
     return { id: accountId, sourceProfile: 'alpha-independent-offline-v4', subjectId: selfUsername, displayName: `离线数据源 · ${accountId}`, dataSourcePath: configuredSourcePath, schemaProfile: 'wechat-v4-offline', state: 2, handleState: 4, handleGeneration: 1n, activeHandleGeneration: 1n, selected, capabilities, detected: true, usable: true, enabled: true, verified: true, ready: true };
   }
   async function contactName(username) {
@@ -238,7 +340,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       if (request.protocol?.major !== 1) throw error('PROTOCOL_VERSION_UNSUPPORTED');
       if (!encryptedDir && dataDir && !lock.status().locked) await source();
       helloDone = true;
-      return { negotiatedProtocol: { major: 1, minor: 0 }, components: [{ component: 'alpha-independent-engine', version: '0.1.0', buildId: 'independent-node-stdio-v1', protocolMajor: 1, protocolMinor: 0 }], serverNonce: crypto.randomBytes(16), supportedMethodIds: Object.values(SUPPORTED).sort((a, b) => a - b), supportsExportTimeRange: false };
+      return { negotiatedProtocol: { major: 1, minor: 0 }, components: [{ component: 'alpha-independent-engine', version: '0.1.0', buildId: 'independent-node-stdio-v1', protocolMajor: 1, protocolMinor: 0 }], serverNonce: crypto.randomBytes(16), supportedMethodIds: Object.values(SUPPORTED).sort((a, b) => a - b), supportsExportTimeRange: true };
     },
     async getCapabilities() { return {}; }, // No original product entitlements exist in this backend.
     async getApplicationLockStatus() { return { status: lock.status() }; },
@@ -256,6 +358,84 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     async discoverAccounts(request) { guard(); if (!configuredSourcePath || request.sourceLocation !== configuredSourcePath) throw error('SOURCE_NOT_AUTHORIZED'); return handlers.listAccounts(); },
     async selectAccount(request) { const value = await requireAccount(request.accountId); const previousAccountId = selectedId; guard(); saveSelection(); return { account: account(value), previousAccountId }; },
     async getDataRevision(request) { const value = await requireAccount(request.accountId); return { revision: sha(value.snapshotId).slice(0, 16) }; },
+    async exportConversation(request) {
+      await requireAccount(request.accountId);
+      const conversationId = requestName(request.conversationId, 'EXPORT_REQUEST_INVALID');
+      if (request.includeMedia === true) throw error('EXPORT_MEDIA_UNSUPPORTED');
+      if (request.includeMedia !== false && request.includeMedia !== undefined) throw error('EXPORT_REQUEST_INVALID');
+      const formatInput = text(request.format, 32).toLowerCase();
+      const format = formatInput === 'md' ? 'markdown' : formatInput;
+      if (!['json', 'markdown', 'txt'].includes(format)) throw error('EXPORT_FORMAT_UNSUPPORTED');
+      const destinationPath = safeExportParent(request.destinationPath);
+      if (configuredSourcePath && pathWithinDirectory(configuredSourcePath, destinationPath)) throw error('EXPORT_DESTINATION_INVALID');
+      if (request.page?.cursor?.length) throw error('EXPORT_PAGE_UNSUPPORTED');
+      const start = requestTime(request.startTimeUnixMs, 'EXPORT_REQUEST_INVALID', true);
+      const end = requestTime(request.endTimeUnixMs, 'EXPORT_REQUEST_INVALID', true);
+      if (start !== undefined && end !== undefined && start > end) throw error('EXPORT_REQUEST_INVALID');
+      const startedAt = Date.now();
+      const items = [];
+      let estimatedJsonBytes = 1024;
+      let cursor = '', done = false, pageLimit = EXPORT_PAGE_SIZE;
+      const list = { conversationId, ascending: true };
+      let lowerSecond = 0n, upperSecond;
+      // The bridge indexes whole seconds. Expand the requested millisecond
+      // interval by one millisecond, then apply the exact bound below.
+      if (start !== undefined) lowerSecond = start === 0n ? 0n : (start - 1n) / 1000n + 1n;
+      if (start !== undefined) list.afterTime = String(lowerSecond);
+      if (end !== undefined && end < INT64_MAX) { upperSecond = end / 1000n; list.beforeTime = String(upperSecond); }
+      if (upperSecond !== undefined && lowerSecond > upperSecond) done = true;
+      while (!done) {
+        if (Date.now() - startedAt > MAX_EXPORT_RUNTIME_MS) throw error('EXPORT_TIMEOUT');
+        let page;
+        for (;;) {
+          try { page = checkedPage(await callData('messages.list', { ...list, limit: pageLimit, cursor }), pageLimit); break; }
+          catch (failure) {
+            if (failure.message !== 'RESPONSE_TOO_LARGE' || pageLimit === 1) throw failure;
+            pageLimit = Math.max(1, Math.floor(pageLimit / 2));
+          }
+        }
+        for (const row of page.items) {
+          if (Date.now() - startedAt > MAX_EXPORT_RUNTIME_MS) throw error('EXPORT_TIMEOUT');
+          const message = messageFromRow(row, conversationId);
+          if (start !== undefined && message.sentAtUnixMs < start || end !== undefined && message.sentAtUnixMs > end) continue;
+          const exported = exportMessage(message);
+          const encodedItem = JSON.stringify(exported);
+          estimatedJsonBytes += Buffer.byteLength(encodedItem, 'utf8') + (items.length ? 1 : 0);
+          items.push(exported);
+          if (items.length > MAX_EXPORT_MESSAGES) throw error('EXPORT_LIMIT_EXCEEDED');
+          // This catches a malicious bridge row before rendering allocates an
+          // unbounded JSON/Markdown buffer.
+          if (Buffer.byteLength(encodedItem, 'utf8') > MAX_EXPORT_BYTES || estimatedJsonBytes > MAX_EXPORT_BYTES) throw error('EXPORT_LIMIT_EXCEEDED');
+        }
+        done = !page.nextCursor; cursor = page.nextCursor;
+      }
+      guard();
+      const meta = { accountId, conversationId, ...(start !== undefined ? { startTimeUnixMs: start.toString() } : {}), ...(end !== undefined ? { endTimeUnixMs: end.toString() } : {}) };
+      const output = format === 'json' ? JSON.stringify({ version: 1, format, ...meta, itemCount: items.length, messages: items }) + '\n' : format === 'markdown' ? markdownExport(meta, items) : textExport(meta, items);
+      if (Buffer.byteLength(output, 'utf8') > MAX_EXPORT_BYTES) throw error('EXPORT_LIMIT_EXCEEDED');
+      if (Date.now() - startedAt > MAX_EXPORT_RUNTIME_MS) throw error('EXPORT_TIMEOUT');
+      const temporary = path.join(path.dirname(destinationPath), `.alpha-export-${crypto.randomUUID()}.tmp`);
+      let handle;
+      try {
+        handle = await fs.promises.open(temporary, 'wx', 0o600);
+        await handle.writeFile(output, 'utf8');
+        await handle.sync();
+        await handle.close(); handle = null;
+        // hard-link + unlink publishes only when destination is still absent;
+        // rename would silently replace a user-selected file on POSIX.
+        guard();
+        safeExportParent(destinationPath);
+        await fs.promises.link(temporary, destinationPath);
+        await fs.promises.unlink(temporary);
+      } catch (failure) {
+        if (handle) await handle.close().catch(() => {});
+        await fs.promises.rm(temporary, { force: true }).catch(() => {});
+        if (failure.message === 'EXPORT_OUTPUT_EXISTS' || failure.code === 'EEXIST') throw error('EXPORT_OUTPUT_EXISTS');
+        if (/^EXPORT_[A-Z0-9_]+$/.test(failure.message || '')) throw failure;
+        throw error('EXPORT_OUTPUT_FAILED');
+      }
+      return { destinationPath, format, itemCount: items.length, mediaManifestPath: '', mediaIncluded: 0, mediaFailed: 0 };
+    },
     async listContacts(request) {
       await requireAccount(request.accountId);
       if (request.directory || request.lookup || request.ascending !== true) throw error('UNIMPLEMENTED');
@@ -273,6 +453,16 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         if (!cursor) { response = { items: [] }; break; }
       } while (true);
       return { response: { items: response.items.map(row => ({ username: text(row.username), displayName: text(row.remark) || text(row.nickName) || text(row.username), alias: text(row.alias), remark: text(row.remark), nickname: text(row.nickName), localType: uint32(row.localType), flags: 0n, sourceTable: 'contact', fields: [] })), sourceTable: 'contact' } };
+    },
+    async listGeneral(request) {
+      await requireAccount(request.accountId);
+      if (request.tableName !== '__alpha_group_members') throw error('UNIMPLEMENTED');
+      if (typeof request.query !== 'string' || request.query !== request.query.trim() || request.query.length <= 9 || request.query.length > 256 || !request.query.endsWith('@chatroom') || /[\u0000-\u001f\u007f]/.test(request.query) || request.ascending !== true) throw error('GROUP_MEMBERS_REQUEST_INVALID');
+      const limit = request.limit || 1000, offset = request.offset || 0;
+      if (!Number.isInteger(limit) || limit < 1 || limit > 1000 || !Number.isInteger(offset) || offset < 0 || offset > 5000) throw error('GROUP_MEMBERS_REQUEST_INVALID');
+      const value = await callData('general.list', { tableName: request.tableName, query: request.query, limit, offset, ascending: true });
+      if (!value || !Array.isArray(value.items) || value.items.length > limit || typeof value.sourceDatabase !== 'string' || value.sourceDatabase.length > 1024) throw error('BRIDGE_GENERAL_RESPONSE_INVALID');
+      return { response: { items: value.items.map(generalRecordFromRow), sourceDatabase: text(value.sourceDatabase, 1024) } };
     },
     async listConversations(request) {
       await requireAccount(request.accountId); const limit = pageSize(request.page);

@@ -128,3 +128,34 @@ test('oversized SQLite payloads are bounded before materialization and reported 
  const list=await ok(bridge,'messages.list',{conversationId:fixture.conversationId});const row=list.items.find(item=>item.localId==='5'&&item.source.database.endsWith('message_1.db'));
  assert.equal(row.contentDecodeStatus,'too-large');assert.equal(row.contentBase64,'');assert.equal(row.packedInfoBase64,'');assert.equal(row.packedInfoOmitted,true);
 });
+
+test('media refs expose only declared image/video/voice identifiers and URLs',async t=>{
+ const {fixture,bridge}=await setup(t,async directory=>mutateSQL(directory,`
+db=sqlite3.connect(root/'message'/'message_0.db')
+table='Msg_'+hashlib.md5(b'wxid_alpha').hexdigest()
+db.execute('UPDATE '+table+' SET local_type=3,message_content=? WHERE local_id=2',('<img md5="0123456789abcdef0123456789abcdef" /><img rawmd5="0123456789abcdef0123456789abcdef" cdnthumburl="https://cdn.example/thumb" />',))
+db.execute('UPDATE '+table+' SET local_type=43,message_content=? WHERE local_id=3',("<videomsg rawmd5='fedcba9876543210fedcba9876543210' cdnurl='https://cdn.example/video' />",))
+beta='Msg_'+hashlib.md5(b'wxid_beta').hexdigest()
+db.execute('UPDATE '+beta+' SET local_type=34,message_content=? WHERE local_id=1',(bytes.fromhex('00fffe'),))
+db.commit();db.close()
+db=sqlite3.connect(root/'message'/'message_1.db')
+db.execute('UPDATE '+table+' SET local_type=3,message_content=? WHERE local_id=5',(bytes.fromhex('28b52ffd00'),))
+db.commit();db.close()
+`));
+ const alpha=await ok(bridge,'messages.list',{conversationId:fixture.conversationId,ascending:true,limit:20});
+ const image=alpha.items.find(row=>row.localId==='2'),video=alpha.items.find(row=>row.localId==='3'),plain=alpha.items.find(row=>row.localId==='1');
+ assert.deepEqual(image.refs,[
+  {kind:'image',id:'0123456789abcdef0123456789abcdef',mimeType:'image/*',rendition:'source'},
+  {kind:'image',uri:'https://cdn.example/thumb',mimeType:'image/*',rendition:'thumbnail'}
+ ]);
+ assert.deepEqual(video.refs,[
+  {kind:'video',id:'fedcba9876543210fedcba9876543210',mimeType:'video/*',rendition:'source'},
+  {kind:'video',uri:'https://cdn.example/video',mimeType:'video/*',rendition:'source'}
+ ]);
+ assert.equal(plain.refs,undefined);
+ const broken=alpha.items.find(row=>row.localId==='5'&&row.source.database.endsWith('message_1.db'));
+ assert.equal(broken.contentDecodeStatus,'invalid-or-oversized-zstd');assert.equal(broken.refs,undefined);
+ const beta=await ok(bridge,'messages.list',{conversationId:fixture.secondConversationId,ascending:true,limit:20});
+ const voice=beta.items.find(row=>row.localId==='1');assert.equal(voice.contentDecodeStatus,'invalid-utf8');
+ assert.deepEqual(voice.refs,[{kind:'voice',id:'77',mimeType:'audio/amr',rendition:'voice-data'}]);
+});
