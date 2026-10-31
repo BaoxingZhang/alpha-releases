@@ -4,31 +4,30 @@
 [alpha-engine]  WARN application lock security IPC failed code="SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
 [alpha-engine] Error: application lock is unavailable
 Error occurred in handler for 'alpha:security:application-lock-status': Error: ENGINE_NOT_STARTED
-    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64773:39)
-    at EngineClient.getApplicationLockStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63078:30)
+    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64798:39)
+    at EngineClient.getApplicationLockStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63103:30)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74214:20
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74239:20
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72059:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
-[11014:1101/025807.571724:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
 [alpha-engine]  INFO alpha-engine starting
 [alpha-engine]  WARN application lock security IPC failed code="SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
 [alpha-engine] Error: application lock is unavailable
 Error occurred in handler for 'alpha:accounts:list': Error: ENGINE_NOT_STARTED
-    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64773:39)
-    at EngineClient.listAccounts (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63566:33)
+    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64798:39)
+    at EngineClient.listAccounts (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63591:33)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72059:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
 [alpha-engine]  INFO alpha-engine starting
 [alpha-engine]  WARN application lock security IPC failed code="SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
 [alpha-engine] Error: application lock is unavailable
 Error occurred in handler for 'alpha:license:capabilities': Error: ENGINE_NOT_STARTED
-    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64773:39)
-    at EngineClient.getCapabilities (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63524:30)
+    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64798:39)
+    at EngineClient.getCapabilities (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63549:30)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74292:19
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74317:19
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72059:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
-Debugger ending on ws://127.0.0.1:57502/60fbe288-0932-47ad-8494-bebc1918a61e
+Debugger ending on ws://127.0.0.1:62384/f41105dc-651e-4915-8b39-fcbe1bcb0ba9
 For help, see: https://nodejs.org/learn/getting-started/debugging

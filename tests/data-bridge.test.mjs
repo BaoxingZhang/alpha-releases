@@ -70,6 +70,12 @@ test('real SQLite bridge preserves source identity, 64-bit values and determinis
   assert.deepEqual(contacts.map(x => x.username), ['wxid_alpha', 'wxid_beta', 'wxid_self']);
   const exact = await c.request('contacts.list', { usernameExact: 'wxid_alpha' });
   assert.equal(exact.result.items[0].remark, '合成联系人甲'); assert.equal(exact.result.items.length, 1);
+  const fuzzy = await allPages(c, 'contacts.list', { query: '合成' });
+  assert.deepEqual(fuzzy.map(x => x.username), ['wxid_alpha']);
+  const fuzzyPaged = await allPages(c, 'contacts.list', { query: 'wxid_', limit: 1 });
+  assert.deepEqual(fuzzyPaged.map(x => x.username), ['wxid_alpha', 'wxid_beta', 'wxid_self']);
+  const literal = await allPages(c, 'contacts.list', { query: '%_' });
+  assert.deepEqual(literal, []);
   const sessions = await allPages(c, 'sessions.list', { limit: 1 });
   assert.deepEqual(sessions.map(x => x.username), ['wxid_alpha', 'wxid_beta']);
   const messages = await allPages(c, 'messages.list', { conversationId: fixture.conversationId, limit: 2, ascending: true });

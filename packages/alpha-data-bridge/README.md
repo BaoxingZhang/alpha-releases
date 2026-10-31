@@ -1,6 +1,6 @@
 # Alpha offline data bridge
 
-这是自有 Go 读取模块，不依赖 Alpha 原厂 engine/guard，也不导入 Chatlog 的 internal 包。当前支持用户显式指定的、已经解密的离线微信 v4 SQLite 副本：账号信息、联系人、会话、分页消息、全文搜索、消息定位、日期计数与消息类型统计。这是完整 Alpha 后端的第一批数据依赖，不代表完整功能已经恢复。
+这是自有 Go 读取模块，不依赖 Alpha 原厂 engine/guard，也不导入 Chatlog 的 internal 包。当前支持用户显式指定的、已经解密的离线微信 v4 SQLite 副本：账号信息、联系人、会话、分页消息、全文搜索、消息定位、日期计数与消息类型统计。Node 引擎的媒体浏览复用 `sessions.list`/`messages.list` 做真实元数据筛选；bridge 本身不建立媒体索引，也不读取媒体文件。这是完整 Alpha 后端的第一批数据依赖，不代表完整功能已经恢复。
 
 源码的 schema 参考固定 [Chatlog v4 数据源](https://github.com/imldy/chatlog/blob/a7162bca9454fa43b5950a2414670983fe180e56/internal/wechatdb/datasource/v4/datasource.go)，查询、验证、协议和分页代码为本项目实现。固定 Go module 依赖为 `github.com/mattn/go-sqlite3 v1.14.32` 与 `github.com/klauspost/compress v1.18.0`（有界 zstd 解码）；使用已校验的 go.sum，不更新到 latest。源码和许可证保留在项目内依赖缓存及 [已有依赖许可索引](../../docs/chatlog-dependency-licenses.json)，另保留 [zstd 依赖许可证](licenses/klauspost-compress-LICENSE)。没有复制上游实现或改动 `vendor/chatlog`。
 
@@ -36,14 +36,17 @@ build/candidates/alpha-data-bridge --data-dir /absolute/offline-copy --account-i
 | op | 参数 | 返回 |
 | --- | --- | --- |
 | `account.info`（兼容别名 `accounts.info`） | 无 | 数据源信息；只有打开并验证实际数据库后才能返回 |
-| `contacts.list` | `limit`、`cursor`、可选 `usernameExact` | 联系人页，精确 username 查找，不支持模糊搜索 |
+| `contacts.list` | `limit`、`cursor`、可选 `usernameExact`、`query` | 联系人页；`usernameExact` 精确查找，`query` 在 username/alias/remark/nick_name 上做有界、大小写敏感的字面量子串匹配 |
+| `contacts.lookup` | `usernames`（1–500 个唯一值） | 批量精确 username 查找；保留请求顺序并省略缺失项，重复数据库行明确报歧义；不提供 directory 分类/counts |
+| `groups.common` | `username`、`limit`（0–100） | 扫描 `chat_room.ext_buffer` 的 RoomData，返回真实共同群 username、contact 表可证明的显示名、完整 count 和 truthful truncated；不伪造头像 |
 | `sessions.list` | `limit`、`cursor` | 会话页，按 sort_timestamp 降序、username/rowid 升序 |
 | `messages.list` | `conversationId`、`limit`、`cursor`、`ascending`、可选 `afterTime`/`beforeTime` | 消息页；时间边界是十进制字符串形式的 Unix 秒，包含边界；默认升序 |
+| `sessions.list` + `messages.list` | 由 Node 引擎组合调用 | 为 `browseConversationMessages`/`browseAccountMedia` 提供真实会话和消息元数据；不提供媒体文件索引、路径、下载或播放 |
 | `messages.search` | 非空 `query`、可选 `conversationId`、`senderId`、`afterTime`/`beforeTime`、`ascending`、`groupByConversation`、`limit`、`cursor` | 同消息 DTO、matchCount 字符串及 coverage；默认降序，时间双端包含 |
 | `messages.locate` | `conversationId`、`serverId`（正 uint64 十进制字符串） | message 或 null，及 beforeCursor/afterCursor |
 | `messages.dayCounts` | `conversationId`、`fromUnixMs`、`toUnixMs`（十进制字符串）、`utcOffsetMinutes`（整数） | `{days:[{localDay,count}]}`，数字为字符串；毫秒范围半开、最多 62 天 |
 | `messages.stats` | 可选 `conversationId`，空表示整个账号 | `{conversationId,messageCount,firstTime,lastTime,counts:[{localType,count}]}`；first/last 为秒字符串，空集合为空字符串 |
-| `general.list` | `tableName=__alpha_group_members`、`query=<chatroom>@chatroom`、`offset`、`limit`、`ascending=true` | 从 v4 `chat_room.ext_buffer` 解析真实成员，补充 contact 表中的昵称/备注/别名和 `isOwner`；不伪造头像/管理员 |
+| `general.list` | `tableName=__alpha_group_members`、`query=<chatroom>@chatroom`、`offset`、`limit`（单页最多 1000）、`ascending=true`；或 `__alpha_general_payments`/`__alpha_general_revokes`/`__alpha_general_calls`、空 `query`、`ascending=false` | 群成员从 v4 `chat_room.ext_buffer` 解析真实成员，补充 contact 表中的昵称/备注/别名和 `isOwner`；支付、撤回和通话候选只从可验证的消息 XML 生成带 `partial=1,candidate=1` 字段的记录，通话仅接受 `local_type=50` 且包含明确 `voipmsg`/`voipinvitemsg` 元素的消息，保留来源库/表/行号，不猜测媒体、时长或通话状态；不伪造 Alpha 完整记录库、头像、管理员或原消息恢复 |
 
 Cursor 是 bridge 产生的不透明 base64url 字符串，绑定本次数据快照和全部筛选/排序参数；调用者原样传回，不能拿另一个查询的 cursor 继续读取。limit 可以调整。消息跨所有分库按 `(create_time, database, table, local_id)` 全局排序，再截取一页；反向分页反转完整排序，不依赖分库的 Timestamp 范围声明。`sort_seq` 作为原始信息保留，不参与新排序。这样原界面按时间跳转、搜索上下文读取与分页保持一致；本轮并未证明原厂 native 的全部排序细节。cursor-v2 绑定新排序语义，旧 cursor 明确拒绝。查询不存在的 `Msg_<MD5(conversationId)>` 表会返回真实空页；缺失整个消息库则返回明确不可用。
 
@@ -74,6 +77,8 @@ SQLite URI 固定 `mode=ro&immutable=1&_query_only=1`。没有原始 SQL、写�
 路径检查拒绝全部祖先和目录成员的符号链接，使用固定数据库命名和参数化条件，不接受请求提供的数据库路径或 SQL 表名。该模块面向调用者控制的稳定离线副本；文件系统检查不是针对恶意并发目录交换的 OS 沙箱，也不宣称为活跃微信数据库提供快照一致性。主程序应继续限制授权目录和数据访问权限。
 
 合成数据入口为 [createFixture](../../tests/data-bridge-fixture.mjs)，也可使用 Python CLI `tests/data-bridge-fixtures.py --output ABS_NEW_EMPTY_DIR`。它创建 4 个数据库，3 个联系人、2 个会话、6 条跨分库消息，包括同 sort_seq、最大有符号 int64、超过 2^53 的 local_id 和二进制内容。测试也覆盖查询参数错误、cursor 绑定、symlink/WAL/坏 schema、运行中修改和新增分库的拒绝。
+
+媒体浏览回归在 Node 层使用 [createMediaBrowseFixture](../../tests/media-browse-fixture.mjs) 对该基础 fixture 增加图片、视频、语音、贴纸、链接、文件、epoch-zero 和额外会话；这些行仍通过本 bridge 的真实 `messages.list`/`sessions.list` 读取。
 
 手动密钥离线解密已在单独的 [alpha-snapshot-import](../alpha-snapshot-import/README.md) 模块实现：源文件只读，页认证与完整性检查后原子发布给本 bridge。桥接本身不负责解密/取钥，也不修改系统安全设置。
 

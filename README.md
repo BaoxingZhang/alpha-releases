@@ -2,7 +2,7 @@
 
 这是从 `Alpha-0.3.5-arm64.dmg` 整理出的可编辑工程：重建 Electron 主进程、预加载、React 界面和 AI worker 的 JavaScript，复用原包 macOS arm64 原生二进制。
 
-**已能本地编译，并使用自有后端在原界面中读取、搜索和定位离线微信 v4 聊天数据。** 已接通手动密钥导入与加密快照、联系人/会话/消息读取、跨分库分页、全账号和会话搜索、日期导航及应用锁。完整 Alpha 功能仍未恢复；真实微信数据、自动取钥、媒体、AI、导出等尚待接手。详见 [独立后端与实测](docs/independent-backend.md)、[加密导入](docs/encrypted-import.md) 和 [搜索导航](docs/search-navigation.md)。
+**已能本地编译，并使用自有后端在原界面中读取、搜索、定位和导出离线微信 v4 聊天数据。** 已接通手动密钥导入与加密快照、联系人/会话/消息读取、联系人查询与有限档案存在性读取、联系人和群成员 CSV/JSON/VCF/HTML 导出、群成员 XLSX 导出、跨分库分页、全账号和会话搜索、日期导航、会话/账号媒体元数据浏览及 metadata-only JSON/CSV 导出、部分消息结构化展示、JSON/Markdown/HTML/TXT 会话导出、payments/revokes/calls 候选资料的 xlsx/csv/json 导出、年度基础统计、会话关系基础统计、应用锁，以及有界后台定时导出计划和重启恢复。独立引擎还提供可选的本机受控 HTTP/MCP 适配器（包含已验证 DTO 查询、会话文件导出和媒体 JSON/CSV 元数据导出）。完整 Alpha 功能仍未恢复；真实微信数据、自动取钥、原生媒体、AI 和其他导出格式等尚待接手。朋友圈、收藏和“其他资料”记录的证据边界分别见 [朋友圈 schema 证据](docs/moments-schema-evidence.md)、[收藏 schema 证据](docs/favorites-schema-evidence.md) 和 [其他资料记录证据](docs/general-records-schema-evidence.md)。完整接手范围详见 [独立后端与实测](docs/independent-backend.md)、[独立 HTTP/MCP 适配器](docs/http-readonly-adapter-recovery.md)、[加密导入](docs/encrypted-import.md) 和 [搜索导航](docs/search-navigation.md)。
 
 原包模式仍保留，启动仍返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，记录见 [local-run.json](docs/local-run.json)。这是恢复后的 JavaScript 工程与新增维护模块，并非作者原始 TypeScript/Rust/C++ 源码仓库。
 
@@ -33,11 +33,15 @@ npm start
 重新安装依赖时，使用 Node.js 24.x 且 >=24.15（本机验证版本 24.21.0）、macOS arm64：
 
 ```sh
+nvm use                 # 读取项目根目录的 .nvmrc（24.21.0）
 npm ci
 npm run setup
 npm run build
+npm run check:maintainability
 npm run test:smoke
 ```
+
+项目的 `.github/workflows/maintenance.yml` 固定了同一套 macOS arm64 维护基线：递归获取参考子模块、按 `package-lock.json` 安装依赖、构建独立后端和桌面 bundle、运行完整测试，并校验协议绑定、原包运行时哈希和维护边界。构建报告会作为 Actions artifact 保留；Go 桥接和快照导入仍只接受项目内固定的 macOS arm64 工具链，不会在 CI 中改用系统 Go。
 
 Electron 44 的二进制安装是独立步骤，因此保留 `npm run setup`。恢复工程固定 Electron 44.0.0、esbuild 0.28.2、Playwright Core 1.64.1；`package-lock.json` 是此次新增的锁文件。React 19.2.8 等前端运行时已经包含在原 renderer chunks 中，无需再装一份 React。
 
@@ -78,12 +82,13 @@ npm run verify:protocol # 校验独立协议模块仍与恢复源一致
 npm run test:protocol   # 编解码、分帧边界与来源测试
 npm run verify:vendor   # 核对43个原包运行时文件的SHA256和权限
 npm run test:smoke      # 隔离检查、实际Electron界面、IPC与后端状态诊断
+npm run check:maintainability # 检查Node/锁文件、源码入口、工具链记录和构建复制边界
 npm run test:encrypted  # 原UI手动密钥、错误密钥拒绝、消息读取与重启复用
 npm run test:search     # 原UI搜索、发送人筛选、定位、月历和部分结果提示
 npm run index          # 根据当前src重新生成导航索引
 ```
 
-`test:smoke` 的成功退出表示隔离和界面冒烟通过，**不表示后端 ready**；后端结果单独写入 `docs/local-run.json` 的 `checks.backendReady`。新增独立模式已用合成数据验证读取、解密及检索；尚未验证真实微信数据或导出流程，未获取实际密钥、发消息或调用模型。
+`test:smoke` 的成功退出表示隔离和界面冒烟通过，**不表示后端 ready**；后端结果单独写入 `docs/local-run.json` 的 `checks.backendReady`。新增独立模式已用合成数据验证读取、解密、检索和 JSON/Markdown/HTML/TXT 会话导出；尚未验证真实微信数据，未获取实际密钥、发消息或调用模型。
 
 主要缺口包括原 TS/TSX 与类型、完整开发工作区、原依赖锁、Cargo/Rust 和 C++/CMake 工程、原生协议生成工程、服务端授权实现，以及未随包提供的高级组件和语音模型。原生程序依赖自身的完整性、身份、许可及有效期检查，已有二进制不能保证恢复工程完整可用。
 
@@ -112,4 +117,4 @@ node scripts/build-chatlog.mjs
 
 Go工具链和缓存均放在项目 `.runtime/`，安装包摘要来自 [Go官方下载目录](https://go.dev/dl/)，不会修改系统Go或shell配置。原生完整性问题的已确认调用链见 [诊断报告](docs/native-startup-diagnosis.json)。
 
-完整 [128项后端请求对照](docs/backend-compatibility-map.md) 记录的是 Chatlog 候选映射（直接兼容0项），不是新独立引擎的实现数量。新引擎支持与未实现分支见 [当前接手状态](docs/independent-backend.md)，不能把请求数量换算成完整功能百分比。
+完整 [128项后端请求对照](docs/backend-compatibility-map.md) 记录的是 Chatlog 候选映射（直接兼容0项），不是新独立引擎的实现数量。新引擎支持与未实现分支见 [当前接手状态](docs/independent-backend.md)，公开源码和替代后端的许可证/平台边界见 [公共源码候选](docs/public-source-candidates.md)，不能把请求数量换算成完整功能百分比。

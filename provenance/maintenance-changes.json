@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-10-31T18:59:02.276Z",
+  "recordedAt": "2026-10-31T23:17:38.011Z",
   "sourceDmgSha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
   "originalManifest": "provenance/recovered-files.json",
   "originalFiles": 169,
@@ -8,17 +8,17 @@
     {
       "path": "src/main/index.js",
       "originalSha256": "7e8fabf836059696bc00ecf9266b68cbed4b0cd690e3ffe6f80e1755a72c193a",
-      "currentSha256": "1bffea70913862adc7036c2888cc49fd90e3cf4b0d563e0d5551833130445952",
-      "currentBytes": 3185519
+      "currentSha256": "3cee1ae63f45a8fcba540041345d277c8b21908adc2a08db2507f087506a790b",
+      "currentBytes": 3186664
     },
     {
       "path": "src/renderer/assets/index-DPCwIOAb.js",
       "originalSha256": "8547e1338248bf174063cf7153c398a6d1a7d8c72ec0e6780e25ed01a954bde3",
-      "currentSha256": "40b73bd20e396a8422391f22435c9e9585b96b1dccaef885f375dd2a6b5fef49",
-      "currentBytes": 2866935
+      "currentSha256": "365752985cb19ded47f03ab16982422bf1d48ee504efcad00083a035893a1bb6",
+      "currentBytes": 2875003
     }
   ],
-  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; maintained search-coverage protobuf fields, UI disclosure, and date/statistics boundary fixes.",
+  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; search/navigation, contact/profile and group reads, group-member CSV/JSON/HTML/XLSX exports, media metadata, explicit data-watch targets, read-only exports and in-memory export jobs, annual and conversation base statistics, read-only local HTTP/MCP adapter, and UI capability-boundary maintenance.",
   "authoredModules": [
     "packages/alpha-engine",
     "packages/alpha-data-bridge",

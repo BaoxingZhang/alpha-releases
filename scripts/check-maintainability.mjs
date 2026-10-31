@@ -1,0 +1,226 @@
+import fs from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const require = createRequire(import.meta.url);
+const errors = [];
+let checks = 0;
+
+async function readJson(relativePath) {
+  const absolutePath = path.join(root, relativePath);
+  try {
+    return JSON.parse(await fs.readFile(absolutePath, 'utf8'));
+  } catch (error) {
+    errors.push(`${relativePath}: ${error.code === 'ENOENT' ? 'missing' : `invalid JSON (${error.message})`}`);
+    return null;
+  }
+}
+
+async function exists(relativePath, type = 'file') {
+  try {
+    const stat = await fs.stat(path.join(root, relativePath));
+    if (type === 'directory' && !stat.isDirectory()) throw new Error('is not a directory');
+    if (type === 'file' && !stat.isFile()) throw new Error('is not a file');
+    checks++;
+    return true;
+  } catch (error) {
+    errors.push(`${relativePath}: ${error.code === 'ENOENT' ? 'missing' : error.message}`);
+    return false;
+  }
+}
+
+function sameMap(actual, expected, label) {
+  const actualKeys = Object.keys(actual ?? {}).sort();
+  const expectedKeys = Object.keys(expected ?? {}).sort();
+  if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) {
+    errors.push(`${label}: dependency names differ from package.json`);
+    return;
+  }
+  for (const key of expectedKeys) {
+    if (actual[key] !== expected[key]) errors.push(`${label}: ${key} is ${JSON.stringify(actual[key])}, expected ${JSON.stringify(expected[key])}`);
+  }
+}
+
+function nodeVersionInRange(version, range) {
+  const match = /^v?(\d+)\.(\d+)\.(\d+)/.exec(version);
+  if (!match || range !== '>=24.15 <25') return false;
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  return major === 24 && minor >= 15;
+}
+
+function resolveLocalImport(from, specifier) {
+  const candidate = path.resolve(path.dirname(from), specifier);
+  return candidate;
+}
+
+async function checkRendererImports() {
+  const directory = path.join(root, 'src/renderer/assets');
+  let entries;
+  try {
+    entries = await fs.readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    errors.push(`src/renderer/assets: ${error.code === 'ENOENT' ? 'missing' : error.message}`);
+    return;
+  }
+  const sourceFiles = entries.filter(entry => entry.isFile() && /\.(?:js|mjs)$/.test(entry.name)).map(entry => path.join(directory, entry.name));
+  const importPattern = /(?:\bfrom\s+|\bimport\s*\(\s*|\brequire\s*\(\s*)['"]([^'"]+)['"]/g;
+  for (const file of sourceFiles) {
+    const source = await fs.readFile(file, 'utf8');
+    for (const match of source.matchAll(importPattern)) {
+      const specifier = match[1];
+      if (!specifier.startsWith('.')) continue;
+      const resolved = resolveLocalImport(file, specifier);
+      if (!resolved.startsWith(`${root}${path.sep}`)) {
+        errors.push(`${path.relative(root, file)}: local import escapes project: ${specifier}`);
+        continue;
+      }
+      const candidates = [
+        resolved,
+        `${resolved}.js`,
+        `${resolved}.mjs`,
+        `${resolved}.cjs`,
+        `${resolved}.json`,
+        path.join(resolved, 'index.js'),
+        path.join(resolved, 'index.mjs'),
+        path.join(resolved, 'index.cjs')
+      ];
+      let found = false;
+      for (const candidate of candidates) {
+        try {
+          const stat = await fs.stat(candidate);
+          if (stat.isFile()) {
+            found = true;
+            break;
+          }
+        } catch {
+          // Try the next conventional extension.
+        }
+      }
+      if (!found) errors.push(`${path.relative(root, file)}: unresolved local import ${specifier}`);
+    }
+  }
+
+  const buildRoot = path.join(root, 'dist/app/out/renderer/assets');
+  try {
+    await fs.stat(buildRoot);
+  } catch (error) {
+    if (error.code !== 'ENOENT') errors.push(`dist/app/out/renderer/assets: ${error.message}`);
+    return;
+  }
+  for (const file of sourceFiles) {
+    const relative = path.relative(directory, file);
+    try {
+      const stat = await fs.stat(path.join(buildRoot, relative));
+      if (!stat.isFile()) errors.push(`dist/app/out/renderer/assets/${relative}: build output is not a file`);
+    } catch (error) {
+      errors.push(`dist/app/out/renderer/assets/${relative}: ${error.code === 'ENOENT' ? 'missing after build' : error.message}`);
+    }
+  }
+}
+
+const packageJson = await readJson('package.json');
+const lockfile = await readJson('package-lock.json');
+const goToolchain = await readJson('provenance/go-toolchain.json');
+const runtimeProvenance = await readJson('docs/native-runtime-provenance.json');
+const recoveredProvenance = await readJson('provenance/recovered-files.json');
+const maintenanceChanges = await readJson('provenance/maintenance-changes.json');
+const currentValidation = await readJson('docs/independent-validation-current.json');
+let nvmrc = null;
+try {
+  nvmrc = (await fs.readFile(path.join(root, '.nvmrc'), 'utf8')).trim();
+  if (!/^\d+\.\d+\.\d+$/.test(nvmrc)) errors.push('.nvmrc: expected a pinned x.y.z Node version');
+} catch (error) {
+  errors.push(`.nvmrc: ${error.code === 'ENOENT' ? 'missing' : error.message}`);
+}
+
+if (packageJson) {
+  if (packageJson.name !== 'alpha-recovered-local' || packageJson.version !== '0.3.5') errors.push('package.json: project identity/version drifted');
+  if (!packageJson.engines?.node || !nodeVersionInRange(process.version, packageJson.engines.node)) errors.push(`Node ${process.version} does not satisfy package.json engines.node (${packageJson.engines?.node ?? 'missing'})`);
+  if (nvmrc && /^\d+\.\d+\.\d+$/.test(nvmrc) && !nodeVersionInRange(`v${nvmrc}`, packageJson.engines.node)) errors.push(`.nvmrc: pinned Node ${nvmrc} does not satisfy package.json engines.node (${packageJson.engines.node ?? 'missing'})`);
+  const requiredScripts = ['build', 'build:independent', 'test', 'test:smoke', 'verify:vendor', 'verify:protocol', 'check:maintainability'];
+  for (const name of requiredScripts) if (typeof packageJson.scripts?.[name] !== 'string') errors.push(`package.json: missing script ${name}`);
+}
+
+if (lockfile && packageJson) {
+  if (lockfile.lockfileVersion !== 3) errors.push(`package-lock.json: expected lockfileVersion 3, found ${lockfile.lockfileVersion}`);
+  const rootPackage = lockfile.packages?.[''];
+  if (!rootPackage) errors.push('package-lock.json: root package entry is missing');
+  else {
+    for (const key of ['name', 'version']) if (rootPackage[key] !== packageJson[key]) errors.push(`package-lock.json: root ${key} does not match package.json`);
+    sameMap(rootPackage.dependencies, packageJson.dependencies, 'package-lock.json dependencies');
+    sameMap(rootPackage.devDependencies, packageJson.devDependencies, 'package-lock.json devDependencies');
+    sameMap(rootPackage.engines, packageJson.engines, 'package-lock.json engines');
+  }
+}
+
+const requiredFiles = [
+  'AGENTS.md', 'README.md', 'MAINTENANCE.md', '.gitignore', '.gitattributes',
+  '.github/workflows/maintenance.yml',
+  'scripts/build.mjs', 'scripts/environment.mjs', 'scripts/launch.mjs', 'scripts/verify-vendor.mjs',
+  'scripts/setup-go.mjs', 'scripts/check-maintainability.mjs',
+  'src/main/index.js', 'src/agent-host/index.cjs', 'src/renderer/index.html',
+  'src/renderer/assets/index-DPCwIOAb.js', 'src/renderer/assets/export-policy.mjs',
+  'packages/alpha-protocol/index.cjs', 'packages/alpha-engine/index.cjs', 'packages/alpha-engine/http-server.cjs',
+  'packages/alpha-data-bridge/go.mod', 'packages/alpha-data-bridge/go.sum',
+  'packages/alpha-snapshot-import/go.mod', 'packages/alpha-snapshot-import/go.sum',
+  'packages/alpha-desktop/recovery-runtime.cjs', 'vendor/chatlog/go.mod',
+  'provenance/go-toolchain.json', 'provenance/recovered-files.json', 'provenance/maintenance-changes.json',
+  'docs/local-build-and-run.md', 'docs/native-runtime-provenance.json', 'docs/http-readonly-adapter-recovery.md',
+  'docs/independent-validation-current.json'
+];
+for (const relativePath of requiredFiles) await exists(relativePath);
+await exists('vendor/runtime', 'directory');
+
+if (goToolchain) {
+  if (!/^go\d+\.\d+\.\d+$/.test(goToolchain.version) || !/^https:\/\/go\.dev\/dl\/go\d+\.\d+\.\d+\.darwin-arm64\.tar\.gz$/.test(goToolchain.url)) errors.push('provenance/go-toolchain.json: pinned macOS arm64 URL/version is invalid');
+  if (!/^[a-f0-9]{64}$/.test(goToolchain.sha256) || !Number.isSafeInteger(goToolchain.bytes) || goToolchain.bytes <= 0) errors.push('provenance/go-toolchain.json: archive hash/size is invalid');
+  const version = /^go(\d+\.\d+)/.exec(goToolchain.version)?.[1];
+  for (const relativePath of ['packages/alpha-data-bridge/go.mod', 'packages/alpha-snapshot-import/go.mod', 'vendor/chatlog/go.mod']) {
+    try {
+      const source = await fs.readFile(path.join(root, relativePath), 'utf8');
+      const declared = /^go\s+(\d+\.\d+(?:\.\d+)?)/m.exec(source)?.[1];
+      if (!declared || !version || !declared.startsWith(`${version}.`) && declared !== version) errors.push(`${relativePath}: Go language version ${declared ?? 'missing'} differs from pinned toolchain ${goToolchain.version}`);
+    } catch {
+      // Missing files were already reported by the required-file check.
+    }
+  }
+}
+
+if (runtimeProvenance) {
+  if (!Array.isArray(runtimeProvenance.entries) || runtimeProvenance.entries.length === 0) errors.push('docs/native-runtime-provenance.json: no runtime entries recorded');
+}
+if (recoveredProvenance && (!Array.isArray(recoveredProvenance.files) || recoveredProvenance.files.length === 0)) errors.push('provenance/recovered-files.json: no recovered source files recorded');
+if (maintenanceChanges && (maintenanceChanges.originalNativeArtifactsModified !== false || !Array.isArray(maintenanceChanges.changed))) errors.push('provenance/maintenance-changes.json: maintenance record is incomplete');
+
+if (currentValidation) {
+  try {
+    const engine = require(path.join(root, 'packages/alpha-engine/index.cjs'));
+    const total = engine.ALL_METHODS.length;
+    const implemented = Object.keys(engine.SUPPORTED).length;
+    const unsupported = total - implemented;
+    const recorded = currentValidation.protocol;
+    if (recorded?.totalRequestBranches !== total || recorded?.implementedRequestBranches !== implemented || recorded?.unsupportedRequestBranches !== unsupported) {
+      errors.push('docs/independent-validation-current.json: protocol counts do not match packages/alpha-engine/index.cjs');
+    }
+  } catch (error) {
+    errors.push(`packages/alpha-engine/index.cjs: cannot load for protocol count check (${error.message})`);
+  }
+}
+
+const gitignore = await fs.readFile(path.join(root, '.gitignore'), 'utf8').catch(() => '');
+for (const ignored of ['dist/', 'build/', '.runtime/', 'workers/agent/dist/']) {
+  if (!gitignore.split(/\r?\n/).includes(ignored)) errors.push(`.gitignore: generated path ${ignored} is not ignored`);
+}
+
+await checkRendererImports();
+
+if (errors.length) {
+  console.error(`Maintainability checks failed (${errors.length} issue${errors.length === 1 ? '' : 's'}):`);
+  for (const error of errors) console.error(`- ${error}`);
+  process.exitCode = 1;
+} else {
+  console.log(`Maintainability checks passed (${checks} required paths and metadata checks).`);
+}

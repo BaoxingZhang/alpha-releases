@@ -37,12 +37,15 @@ import base64, sqlite3, sys
 db=sqlite3.connect(sys.argv[1] + '/contact/contact.db')
 db.execute('CREATE TABLE chat_room (id INTEGER PRIMARY KEY, username TEXT, owner TEXT, ext_buffer BLOB)')
 db.execute('INSERT INTO chat_room(username,owner,ext_buffer) VALUES (?,?,?)', ('room@chatroom','wxid_alpha',base64.b64decode(sys.argv[2])))
+db.execute('INSERT INTO chat_room(username,owner,ext_buffer) VALUES (?,?,?)', ('room2@chatroom','wxid_beta',base64.b64decode(sys.argv[3])))
+db.execute('INSERT INTO contact VALUES (?,?,?,?,?)', ('room@chatroom',2,'','合成群聊',''))
 db.commit(); db.close()
 db=sqlite3.connect(sys.argv[1] + '/session/session.db')
 db.execute('INSERT INTO SessionTable VALUES (?,?,?,?,?,?)', ('room@chatroom','synthetic room',1700000004,1700000004,'wxid_alpha','群主显示名'))
 db.commit(); db.close()
 `;
-  await execute('/usr/bin/python3', ['-c', script, directory, encoded]);
+  const encodedSecond = Buffer.concat([field(1, user('wxid_alpha', ''))]).toString('base64');
+  await execute('/usr/bin/python3', ['-c', script, directory, encoded, encodedSecond]);
   await fs.access(`${directory}/contact/contact.db`);
   return { ...original, chatroomId: 'room@chatroom', ownerId: 'wxid_alpha', memberId: 'wxid_beta' };
 }

@@ -1,0 +1,178 @@
+{
+  "evidence_type": "read_only_public_repository_audit",
+  "observed_at": "2026-11-01",
+  "repository": {
+    "url": "https://github.com/xunchahaha/alpha-releases",
+    "api_url": "https://api.github.com/repos/xunchahaha/alpha-releases",
+    "visibility": "public",
+    "default_branch": "main",
+    "description": "Alpha releases",
+    "license_field": null,
+    "head": {
+      "sha": "09232cbca892241fd3d2046957832a6b4d764ddc",
+      "date": "2026-10-20T07:05:27Z",
+      "message": "docs: 0.3.5 停更公告，补上微信媒体补齐",
+      "url": "https://github.com/xunchahaha/alpha-releases/commit/09232cbca892241fd3d2046957832a6b4d764ddc"
+    },
+    "tags_observed": [
+      {
+        "name": "v0.3.5",
+        "sha": "f4294fe7ba95aab5796c7ed32398c2879add5ca4",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/tag/v0.3.5"
+      },
+      {
+        "name": "v0.3.0",
+        "sha": "2efebd098f8c528eac483631111cf98a0940ad6a",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/tag/v0.3.0"
+      },
+      {
+        "name": "v0.2.0",
+        "sha": "9f0a82b87d912ee514571310ec8ddfad940db2b5",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/tag/v0.2.0"
+      },
+      {
+        "name": "v0.1.1",
+        "sha": "f0aabf962992faf240bae1efe15c4a40f07bda20",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/tag/v0.1.1"
+      },
+      {
+        "name": "v0.1.0",
+        "sha": "4607a0cdcf3e08f5ae7b45ab452c2ac079195c16",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/tag/v0.1.0"
+      }
+    ],
+    "root_tree_observed": [
+      "README.md",
+      "assets/",
+      "docs/api/http-api.md",
+      "docs/api/mcp.md",
+      "update/stable.json"
+    ],
+    "source_boundary": {
+      "observed_source_files": [],
+      "observed_build_files": [],
+      "interpretation": "The public repository is release, documentation, screenshot, and update-policy material. This audit did not find Alpha TypeScript, JavaScript application source, Rust, C, C++, Cargo, CMake, or native component source. This is an observation about the repository contents, not proof that no private source exists."
+    }
+  },
+  "readme_feature_summary": {
+    "url": "https://raw.githubusercontent.com/xunchahaha/alpha-releases/main/README.md",
+    "observed_categories": [
+      "聊天浏览、全局/会话搜索、日期跳转与媒体消息展示",
+      "聊天记录多格式导出（HTML、Excel、TXT、Markdown、JSON、ChatLab、SQL、WeClone）与定时导出",
+      "通讯录、群成员、朋友圈和其他资料（支付/红包、好友验证、撤回、通话、朋友圈互动、搜索）导出",
+      "私聊/群聊分析、我的足迹、年度报告和双人报告",
+      "朋友圈时间线、筛选、日历、媒体、导出与防删除",
+      "收藏、媒体墙、原图/媒体访问和本地语音转写",
+      "AI 助手与多种模型服务/ChatGPT 登录、总结和分享图",
+      "多账号、自动获取数据库/图片密钥、应用锁、通知、主题与更新",
+      "本机 HTTP API 与 MCP（含只读查询、媒体链接、推送和发送文字）",
+      "高级：发送文字、公众号文章导出、消息编辑、微信 CDN 缺失媒体补齐"
+    ],
+    "maintenance_notice": "README states that 0.3.5 is expected to be the final release except necessary dependency/security updates.",
+    "scope_note": "These are product claims and documentation statements from the public README; they are not evidence that every feature is recoverable from the supplied macOS package or that the independent backend already implements them."
+  },
+  "release_v0_3_5": {
+    "api_url": "https://api.github.com/repos/xunchahaha/alpha-releases/releases/tags/v0.3.5",
+    "tag_name": "v0.3.5",
+    "published_at": "2026-10-20T03:48:31Z",
+    "release_commit": "f4294fe7ba95aab5796c7ed32398c2879add5ca4",
+    "headline_changes": [
+      "微信 CDN 缺失媒体补齐：仅 Windows x64，替代旧原图自动下载",
+      "朋友圈日历：按日显示发布数量/热度并联动筛选与导出",
+      "AI 总结风格、自定义要求、总结/回复分享图与八种聊天海报主题",
+      "修复 macOS 密钥获取、补齐授权/登录名/扫描判断、导出范围与媒体识别问题"
+    ],
+    "artifacts": [
+      {
+        "name": "Alpha-0.3.5-arm64.dmg",
+        "platform": "macos-arm64",
+        "size": 183712520,
+        "sha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/download/v0.3.5/Alpha-0.3.5-arm64.dmg"
+      },
+      {
+        "name": "Alpha-0.3.5-x64-Setup.exe",
+        "platform": "windows-x64",
+        "size": 138276689,
+        "sha256": "374d94b488ef214c3c784fa4b1a0cbd6d5645740dee7a54659ab9db62efe4272",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/download/v0.3.5/Alpha-0.3.5-x64-Setup.exe"
+      },
+      {
+        "name": "Alpha-0.3.5-x64.AppImage",
+        "platform": "linux-x64",
+        "size": 177894655,
+        "sha256": "dc54cbe8a5d1b43cff017665aee15c4ca929a836a77124f32f25541312ac2639",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/download/v0.3.5/Alpha-0.3.5-x64.AppImage"
+      },
+      {
+        "name": "Alpha-0.3.5-x64.deb",
+        "platform": "linux-x64",
+        "size": 140303892,
+        "sha256": "e9398fc7e61300c743592d83a38820fc84524864921c0b1df3ef9a0e97137d48",
+        "url": "https://github.com/xunchahaha/alpha-releases/releases/download/v0.3.5/Alpha-0.3.5-x64.deb"
+      }
+    ]
+  },
+  "stable_policy": {
+    "url": "https://raw.githubusercontent.com/xunchahaha/alpha-releases/main/update/stable.json",
+    "schema_version": 1,
+    "sequence": 10,
+    "latest_version": "0.3.5",
+    "channel": "stable",
+    "issued_at": "2026-10-20T06:08:29Z",
+    "expires_at": "2027-04-18T06:08:29Z",
+    "signature": {
+      "alg": "Ed25519",
+      "kid": "release-1"
+    },
+    "interpretation": "This is the public update-policy metadata observed at audit time; it is not a source or entitlement proof."
+  },
+  "public_issue_cross_checks": [
+    {
+      "number": 36,
+      "title": "0.3.5 引擎启动失败：alpha_native_get_api returned status -6（同安装包在另一台机器正常）",
+      "url": "https://github.com/xunchahaha/alpha-releases/issues/36"
+    },
+    {
+      "number": 32,
+      "title": "mac 0.35无法获取通讯录",
+      "url": "https://github.com/xunchahaha/alpha-releases/issues/32"
+    },
+    {
+      "number": 29,
+      "title": "取钥组件鉴权未通过",
+      "url": "https://github.com/xunchahaha/alpha-releases/issues/29"
+    },
+    {
+      "number": 27,
+      "title": "同步消息后数据读取失败",
+      "url": "https://github.com/xunchahaha/alpha-releases/issues/27"
+    },
+    {
+      "number": 25,
+      "title": "一推送消息就挂掉",
+      "url": "https://github.com/xunchahaha/alpha-releases/issues/25"
+    },
+    {
+      "number": 20,
+      "title": "Windows 0.2.0 / 微信 4.1.13.65：KEY_PROVIDER_AUTH_FAILED",
+      "url": "https://github.com/xunchahaha/alpha-releases/issues/20"
+    },
+    {
+      "number": 19,
+      "title": "数据保护防撤回开启失败",
+      "url": "https://github.com/xunchahaha/alpha-releases/issues/19"
+    },
+    {
+      "number": 9,
+      "title": "SECURITY_RUNTIME_POLICY_REJECTED",
+      "url": "https://github.com/xunchahaha/alpha-releases/issues/9",
+      "state_at_audit": "closed"
+    }
+  ],
+  "audit_boundary": [
+    "Observed facts come from GitHub repository/API/raw README/docs/stable metadata at the URLs above on 2026-11-01.",
+    "Issue reports are public user reports and cross-checks, not proof of a universal failure mode or internal implementation details.",
+    "No source code, private repositories, credentials, real WeChat data, or unredacted native secrets were accessed in this audit."
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "recordedAt": "2026-11-01",
+  "scope": "Current independent recovery status after contact, export, partial general records, analysis, media metadata, persistent chat jobs, schedule plan and HTTP/MCP additions; not full Alpha parity",
+  "protocol": {
+    "totalRequestBranches": 128,
+    "implementedRequestBranches": 46,
+    "unsupportedRequestBranches": 82,
+    "source": "packages/alpha-engine/index.cjs:SUPPORTED"
+  },
+  "validation": {
+    "npmTest": {
+      "command": "npm test",
+      "passed": 151,
+      "failed": 0
+    },
+    "build": {
+      "command": "npm run build:independent",
+      "status": "passed"
+    },
+    "desktopIndependent": {
+      "record": "independent-run.json",
+      "status": "passed",
+      "checks": [
+        "independentBackendReady",
+        "realSqliteThroughDesktopIpc",
+        "contactDirectoryAndProfileThroughRendererIpc",
+        "independentUnsupportedContactCategoriesGated",
+        "independentContactExportGated",
+        "independentRecordCategoriesGated",
+        "independentRecordExportThroughRendererIpc",
+        "contactDirectoryAndProfileRendered",
+        "lockEnforcesReadAccess",
+        "sourceUnchanged"
+      ]
+    },
+    "encryptedImport": {
+      "record": "encrypted-run.json",
+      "status": "passed"
+    },
+    "search": {
+      "record": "search-run.json",
+      "status": "passed"
+    },
+    "httpAdapter": {
+      "command": "node --test tests/http-server.test.mjs",
+      "status": "passed",
+      "tests": 4,
+      "tools": 20,
+      "conversationExportFormats": [
+        "json",
+        "markdown",
+        "html",
+        "txt"
+      ],
+      "mediaMetadataExportFormats": [
+        "media-json",
+        "media-csv"
+      ],
+      "metadataOnly": true
+    },
+    "chatExportSchedules": {
+      "command": "node --test tests/schedule-export.test.mjs",
+      "status": "passed",
+      "tests": 6,
+      "persistentPlanStore": true,
+      "explicitRunNow": true,
+      "backgroundAutomaticTimer": true,
+      "restartCatchUpBounded": true
+    },
+    "originalPackageMode": {
+      "record": "local-run.json",
+      "backendReady": false,
+      "errorCode": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
+    },
+    "maintenance": {
+      "command": "npm run check:maintainability",
+      "status": "passed"
+    },
+    "provenance": {
+      "protocol": "npm run verify:protocol",
+      "vendor": "npm run verify:vendor",
+      "gitDiffCheck": "passed"
+    },
+    "recordExport": {
+      "command": "node --test tests/engine-record-export.test.mjs",
+      "status": "passed",
+      "tests": 2,
+      "formats": [
+        "json",
+        "csv",
+        "xlsx"
+      ],
+      "categories": [
+        "payments",
+        "revokes",
+        "calls"
+      ],
+      "unsupportedCategories": [
+        "friend_requests",
+        "moment_interactions",
+        "searches"
+      ]
+    },
+    "mediaMetadataExport": {
+      "command": "node --test tests/media-metadata-export.test.mjs",
+      "status": "passed",
+      "tests": 3,
+      "formats": [
+        "media-json",
+        "media-csv"
+      ],
+      "metadataOnly": true,
+      "mediaReady": false,
+      "scope": [
+        "conversation",
+        "account"
+      ]
+    }
+  },
+  "featureBoundary": {
+    "mediaFilesAndVoicePlayback": "unimplemented",
+    "momentsAndFavorites": "unimplemented",
+    "generalRecordListing": {
+      "payments": "partial-candidate-from-message-xml",
+      "revokes": "partial-candidate-from-message-xml",
+      "friend_requests": "unimplemented",
+      "calls": "partial-candidate-from-message-xml",
+      "moment_interactions": "unimplemented",
+      "searches": "unimplemented"
+    },
+    "generalRecordExports": "partial-candidate-payments-revokes-calls",
+    "automatedKeyAcquisition": "unimplemented",
+    "aiAndModelServices": "unimplemented",
+    "messageWritingAndSending": "unimplemented",
+    "realWeChatData": "untested",
+    "fullFeatureParity": false
+  }
+}

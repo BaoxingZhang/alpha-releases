@@ -7,6 +7,12 @@ export const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 export function launchEnvironment(session = 'manual', options = {}) {
   if (!/^[a-zA-Z0-9_-]+$/.test(session)) throw new Error('Invalid session name');
   const env = { ...process.env };
+  // Preserve these two explicitly supplied independent-adapter settings while
+  // clearing the rest of the ALPHA_* process environment below.  They are
+  // injected only for the independent backend; the original backend never
+  // receives an operator HTTP token or listener port.
+  const independentHttpToken = env.ALPHA_INDEPENDENT_HTTP_TOKEN;
+  const independentHttpPort = env.ALPHA_INDEPENDENT_HTTP_PORT;
   for (const k of Object.keys(env)) if (/^ALPHA_|^ELECTRON_|^NODE_OPTIONS$|^NODE_PATH$|^DYLD_|^(?:HTTP|HTTPS|ALL)_PROXY$/i.test(k)) delete env[k];
   const runtime = path.join(root, 'build/runtime-bundle');
   Object.assign(env, {
@@ -28,6 +34,16 @@ export function launchEnvironment(session = 'manual', options = {}) {
   if (options.backend !== undefined && !['original', 'independent'].includes(options.backend)) throw new Error('Invalid backend');
   if (options.backend === 'independent') {
     env.ALPHA_RECOVERY_BACKEND = 'independent';
+    if (independentHttpToken !== undefined) {
+      if (typeof independentHttpToken !== 'string' || !/^[\x21-\x7e]{32,256}$/.test(independentHttpToken)) throw new Error('HTTP_TOKEN_INVALID');
+      env.ALPHA_INDEPENDENT_HTTP_TOKEN = independentHttpToken;
+    }
+    if (independentHttpPort !== undefined) {
+      if (typeof independentHttpPort !== 'string' || !/^\d+$/.test(independentHttpPort)) throw new Error('HTTP_PORT_INVALID');
+      const port = Number(independentHttpPort);
+      if (!Number.isSafeInteger(port) || port < 0 || port > 65535) throw new Error('HTTP_PORT_INVALID');
+      env.ALPHA_INDEPENDENT_HTTP_PORT = independentHttpPort;
+    }
     const base = path.join(root, '.runtime');
     const validateDatasetDirectory = (value, optionName) => {
       const candidate = path.resolve(value);

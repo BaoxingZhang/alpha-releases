@@ -22,19 +22,20 @@
 | 微信只读数据层 | IPC/Protobuf、WCDB 动态库；新增自有读取桥接和固定格式离线解密 | 原 Rust/C++ 源码、更多数据库版本适配、实时快照与 WAL 一致性 | 原数据不被修改，页数/条数/字段与基准一致 |
 | 私聊、群聊、消息类型、引用 | UI、消息展示逻辑、请求响应编解码 | 对应真实数据读取与语义解析 | 分页无漏重，时间/64位ID精度正确，引用可定位 |
 | 搜索、日期跳转、上下文 | UI、IPC、协议；新增自有字面搜索、过滤、稳定游标、精确上下文和日历计数 | 大库索引与性能、更多消息编码/语义、真实数据完整验收 | 跨页结果稳定，过滤正确，可回到原消息；部分覆盖明确说明 |
-| 通讯录、群成员、公告 | UI、IPC、协议 | 联系人及群资料读取 | 备注/昵称/群身份与实际记录一致 |
-| 收藏、其他资料 | UI、IPC、协议 | 嵌套收藏、支付/验证/撤回/通话等解析 | 原始与结构化内容可对照，未知类型不伪造 |
-| 图片、视频、语音、实况照片 | UI、缓存/协议部分 JS、FFmpeg | 原生媒体读取、解密、SILK、WXGF、附件定位 | 正确解码，缺失/损坏有明确状态，不越界取文件 |
-| 媒体墙与图片查看器 | UI、分页及窗口逻辑 | 媒体索引与服务实现 | 时间/会话筛选、缩略图和原图一致 |
+| 通讯录、群成员、公告 | UI、IPC、协议；新增联系人字面量查询、friend/group directory 分页与计数、有限 profile 存在性读取、真实 RoomData 共同群计数/列表、群成员读取和 CSV/JSON/VCF/HTML 只读导出，群成员另支持 CSV/JSON/HTML/XLSX 导出，群 profile 可返回真实成员数和唯一群主；独立模式 UI 会禁用未验证分类、Excel 联系人导出和头像导出 | 高级通讯录分类、完整资料、头像导出、群公告和管理员身份；企微/公众号/服务号/曾经好友/黑名单分类保持不可用 | 备注/昵称/群身份与实际记录一致；查询结果有分页且 `%`/`_` 按字面量处理，未验证分类请求失败关闭 |
+| 收藏、其他资料 | UI、IPC、协议；独立后端已从消息 XML 提供 payments/revokes/calls 的 partial/candidate 读取，并支持 xlsx/csv/json 只读导出 | 嵌套收藏、好友验证/朋友圈互动/搜索记录、完整支付字段和通话语义和原始 Alpha 记录库 | 原始与结构化内容可对照，候选和来源字段明确标记，未知类型不伪造 |
+| 图片、视频、语音、实况照片 | UI、缓存/协议部分 JS、FFmpeg；独立后端可读取消息中的真实 refs 与媒体类型元数据 | 原生媒体读取、解密、SILK、WXGF、附件定位 | 正确解码，缺失/损坏有明确状态，不越界取文件；当前仅元数据，不能读取、解密或播放本地媒体 |
+| 媒体墙与图片查看器 | UI、分页及窗口逻辑；独立 `browseConversationMessages`/`browseAccountMedia` 已支持真实消息的 media/file/link 与 media/image/video 元数据筛选、时间范围和分页，并可通过 `window.alpha.messages.exportMediaMetadata` 导出 metadata-only JSON/CSV | 媒体索引与服务实现、文件路径/下载/token | 全账号扫描基于可发现 session index；导出明确标记 `metadataOnly=true`、`mediaReady=false`；本地文件读取、解密、缩略图、原图和播放仍未实现 |
 | 语音转文字 | UI、任务接口、模型目录 | 运行引擎、模型文件、取消与缓存 | 有模型时真实产出，无模型时明确不可用 |
-| 聊天/联系人/资料导出 | UI、部分导出协调 JS、协议 | 完整格式转换、附件打包与进度任务 | 文件格式有效，条数一致，转义正确，可取消 |
-| 定时导出及任务历史 | 调度 UI、IPC、原生组件 | 持久任务与重启恢复 | 重启不重发任务，失败可追踪，增量不漏重 |
-| 统计、足迹、年度/双人报告 | UI、图表/报告组件、协议 | 统计实现和语义回归 | 已知样本的统计正确，报告导出可复现 |
+| 聊天/联系人/资料导出 | UI、部分导出协调 JS、协议；独立后端已支持 JSON/Markdown/HTML/TXT 单次导出和内存多会话任务状态/取消 | Excel、ChatLab、SQL、WeClone、附件打包、持久任务和完整进度恢复 | 已实现格式文件有效、条数一致；完整格式与任务生命周期仍需补齐 |
+| 定时导出及任务历史 | 调度 UI、IPC、独立 stateDir 计划与 bounded scheduler | Alpha 完整调度冲突/增量语义、后台任务跨进程租约 | 当前独立 runner 仅支持无媒体 JSON/Markdown/HTML/TXT；重启最多补一条到期 run，失败可追踪并手工重试 |
+| 数据变化监控 | UI、IPC、协议；独立后端字段 106 返回显式离线数据源根目录并由主进程 watcher 使用 | 在线微信变化、自动数据发现、切号/重启后的实时监控语义 | 只监控授权且显式选择的源，源失效时停止并报告错误 |
+| 统计、足迹、年度/双人报告 | UI、图表/报告组件、协议；独立后端已支持基于可发现会话和消息的年度基础聚合及指定会话关系基础统计 | 完整统计语义、足迹、回复速度、口头禅、朋友圈互动、双人报告和图片导出 | 合成样本的年度/会话基础计数正确，并明确报告覆盖边界 |
 | 朋友圈浏览、日历、导出 | UI、IPC、协议 | SNS 读取、媒体与互动解析 | 时间线分页、筛选、媒体、导出一致 |
 | 防撤回、朋友圈防删除 | UI、策略接口、原 retention 库 | 可维护的保留机制及可恢复写入 | 只在明确开启后作用，有备份/恢复验证 |
 | AI 助手、会话总结 | 多服务适配/worker JS、线程 UI、IPC | 数据工具、gateway、持久状态及端到端对接 | 真实工具结果、审批、取消、重试、上下文压缩均正确 |
 | AI 记忆、人格、外部 MCP | JS、UI、协议、原 server | 记忆存储、工具权限与完整 gateway | 账号/线程隔离、审批和删除行为可验证 |
-| HTTP API、MCP、CLI | main 网关/代理部分、公开契约、原二进制 | 完整服务端实现与兼容测试 | 官方列出的24个HTTP路径、60个MCP工具逐项验证 |
+| HTTP API、MCP、CLI | main 网关/代理部分、公开契约；独立后端新增本机受控 HTTP/MCP 适配器，当前声明 19 个工具，覆盖状态、账号、会话、消息、搜索、联系人和群成员，以及 profile、消息原始 DTO、上下文/日期辅助查询，并支持受控会话文件导出 | 官方其余 HTTP/MCP 路径、媒体/朋友圈/收藏/发送语义、完整兼容测试 | 已接入路径在合成 DTO 上通过鉴权、边界、字段和错误测试；官方列出的24个HTTP路径、60个MCP工具仍需逐项验证 |
 | 应用锁及凭据保存 | UI、IPC、原 security host | 自有可维护安全存储及锁实现 | 锁住时数据访问被阻止，凭据加密且不串账号 |
 | 更新与发布 | JS更新逻辑、公钥/配置 | 自有构建、签名、发布服务及版本迁移 | 安装/升级/回滚真实通过，不依赖作者发行身份 |
 | 消息编辑 | UI、IPC、实验性Mac入口 | 受控写入组件及合法开发接口或自有实现 | 对副本验证编辑/恢复、一致性与故障恢复 |
@@ -59,7 +60,15 @@
 - [构建/运行实测](docs/local-build-and-run.md)
 - [手动密钥与离线加密导入](docs/encrypted-import.md)
 - [搜索、定位与日期导航](docs/search-navigation.md)
+- [年度基础统计接手记录](docs/annual-analysis-recovery.md)
+- [会话分析接手记录](docs/conversation-analysis-recovery.md)
+- [聊天导出任务接手记录](docs/chat-export-jobs-recovery.md)
+- [群成员导出接手记录](docs/group-members-export-recovery.md)
+- [独立 HTTP/MCP 适配器接手记录](docs/http-readonly-adapter-recovery.md)
 - [源码与原生材料缺口](docs/source-gaps.md)
+- [其他资料记录的 schema 证据](docs/general-records-schema-evidence.md)
+- [公共源码与替代后端候选](docs/public-source-candidates.md)
+- [相关公开项目与可复用边界](docs/related-open-source-evidence.md)
 - [JavaScript拆分与IPC边界](docs/independent-maintenance-js.md)
 - [全功能原生替换分析](docs/independent-maintenance-native.md)
 - [官方HTTP/MCP接口索引](docs/api-reference-index.json)

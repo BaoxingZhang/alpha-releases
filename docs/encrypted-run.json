@@ -1,6 +1,6 @@
 {
-  "testedAt": "2026-10-31T18:57:59.277Z",
-  "session": "encrypted-smoke-1793473078997",
+  "testedAt": "2026-10-31T23:29:45.790Z",
+  "session": "encrypted-smoke-1793489385472",
   "sourceKind": "synthetic SQLCipher4 encrypted fixture",
   "realUserDataAccessed": false,
   "checks": {
@@ -36,7 +36,7 @@
     {
       "id": "synthetic-account",
       "sourceProfile": "alpha-independent-encrypted-v4",
-      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/encrypted-smoke-1793473078997/fixture/encrypted",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/encrypted-smoke-1793489385472/fixture/encrypted",
       "subjectId": "",
       "displayName": "加密数据源 · synthetic-account",
       "schemaProfile": "wechat-v4-encrypted",
@@ -61,7 +61,7 @@
     {
       "id": "synthetic-account",
       "sourceProfile": "alpha-independent-offline-v4",
-      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/encrypted-smoke-1793473078997/fixture/encrypted",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/encrypted-smoke-1793489385472/fixture/encrypted",
       "subjectId": "",
       "displayName": "离线数据源 · synthetic-account",
       "schemaProfile": "wechat-v4-offline",
@@ -204,10 +204,10 @@
     }
   ],
   "importCancellation": {
-    "elapsedMs": 1012,
+    "elapsedMs": 1007,
     "error": "Error invoking remote method 'alpha:accounts:import-database-key': Error: IMPORT_CANCELED",
     "childExited": true,
     "workDirectoryRemoved": true
   },
-  "appFilesInspected": 9
+  "appFilesInspected": 10
 }

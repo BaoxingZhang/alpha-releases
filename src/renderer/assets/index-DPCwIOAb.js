@@ -1,3 +1,4 @@
+import { chatExportPolicy, independentFormatPreference } from "./export-policy.mjs";
 import { r as reactExports, j as jsxRuntimeExports, R as ReactDOM, a as React } from "./client-Bg2hQ5uk.js";
 import { c as createLucideIcon, T as Tooltip, k as cn, g as ChevronRight, l as useTooltip, m as useOverlaySuppressed, n as usePresence, p as useDismiss, r as reactDomExports, t as toRect, q as ownerWindow, s as outsideViewport, w as placeMenu, x as overlayHost, A as ArrowLeft, d as ArrowRight, b as TitleBar, D as Download, C as ChevronLeft, a as PopoverLayer, h as CloudDownload, y as liveClipId, i as imageDataUrl, z as verifiedImageDisplayUrl, I as ImageOff, B as imageDisplayFrame, E as hasDeferredQuotedImage, F as isVisualMessage, G as cachedMessageImages, H as isQuotedSticker, J as verifiedRendition, K as messageImageDisplayUrl, L as LivePhotoIcon, N as unsupportedImagePreview, O as retainVerifiedFullImages, P as Play, R as RotateCw, Q as useRovingTabStop, S as OverlaySuppressedContext, U as visibleBounds, W as clippedBy, X as placeFloating, Y as TooltipBody, Z as describeTooltipContent, _ as revealInBounds, $ as activeTooltip, a0 as CHART_LEAVE_MS, a1 as TOOLTIP_SKIP_WINDOW_MS, a2 as CHART_DWELL_MS, f as Pin, o as onRovingKeyDown, e as LayoutGrid, M as MOMENT_VIEWER_MAX_ITEMS, a3 as nextRovingIndex, a4 as windowChromePlatform, a5 as WindowControls } from "./message-images-Dl-McHRQ.js";
 import { m as messageTextSegments } from "./segments-CBPICGMn.js";
@@ -6611,7 +6612,7 @@ function OnboardingWizard({ onComplete, onCancel, status }) {
   const detected = detectedAccountChoices(candidates);
   const saved = savedAccountChoices(accounts, candidates);
   const platform = window.alpha.windowChrome?.platform;
-  const keyCopy = independentSource ? { intro: "打开启动时指定的微信 v4 离线数据副本。加密副本需要手动输入已有密钥，验证成功后生成本地解密副本；不会自动获取密钥。图片、AI 与导出等功能仍在接入中。", busy: "正在验证并打开数据副本…" } : autoDatabaseKeyCopy(platform);
+const keyCopy = independentSource ? { intro: "打开启动时指定的微信 v4 离线数据副本。加密副本需要手动输入已有密钥，验证成功后生成本地解密副本；不会自动获取密钥。文本消息和部分只读导出已可用；图片文件读取、AI 与完整导出格式仍在接入中。", busy: "正在验证并打开数据副本…" } : autoDatabaseKeyCopy(platform);
   const nextLabel = step === 0 ? connected ? "继续" : manual ? "验证并连接" : independentSource ? "打开数据副本" : "连接微信" : step === 1 ? imageConfigured ? "继续" : "暂时跳过" : step === 2 ? "继续" : "进入 Alpha";
   return /* @__PURE__ */ jsxRuntimeExports.jsx("section", { className: "setup-screen", "aria-label": "Alpha 首次设置", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "setup-window", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "setup-sidebar", children: [
@@ -28103,15 +28104,19 @@ const CONTACT_EXPORT_FORMAT_CHOICES = [
   { id: "vcf", extension: "vcf", name: "vCard 名片", description: "可导入手机通讯录。" },
   { id: "html", extension: "html", name: "HTML 网页", description: "用浏览器直接查看的名单页面。" }
 ];
+const INDEPENDENT_CONTACT_EXPORT_CATEGORIES = ["friend", "group"];
+const INDEPENDENT_CONTACT_EXPORT_FORMATS = ["csv", "json", "vcf", "html"];
 const MAX_QUERY_BYTES = 1024;
 const MAX_PATH_LENGTH = 4096;
-function initialContactExportDraft({ category, query = "" } = {}) {
+function initialContactExportDraft({ category, query = "", independent = false } = {}) {
   const searchQuery = query.trim();
+  const supportedCategories = independent ? INDEPENDENT_CONTACT_EXPORT_CATEGORIES : ALL_CATEGORIES;
+  const supportedFormats = independent ? INDEPENDENT_CONTACT_EXPORT_FORMATS : CONTACT_EXPORT_FORMAT_CHOICES.map((item) => item.id);
   return {
-    categories: [category ?? CONTACT_CATEGORIES[0].id],
+    categories: [supportedCategories.includes(category) ? category : supportedCategories[0]],
     searchQuery,
     onlySearchResults: Boolean(searchQuery),
-    format: "xlsx",
+    format: independent ? "csv" : "xlsx",
     includeProfile: true,
     includeAvatars: false,
     destinationPath: ""
@@ -28143,9 +28148,12 @@ function contactExportDefaultName(draft, now2) {
   const query = fileNamePart(contactExportQuery(draft), 20);
   return ["通讯录", scope, query && `搜索-${query}`, stamp2].filter(Boolean).join("_");
 }
-function contactExportIssue(draft, selectedCount) {
-  const valid2 = new Set(CONTACT_CATEGORIES.map((item) => item.id));
+function contactExportIssue(draft, selectedCount, { independent = false } = {}) {
+  const valid2 = new Set(independent ? INDEPENDENT_CONTACT_EXPORT_CATEGORIES : CONTACT_CATEGORIES.map((item) => item.id));
   if (!draft.categories.length || !draft.categories.every((id) => valid2.has(id))) return { field: "categories", message: "请至少选择一个分类。" };
+  const formats = independent ? INDEPENDENT_CONTACT_EXPORT_FORMATS : CONTACT_EXPORT_FORMAT_CHOICES.map((item) => item.id);
+  if (!formats.includes(draft.format)) return { field: "format", message: independent ? "独立离线导出目前支持 CSV、JSON、vCard 和 HTML。" : "请选择导出格式。" };
+  if (independent && draft.includeAvatars) return { field: "avatars", message: "独立离线导出不读取头像文件。" };
   const query = contactExportQuery(draft);
   if (new TextEncoder().encode(query).length > MAX_QUERY_BYTES || query.includes("\0")) return { field: "query", message: "搜索词过长，请缩短后重新搜索。" };
   if (selectedCount === 0) return { field: "empty", message: query ? "所选分类中没有符合搜索的联系人。" : "所选分类中没有联系人。" };
@@ -28154,8 +28162,8 @@ function contactExportIssue(draft, selectedCount) {
   if (path.includes("\0") || path.length > MAX_PATH_LENGTH) return { field: "path", message: "保存位置无效，请重新选择。" };
   return null;
 }
-function contactExportRequest(draft) {
-  const issue = contactExportIssue(draft);
+function contactExportRequest(draft, options = {}) {
+  const issue = contactExportIssue(draft, void 0, options);
   if (issue) throw new Error("CONTACT_EXPORT_REQUEST_INVALID");
   return {
     categories: [...draft.categories],
@@ -28208,8 +28216,10 @@ function contactExportPathHint(reset, format) {
   if (reset === "uncertain") return "上次导出结果未确认，请选择新的保存位置，避免覆盖可能已写入的文件。";
   return `尚未选择，将保存为 .${format.extension} 文件。`;
 }
-function useContactExport(accountId, seed) {
-  const [draft, setDraft] = reactExports.useState(() => initialContactExportDraft(seed));
+function useContactExport(accountId, seed, independent = false) {
+  const [draft, setDraft] = reactExports.useState(() => initialContactExportDraft({ ...seed, independent }));
+  const supportedCategories = independent ? INDEPENDENT_CONTACT_EXPORT_CATEGORIES : ALL_CATEGORIES;
+  const supportedFormats = independent ? INDEPENDENT_CONTACT_EXPORT_FORMATS : CONTACT_EXPORT_FORMAT_CHOICES.map((item) => item.id);
   const [choosing, setChoosing] = reactExports.useState(false);
   const [running2, setRunning] = reactExports.useState(false);
   const [pathReset, setPathReset] = reactExports.useState(null);
@@ -28235,7 +28245,7 @@ function useContactExport(accountId, seed) {
     refetchOnWindowFocus: false
   });
   const selectedCount = contactExportCount(draft.categories, counts2.data);
-  const issue = accountId ? contactExportIssue(draft, selectedCount) : { field: "categories", message: "请先连接账号。" };
+  const issue = accountId ? contactExportIssue(draft, selectedCount, { independent }) : { field: "categories", message: "请先连接账号。" };
   const busy = choosing || running2;
   const clearFailure = () => setFailure((current2) => current2?.outcomeUnknown ? current2 : null);
   const update2 = (patch2) => {
@@ -28267,7 +28277,7 @@ function useContactExport(accountId, seed) {
     const attempted = draft.destinationPath;
     uncertainPath.current = "";
     try {
-      const request = contactExportRequest(draft);
+      const request = contactExportRequest(draft, { independent });
       inFlight.current = true;
       setRunning(true);
       const value = await window.alpha.data.exportContacts(accountId, request);
@@ -28312,7 +28322,7 @@ function useContactExport(accountId, seed) {
     uncertainPath.current = "";
     setDraft((current2) => ({ ...current2, destinationPath: "" }));
   };
-  return { draft, update: update2, counts: counts2, selectedCount, issue, choosing, running: running2, busy, pathReset, result, failure, choosePath, start, reveal, followUp, again };
+  return { draft, update: update2, counts: counts2, selectedCount, issue, choosing, running: running2, busy, pathReset, result, failure, choosePath, start, reveal, followUp, again, independent, supportedCategories, supportedFormats };
 }
 function ContactExportResultView({ exporter, onDone, onAgain }) {
   const { result, failure } = exporter;
@@ -28364,7 +28374,7 @@ function ContactExportAlert({ failure, disabled, onAction }) {
   ] });
 }
 function ContactExportScope({ exporter }) {
-  const { draft, update: update2, counts: counts2, busy } = exporter;
+  const { draft, update: update2, counts: counts2, busy, supportedCategories, independent } = exporter;
   const countText = (value) => value ?? (counts2.isFetching ? "…" : "—");
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "contact-export-section", disabled: busy, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("legend", { children: "范围" }),
@@ -28377,6 +28387,7 @@ function ContactExportScope({ exporter }) {
           {
             type: "checkbox",
             checked,
+            disabled: !supportedCategories.includes(category.id),
             "aria-label": count2 === void 0 ? category.label : `${category.label} ${count2} 位`,
             onChange: () => update2({ categories: toggleContactExportCategory(draft.categories, category.id) })
           }
@@ -28385,6 +28396,7 @@ function ContactExportScope({ exporter }) {
         /* @__PURE__ */ jsxRuntimeExports.jsx("small", { "aria-hidden": "true", children: countText(count2) })
       ] }, category.id);
     }) }),
+    independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "contact-export-hint", children: "独立离线导出目前只支持好友和群聊；企微、公众号、服务号、曾经的好友和黑名单没有可验证字段。" }),
     counts2.isError && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "contact-export-hint", children: "暂时无法统计各分类人数，仍可导出。" }),
     draft.searchQuery && /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "contact-export-check", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "checkbox", checked: draft.onlySearchResults, onChange: (event) => update2({ onlySearchResults: event.target.checked }) }),
@@ -28401,7 +28413,7 @@ function ContactExportScope({ exporter }) {
 }
 function ContactExportForm({ exporter, focusPath, onCancel }) {
   const ids = reactExports.useId();
-  const { draft, update: update2, busy, running: running2, choosing, issue, selectedCount, failure } = exporter;
+  const { draft, update: update2, busy, running: running2, choosing, issue, selectedCount, failure, supportedFormats, independent } = exporter;
   const format = contactExportFormatChoice(draft.format);
   const summary = running2 ? "正在读取通讯录并写入文件，请稍候…" : issue ? issue.message : selectedCount === void 0 ? "将导出所选分类的联系人。" : `将导出 ${selectedCount} 位联系人。`;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { className: "contact-export-form", "aria-busy": running2, onSubmit: (event) => {
@@ -28413,7 +28425,7 @@ function ContactExportForm({ exporter, focusPath, onCancel }) {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "contact-export-section", disabled: busy, children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("legend", { children: "格式" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "contact-export-formats", children: CONTACT_EXPORT_FORMAT_CHOICES.map((choice) => /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: draft.format === choice.id ? "is-selected" : void 0, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "radio", name: `${ids}-format`, value: choice.id, checked: draft.format === choice.id, onChange: () => update2({ format: choice.id }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "radio", name: `${ids}-format`, value: choice.id, checked: draft.format === choice.id, disabled: !supportedFormats.includes(choice.id), onChange: () => update2({ format: choice.id }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: choice.name }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("code", { children: [
@@ -28434,10 +28446,10 @@ function ContactExportForm({ exporter, focusPath, onCancel }) {
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "contact-export-check", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "checkbox", checked: draft.includeAvatars, onChange: (event) => update2({ includeAvatars: event.target.checked }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "checkbox", checked: draft.includeAvatars, disabled: independent, onChange: (event) => update2({ includeAvatars: event.target.checked }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-            "导出本机已缓存的头像",
-            /* @__PURE__ */ jsxRuntimeExports.jsx("small", { children: "复制到导出文件旁的文件夹；只使用本机缓存，不会联网下载。" })
+            independent ? "独立离线导出暂不包含头像" : "导出本机已缓存的头像",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("small", { children: independent ? "独立后端不会读取或复制本地头像文件。" : "复制到导出文件旁的文件夹；只使用本机缓存，不会联网下载。" })
           ] })
         ] })
       ] }),
@@ -28463,10 +28475,10 @@ function ContactExportForm({ exporter, focusPath, onCancel }) {
     ] })
   ] });
 }
-function ContactExportDialog({ accountId, seed, onClose }) {
+function ContactExportDialog({ accountId, seed, onClose, independent = false }) {
   const { activeAccountId, accountEpoch } = useWorkspace();
   const [openedFor] = reactExports.useState(() => `${activeAccountId}:${accountEpoch}`);
-  const exporter = useContactExport(accountId, seed);
+  const exporter = useContactExport(accountId, seed, independent);
   const [returned, setReturned] = reactExports.useState(false);
   reactExports.useEffect(() => {
     if (`${activeAccountId}:${accountEpoch}` !== openedFor) onClose();
@@ -28482,7 +28494,7 @@ function ContactExportDialog({ accountId, seed, onClose }) {
     } }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ContactExportForm, { exporter, focusPath: returned, onCancel: close })
   ] });
 }
-function ContactExportAction({ accountId, label, icon, seed }) {
+function ContactExportAction({ accountId, label, icon, seed, independent = false }) {
   const [opened, setOpened] = reactExports.useState(null);
   reactExports.useEffect(() => {
     if (opened && opened.accountId !== accountId) setOpened(null);
@@ -28492,7 +28504,7 @@ function ContactExportAction({ accountId, label, icon, seed }) {
       icon,
       label
     ] }),
-    opened && opened.accountId === accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(ContactExportDialog, { accountId, seed: opened.seed, onClose: () => setOpened(null) })
+    opened && opened.accountId === accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(ContactExportDialog, { accountId, seed: opened.seed, independent, onClose: () => setOpened(null) })
   ] });
 }
 const CONTACT_PAGE_SIZE = 200;
@@ -28500,6 +28512,7 @@ const DEFAULT_CONTACT_CATEGORY = "friend";
 const PRIMARY_CATEGORY_IDS = ["friend", "group", "official"];
 const PRIMARY_CONTACT_CATEGORIES = CONTACT_CATEGORIES.filter((item) => PRIMARY_CATEGORY_IDS.includes(item.id));
 const MORE_CONTACT_CATEGORIES = CONTACT_CATEGORIES.filter((item) => !PRIMARY_CATEGORY_IDS.includes(item.id));
+const INDEPENDENT_CONTACT_CATEGORIES = ["friend", "group"];
 function contactDisplayName(contact) {
   return contact.displayName || contact.remark || contact.nickname || contact.username || "未知联系人";
 }
@@ -28587,10 +28600,15 @@ function useDebouncedValue(value, delayMs = 250) {
   }, [value, delayMs]);
   return settled;
 }
-function useContactDirectory(accountId) {
+function useContactDirectory(accountId, independent = false) {
   const [search, setSearch] = reactExports.useState("");
   const [category, setCategory] = reactExports.useState(DEFAULT_CONTACT_CATEGORY);
   const [revision, setRevision] = reactExports.useState(0);
+  const supportedCategories = independent ? INDEPENDENT_CONTACT_CATEGORIES : ALL_CATEGORIES;
+  const categorySupported = supportedCategories.includes(category);
+  reactExports.useEffect(() => {
+    if (!categorySupported) setCategory(DEFAULT_CONTACT_CATEGORY);
+  }, [categorySupported]);
   const settled = useDebouncedValue(search, 250);
   const { query, searchError } = reactExports.useMemo(() => {
     try {
@@ -28609,7 +28627,7 @@ function useContactDirectory(accountId) {
     }),
     initialPageParam: 0,
     getNextPageParam: (last, pages) => last.hasMore && last.items.length ? pages.reduce((total, page) => total + page.items.length, 0) : void 0,
-    enabled: Boolean(accountId) && !searchError,
+    enabled: Boolean(accountId) && !searchError && categorySupported,
     retry: false,
     staleTime: 3e4,
     refetchOnWindowFocus: false
@@ -28929,12 +28947,13 @@ function SearchField({ label, placeholder, value, onChange, disabled, maxLength 
     value && !disabled && /* @__PURE__ */ jsxRuntimeExports.jsx(Tooltip, { content: "清除搜索", describe: false, children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", "aria-label": "清除搜索", onClick: () => onChange(""), children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14, "aria-hidden": "true" }) }) })
   ] });
 }
-function ContactCategoryControl({ value, counts: counts2, disabled, onChange }) {
+function ContactCategoryControl({ value, counts: counts2, disabled, onChange, supportedCategories = ALL_CATEGORIES }) {
   const options = reactExports.useMemo(() => MORE_CONTACT_CATEGORIES.map((item) => ({
     value: item.id,
-    label: item.label,
-    meta: counts2 ? String(counts2[item.id]) : void 0
-  })), [counts2]);
+    label: supportedCategories.includes(item.id) ? item.label : `${item.label}（暂不可用）`,
+    meta: counts2 ? String(counts2[item.id]) : void 0,
+    disabled: !supportedCategories.includes(item.id)
+  })), [counts2, supportedCategories]);
   const pressed = PRIMARY_CONTACT_CATEGORIES.findIndex((item) => item.id === value);
   const segments = PRIMARY_CONTACT_CATEGORIES.length;
   const { tabStop, focusProps } = useRovingTabStop(pressed < 0 ? segments : pressed, segments + 1);
@@ -28946,9 +28965,9 @@ function ContactCategoryControl({ value, counts: counts2, disabled, onChange }) 
         {
           type: "button",
           "aria-pressed": value === category.id,
-          disabled,
+          disabled: disabled || !supportedCategories.includes(category.id),
           tabIndex: index === tabStop ? 0 : -1,
-          "aria-label": count2 === void 0 ? category.label : `${category.label} ${count2} ${contactCategoryUnit(category.id)}`,
+          "aria-label": !supportedCategories.includes(category.id) ? `${category.label}（暂不可用）` : count2 === void 0 ? category.label : `${category.label} ${count2} ${contactCategoryUnit(category.id)}`,
           onClick: () => onChange(category.id),
           children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: category.label }),
@@ -28980,10 +28999,11 @@ function ContactCategoryControl({ value, counts: counts2, disabled, onChange }) 
     )
   ] });
 }
-function ContactFilters({ accountId, data }) {
+function ContactFilters({ accountId, data, independent = false }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "contacts-toolbar", role: "search", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(SearchField, { className: "contacts-search", label: "搜索联系人", placeholder: "搜索名称、备注或微信号", value: data.search, disabled: !accountId, onChange: data.setSearch }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(ContactCategoryControl, { value: data.category, counts: data.counts, disabled: !accountId, onChange: data.setCategory }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(ContactCategoryControl, { value: data.category, counts: data.counts, disabled: !accountId, onChange: data.setCategory, supportedCategories: independent ? INDEPENDENT_CONTACT_CATEGORIES : ALL_CATEGORIES }),
+    independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "contacts-capability-note", role: "note", children: "独立离线数据目前只支持好友和群聊，其他通讯录分类待数据组件提供可验证字段。" }),
     data.searchError && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "contacts-field-error", role: "alert", children: data.searchError.message })
   ] });
 }
@@ -29141,7 +29161,9 @@ function moveRowFocus(event) {
   row.focus();
 }
 function ContactsBrowser({ accountId }) {
-  const data = useContactDirectory(accountId);
+  const { status } = useWorkspace();
+  const independent = status?.components?.some((component) => component.component === "alpha-independent-engine") === true;
+  const data = useContactDirectory(accountId, independent);
   const [selected, setSelected] = reactExports.useState(null);
   const current2 = resolveSelectedContact(data.contacts, selected);
   const { directory } = data;
@@ -29154,7 +29176,8 @@ function ContactsBrowser({ accountId }) {
           accountId,
           label: "导出",
           icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { size: 15, "aria-hidden": "true" }),
-          seed: () => ({ category: data.category, query: data.query, counts: data.counts })
+          seed: () => ({ category: data.category, query: data.query, counts: data.counts }),
+          independent
         }
       ),
       /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -29170,7 +29193,7 @@ function ContactsBrowser({ accountId }) {
     ] }) }),
     !accountId ? /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { className: "contacts-unavailable", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { size: 22 }), title: "等待账号数据", action: /* @__PURE__ */ jsxRuntimeExports.jsx(ConnectAccountButton, {}), description: "请先在账号设置中连接账号，再回来查看。" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "contacts-body", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "contacts-rail", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(ContactFilters, { accountId, data }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(ContactFilters, { accountId, data, independent }),
         pageError && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "contacts-error", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: /* @__PURE__ */ jsxRuntimeExports.jsx(WorkspaceWorkflowFeedback, { error: pageError.message || pageError.code }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => void directory.refetch(), children: "重试" })
@@ -31949,6 +31972,19 @@ const RECORD_TABS = [
   { id: "moment_interactions", label: "朋友圈互动" },
   { id: "searches", label: "搜索记录" }
 ];
+// The independent reader derives bounded payment, revoke, and call candidates
+// from message rows. Keep the original record surface for the packaged/native
+// backend, while making the three unavailable categories explicit in the
+// independent UI instead of letting them fail after a click.
+const INDEPENDENT_RECORD_CATEGORIES = ["payments", "revokes", "calls"];
+const INDEPENDENT_UNSUPPORTED_RECORD_CATEGORIES = ["friend_requests", "moment_interactions", "searches"];
+function isIndependentEngineStatus(status) {
+  return status?.components?.some((component) => component.component === "alpha-independent-engine") === true;
+}
+function recordTabsForMode(independent) {
+  if (!independent) return RECORD_TABS;
+  return RECORD_TABS.map((tab) => INDEPENDENT_UNSUPPORTED_RECORD_CATEGORIES.includes(tab.id) ? { ...tab, label: `${tab.label}（暂不可用）`, disabled: true } : tab);
+}
 const EMPTY_TEXT$1 = {
   payments: { title: "没有转账或红包记录", description: "微信在本机记录过的转账和红包会显示在这里。" },
   friend_requests: { title: "没有好友验证记录", description: "收到和发出的好友申请会显示在这里。" },
@@ -32358,7 +32394,7 @@ function exportTaskPercent(rows) {
   return Math.min(Math.round((settled + running2) / rows.length * 100), 100);
 }
 function scheduleRunOutcomeNotice(outcome) {
-  return { requested: "已请求立即执行，等待自动调度。", already_pending: "已有立即执行请求待处理。", already_due: "计划已到期，等待 Engine 调度。", disabled: "计划仍暂停；请先保存为启用状态。" }[outcome];
+  return { requested: "已请求立即执行，独立后端会在当前进程内运行一次。", already_pending: "已有立即执行请求待处理。", already_due: "计划已到达执行上限或终止时间。", disabled: "计划仍暂停；请先保存为启用状态。" }[outcome];
 }
 function scheduleStatus(plan) {
   return plan.enabled ? { label: "已启用", tone: "success" } : { label: "暂停", tone: "neutral" };
@@ -32910,6 +32946,7 @@ function parseExportPreferences(raw) {
     directory: typeof value.directory === "string" && exportDirectoryValid(value.directory) ? value.directory.trim() : "",
     // A retired format is not offered, so it is no longer a default either.
     format: CHAT_EXPORT_OFFERED_FORMATS.some((item) => item.id === value.format) ? value.format : DEFAULT_EXPORT_PREFERENCES.format,
+    independentFormat: independentFormatPreference(value.independentFormat),
     includeMedia: value.includeMedia === true,
     mediaKinds: CHAT_EXPORT_MEDIA_KINDS.filter((kind) => kinds.includes(kind)),
     voiceTranscripts: value.voiceTranscripts === true,
@@ -39810,7 +39847,7 @@ function SchedulePlans({ accountId, bundleId, active: active2 }) {
         void startNew();
       }, children: "新建计划" })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "pm-muted", children: "到点时 Alpha 需要开着并已解锁，文件会保存到每次导出各自的文件夹，可在执行记录里打开。" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "pm-muted", children: "独立后端当前支持保存计划和手动执行；文件会保存到每次导出各自的文件夹，可在执行记录里打开。" }),
     current2.pendingReadState === "loading" && /* @__PURE__ */ jsxRuntimeExports.jsx(SettingsNotice, { tone: "info", children: "正在读取上次保存的状态…" }),
     current2.pendingReadState === "error" && /* @__PURE__ */ jsxRuntimeExports.jsx(SettingsNotice, { tone: "danger", action: /* @__PURE__ */ jsxRuntimeExports.jsx(ActionButton, { size: "sm", disabled: busy, onClick: () => {
       void readPending();
@@ -39834,7 +39871,7 @@ function SchedulePlans({ accountId, bundleId, active: active2 }) {
         children: current2.pendingDurable ? "上次的设置已从本机恢复，没有自动提交。" : "设置保留在当前页面，是否已保存还需要核对。"
       }
     ),
-    current2.plans.length === 0 && !draft ? /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CalendarClock, { size: 22 }), title: "还没有定时计划", description: "新建一个计划，按固定间隔自动导出公众号文章。" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "pm-history-list", "aria-label": "定时计划", children: current2.plans.map((plan) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { type: "button", "aria-pressed": plan.scheduleId === selected?.scheduleId, disabled: busy, onClick: () => {
+    current2.plans.length === 0 && !draft ? /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CalendarClock, { size: 22 }), title: "还没有导出计划", description: "新建一个计划并使用“现在执行一次”开始导出。" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "pm-history-list", "aria-label": "定时计划", children: current2.plans.map((plan) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { type: "button", "aria-pressed": plan.scheduleId === selected?.scheduleId, disabled: busy, onClick: () => {
       void getPlan(plan.scheduleId);
     }, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
@@ -41649,6 +41686,7 @@ function RecordsCategoryView({ accountId, accountEpoch, category, keyword, onKey
         return /* @__PURE__ */ jsxRuntimeExports.jsx(SearchRow, { accountId, record: record2, onOpenChat: openChat }, record2.id);
     }
   };
+  const partialRecords = records.some((record2) => record2.partial || record2.candidate);
   const body = query.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "records-state", role: "status", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "spin", size: 18, "aria-hidden": "true" }),
     "正在读取…"
@@ -41676,6 +41714,7 @@ function RecordsCategoryView({ accountId, accountEpoch, category, keyword, onKey
   );
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(RecordsToolbar, { category, records, filters, onFilters, keyword, onKeyword }),
+    partialRecords && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "当前包含候选记录：这些记录从聊天消息推断，字段可能不完整，不能视为 Alpha 原始资料库的完整结果。" }),
     query.data?.truncated && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "records-banner", role: "status", children: [
       "记录太多，只显示了最近的 ",
       records.length,
@@ -41705,16 +41744,21 @@ function ReadFailure({ error, onRetry }) {
   ] }), action: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "record-action", onClick: onRetry, children: "重试" }) });
 }
 const GENERAL_RECORD_CATEGORIES = ["payments", "friend_requests", "revokes", "calls", "moment_interactions", "searches"];
-function useRecordExportDraft(accountId, accountScope, seed) {
-  const [categories, setCategories] = reactExports.useState(seed.category ? [seed.category] : [...GENERAL_RECORD_CATEGORIES]);
+function useRecordExportDraft(accountId, accountScope, seed, independent = false) {
+  const supportedCategories = independent ? INDEPENDENT_RECORD_CATEGORIES : GENERAL_RECORD_CATEGORIES;
+  const seedCategory = supportedCategories.includes(seed.category) ? seed.category : "";
+  const [categories, setCategories] = reactExports.useState(seedCategory ? [seedCategory] : [...supportedCategories]);
   const filtered = seed.category && seed.filtered && seed.filtered.ids.length > 0 && seed.filtered.ids.length <= RECORD_EXPORT_MAX_SELECTED ? seed.filtered : null;
   const [onlyFiltered, setOnlyFiltered] = reactExports.useState(Boolean(filtered));
   const [format, setFormat] = reactExports.useState("xlsx");
   const output = useExportDirectory();
   const [error, setError] = reactExports.useState("");
   const [taskId, setTaskId] = reactExports.useState(null);
-  const toggle2 = (category) => setCategories((current2) => current2.includes(category) ? current2.filter((item) => item !== category) : GENERAL_RECORD_CATEGORIES.filter((item) => item === category || current2.includes(item)));
-  const narrowed = Boolean(filtered && onlyFiltered && seed.category && categories.includes(seed.category));
+  const toggle2 = (category) => {
+    if (!supportedCategories.includes(category)) return;
+    setCategories((current2) => current2.includes(category) ? current2.filter((item) => item !== category) : supportedCategories.filter((item) => item === category || current2.includes(item)));
+  };
+  const narrowed = Boolean(filtered && onlyFiltered && seedCategory && categories.includes(seedCategory));
   const ready = output.valid && categories.length > 0;
   const scopeLabel = categories.length === 1 ? RECORD_CATEGORY_LABELS[categories[0]] : `${categories.length} 类资料`;
   const formatName2 = RECORD_EXPORT_FORMATS.find((item) => item.id === format)?.name ?? format;
@@ -41724,7 +41768,7 @@ function useRecordExportDraft(accountId, accountScope, seed) {
     try {
       if (!output.valid) throw new Error("请先选择保存位置。");
       if (!categories.length) throw new Error("请至少选择一类资料。");
-      const selections = categories.map((category) => narrowed && category === seed.category ? { category, recordIds: [...filtered.ids] } : { category });
+      const selections = categories.map((category) => narrowed && category === seedCategory ? { category, recordIds: [...filtered.ids] } : { category });
       const task = enqueueDatasetTask({
         accountId,
         scope: accountScope,
@@ -41741,7 +41785,9 @@ function useRecordExportDraft(accountId, accountScope, seed) {
   return {
     categories,
     toggle: toggle2,
-    seedCategory: seed.category,
+    seedCategory,
+    supportedCategories,
+    independent,
     filtered,
     onlyFiltered,
     setOnlyFiltered,
@@ -41755,13 +41801,13 @@ function useRecordExportDraft(accountId, accountScope, seed) {
     summary: `${scopeLabel} · ${formatName2} · ${narrowed ? `当前筛选的 ${filtered.ids.length.toLocaleString("zh-CN")} 条` : "全部记录"}`
   };
 }
-function RecordExportDialog({ accountId, accountScope, seed, onClose }) {
-  const draft = useRecordExportDraft(accountId, accountScope, seed);
+function RecordExportDialog({ accountId, accountScope, seed, onClose, independent = false }) {
+  const draft = useRecordExportDraft(accountId, accountScope, seed, independent);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     DatasetExportShell,
     {
       title: "导出其他资料",
-      subtitle: "把转账红包、好友验证、撤回、通话、朋友圈互动和搜索记录导出为表格或数据文件，每类一个文件。",
+        subtitle: independent ? "独立离线模式支持转账与红包、撤回、通话候选；结果来自聊天消息推断，可能包含 partial/candidate 字段。" : "把转账红包、好友验证、撤回、通话、朋友圈互动和搜索记录导出为表格或数据文件，每类一个文件。",
       side: /* @__PURE__ */ jsxRuntimeExports.jsx(RecordCategoryPicker, { draft }),
       summary: draft.summary,
       error: draft.error || draft.output.error,
@@ -41772,6 +41818,7 @@ function RecordExportDialog({ accountId, accountScope, seed, onClose }) {
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(DatasetFormatField, { formats: RECORD_EXPORT_FORMATS, value: draft.format, onChange: draft.setFormat }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "export-dialog-hint", children: "列与页面上看到的一致：时间、对方、金额、状态、备注等；JSON 另含每条记录的原始字段。" }),
+        draft.categories.some((category) => category === "payments" || category === "revokes") && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "export-dialog-hint", role: "note", children: "转账和撤回类别可能包含候选记录；导出内容会保留 partial/candidate 标记，字段可能不完整。" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(DatasetOutputField, { output: draft.output, privacy: "其中有转账金额和联系人信息，请妥善保存。" })
       ]
     }
@@ -41788,10 +41835,13 @@ function RecordCategoryPicker({ draft }) {
         " 类"
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { "aria-label": "资料类型", className: "dataset-export-categories", children: GENERAL_RECORD_CATEGORIES.map((category) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "export-dialog-check", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "checkbox", checked: draft.categories.includes(category), onChange: () => draft.toggle(category) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: RECORD_CATEGORY_LABELS[category] })
-    ] }) }, category)) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { "aria-label": "资料类型", className: "dataset-export-categories", children: GENERAL_RECORD_CATEGORIES.map((category) => {
+      const available = draft.supportedCategories.includes(category);
+      return /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "export-dialog-check", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "checkbox", checked: draft.categories.includes(category), disabled: !available, onChange: () => draft.toggle(category) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: `${RECORD_CATEGORY_LABELS[category]}${available ? "" : "（暂不可用）"}` })
+    ] }) }, category) }) }),
+    draft.independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "export-dialog-hint", role: "note", children: "好友验证、朋友圈互动和搜索记录尚未接入独立离线数据组件；通话仅提供来自消息的 partial/candidate 候选。" }),
     seed && draft.filtered && draft.categories.includes(seed) && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "export-dialog-segments", role: "radiogroup", "aria-label": `${RECORD_CATEGORY_LABELS[seed]}的范围`, children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: draft.onlyFiltered ? "is-selected" : void 0, children: [
@@ -41815,7 +41865,7 @@ function RecordCategoryPicker({ draft }) {
     ] })
   ] });
 }
-function RecordExportAction({ accountId, icon, seed, label, size }) {
+function RecordExportAction({ accountId, icon, seed, label, size, independent = false }) {
   const { accountEpoch } = useWorkspace();
   const [opened, setOpened] = reactExports.useState(null);
   reactExports.useEffect(() => {
@@ -41827,7 +41877,7 @@ function RecordExportAction({ accountId, icon, seed, label, size }) {
       icon,
       label
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(IconButton, { label: "导出其他资料", size, icon, disabled: !accountId, "aria-haspopup": "dialog", onClick: open2 }),
-    opened && opened.accountId === accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(RecordExportDialog, { accountId, accountScope: `${accountId}:${accountEpoch}`, seed: opened.seed, onClose: () => setOpened(null) })
+    opened && opened.accountId === accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(RecordExportDialog, { accountId, accountScope: `${accountId}:${accountEpoch}`, seed: opened.seed, independent, onClose: () => setOpened(null) })
   ] });
 }
 const EMPTY_KEYWORDS = {
@@ -41839,13 +41889,21 @@ const EMPTY_KEYWORDS = {
   searches: ""
 };
 function RecordsWorkspace({ accountId, accountEpoch, initial }) {
+  const { status } = useWorkspace();
+  const independent = isIndependentEngineStatus(status);
+  const recordTabs = recordTabsForMode(independent);
   const client = useQueryClient();
   const [tab, setTab] = reactExports.useState(initial?.category ?? "payments");
   const [keywords, setKeywords] = reactExports.useState(() => initial ? { ...EMPTY_KEYWORDS, [initial.category]: initial.query } : EMPTY_KEYWORDS);
   const [filters, setFilters] = reactExports.useState(DEFAULT_FILTERS);
   const [refreshToken, setRefreshToken] = reactExports.useState(0);
   const shown = reactExports.useRef(null);
-  const queryKey = ["general-records", accountId, accountEpoch, tab];
+  const selectedTab = independent && !INDEPENDENT_RECORD_CATEGORIES.includes(tab) ? "payments" : tab;
+  const chooseTab = (next) => {
+    if (independent && !INDEPENDENT_RECORD_CATEGORIES.includes(next)) return;
+    setTab(next);
+  };
+  const queryKey = ["general-records", accountId, accountEpoch, selectedTab];
   const fetching = client.isFetching({ queryKey }) > 0;
   const refresh = () => {
     setRefreshToken((value) => value + 1);
@@ -41857,11 +41915,11 @@ function RecordsWorkspace({ accountId, accountEpoch, initial }) {
       {
         title: "其他资料",
         hint: "微信在本机记下的转账红包、好友申请、撤回、通话、朋友圈互动和搜索记录；这里只读取，不改动微信数据。",
-        nav: accountId ? /* @__PURE__ */ jsxRuntimeExports.jsx(Tabs, { items: RECORD_TABS, variant: "underline", value: tab, onChange: setTab, label: "资料类型", idPrefix: "records" }) : void 0,
+        nav: accountId ? /* @__PURE__ */ jsxRuntimeExports.jsx(Tabs, { items: recordTabs, variant: "underline", value: selectedTab, onChange: chooseTab, label: "资料类型", idPrefix: "records" }) : void 0,
         actions: accountId ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(RecordExportAction, { accountId, size: "sm", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { size: 16 }), seed: () => {
-            const current2 = shown.current?.category === tab ? shown.current : null;
-            return { category: tab, ...current2?.narrowed ? { filtered: { ids: current2.ids, total: current2.total } } : {} };
+          /* @__PURE__ */ jsxRuntimeExports.jsx(RecordExportAction, { accountId, size: "sm", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { size: 16 }), independent, seed: () => {
+            const current2 = shown.current?.category === selectedTab ? shown.current : null;
+            return { category: selectedTab, ...current2?.narrowed ? { filtered: { ids: current2.ids, total: current2.total } } : {} };
           } }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             IconButton,
@@ -41885,14 +41943,16 @@ function RecordsWorkspace({ accountId, accountEpoch, initial }) {
         action: /* @__PURE__ */ jsxRuntimeExports.jsx(ConnectAccountButton, {}),
         description: "连接微信账号后，即可在这里查看转账、红包、好友验证等资料。"
       }
-    ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "records-panel", role: "tabpanel", id: `records-panel-${tab}`, "aria-labelledby": `records-tab-${tab}`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+    ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立离线模式支持转账与红包、撤回、通话候选；这些结果来自聊天消息推断，标记为 partial/candidate，字段可能不完整。好友验证、朋友圈互动和搜索记录暂不可用。" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "records-panel", role: "tabpanel", id: `records-panel-${selectedTab}`, "aria-labelledby": `records-tab-${selectedTab}`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
       RecordsCategoryView,
       {
         accountId,
         accountEpoch,
-        category: tab,
-        keyword: keywords[tab],
-        onKeyword: (value) => setKeywords((current2) => ({ ...current2, [tab]: value })),
+        category: selectedTab,
+        keyword: keywords[selectedTab],
+        onKeyword: (value) => setKeywords((current2) => ({ ...current2, [selectedTab]: value })),
         filters,
         onFilters: setFilters,
         refreshToken,
@@ -41900,8 +41960,9 @@ function RecordsWorkspace({ accountId, accountEpoch, initial }) {
           shown.current = value;
         }
       },
-      tab
+      selectedTab
     ) })
+    ] })
   ] });
 }
 function RecordsPage(_) {
@@ -44724,9 +44785,12 @@ function useExportStats(accountId, priority, all) {
   }, [accountId]);
   return { supported, stats, loading, error, refresh, version };
 }
-const FORMAT_OPTIONS = CHAT_EXPORT_FORMATS.map((item) => ({ value: item.id, label: `${item.name}（.${item.extension}）` }));
 function ExportTopBar() {
   const preferences2 = useExportPreferences();
+  const { status } = useWorkspace();
+  const independent = status?.components?.some((component) => component.component === "alpha-independent-engine") === true;
+  const policy = chatExportPolicy(preferences2, CHAT_EXPORT_OFFERED_FORMATS, independent);
+  const formatOptions = policy.formats.map((item) => ({ value: item.id, label: `${item.name}（.${item.extension}）` }));
   const [choosing, setChoosing] = reactExports.useState(false);
   const [error, setError] = reactExports.useState("");
   const choose = async () => {
@@ -44753,7 +44817,7 @@ function ExportTopBar() {
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "export-topbar-item", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "默认格式" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Select, { size: "sm", label: "默认导出格式", value: preferences2.format, options: FORMAT_OPTIONS, minMenuWidth: 220, onChange: (format) => updateExportPreferences({ format }) })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Select, { size: "sm", label: "默认导出格式", value: policy.format, options: formatOptions, minMenuWidth: 220, onChange: (format) => updateExportPreferences(independent ? { independentFormat: format } : { format }) })
     ] }),
     error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "export-topbar-error", role: "alert", children: error })
   ] });
@@ -46285,7 +46349,8 @@ const TABS$1 = [
   { id: "schedules", label: "定时导出", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CalendarClock, { size: 16, "aria-hidden": "true" }) }
 ];
 function ExportCenter() {
-  const { activeAccountId, hasRemoteAccount, remoteConversations } = useWorkspace();
+  const { activeAccountId, hasRemoteAccount, remoteConversations, status } = useWorkspace();
+  const independent = status?.components?.some((component) => component.component === "alpha-independent-engine") === true;
   const { exportRequest, consumeExportRequest, navigate } = useNavigation();
   const [tab, setTab] = reactExports.useState("sessions");
   const [preselection, setPreselection] = reactExports.useState(null);
@@ -46323,9 +46388,9 @@ function ExportCenter() {
             "导出任务",
             running2 > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "export-task-badge", "aria-label": `${running2} 个进行中`, children: running2 })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(ContactExportAction, { accountId, label: "导出通讯录", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(BookUser, { size: 16, "aria-hidden": "true" }), seed: () => ({}) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ContactExportAction, { accountId, label: "导出通讯录", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(BookUser, { size: 16, "aria-hidden": "true" }), seed: () => ({}), independent }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportAction, { accountId, label: "导出朋友圈", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Aperture, { size: 16, "aria-hidden": "true" }), seed: () => EMPTY_MOMENT_EXPORT_SEED }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(RecordExportAction, { accountId, label: "导出其他资料", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(FileStack, { size: 16, "aria-hidden": "true" }), seed: () => ({}) })
+          /* @__PURE__ */ jsxRuntimeExports.jsx(RecordExportAction, { accountId, label: "导出其他资料", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(FileStack, { size: 16, "aria-hidden": "true" }), seed: () => ({}), independent })
         ] })
       }
     ),
@@ -52037,14 +52102,16 @@ function chatExportRange(start, end) {
 function chatExportRangeLabel(start, end) {
   return !start && !end ? "完整会话（不限时间）" : `${start || "不限开始"} 至 ${end || "不限结束"}（本地时间，两端包含）`;
 }
-function useExportDraft({ accountId, scope: initialScope, accountScope, capabilities }) {
+function useExportDraft({ accountId, scope: initialScope, accountScope, capabilities, independent = false }) {
   const defaults = reactExports.useRef(exportPreferences()).current;
+  const policy = chatExportPolicy(defaults, CHAT_EXPORT_OFFERED_FORMATS, independent);
+  const formats = policy.formats;
   const [scope, setScope] = reactExports.useState(initialScope);
-  const [format, setFormat] = reactExports.useState(defaults.format);
+  const [format, setFormat] = reactExports.useState(policy.format);
   const [preset, setPreset] = reactExports.useState("all");
   const [startLocal, setStartLocal] = reactExports.useState("");
   const [endLocal, setEndLocal] = reactExports.useState("");
-  const [includeMedia, setIncludeMedia] = reactExports.useState(defaults.includeMedia);
+  const [includeMedia, setIncludeMedia] = reactExports.useState(policy.includeMedia);
   const [messageTypes, setMessageTypes] = reactExports.useState(null);
   const [mediaKinds, setMediaKinds] = reactExports.useState(defaults.mediaKinds);
   const [voiceTranscripts, setVoiceTranscripts] = reactExports.useState(defaults.voiceTranscripts);
@@ -52061,12 +52128,12 @@ function useExportDraft({ accountId, scope: initialScope, accountScope, capabili
   const [choosing, setChoosing] = reactExports.useState(false);
   const [error, setError] = reactExports.useState("");
   const [taskId, setTaskId] = reactExports.useState(null);
-  const formatInfo = CHAT_EXPORT_OFFERED_FORMATS.find((item) => item.id === format) ?? CHAT_EXPORT_OFFERED_FORMATS[0];
+  const formatInfo = formats.find((item) => item.id === format) ?? formats[0];
   const content = capabilities ? { includeMedia: false, engine: {
     ...messageTypes ? { messageTypes } : {},
     media: exportReachableMediaKinds(mediaKinds.filter((kind) => capabilities.mediaKinds.includes(kind)), messageTypes),
     voiceTranscripts: capabilities.voiceTranscripts && voiceTranscripts && (!messageTypes || messageTypes.includes("voice"))
-  } } : { includeMedia };
+  } } : { includeMedia: independent ? false : includeMedia };
   const presetLabel = EXPORT_RANGE_PRESETS.find((item) => item.id === preset)?.label ?? "";
   const rangeLabel = preset === "custom" ? chatExportRangeLabel(startLocal, endLocal) : preset === "all" ? "全部时间" : presetLabel;
   const tooMany = capabilities !== null && scope.length > capabilities.maxConversations;
@@ -52115,7 +52182,11 @@ function useExportDraft({ accountId, scope: initialScope, accountScope, capabili
           ...cdnFillMissing && capabilities.options.includes("cdn-fill") && cdnKindsForExport(content.engine?.media ?? []).length ? { cdnFillMissing: true } : {}
         } } : {}
       }, now2);
-      updateExportPreferences({ directory, format, includeMedia, ...capabilities ? { mediaKinds, voiceTranscripts, ...options } : {} });
+      // Independent engine exposes only the three formats implemented by its
+      // read-only exporter. Do not persist that fallback into shared
+      // preferences, otherwise returning to the packaged engine would change
+      // its original xlsx default.
+      updateExportPreferences({ directory, ...independent ? { independentFormat: format } : { format, includeMedia }, ...capabilities ? { mediaKinds, voiceTranscripts, ...options } : {} });
       setTaskId(task.id);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -52125,6 +52196,8 @@ function useExportDraft({ accountId, scope: initialScope, accountScope, capabili
     scope,
     remove: (id) => setScope((current2) => current2.length > 1 ? current2.filter((item) => item.id !== id) : current2),
     format,
+    formats,
+    independent,
     formatInfo,
     setFormat,
     preset,
@@ -52180,8 +52253,8 @@ function ExportContentField({ draft, capabilities, typeCounts }) {
   if (!capabilities) return /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "export-dialog-field", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("legend", { children: "附件" }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "export-dialog-check", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "checkbox", checked: draft.includeMedia, onChange: (event) => draft.setIncludeMedia(event.target.checked) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "同时保存可用的图片、语音等附件" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "checkbox", checked: draft.includeMedia, disabled: draft.independent, onChange: (event) => draft.setIncludeMedia(event.target.checked) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: draft.independent ? "独立只读导出暂不包含附件" : "同时保存可用的图片、语音等附件" })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(MediaExportHint, { enabled: draft.includeMedia })
   ] });
@@ -52295,7 +52368,7 @@ function ExportFormatField({ draft }) {
   const name = reactExports.useId();
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "export-dialog-field", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("legend", { children: "导出格式" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "export-choice-grid is-formats", children: CHAT_EXPORT_OFFERED_FORMATS.map((format) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "export-choice-grid is-formats", children: draft.formats.map((format) => /* @__PURE__ */ jsxRuntimeExports.jsx(
       ExportChoice,
       {
         type: "radio",
@@ -52436,11 +52509,12 @@ function ExportScopePanel({ accountId, draft, stats, onPickMore }) {
   ] });
 }
 function ExportDialog({ request, onClose }) {
-  const { accountEpoch } = useWorkspace();
+  const { accountEpoch, status } = useWorkspace();
   const [openedEpoch] = reactExports.useState(accountEpoch);
   const { navigate } = useNavigation();
   const capabilities = useChatExportCapabilities();
-  const draft = useExportDraft({ accountId: request.accountId, scope: request.conversations, accountScope: `${request.accountId}:${openedEpoch}`, capabilities });
+  const independent = status?.components?.some((component) => component.component === "alpha-independent-engine") === true;
+  const draft = useExportDraft({ accountId: request.accountId, scope: request.conversations, accountScope: `${request.accountId}:${openedEpoch}`, capabilities, independent });
   const task = useExportTask(draft.taskId);
   const blocked = exportTasksBlocked(useExportTasks(request.accountId));
   const scopeIds = reactExports.useMemo(() => draft.scope.map((item) => item.id), [draft.scope]);

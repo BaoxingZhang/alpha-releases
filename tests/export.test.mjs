@@ -71,6 +71,21 @@ test('markdown and txt exports apply exact inclusive millisecond bounds', async 
   assert.equal(ok(await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath: emptyPath, startTimeUnixMs: 1700000000001n, endTimeUnixMs: 1700000000001n }), 'exportConversation').itemCount, 0);
 });
 
+test('html export is a safe static rendering of verified message DTOs', async t => {
+  const f = await setup(t);
+  const destinationPath = path.join(f.directory, 'export.html');
+  const result = ok(await f.call('exportConversation', { conversationId: f.conversationId, format: 'html', destinationPath }), 'exportConversation');
+  assert.equal(result.itemCount, 6);
+  const html = await fs.readFile(destinationPath, 'utf8');
+  assert.match(html, /^<!doctype html>/);
+  assert.match(html, /Content-Security-Policy/);
+  assert.match(html, /Alpha conversation export/);
+  assert.match(html, /压缩维护 needle zstd 中文/);
+  assert.match(html, /first 100%/);
+  assert.doesNotMatch(html, /<script/i);
+  assert.doesNotMatch(html, /xl\/worksheets/); // HTML must not be an XLSX masquerading as a web document.
+});
+
 test('exporter rejects media, existing destinations, symlink destinations and incomplete pages', async t => {
   const f = await setup(t);
   const destinationPath = path.join(f.directory, 'existing.json');
@@ -81,8 +96,23 @@ test('exporter rejects media, existing destinations, symlink destinations and in
   await fs.symlink(destinationPath, symlink);
   assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath: symlink })).error.code, 'EXPORT_DESTINATION_INVALID');
   assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath: path.join(f.directory, 'cursor.json'), page: { cursor: Buffer.from('cursor') } })).error.code, 'EXPORT_PAGE_UNSUPPORTED');
-  assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'html', destinationPath: path.join(f.directory, 'unknown') })).error.code, 'EXPORT_FORMAT_UNSUPPORTED');
+  assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'xlsx', destinationPath: path.join(f.directory, 'unknown.xlsx') })).error.code, 'EXPORT_FORMAT_UNSUPPORTED');
   assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath: path.join(f.directory, 'data', 'inside.json') })).error.code, 'EXPORT_DESTINATION_INVALID');
   assert.equal(await fs.readFile(destinationPath, 'utf8'), 'keep');
+  assert.deepEqual((await fs.readdir(f.directory)).filter(name => name.startsWith('.alpha-export-')), []);
+});
+
+test('exporter creates a bounded missing task directory and keeps protected paths untouched', async t => {
+  const f = await setup(t);
+  const nestedDirectory = path.join(f.directory, 'Alpha导出-2026', '会话');
+  const destinationPath = path.join(nestedDirectory, 'conversation.json');
+  const result = ok(await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath }), 'exportConversation');
+  assert.equal(result.destinationPath, path.resolve(destinationPath));
+  assert.equal(JSON.parse(await fs.readFile(destinationPath, 'utf8')).itemCount, 6);
+
+  const protectedDestination = path.join(f.directory, 'data', 'new', 'conversation.json');
+  const failure = await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath: protectedDestination });
+  assert.equal(failure.error.code, 'EXPORT_DESTINATION_INVALID');
+  await assert.rejects(fs.access(path.dirname(protectedDestination)));
   assert.deepEqual((await fs.readdir(f.directory)).filter(name => name.startsWith('.alpha-export-')), []);
 });

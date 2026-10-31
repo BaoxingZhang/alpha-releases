@@ -13,6 +13,8 @@ const (
 	maxRoomDataBytes  = 8 << 20
 	maxRoomMembers    = 5000
 	maxRoomTextBytes  = 1024
+	maxCommonGroups   = 100
+	maxChatRooms      = 100000
 )
 
 type generalField struct {
@@ -39,6 +41,22 @@ type generalPage struct {
 type roomUser struct {
 	Username    string
 	DisplayName string
+}
+
+// commonGroupRef contains only fields proven by the v4 contact schema.  In
+// particular, avatarRef remains empty because chat_room has no verified avatar
+// column in the recovered schema.
+type commonGroupRef struct {
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+	AvatarRef   string `json:"avatarRef"`
+}
+
+type commonGroupsPage struct {
+	Items          []commonGroupRef `json:"items"`
+	Count          int              `json:"count"`
+	Truncated      bool             `json:"truncated"`
+	SourceDatabase string           `json:"sourceDatabase"`
 }
 
 func validChatroom(name string) bool {
@@ -207,6 +225,9 @@ func roomField(name, value string) generalField {
 }
 
 func (b *bridge) general(ctx context.Context, p params) (any, error) {
+	if verifiedGeneralRecordTable(p.TableName) {
+		return b.generalMessageRecords(ctx, p, p.TableName)
+	}
 	if p.TableName != groupMembersTable {
 		return nil, fail("UNSUPPORTED_OPERATION", "Only group member general records are available")
 	}
@@ -269,4 +290,90 @@ func (b *bridge) general(ctx context.Context, p params) (any, error) {
 		items = append(items, generalRecord{TableName: groupMembersTable, ID: p.Query + ":" + member.Username, EventAtUnixMs: "0", Actor: member.Username, Fields: fields})
 	}
 	return generalPage{Items: items, SourceDatabase: b.contactDB.relative}, nil
+}
+
+// commonGroups scans every chat_room RoomData record and returns the groups
+// whose member list contains username.  The complete scan is intentional: a
+// malformed later row must not be hidden by an early page limit.
+func (b *bridge) commonGroups(ctx context.Context, username string, limit int) (any, error) {
+	if b.contactDB == nil || !b.contactDB.tables["chat_room"] {
+		return nil, fail("CAPABILITY_UNAVAILABLE", "contact.db chat_room is not present")
+	}
+	rows, err := b.contactDB.db.QueryContext(ctx, `SELECT username,CASE WHEN length(CAST(ext_buffer AS BLOB))<=8388608 THEN ext_buffer ELSE NULL END,COALESCE(length(CAST(ext_buffer AS BLOB)),0) FROM chat_room ORDER BY username COLLATE BINARY ASC,rowid ASC LIMIT ?`, maxChatRooms+1)
+	if err != nil {
+		return nil, fail("QUERY_FAILED", "Chatroom scan failed")
+	}
+	defer rows.Close()
+	matchingRooms := make([]string, 0)
+	seen := make(map[string]struct{})
+	roomCount := 0
+	for rows.Next() {
+		roomCount++
+		if roomCount > maxChatRooms {
+			return nil, fail("GROUP_ROOMS_LIMIT_EXCEEDED", "chat_room contains too many groups")
+		}
+		var roomUsername string
+		var ext []byte
+		var extSize int64
+		if err := rows.Scan(&roomUsername, &ext, &extSize); err != nil {
+			return nil, fail("ROW_INVALID", "Invalid chatroom record")
+		}
+		if !validChatroom(roomUsername) {
+			return nil, fail("ROW_INVALID", "Invalid chatroom username")
+		}
+		if extSize > maxRoomDataBytes {
+			return nil, fail("ROOM_DATA_INVALID", "RoomData exceeds the bounded size")
+		}
+		users, err := parseRoomData(ext)
+		if err != nil {
+			return nil, err
+		}
+		member := false
+		for _, user := range users {
+			if user.Username == username {
+				member = true
+				break
+			}
+		}
+		if !member {
+			continue
+		}
+		if _, exists := seen[roomUsername]; exists {
+			continue
+		}
+		seen[roomUsername] = struct{}{}
+		matchingRooms = append(matchingRooms, roomUsername)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fail("QUERY_FAILED", "Chatroom scan failed")
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fail("QUERY_FAILED", "Chatroom scan failed")
+	}
+	count := len(seen)
+	// The bridge uses one SQLite connection. Finish the room scan before doing
+	// contact lookups; otherwise a nested query would wait forever for the
+	// connection held by rows.Next.
+	refs := make([]commonGroupRef, 0, min(limit, len(matchingRooms)))
+	for _, roomUsername := range matchingRooms {
+		displayName := roomUsername
+		if item, found, err := boundedRoomContact(ctx, b.contactDB, roomUsername); err != nil {
+			return nil, err
+		} else if found {
+			displayName = item.Remark
+			if displayName == "" {
+				displayName = item.NickName
+			}
+			if displayName == "" {
+				displayName = item.Alias
+			}
+			if displayName == "" {
+				displayName = roomUsername
+			}
+		}
+		if len(refs) < limit {
+			refs = append(refs, commonGroupRef{Username: roomUsername, DisplayName: displayName})
+		}
+	}
+	return commonGroupsPage{Items: refs, Count: count, Truncated: count > limit, SourceDatabase: b.contactDB.relative}, nil
 }

@@ -40,6 +40,25 @@ func messageTableName(name string) bool {
 func validConversation(name string) bool {
 	return name != "" && len(name) <= 1024 && strings.TrimSpace(name) == name && strings.IndexFunc(name, unicode.IsControl) < 0
 }
+func validLookupUsername(name string) bool {
+	return name != "" && len(name) <= 1024 && utf8.ValidString(name) && strings.TrimSpace(name) == name && strings.IndexFunc(name, unicode.IsControl) < 0
+}
+func validateLookupUsernames(usernames []string) error {
+	if len(usernames) < 1 || len(usernames) > 500 {
+		return fail("CONTACT_LOOKUP_INVALID", "Lookup requires between 1 and 500 usernames")
+	}
+	seen := make(map[string]struct{}, len(usernames))
+	for _, username := range usernames {
+		if !validLookupUsername(username) {
+			return fail("CONTACT_LOOKUP_INVALID", "Lookup usernames must be bounded, trimmed UTF-8 strings")
+		}
+		if _, exists := seen[username]; exists {
+			return fail("CONTACT_LOOKUP_INVALID", "Lookup usernames must be unique")
+		}
+		seen[username] = struct{}{}
+	}
+	return nil
+}
 func conversationTable(name string) string {
 	sum := md5.Sum([]byte(name))
 	return "Msg_" + hex.EncodeToString(sum[:])
@@ -53,11 +72,24 @@ func validateOperationParams(op string, p *params) error {
 	}
 	isMessage := strings.HasPrefix(op, "messages.")
 	if op == "general.list" {
-		if p.Cursor != "" || p.TableName == "" || p.Query == "" || p.Offset < 0 || p.Offset > maxRoomMembers || p.ConversationID != "" || p.UsernameExact != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Sender != "" || p.GroupByConversation || p.ServerID != "" || p.FromUnixMs != "" || p.ToUnixMs != "" || p.UTCOffsetMinutes != nil {
+		if p.Cursor != "" || p.TableName == "" || p.Offset < 0 || p.Offset > maxGeneralRecords || p.ConversationID != "" || p.UsernameExact != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Sender != "" || p.GroupByConversation || p.ServerID != "" || p.FromUnixMs != "" || p.ToUnixMs != "" || p.UTCOffsetMinutes != nil {
 			return fail("INVALID_PARAMS", "Invalid general record parameters")
 		}
-		if p.Ascending == nil || !*p.Ascending {
-			return fail("INVALID_PARAMS", "General records require ascending order")
+		if p.TableName != groupMembersTable && !verifiedGeneralRecordTable(p.TableName) {
+			return fail("UNSUPPORTED_OPERATION", "This general record table is not implemented")
+		}
+		if verifiedGeneralRecordTable(p.TableName) {
+			if p.Ascending == nil || *p.Ascending {
+				return fail("INVALID_PARAMS", "General record tables require descending order")
+			}
+		} else if p.Ascending == nil || !*p.Ascending {
+			return fail("INVALID_PARAMS", "Group member records require ascending order")
+		}
+		if p.TableName == groupMembersTable && p.Query == "" {
+			return fail("INVALID_PARAMS", "Group member records require a chatroom query")
+		}
+		if verifiedGeneralRecordTable(p.TableName) && p.Query != "" {
+			return fail("INVALID_PARAMS", "General record tables do not accept a query")
 		}
 		return nil
 	}
@@ -70,9 +102,17 @@ func validateOperationParams(op string, p *params) error {
 	if p.UsernameExact != "" && (op != "contacts.list" || !validConversation(p.UsernameExact)) {
 		return fail("INVALID_PARAMS", "usernameExact requires a bounded contact lookup")
 	}
+	if op == "contacts.list" && p.Query != "" {
+		if len(p.Query) > 512 || !utf8.ValidString(p.Query) || strings.IndexByte(p.Query, 0) >= 0 || strings.TrimSpace(p.Query) == "" {
+			return fail("INVALID_PARAMS", "Contact search requires bounded literal UTF-8 text")
+		}
+	}
 	if p.Query != "" || p.Sender != "" || p.GroupByConversation {
-		if op != "messages.search" {
+		if op != "messages.search" && op != "contacts.list" {
 			return fail("INVALID_PARAMS", "Search filters require messages.search")
+		}
+		if op == "contacts.list" && (p.Sender != "" || p.GroupByConversation) {
+			return fail("INVALID_PARAMS", "Contact search does not accept message filters")
 		}
 	}
 	if p.ServerID != "" && op != "messages.locate" {
@@ -254,6 +294,9 @@ func scanMessage(rows messageScanner, d *database, table, conversation string) (
 		item.ContentDecodeStatus = "too-large"
 	}
 	item.PackedInfoOmitted = packedSize > maxTextBytes
+	if item.ContentDecodeStatus == "decoded" {
+		item.Display = parseMessageDisplay(item.LocalType, item.Content, item.ConversationID, item.Sender)
+	}
 	// Voice references are carried by the row's real server_id and remain
 	// verifiable even when the encoded audio payload is not UTF-8 text.
 	if item.ContentDecodeStatus == "decoded" || item.LocalType == "34" {

@@ -11873,7 +11873,29 @@ const NOBODY = { username: "", name: "", avatar: "" };
 function generalRecordFromWire(category2, record2) {
   if (record2.tableName !== GENERAL_RECORD_TABLES[category2]) throw invalid$2();
   const read = reader(record2);
-  const common = base(record2);
+  const partial = read.text("partial") === "1";
+  const candidate = read.text("candidate") === "1";
+  const boundedSource = (name2, maximum) => {
+    const value = read.text(name2, 4096);
+    if (value.length > maximum || value.includes("\0")) throw invalid$2();
+    return value;
+  };
+  const source = partial || candidate ? {
+    database: boundedSource("source_database", 1024),
+    table: boundedSource("source_table", 256),
+    localId: boundedSource("source_local_id", 64),
+    serverId: boundedSource("source_server_id", 64)
+  } : null;
+  const common = {
+    ...base(record2),
+    // Independent message-derived records are candidates, not a complete
+    // reconstruction of Alpha's records database. Keep the coverage marker
+    // on the decoded DTO so every consumer (including export) can surface it.
+    partial,
+    candidate,
+    coverage: partial || candidate ? "partial" : "complete",
+    ...(source ? { source } : {})
+  };
   switch (category2) {
     case "payments": {
       const kind2 = read.oneOf("kind", ["transfer", "red_packet"], "transfer");
@@ -62884,6 +62906,8 @@ class EngineClient {
   chatExportJobsSupported = false;
   /** 朋友圈/其他资料 jobs (frames 135, 136) on top of the chat job frames. */
   datasetExportsSupported = false;
+  /** Independent recovery currently implements only the records job (frame 136). */
+  recordExportsSupported = false;
   /** Hello lists frames 137-138: type browse and account-wide media. */
   typeBrowseSupported = false;
   /** Message ids located by server id; their context reads anchor on the index. */
@@ -63053,6 +63077,7 @@ class EngineClient {
       this.exportTimeRangeSupported = response.hello.supportsExportTimeRange;
       this.chatExportJobsSupported = [121, 122, 123, 124, 125].every((id2) => response.hello.supportedMethodIds.includes(id2));
       this.datasetExportsSupported = this.chatExportJobsSupported && DATASET_EXPORT_METHOD_IDS.every((id2) => response.hello.supportedMethodIds.includes(id2));
+      this.recordExportsSupported = this.chatExportJobsSupported && response.hello.supportedMethodIds.includes(136);
       this.typeBrowseSupported = TYPE_BROWSE_METHOD_IDS.every((id2) => response.hello.supportedMethodIds.includes(id2));
       this.status = {
         state: "ready",
@@ -64052,7 +64077,7 @@ class EngineClient {
   async startRecordExport(raw) {
     const request2 = recordExportRequest(raw, -(/* @__PURE__ */ new Date()).getTimezoneOffset());
     await this.start();
-    if (!this.datasetExportsSupported) throw new Error("CHAT_EXPORT_UNSUPPORTED");
+    if (!this.recordExportsSupported) throw new Error("CHAT_EXPORT_UNSUPPORTED");
     const response = await this.call({ requestId: this.nextRequestId++, startRecordExport: request2 }, CHAT_EXPORT_START_TIMEOUT_MS);
     if (response.error) throw new Error(response.error.code);
     const jobId = response.startRecordExport?.jobId;

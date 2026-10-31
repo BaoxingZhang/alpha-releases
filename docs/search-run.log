@@ -1,24 +1,24 @@
 Error occurred in handler for 'alpha:media:image-status': Error: UNIMPLEMENTED
-    at EngineClient.getImageMediaStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63162:28)
+    at EngineClient.getImageMediaStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63187:28)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72059:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
 Error occurred in handler for 'alpha:messages:search-page': Error: APP_LOCK_LOCKED
-    at EngineClient.searchMessagePage (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63854:31)
+    at EngineClient.searchMessagePage (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63879:31)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72059:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
-Debugger ending on ws://127.0.0.1:57422/3031d727-f528-40f6-aa6f-4b24b632e72d
+Debugger ending on ws://127.0.0.1:62387/96f0c1c6-e421-4691-9c2e-10fb96612806
 For help, see: https://nodejs.org/learn/getting-started/debugging
 Error occurred in handler for 'alpha:media:image-status': Error: UNIMPLEMENTED
-    at EngineClient.getImageMediaStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63162:28)
+    at EngineClient.getImageMediaStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63187:28)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72059:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
 Error occurred in handler for 'alpha:messages:search': Error: SEARCH_RESULTS_INCOMPLETE
-    at EngineClient.searchMessages (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63719:51)
+    at EngineClient.searchMessages (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63744:51)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72059:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
-Debugger ending on ws://127.0.0.1:57431/ef4804df-7dce-40ad-a414-a5b94689e1c6
+Debugger ending on ws://127.0.0.1:62448/f8d30c55-4f81-420a-bd93-862ae2afb0ef
 For help, see: https://nodejs.org/learn/getting-started/debugging

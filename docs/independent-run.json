@@ -1,8 +1,8 @@
 {
-  "testedAt": "2026-10-31T18:58:04.934Z",
-  "session": "independent-smoke-1793473084900",
+  "testedAt": "2026-10-31T23:42:13.358Z",
+  "session": "independent-smoke-1793490133311",
   "fixture": {
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793473084900/fixture",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793490133311/fixture",
     "accountId": "synthetic-account",
     "conversationId": "wxid_alpha",
     "selfUsername": "wxid_self",
@@ -13,9 +13,15 @@
   "checks": {
     "independentBackendReady": true,
     "realSqliteThroughDesktopIpc": true,
+    "contactDirectoryAndProfileThroughRendererIpc": true,
     "noOriginalAlphaChildObserved": true,
     "originalOnboardingCompleted": true,
     "messageRendered": true,
+    "independentRecordExportThroughRendererIpc": true,
+    "independentRecordCategoriesGated": true,
+    "independentUnsupportedContactCategoriesGated": true,
+    "independentContactExportGated": true,
+    "contactDirectoryAndProfileRendered": true,
     "lockEnforcesReadAccess": true,
     "sourceUnchanged": true
   },
@@ -42,7 +48,7 @@
     {
       "id": "synthetic-account",
       "sourceProfile": "alpha-independent-offline-v4",
-      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793473084900/fixture",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793490133311/fixture",
       "subjectId": "",
       "displayName": "离线数据源 · synthetic-account",
       "schemaProfile": "wechat-v4-offline",
@@ -221,32 +227,137 @@
       }
     ]
   },
+  "contacts": {
+    "directory": {
+      "items": [
+        {
+          "username": "wxid_alpha",
+          "displayName": "合成联系人甲",
+          "alias": "alpha",
+          "remark": "合成联系人甲",
+          "nickname": "Alpha",
+          "avatarRef": "",
+          "localType": 1,
+          "flags": "0",
+          "sourceTable": "contact",
+          "fields": [],
+          "category": "friend",
+          "officialAccountKind": ""
+        },
+        {
+          "username": "wxid_beta",
+          "displayName": "Beta",
+          "alias": "beta",
+          "remark": "",
+          "nickname": "Beta",
+          "avatarRef": "",
+          "localType": 1,
+          "flags": "0",
+          "sourceTable": "contact",
+          "fields": [],
+          "category": "friend",
+          "officialAccountKind": ""
+        },
+        {
+          "username": "wxid_self",
+          "displayName": "自己",
+          "alias": "self",
+          "remark": "自己",
+          "nickname": "Self",
+          "avatarRef": "",
+          "localType": 1,
+          "flags": "0",
+          "sourceTable": "contact",
+          "fields": [],
+          "category": "friend",
+          "officialAccountKind": ""
+        }
+      ],
+      "counts": {
+        "friend": 3,
+        "group": 0,
+        "enterprise_friend": 0,
+        "enterprise_group": 0,
+        "official": 0,
+        "service": 0,
+        "former_friend": 0,
+        "blocked": 0
+      },
+      "total": 3,
+      "hasMore": false
+    },
+    "profile": {
+      "username": "wxid_alpha",
+      "gender": 0,
+      "signature": "",
+      "region": "",
+      "addScene": 0,
+      "addSceneLabel": "",
+      "addedAtUnixMs": "",
+      "description": "",
+      "labels": [],
+      "enterpriseName": "",
+      "bigAvatarRef": "",
+      "commonGroups": [],
+      "commonGroupCount": 0,
+      "commonGroupsTruncated": false,
+      "memberCount": 0,
+      "ownerUsername": "",
+      "announcement": "",
+      "friendVerifications": [],
+      "friendVerificationCount": 0
+    }
+  },
   "ownedChildProcesses": [
     {
-      "pid": 10969,
+      "pid": 31898,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 10970,
+      "pid": 31899,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 10971,
+      "pid": 31900,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
     },
     {
-      "pid": 10973,
+      "pid": 31902,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
     },
     {
-      "pid": 10974,
+      "pid": 31903,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge"
     },
     {
-      "pid": 10975,
+      "pid": 31904,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
     }
   ],
+  "recordExport": {
+    "jobId": "fe98d247-e94f-4a9c-8e82-523186da0b52",
+    "accountId": "synthetic-account",
+    "kind": "records",
+    "state": "completed",
+    "format": "json",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793490133311/records-export",
+    "createdAtUnixMs": "1793490135061",
+    "updatedAtUnixMs": "1793490135069",
+    "finishedAtUnixMs": "1793490135069",
+    "items": [
+      {
+        "conversationId": "payments",
+        "name": "payments",
+        "state": "completed",
+        "phase": "writing",
+        "messagesDone": 0,
+        "messagesTotal": 0,
+        "mediaSaved": 0,
+        "mediaFailed": 0,
+        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793490133311/records-export/payments-71a312ebf4b8.json"
+      }
+    ]
+  },
   "lock": {
     "configured": {
       "detected": true,

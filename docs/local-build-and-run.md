@@ -2,9 +2,11 @@
 
 本页保留原二进制模式的实测结论。新增独立后端已接入原界面并通过合成数据端到端验证，当前两种模式的区别见 [independent-backend.md](independent-backend.md)。
 
-结论：可从恢复的 JavaScript 重新构建并启动 Electron 界面；原生后端启动失败，尚不能作为完整聊天工具使用。当前 Alpha 启动链路中的原生组件均为原包二进制复用，没有重新编译其原始 Rust/C++ 工程。另行构建的开源 Go 候选尚未接入这条链路。
+结论：可从恢复的 JavaScript 重新构建并启动 Electron 界面；原生后端启动失败，尚不能作为完整聊天工具使用。当前 Alpha 启动链路中的原生组件均为原包二进制复用，没有重新编译其原始 Rust/C++ 工程。`vendor/chatlog` 仅作为结构研究和候选核查，未接入原包启动链路；自有独立 Go bridge 是另一条离线维护路径，已在独立模式中单独验证。
 
 ## 验证结果
+
+项目根目录的 `.nvmrc` 固定本地复现基线为 Node.js 24.21.0；`npm run check:maintainability` 会确认这个版本仍落在 `package.json` 的 Node 引擎范围内。使用 nvm 时先运行 `nvm use`，再执行下面的安装和构建命令。未使用 nvm 的环境仍需自行安装满足引擎范围的 Node.js 24.x。
 
 最终机器记录为 [local-run.json](local-run.json)，原生日志为 [local-run.log](local-run.log)，实际截图为 [local-run.png](local-run.png)。测试运行于 macOS arm64，Electron 44.0.0，使用新建的空白项目内配置目录。
 
@@ -23,6 +25,19 @@
 | 真实业务 | 未验证 | 未获取微信密钥，未连接数据目录，未检索/导出聊天，未发消息或修改数据 |
 
 `test:smoke` 是界面及隔离冒烟测试，也记录真实后端结果；它不会将后端失败伪装成成功。`checks.backendReady=false` 表示后端未就绪；`checks.emptyAccounts=null` 表示账号查询失败，无法判断其列表状态。测试通过后会关闭自己的窗口和进程。
+
+## 独立后端实际启动
+
+要在原界面中验证可编辑的独立后端，先构建桥接层和桌面产物，再启动合成数据演示：
+
+```sh
+npm run build:independent
+npm run demo -- --search
+```
+
+演示脚本会在项目 `.runtime/` 下生成一次性 SQLite 副本，然后启动 `scripts/launch.mjs --independent`。启动日志应先显示“Opening synthetic WeChat v4 SQLite data”，窗口中可完成离线向导并读取合成会话；它不会扫描个人微信目录。也可以直接运行 `npm run demo` 验证普通会话，或运行 `npm run demo:encrypted` 验证手动密钥导入。演示进程由用户用 Ctrl-C 关闭，生成的目录可安全删除。
+
+直接运行 `npm run start:independent` 时不会自动寻找数据目录；它只启动一个没有配置账号的数据源，适合检查界面和锁状态。要打开指定副本，必须通过 `scripts/launch.mjs --independent --data-dir <项目内 .runtime 目录> --account-id <标识>` 显式传入，启动器会拒绝项目外路径、符号链接和缺少账号标识的配置。
 
 ## 本次补齐的工程部分
 

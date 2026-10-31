@@ -13,7 +13,7 @@ const common = { bundle: false, sourcemap: true, sourcesContent: true, minify: f
 const outputs = await Promise.all([
   build({ ...common, entryPoints: [path.join(src, 'main/index.js')], outdir: path.join(app, 'out/main'), platform: 'node', format: 'cjs', target: 'node24' }),
   build({ ...common, entryPoints: (await fs.readdir(path.join(src, 'preload'))).filter(x => x.endsWith('.js')).map(x => path.join(src, 'preload', x)), outdir: path.join(app, 'out/preload'), platform: 'node', format: 'cjs', target: 'node24' }),
-  build({ ...common, entryPoints: (await fs.readdir(path.join(src, 'renderer/assets'))).filter(x => x.endsWith('.js')).map(x => path.join(src, 'renderer/assets', x)), outdir: path.join(app, 'out/renderer/assets'), platform: 'browser', format: 'esm', target: 'es2022' }),
+  build({ ...common, entryPoints: (await fs.readdir(path.join(src, 'renderer/assets'))).filter(x => x.endsWith('.js') || x.endsWith('.mjs')).map(x => path.join(src, 'renderer/assets', x)), outdir: path.join(app, 'out/renderer/assets'), platform: 'browser', format: 'esm', target: 'es2022' }),
   build({ ...common, entryPoints: [path.join(src, 'agent-host/index.cjs')], outfile: path.join(root, 'workers/agent/dist/index.cjs'), platform: 'node', format: 'cjs', target: 'node24' })
 ]);
 await fs.copyFile(path.join(root, 'scripts/bootstrap.cjs'), path.join(app, 'bootstrap.cjs'));

@@ -23,7 +23,12 @@ function independentRuntime({ workspace, userData, execPath, environment }) {
     ALPHA_INDEPENDENT_DATA_DIR: environment.ALPHA_INDEPENDENT_DATA_DIR || '',
     ALPHA_INDEPENDENT_ENCRYPTED_DIR: environment.ALPHA_INDEPENDENT_ENCRYPTED_DIR || '',
     ALPHA_INDEPENDENT_IMPORTER_PATH: environment.ALPHA_INDEPENDENT_IMPORTER_PATH || path.join(workspace, 'build/candidates/alpha-snapshot-import'),
-    ALPHA_INDEPENDENT_ACCOUNT_ID: environment.ALPHA_INDEPENDENT_ACCOUNT_ID || ''
+    ALPHA_INDEPENDENT_ACCOUNT_ID: environment.ALPHA_INDEPENDENT_ACCOUNT_ID || '',
+    // These values were explicitly validated by scripts/environment.mjs and
+    // must survive the Electron-to-engine environment boundary for the
+    // optional local read-only HTTP/MCP adapter.
+    ...(environment.ALPHA_INDEPENDENT_HTTP_TOKEN !== undefined ? { ALPHA_INDEPENDENT_HTTP_TOKEN: environment.ALPHA_INDEPENDENT_HTTP_TOKEN } : {}),
+    ...(environment.ALPHA_INDEPENDENT_HTTP_PORT !== undefined ? { ALPHA_INDEPENDENT_HTTP_PORT: environment.ALPHA_INDEPENDENT_HTTP_PORT } : {})
   });
   return { executable, args: [entry], environment: env };
 }

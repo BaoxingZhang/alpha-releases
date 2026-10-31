@@ -1,6 +1,8 @@
 {
   "recordedAt": "2026-10-31T18:21:47.081Z",
   "scope": "Independent offline data backend first stage; not full Alpha parity",
+  "historical": true,
+  "supersededBy": "independent-validation-current.json",
   "javascriptTests": {
     "command": "node --test tests/*.test.mjs tests/*.test.cjs",
     "passed": 43,

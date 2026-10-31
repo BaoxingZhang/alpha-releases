@@ -50,7 +50,7 @@
 
 locate 的请求无法消除跨库重复 serverId 歧义。匹配多条不同来源时应返回明确歧义，不能随意取第一条或合并成一条。成功 anchor 的 before/after cursor 应排除 anchor 自身、分别与 descending/ascending 的无时间 listMessages 配合，跨库同时间不漏不重。主进程还会比较响应 signed int64 serverId 经 uint64 转换后的值，必须保持原 64 位位模式。
 
-“查看源内容”是另一项能力：main `messageSourceRequest`（约 12564）要求 `media1_<32hex>` sourceToken。独立 list 当前使用的 `independent1_...` 来源标识会被主进程 messagePageResponse 过滤，不能假称已经实现原源内容令牌协议；搜索上下文定位不依赖该令牌。
+“查看源内容”是另一项能力：main `messageSourceRequest`（约 12564）要求 `media1_<32hex>` sourceToken。独立实现现在提供一个明确隔离的 `getMessageSource` 分支：它只接受本引擎生成的 `independent1_...` token，重新定位同一账号/库/表/完整 localId 后返回已解码文本；该 token 会被原主进程 `messagePageResponse` 过滤，因此不能假称已经实现原 `media1_` raw/XML 源内容协议。搜索上下文定位不依赖该令牌。
 
 ## 日历首日与统计依赖
 

@@ -3,10 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+import { promisify } from 'node:util';
 import { createFixture } from './data-bridge-fixture.mjs';
+import { createMediaBrowseFixture } from './media-browse-fixture.mjs';
 
 const require = createRequire(import.meta.url);
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = require('../packages/alpha-protocol/index.cjs');
@@ -14,18 +17,19 @@ const { createEngine, SUPPORTED, ALL_METHODS } = require('../packages/alpha-engi
 const { createSecurity } = require('../packages/alpha-security/index.cjs');
 const { BridgeClient } = require('../packages/alpha-engine/bridge-client.cjs');
 const root = fileURLToPath(new URL('../', import.meta.url));
+const execute = promisify(execFile);
 const bridgePath = path.join(root, 'build/candidates/alpha-data-bridge');
 const cli = path.join(root, 'packages/alpha-engine/cli.cjs');
 const accountId = 'synthetic-account';
 const helloRequest = { protocol: { major: 1, minor: 0 }, desktopVersion: 'synthetic-test' };
 
-async function fixture(t, withData = true) {
+async function fixture(t, withData = true, makeData = createFixture) {
   const base = path.join(root, '.runtime/engine-tests');
   await fs.mkdir(base, { recursive: true });
   const directory = await fs.mkdtemp(path.join(base, 'case-'));
   const stateDir = path.join(directory, 'state'); await fs.mkdir(stateDir, { mode: 0o700 });
   const dataDir = withData ? path.join(directory, 'data') : '';
-  if (withData) await createFixture(dataDir);
+  if (withData) await makeData(dataDir);
   const clients = [];
   t.after(async () => { for (const c of clients) await c.close(); await fs.rm(directory, { recursive: true, force: true }); });
   return { directory, stateDir, dataDir, start(extra = {}) { const c = stdioClient({ stateDir, dataDir, ...extra }); clients.push(c); return c; } };
@@ -74,6 +78,10 @@ function stdioClient({ stateDir, dataDir = '', ...extra }) {
 }
 const ok = (response, key) => { assert.equal(response.error, undefined, JSON.stringify(response.error)); assert.ok(response[key]); return response[key]; };
 const handshake = async c => ok(await c.send('hello', helloRequest), 'hello');
+async function addSyntheticGroupContact(dataDir) {
+  const script = 'import sqlite3,sys; db=sqlite3.connect(sys.argv[1]); db.execute("INSERT INTO contact VALUES (?,?,?,?,?)", ("room@chatroom", 2, "", "合成群", "合成群")); db.commit(); db.close()';
+  await execute('/usr/bin/python3', ['-c', script, path.join(dataDir, 'contact/contact.db')]);
+}
 async function pages(c, method, params, pageSize = 2) {
   const items = []; let cursor = new Uint8Array();
   for (let i = 0; i < 20; i++) {
@@ -99,6 +107,12 @@ test('Node stdio accepts split/coalesced frames and advertises exactly its imple
   assert.deepEqual(ok(replies[1], 'listAccounts').accounts, []);
   const status = ok(replies[2], 'getApplicationLockStatus').status;
   assert.equal(status.enabled, false); assert.equal(status.provider, 'alpha-independent-password-v1');
+  const advanced = ok(await c.send('getAdvancedComponentStatus', { component: 5 }), 'getAdvancedComponentStatus');
+  assert.equal(advanced.component, 5);
+  assert.equal(advanced.target, 'macos-arm64');
+  assert.equal(advanced.availability, 1);
+  assert.equal(advanced.errorCode, 'INDEPENDENT_ADVANCED_COMPONENT_UNSUPPORTED');
+  assert.equal((await c.send('getAdvancedComponentStatus', { component: 4 })).error.code, 'ADVANCED_COMPONENT_REQUEST_INVALID');
   await c.close(); assert.equal((await c.exited).code, 0); assert.equal(c.diagnostics, '');
 });
 
@@ -114,8 +128,37 @@ test('real Go SQLite data crosses protobuf with pagination, exact identifiers an
   assert.equal(ok(await c.send('selectAccount', { accountId }), 'selectAccount').account.selected, true);
   const contacts = ok(await c.send('listContacts', { accountId, ascending: true, limit: 100 }), 'listContacts').response.items;
   assert.deepEqual(contacts.map(x => x.username), ['wxid_alpha', 'wxid_beta', 'wxid_self']);
+  const directory = ok(await c.send('listContacts', { accountId, ascending: true, limit: 2, offset: 1, directory: { categories: [] } }), 'listContacts').response.directory;
+  assert.equal(directory.total, 3);
+  assert.equal(directory.hasMore, false);
+  assert.deepEqual(directory.items.map(item => [item.category, item.contact.username]), [['friend', 'wxid_beta'], ['friend', 'wxid_self']]);
+  assert.deepEqual(directory.counts, [
+    { category: 'friend', count: 3 }, { category: 'group', count: 0 },
+    { category: 'enterprise_friend', count: 0 }, { category: 'enterprise_group', count: 0 },
+    { category: 'official', count: 0 }, { category: 'service', count: 0 },
+    { category: 'former_friend', count: 0 }, { category: 'blocked', count: 0 }
+  ]);
+  const directoryQuery = ok(await c.send('listContacts', { accountId, ascending: true, limit: 10, directory: { categories: ['friend'] }, query: '合成' }), 'listContacts').response.directory;
+  assert.equal(directoryQuery.total, 1);
+  assert.equal(directoryQuery.items[0].contact.username, 'wxid_alpha');
+  assert.equal((await c.send('listContacts', { accountId, ascending: true, directory: { categories: ['official'] } })).error.code, 'CONTACT_DIRECTORY_CATEGORY_UNSUPPORTED');
   const exact = ok(await c.send('listContacts', { accountId, ascending: true, query: '__alpha_contact_exact:wxid_alpha' }), 'listContacts').response.items;
   assert.equal(exact.length, 1); assert.equal(exact[0].displayName, '合成联系人甲');
+  const profile = ok(await c.send('getContactProfile', { accountId, username: 'wxid_alpha', commonGroupLimit: 20 }), 'getContactProfile').response;
+  assert.equal(profile.found, true);
+  assert.equal(profile.profile.username, 'wxid_alpha');
+  assert.equal(profile.profile.gender, 0);
+  assert.deepEqual(profile.profile.commonGroups, []);
+  const missingProfile = ok(await c.send('getContactProfile', { accountId, username: 'wxid_missing', commonGroupLimit: 0 }), 'getContactProfile').response;
+  assert.equal(missingProfile.found, false);
+  const fuzzy = ok(await c.send('listContacts', { accountId, ascending: true, query: '合成' }), 'listContacts').response.items;
+  assert.deepEqual(fuzzy.map(x => x.username), ['wxid_alpha']);
+  const alias = ok(await c.send('listContacts', { accountId, ascending: true, query: 'alpha' }), 'listContacts').response.items;
+  assert.deepEqual(alias.map(x => x.username), ['wxid_alpha']);
+  const wildcard = ok(await c.send('listContacts', { accountId, ascending: true, query: '%_' }), 'listContacts').response.items;
+  assert.deepEqual(wildcard, []);
+  const fuzzyOffset = ok(await c.send('listContacts', { accountId, ascending: true, query: 'wxid_', limit: 1, offset: 2 }), 'listContacts').response.items;
+  assert.deepEqual(fuzzyOffset.map(x => x.username), ['wxid_self']);
   assert.equal(ok(await c.send('listContacts', { accountId, ascending: true, offset: 1, limit: 1 }), 'listContacts').response.items[0].username, 'wxid_beta');
   const conversations = await pages(c, 'listConversations', { accountId }, 1);
   assert.deepEqual(conversations.map(x => x.id), ['wxid_alpha', 'wxid_beta']);
@@ -136,6 +179,89 @@ test('real Go SQLite data crosses protobuf with pagination, exact identifiers an
   assert.equal(ok(await reopened.send('getDataRevision', { accountId }), 'getDataRevision').revision, revision);
 });
 
+test('read-only contact export uses verified contact fields and rejects unsupported classifications/media', async t => {
+  const f = await fixture(t), c = f.start(); await handshake(c);
+  const destination = path.join(f.directory, 'contacts.json');
+  const exported = ok(await c.send('exportContacts', {
+    accountId,
+    categories: ['friend'],
+    query: 'alpha',
+    format: 'json',
+    includeProfile: true,
+    includeAvatars: false,
+    destinationPath: destination,
+    utcOffsetMinutes: 480
+  }), 'exportContacts');
+  assert.equal(exported.destinationPath, destination);
+  assert.equal(exported.itemCount, 1);
+  assert.equal(exported.avatarCount, 0);
+  const document = JSON.parse(await fs.readFile(destination, 'utf8'));
+  assert.deepEqual(document.contacts.map(item => item.username), ['wxid_alpha']);
+  assert.deepEqual(document.contacts[0].profile, { username: 'wxid_alpha', alias: 'alpha', remark: '合成联系人甲', nickname: 'Alpha' });
+  for (const format of ['csv', 'vcf', 'html']) {
+    const outputPath = path.join(f.directory, `contacts.${format}`);
+    const result = ok(await c.send('exportContacts', {
+      accountId,
+      categories: ['friend'],
+      query: '',
+      format,
+      includeProfile: false,
+      includeAvatars: false,
+      destinationPath: outputPath,
+      utcOffsetMinutes: 0
+    }), 'exportContacts');
+    assert.equal(result.itemCount, 3);
+    const output = await fs.readFile(outputPath, 'utf8');
+    assert.match(output, /wxid_alpha/);
+  }
+  const unsupported = await c.send('exportContacts', {
+    accountId,
+    categories: ['official'],
+    query: '',
+    format: 'json',
+    includeProfile: false,
+    includeAvatars: false,
+    destinationPath: path.join(f.directory, 'unsupported.json'),
+    utcOffsetMinutes: 0
+  });
+  assert.equal(unsupported.error.code, 'CONTACT_EXPORT_CATEGORY_UNSUPPORTED');
+  const avatars = await c.send('exportContacts', {
+    accountId,
+    categories: ['friend'],
+    query: '',
+    format: 'csv',
+    includeProfile: false,
+    includeAvatars: true,
+    destinationPath: path.join(f.directory, 'avatars.csv'),
+    utcOffsetMinutes: 0
+  });
+  assert.equal(avatars.error.code, 'CONTACT_EXPORT_AVATARS_UNSUPPORTED');
+  const xlsx = await c.send('exportContacts', {
+    accountId,
+    categories: ['friend'],
+    query: '',
+    format: 'xlsx',
+    includeProfile: false,
+    includeAvatars: false,
+    destinationPath: path.join(f.directory, 'contacts.xlsx'),
+    utcOffsetMinutes: 0
+  });
+  assert.equal(xlsx.error.code, 'EXPORT_FORMAT_UNSUPPORTED');
+});
+
+test('contact directory derives only verified friend/group categories', async t => {
+  const f = await fixture(t);
+  await addSyntheticGroupContact(f.dataDir);
+  const c = f.start(); await handshake(c);
+  const directory = ok(await c.send('listContacts', { accountId, ascending: true, directory: { categories: ['group'] }, limit: 10 }), 'listContacts').response.directory;
+  assert.equal(directory.total, 1);
+  assert.equal(directory.items[0].category, 'group');
+  assert.equal(directory.items[0].contact.username, 'room@chatroom');
+  assert.equal(directory.counts.find(item => item.category === 'friend').count, 3);
+  assert.equal(directory.counts.find(item => item.category === 'group').count, 1);
+  assert.equal((await c.send('listContacts', { accountId, ascending: true, directory: { categories: ['blocked'] } })).error.code, 'CONTACT_DIRECTORY_CATEGORY_UNSUPPORTED');
+});
+
 test('message time filters preserve exclusive milliseconds and opaque cursor scope', async t => {
   const f = await fixture(t), c = f.start(); await handshake(c);
   const request = { accountId, conversationId: 'wxid_alpha', ascending: true };
@@ -152,17 +278,49 @@ test('message time filters preserve exclusive milliseconds and opaque cursor sco
   assert.equal((await c.send('listMessages', { ...request, page: { cursor: Buffer.from('../outside') } })).error.code, 'CURSOR_INVALID');
 });
 
+test('independent getMessageSource resolves only its verified text token and fails closed', async t => {
+  const f = await fixture(t), c = f.start(); await handshake(c);
+  const page = ok(await c.send('listMessages', { accountId, conversationId: 'wxid_alpha', ascending: true, page: { pageSize: 100 } }), 'listMessages');
+  const message = page.items.find(item => item.text === 'first source');
+  assert.ok(message);
+  assert.match(message.sourceToken, /^independent1_[A-Za-z0-9_-]+$/);
+  const source = ok(await c.send('getMessageSource', {
+    accountId, conversationId: message.conversationId, messageId: message.id, sourceToken: message.sourceToken
+  }), 'getMessageSource');
+  assert.deepEqual(source, { text: 'first source', format: 'text', redacted: false });
+  assert.equal((await c.send('getMessageSource', {
+    accountId, conversationId: message.conversationId, messageId: message.id, sourceToken: 'media1_' + '0'.repeat(32)
+  })).error.code, 'MESSAGE_SOURCE_REQUEST_INVALID');
+  assert.equal((await c.send('getMessageSource', {
+    accountId, conversationId: message.conversationId, messageId: 'msg-missing', sourceToken: message.sourceToken
+  })).error.code, 'MESSAGE_SOURCE_UNAVAILABLE');
+  await fs.appendFile(path.join(f.dataDir, 'message/message_0.db'), Buffer.from([0]));
+  assert.equal((await c.send('getMessageSource', {
+    accountId, conversationId: message.conversationId, messageId: message.id, sourceToken: message.sourceToken
+  })).error.code, 'DATASET_CHANGED');
+  const password = Buffer.from('source lock password 123');
+  assert.equal(ok(await c.send('configureApplicationLock', { action: 'enable_password', newPassword: password }), 'configureApplicationLock').status.enabled, true);
+  assert.equal(ok(await c.send('lockApplication'), 'lockApplication').status.locked, true);
+  assert.equal((await c.send('getMessageSource', {
+    accountId, conversationId: message.conversationId, messageId: message.id, sourceToken: message.sourceToken
+  })).error.code, 'APP_LOCK_LOCKED');
+  assert.equal(ok(await c.send('unlockApplication', { password: Buffer.from('source lock password 123') }), 'unlockApplication').status.locked, false);
+  assert.equal((await c.send('getMessageSource', {
+    accountId, conversationId: message.conversationId, messageId: message.id, sourceToken: message.sourceToken
+  })).error.code, 'DATASET_CHANGED');
+});
+
 test('all unimplemented request branches and unsupported contact modes fail explicitly', async t => {
   const f = await fixture(t), c = f.start();
   assert.equal((await c.send('listAccounts')).error.code, 'HELLO_REQUIRED');
   assert.equal((await c.send('hello', { protocol: { major: 2 } })).error.code, 'PROTOCOL_VERSION_UNSUPPORTED');
   await handshake(c);
   const unsupported = ALL_METHODS.filter(name => !Object.hasOwn(SUPPORTED, name));
-  assert.equal(ALL_METHODS.length, 128); assert.equal(unsupported.length, 108);
+  assert.equal(ALL_METHODS.length, 128); assert.equal(unsupported.length, ALL_METHODS.length - Object.keys(SUPPORTED).length);
   for (const method of unsupported) assert.equal((await c.send(method)).error?.code, 'UNIMPLEMENTED', method);
-  for (const payload of [{ query: 'fuzzy' }, { query: '__alpha_contact_exact:' }, { directory: {} }, { lookup: {} }, { ascending: false }]) {
+  for (const payload of [{ query: '__alpha_contact_exact:' }, { query: '   ' }, { query: '中'.repeat(171) }, { directory: { categories: ['official'] } }, { lookup: {} }, { ascending: false }]) {
     const result = await c.send('listContacts', { accountId, ascending: true, ...payload });
-    assert.ok(['UNIMPLEMENTED', 'CONTACT_QUERY_INVALID'].includes(result.error?.code));
+    assert.ok(['UNIMPLEMENTED', 'CONTACT_QUERY_INVALID', 'CONTACT_LOOKUP_INVALID', 'CONTACT_DIRECTORY_REQUEST_INVALID', 'CONTACT_DIRECTORY_CATEGORY_UNSUPPORTED'].includes(result.error?.code), `${JSON.stringify(payload)} => ${JSON.stringify(result.error)}`);
   }
   assert.equal((await c.send('selectAccount', { accountId: 'another' })).error.code, 'ACCOUNT_NOT_FOUND');
 });
@@ -229,4 +387,87 @@ test('bridge process failures never resolve pending operations with empty succes
     try { await assert.rejects(bridge.call('account.info'), error => error.message === code); }
     finally { await bridge.close(); }
   }
+});
+
+test('metadata media browse filters real kinds, preserves refs/display, and paginates account sessions', async t => {
+  const f = await fixture(t, true, createMediaBrowseFixture), c = f.start();
+  const hello = await handshake(c);
+  assert.ok(hello.supportedMethodIds.includes(SUPPORTED.browseConversationMessages));
+  assert.ok(hello.supportedMethodIds.includes(SUPPORTED.browseAccountMedia));
+
+  const conversationMedia = ok(await c.send('browseConversationMessages', {
+    accountId, conversationId: 'wxid_alpha', category: 'media', page: { pageSize: 20 }
+  }), 'browseConversationMessages');
+  assert.deepEqual(conversationMedia.items.map(item => String(item.sourceType)), ['47', '43', '34', '3', '3']);
+  assert.deepEqual(conversationMedia.items.map(item => item.conversationId), Array(5).fill('wxid_alpha'));
+  const image = conversationMedia.items.find(item => String(item.sourceType) === '3' && item.sentAtUnixMs === 1700000005000n);
+  assert.equal(image.refs.length, 1);
+  assert.equal(image.refs[0].kind, 'image'); assert.equal(image.refs[0].id, '11111111111111111111111111111111');
+  assert.equal(image.refs[0].mimeType, 'image/*'); assert.equal(image.refs[0].rendition, 'source');
+  const video = conversationMedia.items.find(item => String(item.sourceType) === '43');
+  assert.equal(video.refs[0].uri, 'https://cdn.example/alpha.mp4');
+  const voice = conversationMedia.items.find(item => String(item.sourceType) === '34');
+  assert.equal(voice.refs.length, 1); assert.equal(voice.refs[0].kind, 'voice'); assert.equal(voice.refs[0].id, '10011');
+  assert.equal(voice.refs[0].mimeType, 'audio/amr'); assert.equal(voice.refs[0].rendition, 'voice-data');
+  for (const item of conversationMedia.items) assert.equal(item.mediaResolveToken, '');
+
+  const link = ok(await c.send('browseConversationMessages', {
+    accountId, conversationId: 'wxid_alpha', category: 'link', page: { pageSize: 5 }
+  }), 'browseConversationMessages');
+  assert.equal(link.items.length, 1); assert.equal(link.items[0].displayJson.length > 0, true);
+  const file = ok(await c.send('browseConversationMessages', {
+    accountId, conversationId: 'wxid_alpha', category: 'file', page: { pageSize: 5 }
+  }), 'browseConversationMessages');
+  assert.equal(file.items.length, 1); assert.equal(file.items[0].displayJson.length > 0, true);
+  for (const category of ['music', 'mini-program', 'transaction']) {
+    assert.equal((await c.send('browseConversationMessages', { accountId, conversationId: 'wxid_alpha', category })).error.code, 'TYPE_BROWSE_CATEGORY_UNSUPPORTED');
+  }
+  assert.equal((await c.send('browseConversationMessages', { accountId, conversationId: 'wxid_alpha', category: 'media', page: { pageSize: 121 } })).error.code, 'TYPE_BROWSE_REQUEST_INVALID');
+  assert.equal((await c.send('browseAccountMedia', { accountId, category: 'file' })).error.code, 'ACCOUNT_MEDIA_CATEGORY_UNSUPPORTED');
+
+  const exactEpoch = ok(await c.send('browseConversationMessages', {
+    accountId, conversationId: 'wxid_alpha', category: 'media', fromUnixMs: 0n, toUnixMs: 0n, page: { pageSize: 5 }
+  }), 'browseConversationMessages');
+  assert.deepEqual(exactEpoch.items.map(item => String(item.sourceType)), ['3']);
+  const betweenSeconds = ok(await c.send('browseConversationMessages', {
+    accountId, conversationId: 'wxid_alpha', category: 'media', fromUnixMs: 1700000005001n, toUnixMs: 1700000005999n, page: { pageSize: 5 }
+  }), 'browseConversationMessages');
+  assert.deepEqual(betweenSeconds.items, []);
+
+  const imageOnly = ok(await c.send('browseAccountMedia', {
+    accountId, category: 'image', page: { pageSize: 20 }
+  }), 'browseAccountMedia');
+  assert.deepEqual(imageOnly.items.map(item => String(item.sourceType)), ['3', '3', '3']);
+  assert.deepEqual(new Set(imageOnly.items.map(item => item.conversationId)), new Set(['wxid_alpha', 'wxid_beta']));
+  const videoOnly = ok(await c.send('browseAccountMedia', {
+    accountId, category: 'video', conversationId: 'wxid_beta', page: { pageSize: 5 }
+  }), 'browseAccountMedia');
+  assert.deepEqual(videoOnly.items.map(item => item.conversationId), ['wxid_beta']);
+  assert.equal(String(videoOnly.items[0].sourceType), '43');
+  const senderScoped = ok(await c.send('browseConversationMessages', {
+    accountId, conversationId: 'wxid_alpha', category: 'media', senderId: 'wxid_self', page: { pageSize: 20 }
+  }), 'browseConversationMessages');
+  assert.ok(senderScoped.items.length > 0); assert.ok(senderScoped.items.every(item => item.senderId === 'wxid_self'));
+
+  const first = ok(await c.send('browseAccountMedia', {
+    accountId, category: 'media', page: { pageSize: 2 }
+  }), 'browseAccountMedia');
+  assert.equal(first.items.length, 2); assert.ok(first.nextCursor.length > 0);
+  const second = ok(await c.send('browseAccountMedia', {
+    accountId, category: 'media', page: { pageSize: 2, cursor: first.nextCursor }
+  }), 'browseAccountMedia');
+  assert.ok(second.items.length > 0); assert.notDeepEqual(second.nextCursor, first.nextCursor);
+  assert.equal((await c.send('browseAccountMedia', {
+    accountId, category: 'video', page: { pageSize: 2, cursor: first.nextCursor }
+  })).error.code, 'BROWSE_CURSOR_INVALID');
+
+  const all = [...first.items, ...second.items]; let cursor = second.nextCursor;
+  for (let index = 0; cursor.length && index < 16; index += 1) {
+    const page = ok(await c.send('browseAccountMedia', { accountId, category: 'media', page: { pageSize: 2, cursor } }), 'browseAccountMedia');
+    all.push(...page.items); cursor = page.nextCursor;
+  }
+  assert.equal(cursor.length, 0);
+  assert.deepEqual(new Set(all.map(item => item.conversationId)), new Set(['wxid_alpha', 'wxid_beta', 'wxid_gamma']));
+  assert.equal(new Set(all.map(item => item.id)).size, all.length);
+  assert.equal((await c.send('browseAccountMedia', { accountId, category: 'media', conversationId: 'wxid_alpha', page: { pageSize: 20 } })).browseAccountMedia.items.length, 5);
 });

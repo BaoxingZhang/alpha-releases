@@ -1,6 +1,6 @@
 {
-  "testedAt": "2026-10-31T18:57:52.368Z",
-  "session": "search-smoke-1793473072142",
+  "testedAt": "2026-10-31T23:29:45.641Z",
+  "session": "search-smoke-1793489385471",
   "realUserDataAccessed": false,
   "checks": {
     "globalSearchPaginationAndArchivedConversation": true,
@@ -18,7 +18,7 @@
   "api": {
     "pages": [
       {
-        "nextCursor": "ZXlKemJtRndjMmh2ZENJNkltRm1NVEkxTlRJMFlUTXpOVEkwWlRNd05HSTBNMlkxTTJZME1ERTNNelEyTWpCallqRTVPR001TkdVd1lXWTBZbVU0WXpNMk1EUXhaakkyTkdKbU5UTWlMQ0p4ZFdWeWVTSTZJbVkxWVRRM05UbGtOamxrTWpjek5UYzFNek14TXpNeU1tTXdaR1EyTVdFelltRTBNbUUwWVRoa05qY3dPRGs1T0dNMlkyUXpNemxpWkRFeU16TTVOVEFpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBMElpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNUzVrWWlJc0luUmhZbXhsSWpvaVRYTm5YemRpWWpSaVlXWXpZbUUxTVdVeVlqUmtNbU0wWWpVelpXSmtOalExWlRRd0lpd2ljbTkzU1dRaU9pSTFJbjA=",
+        "nextCursor": "ZXlKemJtRndjMmh2ZENJNklqZGxPV0prWXpJME5HTTRNekF5WVRKaFlXSmhPREJrT1dVelpHSTJOMkV3T1dWaU1qTXdaREV3T1RrME5qSmxNR0V3WlRWa1ptWXdOVEJrWVRoaE9XVWlMQ0p4ZFdWeWVTSTZJamxsWWpKbU1XUmhPVFF3TkdZek1tRTVNelE0WkRsak0ySmtOemcxT1RGa05XRmhZMk5qWkdVME5Ea3dZelprTlRWa01tSmpabVZrTUdGbFpqUm1PR0lpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBMElpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNUzVrWWlJc0luUmhZbXhsSWpvaVRYTm5YemRpWWpSaVlXWXpZbUUxTVdVeVlqUmtNbU0wWWpVelpXSmtOalExWlRRd0lpd2ljbTkzU1dRaU9pSTFJbjA=",
         "coverage": {
           "complete": true,
           "unreadableMessages": "0",
@@ -48,7 +48,7 @@
         ]
       },
       {
-        "nextCursor": "ZXlKemJtRndjMmh2ZENJNkltRm1NVEkxTlRJMFlUTXpOVEkwWlRNd05HSTBNMlkxTTJZME1ERTNNelEyTWpCallqRTVPR001TkdVd1lXWTBZbVU0WXpNMk1EUXhaakkyTkdKbU5UTWlMQ0p4ZFdWeWVTSTZJbVkxWVRRM05UbGtOamxrTWpjek5UYzFNek14TXpNeU1tTXdaR1EyTVdFelltRTBNbUUwWVRoa05qY3dPRGs1T0dNMlkyUXpNemxpWkRFeU16TTVOVEFpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBeUlpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNUzVrWWlJc0luUmhZbXhsSWpvaVRYTm5YMk0yTldZd04yTmhOV1F4TVRjMU1UVmlNV0ZrWXpkbE1tRm1NalV5TkdNeklpd2ljbTkzU1dRaU9pSXhJbjA=",
+        "nextCursor": "ZXlKemJtRndjMmh2ZENJNklqZGxPV0prWXpJME5HTTRNekF5WVRKaFlXSmhPREJrT1dVelpHSTJOMkV3T1dWaU1qTXdaREV3T1RrME5qSmxNR0V3WlRWa1ptWXdOVEJrWVRoaE9XVWlMQ0p4ZFdWeWVTSTZJamxsWWpKbU1XUmhPVFF3TkdZek1tRTVNelE0WkRsak0ySmtOemcxT1RGa05XRmhZMk5qWkdVME5Ea3dZelprTlRWa01tSmpabVZrTUdGbFpqUm1PR0lpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBeUlpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNUzVrWWlJc0luUmhZbXhsSWpvaVRYTm5YMk0yTldZd04yTmhOV1F4TVRjMU1UVmlNV0ZrWXpkbE1tRm1NalV5TkdNeklpd2ljbTkzU1dRaU9pSXhJbjA=",
         "coverage": {
           "complete": true,
           "unreadableMessages": "0",
@@ -78,7 +78,7 @@
         ]
       },
       {
-        "nextCursor": "ZXlKemJtRndjMmh2ZENJNkltRm1NVEkxTlRJMFlUTXpOVEkwWlRNd05HSTBNMlkxTTJZME1ERTNNelEyTWpCallqRTVPR001TkdVd1lXWTBZbVU0WXpNMk1EUXhaakkyTkdKbU5UTWlMQ0p4ZFdWeWVTSTZJbVkxWVRRM05UbGtOamxrTWpjek5UYzFNek14TXpNeU1tTXdaR1EyTVdFelltRTBNbUUwWVRoa05qY3dPRGs1T0dNMlkyUXpNemxpWkRFeU16TTVOVEFpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBeElpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNQzVrWWlJc0luUmhZbXhsSWpvaVRYTm5Yemc1TlRBek5XRTVOMlE0TmpNMFlUbGpNemt4T0RCaE1qaG1OREk1WVRFeUlpd2ljbTkzU1dRaU9pSXlJbjA=",
+        "nextCursor": "ZXlKemJtRndjMmh2ZENJNklqZGxPV0prWXpJME5HTTRNekF5WVRKaFlXSmhPREJrT1dVelpHSTJOMkV3T1dWaU1qTXdaREV3T1RrME5qSmxNR0V3WlRWa1ptWXdOVEJrWVRoaE9XVWlMQ0p4ZFdWeWVTSTZJamxsWWpKbU1XUmhPVFF3TkdZek1tRTVNelE0WkRsak0ySmtOemcxT1RGa05XRmhZMk5qWkdVME5Ea3dZelprTlRWa01tSmpabVZrTUdGbFpqUm1PR0lpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBeElpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNQzVrWWlJc0luUmhZbXhsSWpvaVRYTm5Yemc1TlRBek5XRTVOMlE0TmpNMFlUbGpNemt4T0RCaE1qaG1OREk1WVRFeUlpd2ljbTkzU1dRaU9pSXlJbjA=",
         "coverage": {
           "complete": true,
           "unreadableMessages": "0",
@@ -108,7 +108,7 @@
         ]
       },
       {
-        "nextCursor": "ZXlKemJtRndjMmh2ZENJNkltRm1NVEkxTlRJMFlUTXpOVEkwWlRNd05HSTBNMlkxTTJZME1ERTNNelEyTWpCallqRTVPR001TkdVd1lXWTBZbVU0WXpNMk1EUXhaakkyTkdKbU5UTWlMQ0p4ZFdWeWVTSTZJbVkxWVRRM05UbGtOamxrTWpjek5UYzFNek14TXpNeU1tTXdaR1EyTVdFelltRTBNbUUwWVRoa05qY3dPRGs1T0dNMlkyUXpNemxpWkRFeU16TTVOVEFpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBd0lpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNQzVrWWlJc0luUmhZbXhsSWpvaVRYTm5YemRpWWpSaVlXWXpZbUUxTVdVeVlqUmtNbU0wWWpVelpXSmtOalExWlRRd0lpd2ljbTkzU1dRaU9pSTVNREEzTVRrNU1qVTBOelF3T1RrekluMA==",
+        "nextCursor": "ZXlKemJtRndjMmh2ZENJNklqZGxPV0prWXpJME5HTTRNekF5WVRKaFlXSmhPREJrT1dVelpHSTJOMkV3T1dWaU1qTXdaREV3T1RrME5qSmxNR0V3WlRWa1ptWXdOVEJrWVRoaE9XVWlMQ0p4ZFdWeWVTSTZJamxsWWpKbU1XUmhPVFF3TkdZek1tRTVNelE0WkRsak0ySmtOemcxT1RGa05XRmhZMk5qWkdVME5Ea3dZelprTlRWa01tSmpabVZrTUdGbFpqUm1PR0lpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBd0lpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNQzVrWWlJc0luUmhZbXhsSWpvaVRYTm5YemRpWWpSaVlXWXpZbUUxTVdVeVlqUmtNbU0wWWpVelpXSmtOalExWlRRd0lpd2ljbTkzU1dRaU9pSTVNREEzTVRrNU1qVTBOelF3T1RrekluMA==",
         "coverage": {
           "complete": true,
           "unreadableMessages": "0",

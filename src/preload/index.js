@@ -540,6 +540,10 @@ const bridge = Object.freeze({
     locateByServerId: (...args) => electron.ipcRenderer.invoke(IPC_CHANNELS.locateMessageByServerId, ...args),
     browseByType: (...args) => electron.ipcRenderer.invoke(IPC_CHANNELS.browseConversationMessages, ...args),
     browseAccountMedia: (...args) => electron.ipcRenderer.invoke(IPC_CHANNELS.browseAccountMedia, ...args),
+    // Independent backend: exports verified media metadata only. Empty
+    // conversationId scopes the account; this never reads, downloads, or
+    // marks media files as ready.
+    exportMediaMetadata: (accountId, conversationId, format, destinationPath) => electron.ipcRenderer.invoke(IPC_CHANNELS.exportConversation, accountId, conversationId ?? "", format, destinationPath, false),
     searchPage: (accountId, query, options) => electron.ipcRenderer.invoke(IPC_CHANNELS.searchMessagePage, accountId, query, options),
     mutate: (request) => electron.ipcRenderer.invoke(IPC_CHANNELS.applyMessageMutation, request),
     pendingMutation: () => readPendingMetadata(() => electron.ipcRenderer.invoke(IPC_CHANNELS.getPendingMessageMutation)),

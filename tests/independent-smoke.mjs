@@ -59,6 +59,21 @@ try {
   assert.ok(JSON.stringify(read.contacts).includes('合成联系人甲'));
   assert.ok(JSON.stringify(read.messages).includes('first source'));
   report.checks.realSqliteThroughDesktopIpc = true;
+  // Exercise the real renderer -> preload -> main IPC path for the recovered
+  // directory/profile APIs. The fixture is synthetic and has no real WeChat
+  // directory or credentials.
+  report.contacts = await page.evaluate(async ({ accountId }) => {
+    const directory = await window.alpha.data.contactDirectory(accountId, { query: '', categories: [], limit: 100, offset: 0 });
+    const profile = await window.alpha.data.contactProfile(accountId, 'wxid_alpha');
+    return { directory, profile };
+  }, fixture);
+  assert.equal(report.contacts.directory.total, 3);
+  assert.equal(report.contacts.directory.items[0].username, 'wxid_alpha');
+  assert.equal(report.contacts.directory.items[0].category, 'friend');
+  assert.equal(report.contacts.directory.counts.friend, 3);
+  assert.equal(report.contacts.profile?.username, 'wxid_alpha');
+  assert.equal(report.contacts.profile?.gender, 0);
+  report.checks.contactDirectoryAndProfileThroughRendererIpc = true;
   report.ownedChildProcesses = descendants(app.process().pid);
   assert.ok(report.ownedChildProcesses.some(x => x.executable.endsWith('/alpha-data-bridge')));
   assert.equal(report.ownedChildProcesses.some(x => /\/(?:vendor\/runtime|build\/runtime-bundle)\/bin\/alpha-/.test(x.executable)), false);
@@ -75,6 +90,80 @@ try {
   await page.getByText('合成联系人甲', { exact: true }).first().click({ timeout: 15000 });
   await page.getByText('first source', { exact: true }).first().waitFor({ timeout: 15000 });
   report.checks.messageRendered = true;
+  // Frame 136 is implemented independently even when the native moments
+  // exporter (frame 135) is unavailable. Exercise the actual renderer ->
+  // preload -> main -> independent engine path with an empty synthetic
+  // candidate table; the resulting JSON is still a truthful zero-row export.
+  const recordExportDirectory = path.join(runtime, 'records-export');
+  report.recordExport = await page.evaluate(async ({ accountId, outputDirectory }) => {
+    const started = await window.alpha.chatExport.startRecords({
+      accountId,
+      format: 'json',
+      outputDirectory,
+      categories: [{ category: 'payments' }]
+    });
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const job = (await window.alpha.chatExport.list(accountId)).find((item) => item.jobId === started.jobId);
+      if (job && ['canceled', 'completed', 'completed_with_errors', 'failed'].includes(job.state)) return job;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    throw new Error('record export did not finish');
+  }, { accountId: fixture.accountId, outputDirectory: recordExportDirectory });
+  assert.equal(report.recordExport.kind, 'records');
+  assert.equal(report.recordExport.state, 'completed');
+  assert.equal(report.recordExport.items.length, 1);
+  assert.equal(report.recordExport.items[0].state, 'completed');
+  const recordExportPath = report.recordExport.items[0].path;
+  assert.ok(recordExportPath && fs.existsSync(recordExportPath));
+  const recordExportBody = JSON.parse(fs.readFileSync(recordExportPath, 'utf8'));
+  assert.equal(recordExportBody.partial, true);
+  assert.equal(recordExportBody.candidate, true);
+  assert.deepEqual(recordExportBody.records, []);
+  report.checks.independentRecordExportThroughRendererIpc = true;
+  await page.getByRole('button', { name: '其他资料', exact: true }).click();
+  await page.locator('section[aria-label="其他资料"]').waitFor({ timeout: 15000 });
+  for (const label of ['好友验证（暂不可用）', '朋友圈互动（暂不可用）', '搜索记录（暂不可用）']) {
+    assert.equal(await page.getByRole('tab', { name: label, exact: true }).isDisabled(), true, label);
+  }
+  for (const label of ['转账与红包', '撤回']) {
+    assert.equal(await page.getByRole('tab', { name: label, exact: true }).isDisabled(), false, label);
+  }
+  await page.getByText('独立离线模式支持转账与红包、撤回、通话候选', { exact: false }).waitFor({ timeout: 15000 });
+  const recordsExportPopupPromise = page.waitForEvent('popup', { timeout: 15000 });
+  await page.getByRole('button', { name: '导出其他资料', exact: true }).click();
+  const recordsExportPopup = await recordsExportPopupPromise;
+  await recordsExportPopup.locator('.dataset-export-dialog').waitFor({ timeout: 15000 });
+  for (const label of ['好友验证（暂不可用）', '朋友圈互动（暂不可用）', '搜索记录（暂不可用）']) {
+    assert.equal(await recordsExportPopup.getByRole('checkbox', { name: label, exact: true }).isDisabled(), true, label);
+  }
+  assert.equal(await recordsExportPopup.getByRole('checkbox', { name: '转账与红包', exact: true }).isDisabled(), false);
+  assert.equal(await recordsExportPopup.getByRole('checkbox', { name: '撤回', exact: true }).isDisabled(), false);
+  assert.equal(await recordsExportPopup.getByRole('checkbox', { name: '通话记录', exact: true }).isDisabled(), false);
+  await recordsExportPopup.locator('.dataset-export-dialog').getByRole('button', { name: '取消', exact: true }).click();
+  report.checks.independentRecordCategoriesGated = true;
+  await page.getByRole('button', { name: '通讯录', exact: true }).click();
+  await page.locator('section[aria-label="通讯录"]').waitFor({ timeout: 15000 });
+  const unsupportedPrimary = page.getByRole('button', { name: '公众号（暂不可用）', exact: true });
+  assert.equal(await unsupportedPrimary.isDisabled(), true);
+  await page.getByRole('combobox', { name: '更多分类', exact: true }).click();
+  const unsupportedMore = page.getByRole('option', { name: /企微好友/ }).first();
+  assert.equal(await unsupportedMore.getAttribute('aria-disabled'), 'true');
+  await page.keyboard.press('Escape');
+  await page.getByText('独立离线数据目前只支持好友和群聊', { exact: false }).waitFor({ timeout: 15000 });
+  report.checks.independentUnsupportedContactCategoriesGated = true;
+  const exportPopupPromise = page.waitForEvent('popup', { timeout: 15000 });
+  await page.locator('.contact-export-trigger').click();
+  const exportPopup = await exportPopupPromise;
+  await exportPopup.locator('.contact-export-dialog').waitFor({ timeout: 15000 });
+  assert.equal(await exportPopup.getByRole('radio', { name: /Excel 表格/ }).isDisabled(), true);
+  assert.equal(await exportPopup.getByRole('checkbox', { name: /企微好友/ }).isDisabled(), true);
+  assert.equal(await exportPopup.getByRole('checkbox', { name: /导出本机已缓存的头像|独立离线导出暂不包含头像/ }).isDisabled(), true);
+  await exportPopup.locator('.contact-export-dialog').getByRole('button', { name: '取消', exact: true }).click();
+  report.checks.independentContactExportGated = true;
+  await page.locator('.contacts-row').filter({ hasText: '合成联系人甲' }).click({ timeout: 15000 });
+  await page.locator('.contact-profile[aria-label="联系人 合成联系人甲"]').waitFor({ timeout: 15000 });
+  await page.getByText('资料', { exact: true }).waitFor({ timeout: 15000 });
+  report.checks.contactDirectoryAndProfileRendered = true;
   await page.screenshot({ path: path.join(root, 'docs/independent-run.png'), fullPage: true });
   // Use real security IPC and demonstrate that the same data operation is denied.
   report.lock = await page.evaluate(async ({ accountId, conversationId }) => {

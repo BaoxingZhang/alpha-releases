@@ -89,25 +89,26 @@ type session struct {
 	Source                sourceRef `json:"source"`
 }
 type message struct {
-	ConversationID      string     `json:"conversationId"`
-	LocalID             string     `json:"localId"`
-	ServerID            string     `json:"serverId"`
-	SortSeq             string     `json:"sortSeq"`
-	LocalType           string     `json:"localType"`
-	CreateTime          string     `json:"createTime"`
-	Sender              string     `json:"sender"`
-	RealSenderID        string     `json:"realSenderId"`
-	Status              string     `json:"status"`
-	Content             string     `json:"content"`
-	ContentBase64       string     `json:"contentBase64"`
-	ContentEncoding     string     `json:"contentEncoding"`
-	ContentCompression  string     `json:"contentCompression,omitempty"`
-	ContentDecodeStatus string     `json:"contentDecodeStatus"`
-	MatchCount          string     `json:"matchCount,omitempty"`
-	PackedInfoBase64    string     `json:"packedInfoBase64"`
-	PackedInfoOmitted   bool       `json:"packedInfoOmitted,omitempty"`
-	Refs                []mediaRef `json:"refs,omitempty"`
-	Source              sourceRef  `json:"source"`
+	ConversationID      string          `json:"conversationId"`
+	LocalID             string          `json:"localId"`
+	ServerID            string          `json:"serverId"`
+	SortSeq             string          `json:"sortSeq"`
+	LocalType           string          `json:"localType"`
+	CreateTime          string          `json:"createTime"`
+	Sender              string          `json:"sender"`
+	RealSenderID        string          `json:"realSenderId"`
+	Status              string          `json:"status"`
+	Content             string          `json:"content"`
+	ContentBase64       string          `json:"contentBase64"`
+	ContentEncoding     string          `json:"contentEncoding"`
+	ContentCompression  string          `json:"contentCompression,omitempty"`
+	ContentDecodeStatus string          `json:"contentDecodeStatus"`
+	MatchCount          string          `json:"matchCount,omitempty"`
+	PackedInfoBase64    string          `json:"packedInfoBase64"`
+	PackedInfoOmitted   bool            `json:"packedInfoOmitted,omitempty"`
+	Display             *messageDisplay `json:"display,omitempty"`
+	Refs                []mediaRef      `json:"refs,omitempty"`
+	Source              sourceRef       `json:"source"`
 }
 type page[T any] struct {
 	Items      []T    `json:"items"`
@@ -537,6 +538,12 @@ func (b *bridge) contacts(ctx context.Context, p params, key string, c *cursor) 
 		query += ` AND username COLLATE BINARY=?`
 		args = append(args, p.UsernameExact)
 	}
+	if p.Query != "" {
+		// instr() keeps the user's text literal; unlike LIKE it does not treat
+		// '%' or '_' as wildcards. Matching remains deterministic across pages.
+		query += ` AND (instr(username,?)>0 OR instr(COALESCE(alias,''),?)>0 OR instr(COALESCE(remark,''),?)>0 OR instr(COALESCE(nick_name,''),?)>0)`
+		args = append(args, p.Query, p.Query, p.Query, p.Query)
+	}
 	if c != nil {
 		query += ` AND (username COLLATE BINARY>? OR (username COLLATE BINARY=? AND rowid>?))`
 		args = append(args, c.Name, c.Name, c.RowID)
@@ -714,6 +721,59 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 	if err := b.verify(); err != nil {
 		return nil, err
 	}
+	// contacts.lookup has its own strict request shape. It intentionally does
+	// not share the paged params object so query/cursor/offset fields cannot be
+	// mixed into an exact bulk lookup.
+	if r.Op == "contacts.lookup" {
+		var lookup struct {
+			Usernames []string `json:"usernames"`
+		}
+		if len(r.Params) == 0 || string(r.Params) == "null" {
+			return nil, fail("CONTACT_LOOKUP_INVALID", "Lookup requires usernames")
+		}
+		if err := decodeStrict(r.Params, &lookup); err != nil {
+			return nil, err
+		}
+		if err := validateLookupUsernames(lookup.Usernames); err != nil {
+			return nil, err
+		}
+		value, err := b.contactsLookup(ctx, lookup.Usernames)
+		if err != nil {
+			return nil, err
+		}
+		if err := b.verify(); err != nil {
+			return nil, err
+		}
+		return value, nil
+	}
+	// groups.common has a deliberately separate strict request shape. It scans
+	// chat_room RoomData and therefore must not accept unrelated paging fields.
+	if r.Op == "groups.common" {
+		var common struct {
+			Username string `json:"username"`
+			Limit    int    `json:"limit"`
+		}
+		if len(r.Params) == 0 || string(r.Params) == "null" {
+			return nil, fail("INVALID_PARAMS", "Common group lookup requires username")
+		}
+		if err := decodeStrict(r.Params, &common); err != nil {
+			return nil, err
+		}
+		if !validLookupUsername(common.Username) {
+			return nil, fail("INVALID_PARAMS", "Invalid username")
+		}
+		if common.Limit < 0 || common.Limit > maxCommonGroups {
+			return nil, fail("INVALID_PARAMS", fmt.Sprintf("limit must be between 0 and %d", maxCommonGroups))
+		}
+		value, err := b.commonGroups(ctx, common.Username, common.Limit)
+		if err != nil {
+			return nil, err
+		}
+		if err := b.verify(); err != nil {
+			return nil, err
+		}
+		return value, nil
+	}
 	var p params
 	if len(r.Params) > 0 && string(r.Params) != "null" {
 		if err := decodeStrict(r.Params, &p); err != nil {
@@ -725,6 +785,8 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 	}
 	maxLimit := 500
 	if r.Op == "general.list" {
+		// Keep each JSON response bounded. Callers needing a complete RoomData
+		// snapshot can page through the parser's maxRoomMembers bound.
 		maxLimit = 1000
 	}
 	if p.Limit < 1 || p.Limit > maxLimit {

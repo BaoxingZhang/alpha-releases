@@ -31,4 +31,8 @@
 
 公开的 [alpha-releases](https://github.com/xunchahaha/alpha-releases) 根目录包含 `README.md`、`assets`、`docs`、`update`；读取的 [README](https://github.com/xunchahaha/alpha-releases/blob/main/README.md) 主要介绍产品与发行下载，未找到原始源码构建仓库链接。本次未克隆仓库或安装其内容。更详细的组件级证据与查询边界见 [native-source-gaps.json](native-source-gaps.json)。
 
+另行核对了公开的 [alpha-build](https://github.com/xunchahaha/alpha-build) 打包仓。其 README 和 workflow 说明该仓只消费 `xunchahaha/alpha` 的版本锁，检查 release 与锁定 commit，并在具备私有凭据时 checkout 私有组件；它不 checkout、编译或公开 `alpha`、`alpha-wcdb`、`alpha-xkey`、`alpha-wxproto` 的源码。当前身份下对这些仓库、锁定提交和 manifest 记录的 `local/...` 归档访问均返回 404；这只能说明本次访问不可达，不能证明仓库永久不存在。因而本工程仍无法取得原生源码，只能维护已恢复的应用层和独立替换实现。
+
+补充发现作者账号公开的 [WeFlow1](https://github.com/xunchahaha/WeFlow1) fork，以及其他公开 WeFlow Rust fork。它们包含朋友圈、媒体、分析和 WCDB 接口的应用层或替代后端材料，但使用 CC BY-NC-SA 4.0 或依赖外部原生组件；没有证据证明其 ABI、授权、schema 和 macOS arm64 行为与 Alpha 0.3.5 相同。本工程仅将其作为研究参考，未复制源码或接入依赖。详细对象、许可证和平台边界见 [相关公开项目与可复用边界](related-open-source-evidence.md)。
+
 原生资源整理阶段只读挂载了 DMG，完成复制校验后已卸载，未执行原包程序，也未访问用户微信数据库。后续验证应分别记录 JavaScript 构建、界面启动、原生服务连接和真实数据功能的结果；其中任一项通过，都不能自动代表其他项已经通过。

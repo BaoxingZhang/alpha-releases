@@ -1,0 +1,66 @@
+name: maintenance
+
+on:
+  push:
+    branches: [main, master, recovery/**]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maintenance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-arm64:
+    # The checked-in Go bootstrap is deliberately pinned to macOS arm64.
+    # Keep this job on the matching hosted runner instead of silently falling
+    # back to a system Go or producing an x86 artifact.
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - name: Check out source and reference submodule
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install Electron and esbuild binaries
+        run: npm run setup
+
+      - name: Build independent backend and desktop bundle
+        run: npm run build:independent
+
+      - name: Run complete test suite
+        run: npm test
+
+      - name: Verify maintenance boundaries
+        run: |
+          npm run check:maintainability
+          npm run verify:protocol
+          npm run verify:vendor
+          git diff --check
+
+      - name: Upload validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-maintenance-reports-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: |
+            docs/*-run.json
+            docs/*-validation*.json
+            docs/build-results.json
+            build/candidates/*-build.json
+            packages/alpha-data-bridge/build-validation.json
+            packages/alpha-snapshot-import/build-validation.json

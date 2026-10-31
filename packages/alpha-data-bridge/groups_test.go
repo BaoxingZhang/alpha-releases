@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"path/filepath"
 	"testing"
 )
 
@@ -119,4 +120,63 @@ func TestRoomDataParserRejectsMalformedInput(t *testing.T) {
 	defer b.close()
 	_, err = b.dispatch(context.Background(), request{ID: "bad", Op: "general.list", Params: json.RawMessage(`{"tableName":"__alpha_group_members","query":"room@chatroom","limit":1,"ascending":false}`)})
 	expectCode(t, err, "INVALID_PARAMS")
+}
+
+func TestCommonGroupsScansRoomDataAndHonorsLimit(t *testing.T) {
+	room := roomDataBytes([2]string{"wxid_owner", "Owner in room"}, [2]string{"wxid_member", "Member in room"})
+	root := groupFixture(t, room)
+	db, err := sql.Open("sqlite3", filepath.Join(root, "contact.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`INSERT INTO chat_room(username,owner,ext_buffer) VALUES(?,?,?)`, "second@chatroom", "wxid_member", roomDataBytes([2]string{"wxid_owner", ""}))
+	if closeErr := db.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := openBridge(root, "synthetic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.close()
+	value, err := b.dispatch(context.Background(), request{ID: "common", Op: "groups.common", Params: json.RawMessage(`{"username":"wxid_owner","limit":1}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := value.(commonGroupsPage)
+	if page.Count != 2 || len(page.Items) != 1 || !page.Truncated || page.Items[0].Username != "room@chatroom" || page.Items[0].DisplayName != "room@chatroom" {
+		t.Fatalf("unexpected common groups: %#v", page)
+	}
+	value, err = b.dispatch(context.Background(), request{ID: "common-all", Op: "groups.common", Params: json.RawMessage(`{"username":"wxid_owner","limit":20}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	page = value.(commonGroupsPage)
+	if page.Count != 2 || len(page.Items) != 2 || page.Truncated {
+		t.Fatalf("unexpected complete common groups: %#v", page)
+	}
+}
+
+func TestCommonGroupsFailsClosedOnMalformedLaterRoom(t *testing.T) {
+	root := groupFixture(t, roomDataBytes([2]string{"wxid_owner", ""}))
+	db, err := sql.Open("sqlite3", filepath.Join(root, "contact.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`INSERT INTO chat_room(username,owner,ext_buffer) VALUES(?,?,?)`, "bad@chatroom", "", []byte{0x0a, 0x05, 0x0a, 0x03, 'x'})
+	if closeErr := db.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := openBridge(root, "synthetic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.close()
+	_, err = b.dispatch(context.Background(), request{ID: "common-bad", Op: "groups.common", Params: json.RawMessage(`{"username":"wxid_owner","limit":20}`)})
+	expectCode(t, err, "ROOM_DATA_INVALID")
 }

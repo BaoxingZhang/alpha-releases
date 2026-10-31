@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-31T19:18:35.693Z",
+  "builtAt": "2026-10-31T23:42:03.379Z",
   "node": "v24.21.0",
   "electron": "44.0.0",
   "esbuild": "0.28.2",
@@ -9,7 +9,7 @@
     {
       "inputs": {
         "src/main/index.js": {
-          "bytes": 3185519,
+          "bytes": 3186664,
           "imports": [],
           "format": "cjs"
         }
@@ -19,7 +19,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 5348223
+          "bytes": 5350035
         },
         "dist/app/out/main/index.js": {
           "imports": [
@@ -88,10 +88,10 @@
           "entryPoint": "src/main/index.js",
           "inputs": {
             "src/main/index.js": {
-              "bytesInOutput": 3206481
+              "bytesInOutput": 3207635
             }
           },
-          "bytes": 3206529
+          "bytes": 3207683
         }
       }
     },
@@ -102,7 +102,7 @@
           "imports": []
         },
         "src/preload/index.js": {
-          "bytes": 52648,
+          "bytes": 53037,
           "imports": []
         },
         "src/preload/notification.js": {
@@ -138,7 +138,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 80121
+          "bytes": 80639
         },
         "dist/app/out/preload/index.js": {
           "imports": [
@@ -152,10 +152,10 @@
           "entryPoint": "src/preload/index.js",
           "inputs": {
             "src/preload/index.js": {
-              "bytesInOutput": 52634
+              "bytesInOutput": 53023
             }
           },
-          "bytes": 52682
+          "bytes": 53071
         },
         "dist/app/out/preload/notification.js.map": {
           "imports": [],
@@ -189,13 +189,23 @@
           "imports": [],
           "format": "esm"
         },
+        "src/renderer/assets/export-policy.mjs": {
+          "bytes": 832,
+          "imports": [],
+          "format": "esm"
+        },
         "src/renderer/assets/image-viewer-BiP1Iv4A.js": {
           "bytes": 50044,
           "imports": [],
           "format": "esm"
         },
         "src/renderer/assets/index-DPCwIOAb.js": {
-          "bytes": 2866935,
+          "bytes": 2875070,
+          "imports": [],
+          "format": "esm"
+        },
+        "src/renderer/assets/media-metadata-export.mjs": {
+          "bytes": 1198,
           "imports": [],
           "format": "esm"
         },
@@ -239,6 +249,26 @@
           },
           "bytes": 554822
         },
+        "dist/app/out/renderer/assets/export-policy.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 1408
+        },
+        "dist/app/out/renderer/assets/export-policy.js": {
+          "imports": [],
+          "exports": [
+            "chatExportPolicy",
+            "independentFormatPreference"
+          ],
+          "entryPoint": "src/renderer/assets/export-policy.mjs",
+          "inputs": {
+            "src/renderer/assets/export-policy.mjs": {
+              "bytesInOutput": 680
+            }
+          },
+          "bytes": 784
+        },
         "dist/app/out/renderer/assets/image-viewer-BiP1Iv4A.js.map": {
           "imports": [],
           "exports": [],
@@ -271,10 +301,15 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 4985307
+          "bytes": 4998394
         },
         "dist/app/out/renderer/assets/index-DPCwIOAb.js": {
           "imports": [
+            {
+              "path": "./export-policy.mjs",
+              "kind": "import-statement",
+              "external": true
+            },
             {
               "path": "./client-Bg2hQ5uk.js",
               "kind": "import-statement",
@@ -295,10 +330,31 @@
           "entryPoint": "src/renderer/assets/index-DPCwIOAb.js",
           "inputs": {
             "src/renderer/assets/index-DPCwIOAb.js": {
-              "bytesInOutput": 3086189
+              "bytesInOutput": 3095158
             }
           },
-          "bytes": 3086232
+          "bytes": 3095201
+        },
+        "dist/app/out/renderer/assets/media-metadata-export.js.map": {
+          "imports": [],
+          "exports": [],
+          "inputs": {},
+          "bytes": 2018
+        },
+        "dist/app/out/renderer/assets/media-metadata-export.js": {
+          "imports": [],
+          "exports": [
+            "MEDIA_METADATA_FORMATS",
+            "mediaMetadataExportLabel",
+            "mediaMetadataExportRequest"
+          ],
+          "entryPoint": "src/renderer/assets/media-metadata-export.mjs",
+          "inputs": {
+            "src/renderer/assets/media-metadata-export.mjs": {
+              "bytesInOutput": 1023
+            }
+          },
+          "bytes": 1168
         },
         "dist/app/out/renderer/assets/message-images-Dl-McHRQ.js.map": {
           "imports": [],
