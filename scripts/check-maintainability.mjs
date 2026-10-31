@@ -159,7 +159,7 @@ if (lockfile && packageJson) {
 const requiredFiles = [
   'AGENTS.md', 'README.md', 'MAINTENANCE.md', '.gitignore', '.gitattributes',
   '.github/workflows/maintenance.yml',
-  'scripts/build.mjs', 'scripts/environment.mjs', 'scripts/launch.mjs', 'scripts/verify-vendor.mjs',
+  'scripts/build.mjs', 'scripts/environment.mjs', 'scripts/launch.mjs', 'scripts/verify-vendor.mjs', 'scripts/release-manifest.mjs',
   'scripts/setup-go.mjs', 'scripts/check-maintainability.mjs',
   'src/main/index.js', 'src/agent-host/index.cjs', 'src/renderer/index.html',
   'src/renderer/assets/index-DPCwIOAb.js', 'src/renderer/assets/export-policy.mjs',

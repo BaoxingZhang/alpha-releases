@@ -38,6 +38,15 @@ function parseToken(value) {
   if (typeof value !== 'string' || !PRINTABLE_TOKEN.test(value)) throw new HttpAdapterError('HTTP_API_TOKEN_INVALID', 400);
   return value;
 }
+// Compare credentials after reducing both values to a fixed-size digest. The
+// adapter is local-only, but this avoids exposing a byte-by-byte timing oracle
+// when a client can issue repeated requests against the configured token.
+function tokenMatches(provided, expected) {
+  if (typeof provided !== 'string' || typeof expected !== 'string') return false;
+  const left = crypto.createHash('sha256').update(provided, 'utf8').digest();
+  const right = crypto.createHash('sha256').update(expected, 'utf8').digest();
+  return crypto.timingSafeEqual(left, right);
+}
 function bearer(req, url) {
   const header = typeof req.headers.authorization === 'string' && /^Bearer ([\x21-\x7e]+)$/.exec(req.headers.authorization);
   const query = url.searchParams.get('access_token');
@@ -486,7 +495,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       if (req.headers.host !== expectedHost && req.headers.host !== `localhost:${actualPort}` && req.headers.host !== `127.0.0.1:${actualPort}`) throw new HttpAdapterError('HTTP_API_HOST_DENIED', 403);
       if (url.pathname === '/health' || url.pathname === '/api/v1/health') { if (req.method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405); return json(res, 200, { status: 'ok', service: 'alpha-independent-readonly' }); }
       if (!['GET', 'POST'].includes(req.method)) throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
-      if (bearer(req, url) !== token) throw new HttpAdapterError('HTTP_API_UNAUTHORIZED', 401);
+      if (!tokenMatches(bearer(req, url), token)) throw new HttpAdapterError('HTTP_API_UNAUTHORIZED', 401);
       await ensureHello();
       if (url.pathname === '/mcp') {
         if (req.method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);

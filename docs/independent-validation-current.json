@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 151,
+      "passed": 153,
       "failed": 0
     },
     "build": {
@@ -115,6 +115,16 @@
         "conversation",
         "account"
       ]
+    },
+    "releaseManifest": {
+      "command": "npm run release:manifest",
+      "status": "passed",
+      "schema": "alpha-recovered.release-manifest.v1",
+      "target": "darwin-arm64",
+      "nativeRecompiled": false,
+      "projectSigned": false,
+      "artifactCount": 256,
+      "artifactDigest": "b6bd33e70adc84330138438695a95a5f4fc1af130740615c9e58b3de0f5344ca"
     }
   },
   "featureBoundary": {

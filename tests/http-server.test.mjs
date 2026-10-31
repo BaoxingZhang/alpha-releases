@@ -76,6 +76,8 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   assert.equal(result.body.service, 'alpha-independent-readonly');
   result = await request(base, '/api/v1/accounts');
   assert.equal(result.response.status, 401);
+  result = await request(base, '/api/v1/accounts', { headers: { Authorization: `Bearer ${'z'.repeat(32)}` } });
+  assert.equal(result.response.status, 401);
   result = await request(base, '/api/v1/accounts', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.accounts[0].id, 'acct-1');

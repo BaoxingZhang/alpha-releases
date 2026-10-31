@@ -41,6 +41,9 @@ jobs:
       - name: Build independent backend and desktop bundle
         run: npm run build:independent
 
+      - name: Generate unsigned artifact manifest
+        run: npm run release:manifest
+
       - name: Run complete test suite
         run: npm test
 
@@ -64,3 +67,4 @@ jobs:
             build/candidates/*-build.json
             packages/alpha-data-bridge/build-validation.json
             packages/alpha-snapshot-import/build-validation.json
+            .runtime/release-manifest.json
