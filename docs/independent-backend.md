@@ -38,17 +38,18 @@ npm run start:independent -- --data-dir /absolute/project/.runtime/your-snapshot
 | 会话 | 实际 session 查询，联系人备注/昵称，稳定分页 | 仅提供存在的数据列；无完整会话资料和群信息 |
 | 消息 | 跨分库排序、正反向分页、时间范围、原始 ID/定位 | 引用/卡片/附件/媒体等语义未完整解析；原始字节由 Go 层保留 |
 | 64 位字段 | serverId 用 BigInt/十进制字符串，引擎 source token 保留完整 localId | 原 Alpha DTO 的 localId 仅 int32；超界时该旧字段为 0。旧 UI 还会过滤独立 token，完整定位保留在桥接/引擎层，未接 UI 原始消息查看或任何修改 |
-| 压缩内容 | Node 层可尝试有尺寸上限的 zstd 解码 | 解码失败显示明确“不支持”占位；不声称全部微信格式可用 |
+| 压缩内容 | Go 层统一有尺寸上限的 UTF-8/zstd 解码，供列表和搜索复用 | 解码失败显示明确“不支持”占位；不声称全部微信格式可用 |
+| 搜索和导航 | 全账号/会话字面搜索、分组计数、发送人/时间筛选、精确上下文和日历消息数 | 暂无持久索引；未知编码/会话表明确提示部分覆盖；真实数据与大库性能未验 |
 | 密码锁 | scrypt 校验、配置/修改/关闭、锁定/解锁、失败退避和重启锁定 | 不加密数据库或保存微信/模型凭据；无 Windows Hello、硬件保护或重置服务 |
 | 原许可与网关 | capabilities 无原作者 entitlement；独立网关入口明确不可用 | AI、HTTP/MCP 服务尚未迁移，不能靠原网关补齐 |
 
-协议层当前实现 14/128 个请求分支，其余 114 个返回 `UNIMPLEMENTED`，清单见 [engine README](../packages/alpha-engine/README.md) 和源码 `SUPPORTED`。部分读取请求仍只支持有限参数；支持一个请求分支不代表其整个功能领域已完成，也不代表产品完成比例。
+协议层当前实现 18/128 个请求分支，其余 110 个返回 `UNIMPLEMENTED`，清单见 [engine README](../packages/alpha-engine/README.md) 和源码 `SUPPORTED`。部分读取请求仍只支持有限参数；支持一个请求分支不代表其整个功能领域已完成，也不代表产品完成比例。
 
 独立后端 Hello 的 ready 只表示当前服务初始化成功。配置了有效且未锁定的数据源时会实际验证 SQLite；启用密码锁后重启只初始化锁和协议服务，数据访问必须先解锁。账号能力来自真实存在的库；数据源改变后再次查询会失败，不保留旧的就绪结果。
 
 ## 实测证据
 
-上一阶段合并测试 43/43 通过，历史汇总保留在 [independent-validation.json](independent-validation.json)。加入加密导入后的最新测试与三种桌面路径结果见 [encrypted-validation.json](encrypted-validation.json)。两份记录分别对应当时的实现范围。
+初始阶段合并测试 43/43 通过，历史汇总保留在 [independent-validation.json](independent-validation.json)；加入加密导入后的阶段记录为 [encrypted-validation.json](encrypted-validation.json)。本轮搜索、导航及回归的最新结果见 [search-validation.json](search-validation.json)，各记录分别对应当时的实现范围。
 
 - [桌面运行 JSON](independent-run.json) 与 [聊天截图](independent-run.png)：原 UI、真实 IPC → Protobuf → Go → SQLite，应用锁前后读取，以及数据文件哈希不变。
 - [Go 编译与测试](../packages/alpha-data-bridge/build-validation.json)：arm64 原生程序、固定工具链、依赖锁和 schema/只读/分页边界。
@@ -63,6 +64,7 @@ npm run test:engine
 npm run test:boundaries
 npm run test:independent
 npm run test:encrypted
+npm run test:search
 npm run test:smoke
 npm run verify:vendor
 ```
@@ -72,7 +74,7 @@ npm run verify:vendor
 ## 下一层仍需补齐
 
 1. 对授权真实样本验证已有手动密钥、离线解密及查询结果；扩展自动接入、实时快照和 WAL 一致性。
-2. 完整通讯录、搜索/定位/上下文、群信息、消息类型和媒体解析。
+2. 完整通讯录、群信息、消息类型和媒体解析；扩展已实现搜索的内容覆盖与大库索引。
 3. 导出/任务/统计/朋友圈、AI 工具与服务端协议；逐个保留已有交互和语义。
 4. 凭据安全存储、写入恢复、平台能力、自有签名与更新发布。
 

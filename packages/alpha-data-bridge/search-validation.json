@@ -1,0 +1,49 @@
+{
+  "recordedAt": "2026-10-31T18:48:45.646Z",
+  "status": "passed",
+  "buildArtifact": {
+    "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge",
+    "bytes": 8072098,
+    "sha256": "a256e64ca95924d247229ed7b08c5dfb8c2d33a1b4a9ef02a3e0680bc67d73e9",
+    "file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge: Mach-O 64-bit executable arm64",
+    "buildInfo": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge: go1.24.13\n\tpath\talpha.local/data-bridge\n\tmod\talpha.local/data-bridge\tv0.0.0-20261031184014-bd2e1b1de728+dirty\t\n\tdep\tgithub.com/klauspost/compress\tv1.18.0\th1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=\n\tdep\tgithub.com/mattn/go-sqlite3\tv1.14.32\th1:JD12Ag3oLy1zQA+BNn74xRgaBbdhbNIDYvQUEuuErjs=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=1\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=bd2e1b1de728428bc21cb43a74b26caf5d202430\n\tbuild\tvcs.time=2026-10-31T18:40:14Z\n\tbuild\tvcs.modified=true"
+  },
+  "sourceHashes": {
+    "packages/alpha-data-bridge/main.go": "e24b34c44d96519a3f15ce7c97b9a90582f752527ce95802e0a52bc1ba29d13e",
+    "packages/alpha-data-bridge/search.go": "f2e9647b3bcc21ebf10805b8f7fd1973e6d26353fc770c5d427a551bffa264b5",
+    "packages/alpha-data-bridge/search_test.go": "c990705f27f4b1b51fff509143ec9f0ee0d5217e26afe27d4cd69a325a369e5c",
+    "tests/data-bridge-search.test.mjs": "d2330660e425cb4eb323baef109c9ce3880abe5a3f7313618dfb4e6918616ddc",
+    "tests/search-fixture.mjs": "081cdb6e7fd3c6c35ac513c280e36c565c2bfb5ffbc624bccb3c07526db9838d"
+  },
+  "commands": [
+    "node scripts/build-data-bridge.mjs",
+    "node --test tests/data-bridge.test.mjs tests/data-bridge-search.test.mjs"
+  ],
+  "goTestGroups": 5,
+  "goNestedCases": 7,
+  "nodeTests": 13,
+  "failed": 0,
+  "coverage": [
+    "real global/conversation case-insensitive literal search",
+    "zstd matches equal list display text",
+    "Name2Id-only archived conversations",
+    "query-bound stable cursors, inclusive times, senders and grouping",
+    "time-first order despite disagreeing sort_seq",
+    "int64 local_id, uint64 server_id, ambiguous duplicate server_id rejection",
+    "untimed two-sided locate cursors",
+    "half-open millisecond calendar intervals, positive/negative UTC offset and local-day flooring",
+    "raw local_type counts and min/max timestamps",
+    "explicit unreadable/unmapped partial coverage",
+    "SQL byte-length bounds before oversized content and metadata materialization",
+    "source content unchanged after successful search",
+    "Conversation identity SQL read is limited to non-null <=1024-byte names, with a 64 MiB cumulative map estimate limit.",
+    "Sender join values are SQL-limited to 1024 bytes; page responses are bounded to 12 MiB and return RESPONSE_TOO_LARGE instead of emitting an oversized frame."
+  ],
+  "limitations": [
+    "Synthetic fixtures only; real WeChat data and large datasets not exercised.",
+    "Current full scan is bounded by 15s, 1000000 rows, 512 MiB scan estimate and 64 MiB candidate/group estimate; no persistent full-text index.",
+    "Structured XML/media and unknown type subcategories remain unparsed.",
+    "Partial search results require explicit UI indication.",
+    "The independently defined timestamp-first ordering has not been proven identical to every original native ordering."
+  ]
+}

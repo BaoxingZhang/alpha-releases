@@ -9336,11 +9336,14 @@ function parseJumpDate(value) {
   if (!match) return null;
   const [year, month, day] = match.slice(1).map(Number);
   const start = new Date(year, month - 1, day);
-  if (year < 1970 || start.getFullYear() !== year || start.getMonth() !== month - 1 || start.getDate() !== day) return null;
+  if (start.getFullYear() !== year || start.getMonth() !== month - 1 || start.getDate() !== day) return null;
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  if (end.getTime() <= 0) return null;
   return { date: `${match[1]}-${match[2]}-${match[3]}`, startMs: start.getTime() };
 }
 function jumpLowerBound(startMs) {
-  return String(startMs - 1);
+  return String(Math.max(0, startMs) - 1);
 }
 function createDateJumpScope(initialScope) {
   let scope = initialScope;
@@ -12075,7 +12078,7 @@ function presetTimeFilters(preset, now2 = /* @__PURE__ */ new Date()) {
   return { fromUnixMs: String(start.getTime()) };
 }
 function monthRange(year, month) {
-  return { fromUnixMs: String(new Date(year, month - 1, 1).getTime()), toUnixMs: String(new Date(year, month, 1).getTime()) };
+  return { fromUnixMs: String(Math.max(0, new Date(year, month - 1, 1).getTime())), toUnixMs: String(new Date(year, month, 1).getTime()) };
 }
 function monthUtcOffset(year, month) {
   return -new Date(year, month - 1, 1).getTimezoneOffset();
@@ -12101,7 +12104,7 @@ function dayCountLabel(count2) {
 }
 function localDay$2(unixMs2) {
   const value = Number(unixMs2);
-  if (!Number.isFinite(value) || value <= 0) return "";
+  if (unixMs2 === "" || !Number.isFinite(value) || value < 0) return "";
   const date = new Date(value);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -12186,7 +12189,7 @@ function DateJumpPopover({ dateJump, disabled }) {
   const conversationId = selected?.id ?? "";
   const stats = useConversationStats(activeAccountId, accountEpoch, conversationId, open2 && !disabled);
   const counts2 = useMonthDayCounts(activeAccountId, accountEpoch, conversationId, month, open2 && !disabled);
-  const firstDay = localDay$2(stats.data?.firstMessageUnixMs ?? "");
+  const firstDay = stats.data?.total > 0 ? localDay$2(stats.data.firstMessageUnixMs) : "";
   const close = (focus) => {
     setOpen(false);
     dateJump.clearJumpError();
@@ -15024,8 +15027,14 @@ function mergeSearchConversations(pages) {
   for (const page of pages) for (const item of page.items) groups.set(JSON.stringify([item.accountId, item.conversationId]), item);
   return [...groups.values()];
 }
-function searchCountLabel(count2) {
-  return Number.isSafeInteger(count2) && count2 >= 0 ? `共 ${count2} 条相关聊天记录` : "相关聊天记录";
+function searchPagesIncomplete(pages = []) {
+  return pages.some((page) => page.coverage?.complete === false);
+}
+function SearchCoverageNotice({ pages }) {
+  return searchPagesIncomplete(pages) ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "chat-search-status", role: "status", children: "部分记录或会话暂时无法解析，以下仅显示已读取的匹配结果。" }) : null;
+}
+function searchCountLabel(count2, incomplete = false) {
+  return Number.isSafeInteger(count2) && count2 >= 0 ? `${incomplete ? "已找到" : "共"} ${count2} 条相关聊天记录` : "相关聊天记录";
 }
 function useConversationSearchFilters() {
   const [preset, setPreset] = reactExports.useState("all");
@@ -16637,11 +16646,12 @@ function KeywordSearch({ accountId, conversation, visible, onLocate, filters: st
         searchFailureMessage(query.error),
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch()), children: "重试" })
       ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-        total ? `找到 ${total}${query.hasNextPage ? "+" : ""} 条` : "没有找到相关聊天记录",
+        total ? `找到 ${total}${query.hasNextPage ? "+" : ""} 条` : searchPagesIncomplete(query.data?.pages) ? "在已读取的记录中没有找到匹配" : "没有找到相关聊天记录",
         active2 >= 0 && total ? ` · 第 ${active2 + 1} 条` : ""
       ] }),
       locateError && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "is-error", role: "alert", children: locateError })
     ] }),
+    !pendingInput && /* @__PURE__ */ jsxRuntimeExports.jsx(SearchCoverageNotice, { pages: query.data?.pages }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { ref: list, className: "conversation-search-results", role: "list", onScroll: (event) => {
       const element = event.currentTarget;
       if (!pendingInput && element.scrollHeight - element.scrollTop - element.clientHeight < 120 && query.hasNextPage && !query.isFetching && !query.isError && !continuation.error) void query.fetchNextPage({ cancelRefetch: false });
@@ -23211,11 +23221,12 @@ function ConversationSearch({ active: active2, onOpenSearch, onOpenConversation 
                     /* @__PURE__ */ jsxRuntimeExports.jsx("time", { children: conversationTime(item.sentAtUnixMs) })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "chat-search-snippet", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SearchHighlight, { text: item.text, query: keyword }) }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("small", { children: searchCountLabel(item.matchCount) })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("small", { children: searchCountLabel(item.matchCount, searchPagesIncomplete(results.data?.pages)) })
                 ] })
               ] }, item.conversationId);
             }),
-            results.isSuccess && !results.isFetching && !groups.length && keyword === draft.trim() && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "chat-search-status", children: "没有找到相关聊天记录" }),
+            keyword === draft.trim() && /* @__PURE__ */ jsxRuntimeExports.jsx(SearchCoverageNotice, { pages: results.data?.pages }),
+            results.isSuccess && !results.isFetching && !groups.length && keyword === draft.trim() && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "chat-search-status", children: searchPagesIncomplete(results.data?.pages) ? "在已读取的记录中没有找到匹配" : "没有找到相关聊天记录" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { type: "button", className: "chat-search-more", onClick: () => openHistory(), children: [
               "查看全部",
               /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { size: 14 })
@@ -24938,6 +24949,7 @@ function SearchResultsPanel({ accountId, initialQuery = "", initialConversationI
           /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "submit", children: "应用" })
         ] })
       ] }),
+      !pendingInput && /* @__PURE__ */ jsxRuntimeExports.jsx(SearchCoverageNotice, { pages: [...(scope === "account" ? groupsQuery.data?.pages ?? [] : []), ...(messagesQuery.data?.pages ?? [])] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "chat-search-columns", "data-scope": scope, children: [
         scope === "account" && /* @__PURE__ */ jsxRuntimeExports.jsxs("nav", { ref: groupsElement, className: "chat-search-conversations", "aria-label": "匹配的会话", onKeyDown: navigateGroups, onScroll: (event) => {
           const list = event.currentTarget;
@@ -24965,7 +24977,7 @@ function SearchResultsPanel({ accountId, initialQuery = "", initialConversationI
                       /* @__PURE__ */ jsxRuntimeExports.jsx("time", { children: conversationTime(item.sentAtUnixMs) })
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "chat-search-snippet", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SearchHighlight, { text: item.text, query: keyword }) }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("small", { children: searchCountLabel(item.matchCount) })
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("small", { children: searchCountLabel(item.matchCount, searchPagesIncomplete(groupsQuery.data?.pages)) })
                   ] })
                 ]
               },
@@ -24977,7 +24989,7 @@ function SearchResultsPanel({ accountId, initialQuery = "", initialConversationI
             /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => void (groupsQuery.isFetchNextPageError ? groupsQuery.fetchNextPage() : groupsQuery.refetch()), children: "重试" })
           ] }),
           groupContinuation.error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "chat-search-status", role: "alert", children: groupContinuation.error }),
-          groupsQuery.isSuccess && !groups.length && !pendingInput && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "chat-search-status", children: "没有相关聊天记录" }),
+          groupsQuery.isSuccess && !groups.length && !pendingInput && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "chat-search-status", children: searchPagesIncomplete(groupsQuery.data?.pages) ? "在已读取的记录中没有找到匹配" : "没有相关聊天记录" }),
           !pendingInput && groupsQuery.hasNextPage && !groupContinuation.error && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "chat-search-more", disabled: groupsQuery.isFetching, onClick: () => void groupsQuery.fetchNextPage({ cancelRefetch: false }), children: "更多会话" })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("section", { className: "chat-search-matches", "aria-label": "会话内搜索结果", children: keyword && conversationId && !pendingInput ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -24985,7 +24997,7 @@ function SearchResultsPanel({ accountId, initialQuery = "", initialConversationI
             /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
               names2.get(conversationId)?.name ?? conversationId,
               " · ",
-              group ? `共 ${group.matchCount} 条与“` : "与“",
+              group ? `${searchPagesIncomplete(groupsQuery.data?.pages) ? "已找到" : "共"} ${group.matchCount} 条与“` : "与“",
               /* @__PURE__ */ jsxRuntimeExports.jsx(SearchHighlight, { text: keyword, query: keyword }),
               "”的聊天记录"
             ] }),
@@ -25021,7 +25033,7 @@ function SearchResultsPanel({ accountId, initialQuery = "", initialConversationI
               searchFailureMessage(messagesQuery.error),
               /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => void (messagesQuery.isFetchNextPageError ? messagesQuery.fetchNextPage() : messagesQuery.refetch()), children: "重试" })
             ] }),
-            messagesQuery.isSuccess && !items.length && !messagesQuery.isFetching && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "chat-search-status", children: "此会话没有符合条件的聊天记录" }),
+            messagesQuery.isSuccess && !items.length && !messagesQuery.isFetching && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "chat-search-status", children: searchPagesIncomplete(messagesQuery.data?.pages) ? "在已读取的记录中没有找到匹配" : "此会话没有符合条件的聊天记录" }),
             continuation.error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "chat-search-status", role: "alert", children: continuation.error }),
             messagesQuery.hasNextPage && !continuation.error && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "chat-search-more", disabled: messagesQuery.isFetching, onClick: () => void messagesQuery.fetchNextPage({ cancelRefetch: false }), children: "更多聊天记录" })
           ] })
@@ -34238,6 +34250,7 @@ function FootprintContentSearch({ accountId, accountEpoch, keyword, fromUnixMs, 
     navigate("chat", { chatLocateRequest: { target: item } });
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "footprint-content-search", "aria-label": `消息内容里的“${query}”`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(SearchCoverageNotice, { pages: search.data?.pages }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "footprint-subhead", children: [
       "这段时间的消息里提到“",
       query,
@@ -34247,7 +34260,7 @@ function FootprintContentSearch({ accountId, accountEpoch, keyword, fromUnixMs, 
       /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "spin", size: 14, "aria-hidden": "true" }),
       "正在搜索消息…"
     ] }) : !items.length ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "analytics-hint", children: [
-      "没有找到包含“",
+      searchPagesIncomplete(search.data?.pages) ? "在已读取的记录中没有找到包含“" : "没有找到包含“",
       query,
       "”的消息。"
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ol", { className: "footprint-list", children: items.map((item) => {

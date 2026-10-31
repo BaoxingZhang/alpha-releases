@@ -1,0 +1,57 @@
+{
+  "testedAt": "2026-10-31T18:58:31Z",
+  "scope": "Independent offline search, message location, date navigation and statistics connected to the recovered Alpha desktop UI",
+  "realUserDataAccessed": false,
+  "sourceDatabasesChanged": false,
+  "artifacts": {
+    "bridge": {
+      "path": "build/candidates/alpha-data-bridge",
+      "sha256": "a256e64ca95924d247229ed7b08c5dfb8c2d33a1b4a9ef02a3e0680bc67d73e9",
+      "bytes": 8072098,
+      "architecture": "Mach-O arm64"
+    },
+    "vendorRuntimeFilesVerified": 43,
+    "protocolBindings": 900,
+    "protocolRequestBranches": 128,
+    "implementedIndependentBranches": 18,
+    "explicitlyUnimplementedBranches": 110
+  },
+  "tests": {
+    "npmTest": { "passed": 102, "failed": 0, "log": "search-tests.log" },
+    "goBridgeGroups": 5,
+    "goBridgeNestedCases": 7,
+    "bridgeNodeTests": { "passed": 13, "failed": 0 },
+    "searchEngineAndBoundaryTests": { "passed": 23, "failed": 0 },
+    "desktopSearchSmoke": { "passed": 10, "failed": 0, "report": "search-run.json" },
+    "encryptedDesktopSmoke": { "passed": 8, "failed": 0, "report": "encrypted-run.json" },
+    "independentDesktopSmoke": { "passed": 7, "failed": 0, "report": "independent-run.json" },
+    "originalModeSmoke": {
+      "passed": true,
+      "backendReady": false,
+      "errorCode": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY",
+      "report": "local-run.json"
+    },
+    "protocolVerification": true,
+    "vendorVerification": true
+  },
+  "implementedBehavior": [
+    "Case-insensitive literal global and conversation search",
+    "Cross-database stable pagination using create_time, database, table and local_id",
+    "Sender and inclusive millisecond time filters with cursor binding",
+    "Name2Id-only historical conversations and valid zstd text",
+    "Conversation grouping with real match counts",
+    "Exact source identities, uint64 server IDs and ambiguous locate rejection",
+    "Half-open calendar day counts, fixed UTC offsets and first/last message statistics",
+    "Explicit partial coverage for unreadable messages and unmapped tables",
+    "UI disclosure for partial results in all four search entry points",
+    "12 MiB JSON response guard with RESPONSE_TOO_LARGE and bounded sender joins",
+    "Shanghai and Los Angeles epoch/date boundary behavior"
+  ],
+  "limitations": [
+    "Synthetic SQLite fixtures only; no real WeChat directory, account or database key was used.",
+    "The timestamp-first ordering is an independent implementation choice and has not been proven identical to every original native ordering.",
+    "Search is a bounded scan without a persistent full-text index; larger datasets may require indexing work.",
+    "Structured XML, media, unknown subtypes, export, AI, write operations and automatic key acquisition remain unimplemented.",
+    "The original packaged backend remains blocked by its integrity policy; this stage does not alter its guard, signature or license."
+  ]
+}

@@ -2,7 +2,7 @@
 
 这是自有后端的真实适配层。输入为恢复的 `EngineClientFrame`，输出为 `EngineServerFrame`，均使用 4 字节大端长度前缀。数据库读取委托同项目的 Go `alpha-data-bridge`，应用锁委托 `alpha-security`；不加载 Electron、恢复后的整份 main 或原闭源引擎。
 
-当前实现 128 个请求分支中的 14 个，其余 114 个明确返回 `UNIMPLEMENTED`。这只是完整功能接手的第一步：搜索、媒体解析、朋友圈、导出、任务、统计、AI、账号密钥和写入等功能仍需逐项实现，不把页面能打开视作功能完成。完整范围仍见 `docs/backend-compatibility-map.json`。
+当前实现 128 个请求分支中的 18 个，其余 110 个明确返回 `UNIMPLEMENTED`。已接入基础聊天、搜索、日期导航、手动解密与密码锁。媒体解析、朋友圈、导出、任务、分析报表、AI、自动获取密钥和写入等功能仍需逐项实现，不把页面能打开视作功能完成。完整范围仍见 `docs/backend-compatibility-map.json`。
 
 ## 启动与模块边界
 
@@ -42,6 +42,7 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | selectAccount | 13 | 成功验证后持久保存选择 |
 | listConversations | 14 | 真实会话表分页，联系人备注/昵称为名称；无 contact.db 时回退 username |
 | listMessages | 15 | 跨分库稳定分页、顺序和排他毫秒时间范围 |
+| searchMessages | 17 | 全局/会话搜索、Unicode 小写字面匹配、发送者/闭区间时间筛选、按会话分组及真实数量 |
 | discoverAccounts | 29 | 仅接受与已配置源路径完全一致的 sourceLocation |
 | importDatabaseKey | 30 | 仅对显式加密源接收一次性 32 字节 key；导入成功前保持 waiting_for_key |
 | listContacts | 42 | 升序、offset/limit 和 `__alpha_contact_exact:` 精确 username 查询 |
@@ -49,9 +50,16 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | unlockApplication | 50 | 真实密码校验、失败退避和持久状态 |
 | lockApplication | 51 | 关闭数据桥并锁定访问 |
 | getDataRevision | 105 | 由真实已验证 snapshotId 导出的 16 位十六进制 revision |
+| getChatExportStats | 120 | 1–100 个会话的真实消息数量、类型计数和首末时间；不表示导出功能已实现 |
+| locateMessage | 126 | uint64 serverId 精确定位及无时间筛选的双向游标；重复 ID 明确报歧义 |
+| getConversationDayCounts | 127 | 按 UTC offset 汇总最多 62 天半开时间区间内的消息数 |
 | configureApplicationLock | 131 | enable_password / change_password / disable，交给真实安全模块 |
 
 账号 capabilities 来自 Go 实际可用数据库；只有 session.db 的副本不会宣布 contacts 或 messages。每次查询账号状态或 revision 都重新调用 Go 验证不可变快照，文件变动不会沿用缓存 ready。
+
+搜索、列表与定位共用消息 ID/内容转换。Go 对消息按 `create_time, database, table, localId` 排序，保证原搜索上下文算法能在时间相同的连续记录中找到命中；旧排序游标不混用。搜索时间范围双端包含，列表 after/before 双端排除，日期统计为 `[from,to)`；列表允许 after=-1 以定位 Unix epoch 的第一天。分页与分组游标绑定账号快照、查询、范围、发送者、方向和分组方式。
+
+独立搜索协议增加字段 100 `incomplete`、101 `unreadableMessages`、102 `unmappedTables`。本次范围中存在无法解码的载荷或不能映射到真实会话的消息表时，仍返回已扫描的可读命中并明确部分覆盖；扫描上限或超时则返回错误。分组的数量是已读匹配记录的真实数量。原 UI 的覆盖说明由独立适配层展示，不把部分结果称为完整。合法 UTF-8/zstd 内容的读取与搜索共用 Go 解码状态；不支持的内容不会被 Node 二次解码成另一套结果。
 
 `detectAccountDataSources` 是桌面 main 的本地 IPC，不在这 128 个协议方法中，需由桌面独立适配器把验证过的账号映射成候选。原许可证、在线密钥获取、锁 provision/reset 均未模拟；重置必须先设计安全状态清理语义。
 
@@ -77,7 +85,7 @@ manifest 文件名保持 `snapshots/manifest.v1.json`，内容版本为 2，严�
 在项目根目录，先构建 `build/candidates/alpha-data-bridge` 和 `build/candidates/alpha-snapshot-import`，再运行：
 
 ```sh
-node --test tests/engine.test.mjs tests/engine-import.test.mjs tests/independent-boundary-engine.test.mjs tests/import-security-boundary.test.mjs
+node --test tests/engine.test.mjs tests/engine-import.test.mjs tests/engine-search.test.mjs tests/independent-boundary-engine.test.mjs tests/import-security-boundary.test.mjs
 ```
 
-测试只使用 `tests/data-bridge-fixture.mjs` 与 `tests/encrypted-fixture.mjs` 的合成数据，主路径使用真实 Node stdio → protobuf → Go importer / Go bridge。覆盖分片/粘包、协议编号、114 个未实现分支、64 位 ID、分页、锁/重启、真实加密源导入、错误密钥、manifest 越界/篡改、导入中状态查询/锁定/EOF、提交时锁定、超时和源改变。小脚本仅用于故障注入，不作为正常导入或数据实现。
+测试只使用合成普通/加密/搜索 SQLite 数据，主路径使用真实 Node stdio → protobuf → Go importer / Go bridge。覆盖分片/粘包、协议编号、110 个未实现分支、64 位 ID、分页、全局与会话搜索、分组/筛选/覆盖、日期与定位、锁/重启、真实加密源导入、错误密钥、manifest 越界/篡改、导入中状态查询/锁定/EOF、提交时锁定、超时和源改变。小脚本仅用于故障注入，不作为正常导入或数据实现。

@@ -1,14 +1,14 @@
 Error occurred in handler for 'alpha:media:image-status': Error: UNIMPLEMENTED
-    at EngineClient.getImageMediaStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63129:28)
+    at EngineClient.getImageMediaStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63162:28)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:71999:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
 Error occurred in handler for 'alpha:messages:list': Error: APP_LOCK_LOCKED
-    at EngineClient.listMessagePage (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63681:31)
+    at EngineClient.listMessagePage (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63714:31)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async EngineClient.listMessages (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63666:13)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74685:22
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:71999:14
+    at async EngineClient.listMessages (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63699:13)
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74720:22
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
-Debugger ending on ws://127.0.0.1:51392/24864bed-b632-4c10-b7e9-7f558164c350
+Debugger ending on ws://127.0.0.1:57498/4405f4ac-2a94-4928-ad30-b75e59db8b4c
 For help, see: https://nodejs.org/learn/getting-started/debugging

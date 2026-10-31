@@ -1,0 +1,401 @@
+{
+  "testedAt": "2026-10-31T18:57:52.368Z",
+  "session": "search-smoke-1793473072142",
+  "realUserDataAccessed": false,
+  "checks": {
+    "globalSearchPaginationAndArchivedConversation": true,
+    "zstdHitAndExactContext": true,
+    "conversationSearchOriginalUi": true,
+    "senderFilterOriginalUi": true,
+    "literalQueryAndLocateOriginalUi": true,
+    "firstMessageJumpAndCalendarOriginalUi": true,
+    "globalSearchWindowAndArchivedPreview": true,
+    "searchObeysApplicationLock": true,
+    "partialResultsDisclosedInOriginalUi": true,
+    "sourceDatabasesUnchanged": true
+  },
+  "rendererErrors": [],
+  "api": {
+    "pages": [
+      {
+        "nextCursor": "ZXlKemJtRndjMmh2ZENJNkltRm1NVEkxTlRJMFlUTXpOVEkwWlRNd05HSTBNMlkxTTJZME1ERTNNelEyTWpCallqRTVPR001TkdVd1lXWTBZbVU0WXpNMk1EUXhaakkyTkdKbU5UTWlMQ0p4ZFdWeWVTSTZJbVkxWVRRM05UbGtOamxrTWpjek5UYzFNek14TXpNeU1tTXdaR1EyTVdFelltRTBNbUUwWVRoa05qY3dPRGs1T0dNMlkyUXpNemxpWkRFeU16TTVOVEFpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBMElpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNUzVrWWlJc0luUmhZbXhsSWpvaVRYTm5YemRpWWpSaVlXWXpZbUUxTVdVeVlqUmtNbU0wWWpVelpXSmtOalExWlRRd0lpd2ljbTkzU1dRaU9pSTFJbjA=",
+        "coverage": {
+          "complete": true,
+          "unreadableMessages": "0",
+          "unmappedTables": 0
+        },
+        "items": [
+          {
+            "id": "msg-0ed6763b5a146b1feabb044a09e8f74f2b02faf84308fcb8b057327bec4c2593",
+            "accountId": "synthetic-account",
+            "conversationId": "wxid_beta",
+            "senderId": "wxid_self",
+            "text": "维护 beta next day",
+            "sentAtUnixMs": "1700086400000",
+            "sourceType": "1",
+            "exactIdentity": true
+          },
+          {
+            "id": "msg-36c4a5f67cfdea758738f9492a047e4c462a33c41a71dafcd04c15b87e854b06",
+            "accountId": "synthetic-account",
+            "conversationId": "wxid_alpha",
+            "senderId": "wxid_self",
+            "text": "压缩维护 needle zstd 中文",
+            "sentAtUnixMs": "1700000004000",
+            "sourceType": "49",
+            "exactIdentity": true
+          }
+        ]
+      },
+      {
+        "nextCursor": "ZXlKemJtRndjMmh2ZENJNkltRm1NVEkxTlRJMFlUTXpOVEkwWlRNd05HSTBNMlkxTTJZME1ERTNNelEyTWpCallqRTVPR001TkdVd1lXWTBZbVU0WXpNMk1EUXhaakkyTkdKbU5UTWlMQ0p4ZFdWeWVTSTZJbVkxWVRRM05UbGtOamxrTWpjek5UYzFNek14TXpNeU1tTXdaR1EyTVdFelltRTBNbUUwWVRoa05qY3dPRGs1T0dNMlkyUXpNemxpWkRFeU16TTVOVEFpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBeUlpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNUzVrWWlJc0luUmhZbXhsSWpvaVRYTm5YMk0yTldZd04yTmhOV1F4TVRjMU1UVmlNV0ZrWXpkbE1tRm1NalV5TkdNeklpd2ljbTkzU1dRaU9pSXhJbjA=",
+        "coverage": {
+          "complete": true,
+          "unreadableMessages": "0",
+          "unmappedTables": 0
+        },
+        "items": [
+          {
+            "id": "msg-b32fceb97cf94f3863f2b80c6e3ea2b24033d84abd291f86327aa0f5e3e0bc78",
+            "accountId": "synthetic-account",
+            "conversationId": "wxid_alpha",
+            "senderId": "wxid_alpha",
+            "text": "维护 cross shard tie",
+            "sentAtUnixMs": "1700000003000",
+            "sourceType": "1",
+            "exactIdentity": true
+          },
+          {
+            "id": "msg-379dbf01156bef8e058493a9165e4c288e3a580c456b50496e511dc14a45fa29",
+            "accountId": "synthetic-account",
+            "conversationId": "wxid_archived",
+            "senderId": "wxid_archived",
+            "text": "维护 archived without session",
+            "sentAtUnixMs": "1700000002000",
+            "sourceType": "1",
+            "exactIdentity": true
+          }
+        ]
+      },
+      {
+        "nextCursor": "ZXlKemJtRndjMmh2ZENJNkltRm1NVEkxTlRJMFlUTXpOVEkwWlRNd05HSTBNMlkxTTJZME1ERTNNelEyTWpCallqRTVPR001TkdVd1lXWTBZbVU0WXpNMk1EUXhaakkyTkdKbU5UTWlMQ0p4ZFdWeWVTSTZJbVkxWVRRM05UbGtOamxrTWpjek5UYzFNek14TXpNeU1tTXdaR1EyTVdFelltRTBNbUUwWVRoa05qY3dPRGs1T0dNMlkyUXpNemxpWkRFeU16TTVOVEFpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBeElpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNQzVrWWlJc0luUmhZbXhsSWpvaVRYTm5Yemc1TlRBek5XRTVOMlE0TmpNMFlUbGpNemt4T0RCaE1qaG1OREk1WVRFeUlpd2ljbTkzU1dRaU9pSXlJbjA=",
+        "coverage": {
+          "complete": true,
+          "unreadableMessages": "0",
+          "unmappedTables": 0
+        },
+        "items": [
+          {
+            "id": "msg-19a723d5a38c10c121b8b58b7a966f6f9a0950a5df6661e49039147ba272b847",
+            "accountId": "synthetic-account",
+            "conversationId": "wxid_alpha",
+            "senderId": "wxid_alpha",
+            "text": "维护 same sequence",
+            "sentAtUnixMs": "1700000002000",
+            "sourceType": "1",
+            "exactIdentity": true
+          },
+          {
+            "id": "msg-63c091f41ea4e3f63192bfd90d0b5d5afc7ae7365dd379f57b044806d14c0417",
+            "accountId": "synthetic-account",
+            "conversationId": "wxid_beta",
+            "senderId": "wxid_beta",
+            "text": "维护 beta tied time",
+            "sentAtUnixMs": "1700000001000",
+            "sourceType": "1",
+            "exactIdentity": true
+          }
+        ]
+      },
+      {
+        "nextCursor": "ZXlKemJtRndjMmh2ZENJNkltRm1NVEkxTlRJMFlUTXpOVEkwWlRNd05HSTBNMlkxTTJZME1ERTNNelEyTWpCallqRTVPR001TkdVd1lXWTBZbVU0WXpNMk1EUXhaakkyTkdKbU5UTWlMQ0p4ZFdWeWVTSTZJbVkxWVRRM05UbGtOamxrTWpjek5UYzFNek14TXpNeU1tTXdaR1EyTVdFelltRTBNbUUwWVRoa05qY3dPRGs1T0dNMlkyUXpNemxpWkRFeU16TTVOVEFpTENKdWRXMWlaWElpT2lJeE56QXdNREF3TURBd0lpd2laR0YwWVdKaGMyVWlPaUp0WlhOellXZGxMMjFsYzNOaFoyVmZNQzVrWWlJc0luUmhZbXhsSWpvaVRYTm5YemRpWWpSaVlXWXpZbUUxTVdVeVlqUmtNbU0wWWpVelpXSmtOalExWlRRd0lpd2ljbTkzU1dRaU9pSTVNREEzTVRrNU1qVTBOelF3T1RrekluMA==",
+        "coverage": {
+          "complete": true,
+          "unreadableMessages": "0",
+          "unmappedTables": 0
+        },
+        "items": [
+          {
+            "id": "msg-c41a8e279b60afbbb8ce72edb0eb81642fb4e19f24585c8cf2ee5a87ad26f697",
+            "accountId": "synthetic-account",
+            "conversationId": "wxid_alpha",
+            "senderId": "wxid_self",
+            "text": "维护 needle second",
+            "sentAtUnixMs": "1700000001000",
+            "sourceType": "1",
+            "exactIdentity": true
+          },
+          {
+            "id": "msg-64c97a224bfe89a56f7d4b4d4e45dbdbe65027214aa9a200904ef53d6c88467a",
+            "accountId": "synthetic-account",
+            "conversationId": "wxid_alpha",
+            "senderId": "wxid_alpha",
+            "text": "维护 needle first 100% _ . [literal]",
+            "sentAtUnixMs": "1700000000000",
+            "sourceType": "1",
+            "exactIdentity": true
+          }
+        ]
+      },
+      {
+        "nextCursor": "",
+        "coverage": {
+          "complete": true,
+          "unreadableMessages": "0",
+          "unmappedTables": 0
+        },
+        "items": [
+          {
+            "id": "msg-b9fbe03c21dbdea6f1cbff765350e9dc23eefc899885365c006b0e27b70cdc1f",
+            "accountId": "synthetic-account",
+            "conversationId": "wxid_alpha",
+            "senderId": "wxid_alpha",
+            "text": "维护 earlier shard",
+            "sentAtUnixMs": "1699999999000",
+            "sourceType": "1",
+            "exactIdentity": true
+          }
+        ]
+      }
+    ],
+    "groups": {
+      "nextCursor": "",
+      "coverage": {
+        "complete": true,
+        "unreadableMessages": "0",
+        "unmappedTables": 0
+      },
+      "items": [
+        {
+          "id": "msg-0ed6763b5a146b1feabb044a09e8f74f2b02faf84308fcb8b057327bec4c2593",
+          "accountId": "synthetic-account",
+          "conversationId": "wxid_beta",
+          "senderId": "wxid_self",
+          "text": "维护 beta next day",
+          "sentAtUnixMs": "1700086400000",
+          "sourceType": "1",
+          "exactIdentity": true,
+          "matchCount": 2
+        },
+        {
+          "id": "msg-36c4a5f67cfdea758738f9492a047e4c462a33c41a71dafcd04c15b87e854b06",
+          "accountId": "synthetic-account",
+          "conversationId": "wxid_alpha",
+          "senderId": "wxid_self",
+          "text": "压缩维护 needle zstd 中文",
+          "sentAtUnixMs": "1700000004000",
+          "sourceType": "49",
+          "exactIdentity": true,
+          "matchCount": 6
+        },
+        {
+          "id": "msg-379dbf01156bef8e058493a9165e4c288e3a580c456b50496e511dc14a45fa29",
+          "accountId": "synthetic-account",
+          "conversationId": "wxid_archived",
+          "senderId": "wxid_archived",
+          "text": "维护 archived without session",
+          "sentAtUnixMs": "1700000002000",
+          "sourceType": "1",
+          "exactIdentity": true,
+          "matchCount": 1
+        }
+      ]
+    },
+    "compressed": {
+      "nextCursor": "",
+      "coverage": {
+        "complete": true,
+        "unreadableMessages": "0",
+        "unmappedTables": 0
+      },
+      "items": [
+        {
+          "id": "msg-36c4a5f67cfdea758738f9492a047e4c462a33c41a71dafcd04c15b87e854b06",
+          "accountId": "synthetic-account",
+          "conversationId": "wxid_alpha",
+          "senderId": "wxid_self",
+          "text": "压缩维护 needle zstd 中文",
+          "sentAtUnixMs": "1700000004000",
+          "sourceType": "49",
+          "exactIdentity": true
+        }
+      ]
+    },
+    "context": {
+      "items": [
+        {
+          "id": "msg-b9fbe03c21dbdea6f1cbff765350e9dc23eefc899885365c006b0e27b70cdc1f",
+          "localId": 1,
+          "serverId": "9007199254740997",
+          "conversationId": "wxid_alpha",
+          "sourceId": "source-f1b5f8a88d80d63ca9cef037129f807df1c0bb1445428a35ad4a482e3c0d0fd3",
+          "sentAtUnixMs": "1699999999000",
+          "direction": 0,
+          "kind": "text",
+          "text": "维护 earlier shard",
+          "refs": [],
+          "senderId": "wxid_alpha",
+          "platformMessageId": "9007199254740997",
+          "sourceType": "1"
+        },
+        {
+          "id": "msg-64c97a224bfe89a56f7d4b4d4e45dbdbe65027214aa9a200904ef53d6c88467a",
+          "localId": 0,
+          "serverId": "9223372036854775807",
+          "conversationId": "wxid_alpha",
+          "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+          "sentAtUnixMs": "1700000000000",
+          "direction": 0,
+          "kind": "text",
+          "text": "维护 needle first 100% _ . [literal]",
+          "refs": [],
+          "senderId": "wxid_alpha",
+          "platformMessageId": "9223372036854775807",
+          "sourceType": "1"
+        },
+        {
+          "id": "msg-c41a8e279b60afbbb8ce72edb0eb81642fb4e19f24585c8cf2ee5a87ad26f697",
+          "localId": 2,
+          "serverId": "9007199254740995",
+          "conversationId": "wxid_alpha",
+          "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+          "sentAtUnixMs": "1700000001000",
+          "direction": 0,
+          "kind": "text",
+          "text": "维护 needle second",
+          "refs": [],
+          "senderId": "wxid_self",
+          "platformMessageId": "9007199254740995",
+          "sourceType": "1"
+        },
+        {
+          "id": "msg-19a723d5a38c10c121b8b58b7a966f6f9a0950a5df6661e49039147ba272b847",
+          "localId": 3,
+          "serverId": "0",
+          "conversationId": "wxid_alpha",
+          "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+          "sentAtUnixMs": "1700000002000",
+          "direction": 0,
+          "kind": "text",
+          "text": "维护 same sequence",
+          "refs": [],
+          "senderId": "wxid_alpha",
+          "platformMessageId": "0",
+          "sourceType": "1"
+        },
+        {
+          "id": "msg-b32fceb97cf94f3863f2b80c6e3ea2b24033d84abd291f86327aa0f5e3e0bc78",
+          "localId": 4,
+          "serverId": "9007199254740995",
+          "conversationId": "wxid_alpha",
+          "sourceId": "source-f1b5f8a88d80d63ca9cef037129f807df1c0bb1445428a35ad4a482e3c0d0fd3",
+          "sentAtUnixMs": "1700000003000",
+          "direction": 0,
+          "kind": "text",
+          "text": "维护 cross shard tie",
+          "refs": [],
+          "senderId": "wxid_alpha",
+          "platformMessageId": "9007199254740995",
+          "sourceType": "1"
+        },
+        {
+          "id": "msg-36c4a5f67cfdea758738f9492a047e4c462a33c41a71dafcd04c15b87e854b06",
+          "localId": 5,
+          "serverId": "9007199254741001",
+          "conversationId": "wxid_alpha",
+          "sourceId": "source-f1b5f8a88d80d63ca9cef037129f807df1c0bb1445428a35ad4a482e3c0d0fd3",
+          "sentAtUnixMs": "1700000004000",
+          "direction": 0,
+          "kind": "share",
+          "text": "压缩维护 needle zstd 中文",
+          "refs": [],
+          "senderId": "wxid_self",
+          "platformMessageId": "9007199254741001",
+          "sourceType": "49"
+        }
+      ],
+      "targetIndex": 5,
+      "before": {
+        "pageSize": 31,
+        "ascending": false,
+        "beforeUnixMs": "1700000004001",
+        "cursor": ""
+      },
+      "after": {
+        "pageSize": 31,
+        "ascending": true,
+        "afterUnixMs": "1700000003999",
+        "cursor": ""
+      },
+      "hasMoreBefore": false,
+      "hasMoreAfter": false
+    }
+  },
+  "lock": {
+    "rejected": "Error invoking remote method 'alpha:messages:search-page': Error: APP_LOCK_LOCKED",
+    "resumedGroups": 3
+  },
+  "partial": {
+    "response": {
+      "nextCursor": "",
+      "coverage": {
+        "complete": false,
+        "unreadableMessages": "1",
+        "unmappedTables": 0
+      },
+      "items": [
+        {
+          "id": "msg-b32fceb97cf94f3863f2b80c6e3ea2b24033d84abd291f86327aa0f5e3e0bc78",
+          "accountId": "synthetic-account",
+          "conversationId": "wxid_alpha",
+          "senderId": "wxid_alpha",
+          "text": "维护 cross shard tie",
+          "sentAtUnixMs": "1700000003000",
+          "sourceType": "1",
+          "exactIdentity": true
+        },
+        {
+          "id": "msg-19a723d5a38c10c121b8b58b7a966f6f9a0950a5df6661e49039147ba272b847",
+          "accountId": "synthetic-account",
+          "conversationId": "wxid_alpha",
+          "senderId": "wxid_alpha",
+          "text": "维护 same sequence",
+          "sentAtUnixMs": "1700000002000",
+          "sourceType": "1",
+          "exactIdentity": true
+        },
+        {
+          "id": "msg-c41a8e279b60afbbb8ce72edb0eb81642fb4e19f24585c8cf2ee5a87ad26f697",
+          "accountId": "synthetic-account",
+          "conversationId": "wxid_alpha",
+          "senderId": "wxid_self",
+          "text": "维护 needle second",
+          "sentAtUnixMs": "1700000001000",
+          "sourceType": "1",
+          "exactIdentity": true
+        },
+        {
+          "id": "msg-64c97a224bfe89a56f7d4b4d4e45dbdbe65027214aa9a200904ef53d6c88467a",
+          "accountId": "synthetic-account",
+          "conversationId": "wxid_alpha",
+          "senderId": "wxid_alpha",
+          "text": "维护 needle first 100% _ . [literal]",
+          "sentAtUnixMs": "1700000000000",
+          "sourceType": "1",
+          "exactIdentity": true
+        },
+        {
+          "id": "msg-b9fbe03c21dbdea6f1cbff765350e9dc23eefc899885365c006b0e27b70cdc1f",
+          "accountId": "synthetic-account",
+          "conversationId": "wxid_alpha",
+          "senderId": "wxid_alpha",
+          "text": "维护 earlier shard",
+          "sentAtUnixMs": "1699999999000",
+          "sourceType": "1",
+          "exactIdentity": true
+        }
+      ]
+    },
+    "legacyError": "Error invoking remote method 'alpha:messages:search': Error: SEARCH_RESULTS_INCOMPLETE"
+  }
+}

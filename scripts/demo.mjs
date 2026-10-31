@@ -3,8 +3,8 @@ import { spawn } from 'node:child_process';
 import { root } from './environment.mjs';
 import { createFixture } from '../tests/data-bridge-fixture.mjs';
 const args = process.argv.slice(2);
-if (args.length > 1 || (args.length && args[0] !== '--encrypted')) throw new Error('Usage: npm run demo [-- --encrypted]');
-const session = `demo-${args.includes('--encrypted') ? 'encrypted-' : ''}${Date.now()}`;
+if (args.length > 1 || (args.length && !['--encrypted', '--search'].includes(args[0]))) throw new Error('Usage: npm run demo [-- --encrypted|--search]');
+const session = `demo-${args[0]?.slice(2) ? args[0].slice(2) + '-' : ''}${Date.now()}`;
 const directory = path.join(root, '.runtime', session, 'fixture');
 let sourceDir, accountId, encrypted = args.includes('--encrypted');
 if (encrypted) {
@@ -15,7 +15,7 @@ if (encrypted) {
   console.log('Opening synthetic encrypted WeChat v4 data. This key is for generated demo data only:');
   console.log(fixture.keyHex);
 } else {
-  const fixture = await createFixture(directory);
+  const fixture = args.includes('--search') ? await (await import('../tests/search-fixture.mjs')).createSearchFixture({ directory }) : await createFixture(directory);
   sourceDir = fixture.directory; accountId = fixture.accountId;
   console.log('Opening synthetic WeChat v4 SQLite data. No personal WeChat files are used.');
 }

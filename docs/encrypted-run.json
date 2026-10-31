@@ -1,6 +1,6 @@
 {
-  "testedAt": "2026-10-31T18:39:23.188Z",
-  "session": "encrypted-smoke-1793471962922",
+  "testedAt": "2026-10-31T18:57:59.277Z",
+  "session": "encrypted-smoke-1793473078997",
   "sourceKind": "synthetic SQLCipher4 encrypted fixture",
   "realUserDataAccessed": false,
   "checks": {
@@ -36,7 +36,7 @@
     {
       "id": "synthetic-account",
       "sourceProfile": "alpha-independent-encrypted-v4",
-      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/encrypted-smoke-1793471962922/fixture/encrypted",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/encrypted-smoke-1793473078997/fixture/encrypted",
       "subjectId": "",
       "displayName": "加密数据源 · synthetic-account",
       "schemaProfile": "wechat-v4-encrypted",
@@ -61,7 +61,7 @@
     {
       "id": "synthetic-account",
       "sourceProfile": "alpha-independent-offline-v4",
-      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/encrypted-smoke-1793471962922/fixture/encrypted",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/encrypted-smoke-1793473078997/fixture/encrypted",
       "subjectId": "",
       "displayName": "离线数据源 · synthetic-account",
       "schemaProfile": "wechat-v4-offline",
@@ -169,8 +169,8 @@
       "sourceId": "source-f1b5f8a88d80d63ca9cef037129f807df1c0bb1445428a35ad4a482e3c0d0fd3",
       "sentAtUnixMs": "1700000004000",
       "direction": 0,
-      "kind": "share",
-      "text": "",
+      "kind": "unsupported",
+      "text": "[未支持的二进制消息内容]",
       "refs": [],
       "senderId": "wxid_self",
       "platformMessageId": "9007199254741001",
@@ -204,7 +204,7 @@
     }
   ],
   "importCancellation": {
-    "elapsedMs": 1006,
+    "elapsedMs": 1012,
     "error": "Error invoking remote method 'alpha:accounts:import-database-key': Error: IMPORT_CANCELED",
     "childExited": true,
     "workDirectoryRemoved": true

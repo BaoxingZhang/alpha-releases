@@ -1,27 +1,27 @@
 Error occurred in handler for 'alpha:accounts:import-database-key': Error: KEY_AUTHENTICATION_FAILED
-    at EngineClient.importDatabaseKey (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63575:33)
+    at EngineClient.importDatabaseKey (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63607:33)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74342:14
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72000:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74376:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
 Error occurred in handler for 'alpha:media:image-status': Error: UNIMPLEMENTED
-    at EngineClient.getImageMediaStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63130:28)
+    at EngineClient.getImageMediaStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63162:28)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72000:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
 Error occurred in handler for 'alpha:accounts:import-database-key': Error: IMPORT_CANCELED
-    at EngineClient.importDatabaseKey (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63575:33)
+    at EngineClient.importDatabaseKey (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63607:33)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74342:14
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72000:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74376:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72034:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
-Debugger ending on ws://127.0.0.1:52084/dad0cd6b-fef8-45f7-aa97-d43e51b30dba
+Debugger ending on ws://127.0.0.1:57479/1541f7d1-3366-4068-8263-bb17c977820f
 For help, see: https://nodejs.org/learn/getting-started/debugging
-Debugger ending on ws://127.0.0.1:52099/e494557b-5dd3-499f-858c-1a90aeb5d8be
+Debugger ending on ws://127.0.0.1:57486/174a9f69-196e-4556-acf1-24de18cb09e6
 For help, see: https://nodejs.org/learn/getting-started/debugging
 Error occurred in handler for 'alpha:conversations:page': Error: ENGINE_STOPPED
-    at EngineClient.stop (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64669:24)
-    at EventEmitter.<anonymous> (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:76085:12)
+    at EngineClient.stop (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64703:24)
+    at EventEmitter.<anonymous> (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:76119:12)
     at EventEmitter.emit (node:events:509:28)
     at eval (eval at evaluate (:370:30), <anonymous>:1:18)
     at UtilityScript.evaluate (<anonymous>:372:16)

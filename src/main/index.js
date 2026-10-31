@@ -5315,7 +5315,7 @@ function safeCount$1(value) {
   if (value < 0n || value > MAX_SAFE) throw new Error("CHAT_EXPORT_RESPONSE_INVALID");
   return Number(value);
 }
-function chatExportStatsFromWire(response, request2) {
+function chatExportStatsFromWire(response, request2, independent = false) {
   if (!response) throw new Error("CHAT_EXPORT_RESPONSE_INVALID");
   const requested = new Set(request2.conversationIds);
   const answered = /* @__PURE__ */ new Set();
@@ -5335,7 +5335,7 @@ function chatExportStatsFromWire(response, request2) {
       sum += count2;
     }
     const first = item.firstMessageUnixMs, last = item.lastMessageUnixMs;
-    if (sum !== total || first < 0n || last < first || first === 0n !== (last === 0n)) throw new Error("CHAT_EXPORT_RESPONSE_INVALID");
+    if (sum !== total || first < 0n || last < first || (independent ? total === 0 && (first !== 0n || last !== 0n) : first === 0n !== (last === 0n))) throw new Error("CHAT_EXPORT_RESPONSE_INVALID");
     return { conversationId: item.conversationId, total, counts: counts2, firstMessageUnixMs: first.toString(), lastMessageUnixMs: last.toString() };
   });
   for (const id2 of response.failedConversationIds) answer(id2);
@@ -12944,12 +12944,17 @@ function searchPageRequest(accountId2, query, options2 = {}) {
   const base2 = conversationPageRequest(accountId2, { pageSize: input.pageSize === void 0 ? 50 : input.pageSize, cursor: input.cursor });
   return { ...base2, query: query.trim(), conversationId: conversationId.trim(), ascending, groupByConversation, senderId: senderId.trim(), fromUnixMs, toUnixMs };
 }
-function searchPageResponse(value, request2) {
+function searchPageResponse(value, request2, independent = false) {
   if (!value) throw new Error("SEARCH_PAGE_RESPONSE_MISSING");
   if (!(value.nextCursor instanceof Uint8Array) || value.nextCursor.length > 1024 || value.items.length > request2.page.pageSize || value.items.some((item) => !item.id || !item.conversationId || request2.groupByConversation && (typeof item.matchCount !== "bigint" || item.matchCount < 1n || item.matchCount > BigInt(Number.MAX_SAFE_INTEGER)) || item.accountId !== request2.accountId || request2.conversationId && item.conversationId !== request2.conversationId)) throw new Error("SEARCH_PAGE_RESPONSE_INVALID");
   const nextCursor = Buffer.from(value.nextCursor).toString("base64");
   if (nextCursor && nextCursor === Buffer.from(request2.page.cursor).toString("base64")) throw new Error("SEARCH_PAGE_CURSOR_STALLED");
-  return { nextCursor, items: value.items.map((item) => ({
+  let coverage;
+  if (independent) {
+    if (typeof value.incomplete !== "boolean" || typeof value.unreadableMessages !== "bigint" || value.unreadableMessages < 0n || value.unreadableMessages > 18446744073709551615n || !Number.isInteger(value.unmappedTables) || value.unmappedTables < 0 || value.unmappedTables > 4294967295 || value.incomplete !== (value.unreadableMessages > 0n || value.unmappedTables > 0)) throw new Error("SEARCH_COVERAGE_INVALID");
+    coverage = { complete: !value.incomplete, unreadableMessages: value.unreadableMessages.toString(), unmappedTables: value.unmappedTables };
+  }
+  return { nextCursor, ...coverage ? { coverage } : {}, items: value.items.map((item) => ({
     id: item.id,
     accountId: item.accountId,
     conversationId: item.conversationId,
@@ -38477,7 +38482,8 @@ const SearchResult = {
   }
 };
 function createBaseSearchMessagesResponse() {
-  return { items: [], nextCursor: new Uint8Array(0) };
+  // Fields 100-102 are maintained extensions for independent search coverage.
+  return { items: [], nextCursor: new Uint8Array(0), incomplete: false, unreadableMessages: 0n, unmappedTables: 0 };
 }
 const SearchMessagesResponse = {
   encode(message, writer = new wire.BinaryWriter()) {
@@ -38487,6 +38493,9 @@ const SearchMessagesResponse = {
     if (message.nextCursor.length !== 0) {
       writer.uint32(18).bytes(message.nextCursor);
     }
+    if (message.incomplete === true) writer.uint32(800).bool(true);
+    if (message.unreadableMessages !== void 0 && message.unreadableMessages !== 0n) writer.uint32(808).uint64(message.unreadableMessages);
+    if (message.unmappedTables) writer.uint32(816).uint32(message.unmappedTables);
     return writer;
   },
   decode(input, length) {
@@ -38516,6 +38525,21 @@ const SearchMessagesResponse = {
             message.nextCursor = reader2.bytes();
             continue;
           }
+          case 100: {
+            if (tag !== 800) break;
+            message.incomplete = reader2.bool();
+            continue;
+          }
+          case 101: {
+            if (tag !== 808) break;
+            message.unreadableMessages = reader2.uint64();
+            continue;
+          }
+          case 102: {
+            if (tag !== 816) break;
+            message.unmappedTables = reader2.uint32();
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -38530,7 +38554,10 @@ const SearchMessagesResponse = {
   fromJSON(object2) {
     return {
       items: globalThis.Array.isArray(object2?.items) ? object2.items.map((e) => SearchResult.fromJSON(e)) : [],
-      nextCursor: isSet$1(object2.nextCursor) ? bytesFromBase64(object2.nextCursor) : isSet$1(object2.next_cursor) ? bytesFromBase64(object2.next_cursor) : new Uint8Array(0)
+      nextCursor: isSet$1(object2.nextCursor) ? bytesFromBase64(object2.nextCursor) : isSet$1(object2.next_cursor) ? bytesFromBase64(object2.next_cursor) : new Uint8Array(0),
+      incomplete: object2.incomplete === true,
+      unreadableMessages: object2.unreadableMessages == null ? 0n : BigInt(object2.unreadableMessages),
+      unmappedTables: object2.unmappedTables == null ? 0 : Number(object2.unmappedTables)
     };
   },
   toJSON(message) {
@@ -38541,6 +38568,9 @@ const SearchMessagesResponse = {
     if (message.nextCursor.length !== 0) {
       obj2.nextCursor = base64FromBytes(message.nextCursor);
     }
+    if (message.incomplete) obj2.incomplete = true;
+    if (message.unreadableMessages !== 0n) obj2.unreadableMessages = message.unreadableMessages.toString();
+    if (message.unmappedTables) obj2.unmappedTables = message.unmappedTables;
     return obj2;
   },
   create(base2) {
@@ -38550,6 +38580,9 @@ const SearchMessagesResponse = {
     const message = createBaseSearchMessagesResponse();
     message.items = object2.items?.map((e) => SearchResult.fromPartial(e)) || [];
     message.nextCursor = object2.nextCursor ?? new Uint8Array(0);
+    message.incomplete = object2.incomplete ?? false;
+    message.unreadableMessages = object2.unreadableMessages == null ? 0n : BigInt(object2.unreadableMessages);
+    message.unmappedTables = object2.unmappedTables ?? 0;
     return message;
   }
 };
@@ -63685,7 +63718,9 @@ class EngineClient {
     return messagePageResponse(response.listMessages, request2.conversationId, request2.page.cursor, request2.page.pageSize, request2.afterUnixMs, request2.beforeUnixMs);
   }
   async searchMessages(accountId2, query, conversationId = "", pageSize = 50) {
-    return (await this.searchMessagePage(accountId2, query, { conversationId, pageSize })).items;
+    const page2 = await this.searchMessagePage(accountId2, query, { conversationId, pageSize });
+    if (page2.coverage?.complete === false) throw new Error("SEARCH_RESULTS_INCOMPLETE");
+    return page2.items;
   }
   async resolveMessageMedia(accountId2, mediaResolveToken, options2 = {}) {
     const request2 = messageMediaRequest(accountId2, mediaResolveToken, options2);
@@ -63820,7 +63855,7 @@ class EngineClient {
       throw searchRequestFailure(error);
     });
     if (response.error) throw new Error(response.error.code);
-    return searchPageResponse(response.searchMessages, request2);
+    return searchPageResponse(response.searchMessages, request2, !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent");
   }
   async mutateMessage(request2, tracking) {
     const accountId2 = request2.accountId.trim();
@@ -63981,7 +64016,7 @@ class EngineClient {
     await this.start();
     const response = await this.call({ requestId: this.nextRequestId++, getChatExportStats: request2 }, CHAT_EXPORT_STATS_TIMEOUT_MS);
     if (response.error) throw new Error(response.error.code);
-    return chatExportStatsFromWire(response.getChatExportStats, request2);
+    return chatExportStatsFromWire(response.getChatExportStats, request2, !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent");
   }
   /** null while the Engine runs no v2 export jobs. */
   async chatExportCapabilities() {

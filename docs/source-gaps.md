@@ -1,4 +1,4 @@
-> 后续进展：新增独立后端已实现离线微信 v4 数据副本的核心读取、密码应用锁及已有密钥的加密快照导入。下文原包缺口仍成立；新的实现范围见 [independent-backend.md](independent-backend.md) 和 [encrypted-import.md](encrypted-import.md)。
+> 后续进展：新增独立后端已实现离线微信 v4 数据副本的核心读取、密码应用锁、已有密钥的加密快照导入及搜索/日期导航。下文原包缺口仍成立；新的实现范围见 [independent-backend.md](independent-backend.md)、[encrypted-import.md](encrypted-import.md) 和 [search-navigation.md](search-navigation.md)。
 
 # Alpha 0.3.5 源码恢复范围与缺口
 

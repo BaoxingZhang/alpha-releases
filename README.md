@@ -2,7 +2,7 @@
 
 这是从 `Alpha-0.3.5-arm64.dmg` 整理出的可编辑工程：重建 Electron 主进程、预加载、React 界面和 AI worker 的 JavaScript，复用原包 macOS arm64 原生二进制。
 
-**已能本地编译，并使用自有后端在原界面中读取离线微信 v4 SQLite 数据副本。** 新增已有密钥的手动导入与加密副本解密，生成明文快照后接入同一读取流程。合成数据库覆盖首次设置、联系人/会话/消息读取、跨分库分页和应用锁。完整 Alpha 功能仍未恢复；真实微信数据、自动取钥、媒体、AI、导出等尚待接手。详见 [独立后端与实测](docs/independent-backend.md) 和 [加密导入说明](docs/encrypted-import.md)。
+**已能本地编译，并使用自有后端在原界面中读取、搜索和定位离线微信 v4 聊天数据。** 已接通手动密钥导入与加密快照、联系人/会话/消息读取、跨分库分页、全账号和会话搜索、日期导航及应用锁。完整 Alpha 功能仍未恢复；真实微信数据、自动取钥、媒体、AI、导出等尚待接手。详见 [独立后端与实测](docs/independent-backend.md)、[加密导入](docs/encrypted-import.md) 和 [搜索导航](docs/search-navigation.md)。
 
 原包模式仍保留，启动仍返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，记录见 [local-run.json](docs/local-run.json)。这是恢复后的 JavaScript 工程与新增维护模块，并非作者原始 TypeScript/Rust/C++ 源码仓库。
 
@@ -20,6 +20,8 @@ npm run demo
 打开后勾选本地数据说明，点击“打开数据副本”，跳过图片密钥步骤并完成向导，即可查看合成会话。演示不读取个人微信数据。
 
 要演示加密副本的手动密钥流程，运行 `npm run demo:encrypted`，将终端显示的合成测试密钥输入首次设置页。解密结果保存在项目内；不持久保存密钥，应用锁不加密磁盘上的明文快照。每次演示使用新配置目录。
+
+`npm run demo:search` 生成包含压缩文本和历史会话的搜索演示。完成向导后搜索“维护”，可以验证分组、发送人筛选、命中定位与日期日历。
 
 修改 `src/` 或 `packages/` 后可运行 `npm run build`；改 Go 桥接或解密模块后分别运行 `npm run build:bridge`、`npm run build:snapshot-import`。以下命令启动保留的原包模式：
 
@@ -77,10 +79,11 @@ npm run test:protocol   # 编解码、分帧边界与来源测试
 npm run verify:vendor   # 核对43个原包运行时文件的SHA256和权限
 npm run test:smoke      # 隔离检查、实际Electron界面、IPC与后端状态诊断
 npm run test:encrypted  # 原UI手动密钥、错误密钥拒绝、消息读取与重启复用
+npm run test:search     # 原UI搜索、发送人筛选、定位、月历和部分结果提示
 npm run index          # 根据当前src重新生成导航索引
 ```
 
-`test:smoke` 的成功退出表示隔离和界面冒烟通过，**不表示后端 ready**；后端结果单独写入 `docs/local-run.json` 的 `checks.backendReady`。本轮未连接微信、未触发密钥获取、未发消息、未调用模型，也未验证聊天检索、导出等真实数据流程。
+`test:smoke` 的成功退出表示隔离和界面冒烟通过，**不表示后端 ready**；后端结果单独写入 `docs/local-run.json` 的 `checks.backendReady`。新增独立模式已用合成数据验证读取、解密及检索；尚未验证真实微信数据或导出流程，未获取实际密钥、发消息或调用模型。
 
 主要缺口包括原 TS/TSX 与类型、完整开发工作区、原依赖锁、Cargo/Rust 和 C++/CMake 工程、原生协议生成工程、服务端授权实现，以及未随包提供的高级组件和语音模型。原生程序依赖自身的完整性、身份、许可及有效期检查，已有二进制不能保证恢复工程完整可用。
 
@@ -90,7 +93,7 @@ npm run index          # 根据当前src重新生成导航索引
 
 已从实际main的AST依赖闭包中提取独立 [协议模块](packages/alpha-protocol/README.md)：900个顶层绑定，128类请求、129类响应，12项测试通过。它仅加载protobuf wire，不启动Electron，也不提供或伪造后端业务结果。原桌面 main 的内嵌编解码仍保留，独立引擎已实际使用此协议模块，通过原有 framing 与桌面通信。
 
-已固定引入 [imldy/chatlog](https://github.com/imldy/chatlog/tree/a7162bca9454fa43b5950a2414670983fe180e56) 源码子模块，提交 `a7162bca9454fa43b5950a2414670983fe180e56`。它用于理解一部分微信 v4 数据结构。本轮新桥接为自有 Go module，直接使用固定的 go-sqlite3 依赖，不导入 Chatlog internal 包或运行其取钥逻辑。范围见 [候选核查](docs/native-backend-candidates.md)；新增源码保留原许可证及依赖许可。
+已固定引入 [imldy/chatlog](https://github.com/imldy/chatlog/tree/a7162bca9454fa43b5950a2414670983fe180e56) 源码子模块，提交 `a7162bca9454fa43b5950a2414670983fe180e56`。它用于理解一部分微信 v4 数据结构。本轮新桥接为自有 Go module，使用固定的 go-sqlite3 和 klauspost/compress 依赖，不导入 Chatlog internal 包或运行其取钥逻辑。范围见 [候选核查](docs/native-backend-candidates.md)；新增源码保留原许可证及依赖许可。
 
 以后克隆本项目时需同时取得子模块：
 

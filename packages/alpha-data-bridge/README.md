@@ -1,14 +1,14 @@
 # Alpha offline data bridge
 
-这是自有 Go 读取模块，不依赖 Alpha 原厂 engine/guard，也不导入 Chatlog 的 internal 包。当前支持用户显式指定的、已经解密的离线微信 v4 SQLite 副本：账号信息、联系人、会话、分页消息。这是完整 Alpha 后端的第一批数据依赖，不代表完整功能已经恢复。
+这是自有 Go 读取模块，不依赖 Alpha 原厂 engine/guard，也不导入 Chatlog 的 internal 包。当前支持用户显式指定的、已经解密的离线微信 v4 SQLite 副本：账号信息、联系人、会话、分页消息、全文搜索、消息定位、日期计数与消息类型统计。这是完整 Alpha 后端的第一批数据依赖，不代表完整功能已经恢复。
 
-源码的 schema 参考固定 [Chatlog v4 数据源](https://github.com/imldy/chatlog/blob/a7162bca9454fa43b5950a2414670983fe180e56/internal/wechatdb/datasource/v4/datasource.go)，查询、验证、协议和分页代码为本项目实现。仅有一个固定 Go module 依赖：`github.com/mattn/go-sqlite3 v1.14.32`；其源码和许可证保留在项目内依赖缓存及 [已有依赖许可索引](../../docs/chatlog-dependency-licenses.json)。没有复制上游实现或改动 `vendor/chatlog`。
+源码的 schema 参考固定 [Chatlog v4 数据源](https://github.com/imldy/chatlog/blob/a7162bca9454fa43b5950a2414670983fe180e56/internal/wechatdb/datasource/v4/datasource.go)，查询、验证、协议和分页代码为本项目实现。固定 Go module 依赖为 `github.com/mattn/go-sqlite3 v1.14.32` 与 `github.com/klauspost/compress v1.18.0`（有界 zstd 解码）；使用已校验的 go.sum，不更新到 latest。源码和许可证保留在项目内依赖缓存及 [已有依赖许可索引](../../docs/chatlog-dependency-licenses.json)，另保留 [zstd 依赖许可证](licenses/klauspost-compress-LICENSE)。没有复制上游实现或改动 `vendor/chatlog`。
 
 在工程根目录构建与测试：
 
 ```sh
 node scripts/build-data-bridge.mjs
-node --test tests/data-bridge.test.mjs
+node --test tests/data-bridge.test.mjs tests/data-bridge-search.test.mjs
 ```
 
 构建脚本复用已经校验的 Go 1.24.13，在 `build/data-bridge-source/` 创建构建副本，使用 `-mod=readonly`、CGo 和项目内缓存。它先运行 Go 测试，再生成 [原生程序](../../build/candidates/alpha-data-bridge) 和 [实际构建报告](../../build/candidates/data-bridge-build.json)，并保存包内 [验证记录副本](build-validation.json)。源码目录的 go.mod/go.sum 不会由构建改写。Node 集成测试使用生成的真实 Go 程序和人工 SQLite 数据，没有访问微信用户目录。
@@ -38,9 +38,13 @@ build/candidates/alpha-data-bridge --data-dir /absolute/offline-copy --account-i
 | `account.info`（兼容别名 `accounts.info`） | 无 | 数据源信息；只有打开并验证实际数据库后才能返回 |
 | `contacts.list` | `limit`、`cursor`、可选 `usernameExact` | 联系人页，精确 username 查找，不支持模糊搜索 |
 | `sessions.list` | `limit`、`cursor` | 会话页，按 sort_timestamp 降序、username/rowid 升序 |
-| `messages.list` | `conversationId`、`limit`、`cursor`、`ascending`、可选 `afterTime`/`beforeTime` | 消息页；时间边界是十进制字符串形式的 Unix 秒，包含边界 |
+| `messages.list` | `conversationId`、`limit`、`cursor`、`ascending`、可选 `afterTime`/`beforeTime` | 消息页；时间边界是十进制字符串形式的 Unix 秒，包含边界；默认升序 |
+| `messages.search` | 非空 `query`、可选 `conversationId`、`senderId`、`afterTime`/`beforeTime`、`ascending`、`groupByConversation`、`limit`、`cursor` | 同消息 DTO、matchCount 字符串及 coverage；默认降序，时间双端包含 |
+| `messages.locate` | `conversationId`、`serverId`（正 uint64 十进制字符串） | message 或 null，及 beforeCursor/afterCursor |
+| `messages.dayCounts` | `conversationId`、`fromUnixMs`、`toUnixMs`（十进制字符串）、`utcOffsetMinutes`（整数） | `{days:[{localDay,count}]}`，数字为字符串；毫秒范围半开、最多 62 天 |
+| `messages.stats` | 可选 `conversationId`，空表示整个账号 | `{conversationId,messageCount,firstTime,lastTime,counts:[{localType,count}]}`；first/last 为秒字符串，空集合为空字符串 |
 
-Cursor 是 bridge 产生的不透明 base64url 字符串，绑定本次数据快照和全部筛选/排序参数；调用者原样传回，不能拿另一个查询的 cursor 继续读取。limit 可以调整。消息跨所有分库按 `(sort_seq, database, local_id)` 全局排序，再截取一页；反向分页反转完整排序，不依赖分库的 Timestamp 范围声明。查询不存在的 `Msg_<MD5(conversationId)>` 表会返回真实空页；缺失整个消息库则返回明确不可用。
+Cursor 是 bridge 产生的不透明 base64url 字符串，绑定本次数据快照和全部筛选/排序参数；调用者原样传回，不能拿另一个查询的 cursor 继续读取。limit 可以调整。消息跨所有分库按 `(create_time, database, table, local_id)` 全局排序，再截取一页；反向分页反转完整排序，不依赖分库的 Timestamp 范围声明。`sort_seq` 作为原始信息保留，不参与新排序。这样原界面按时间跳转、搜索上下文读取与分页保持一致；本轮并未证明原厂 native 的全部排序细节。cursor-v2 绑定新排序语义，旧 cursor 明确拒绝。查询不存在的 `Msg_<MD5(conversationId)>` 表会返回真实空页；缺失整个消息库则返回明确不可用。
 
 ## 数据与身份
 
@@ -52,7 +56,7 @@ Cursor 是 bridge 产生的不透明 base64url 字符串，绑定本次数据快
 
 `source.database` 是相对输入根目录的路径。外层 Alpha 协议如果只允许 int32 localId，必须把完整字符串和 source locator 保存在自己的 opaque source token/映射里，不能截断、取模或转成失真的 Number。`status` 保留原值，不代表已验证的消息方向；方向需要明确自己的 username。
 
-`contentBase64` 和 `packedInfoBase64` 保留原始字节。当前没有 zstd/卡片/protobuf 内容解码；有效 UTF-8 才同时填 content，其余标为 `binary`。这不等同于所有消息类型、媒体、引用和压缩内容已经可用，调用者需显示实际不支持状态。
+`contentBase64` 和 `packedInfoBase64` 在各自不超过 4 MiB 时保留原始字节。SQL 查询在物化前拦截更大的字段；超大 content 返回 `contentDecodeStatus=too-large`、空 content/raw，超大 packed metadata 返回空字段及 `packedInfoOmitted=true`。UTF-8 和正常 zstd 帧由列表、搜索和定位共享同一解码器，成功时 `contentEncoding=utf8`，zstd 额外标记 `contentCompression=zstd`；压缩输入、解压结果、窗口均最多 4 MiB。解码失败保留 `binary` 与具体 `contentDecodeStatus`，调用方不能再次采用更宽松解码然后声称搜索完整。尚未实现 XML/卡片/protobuf 业务内容提取、媒体或引用结构；当前搜索的是实际显示的原始可读文本，未知消息类型不会被假定为文本类型。
 
 ## 读取边界
 
@@ -64,4 +68,16 @@ SQLite URI 固定 `mode=ro&immutable=1&_query_only=1`。没有原始 SQL、写�
 
 合成数据入口为 [createFixture](../../tests/data-bridge-fixture.mjs)，也可使用 Python CLI `tests/data-bridge-fixtures.py --output ABS_NEW_EMPTY_DIR`。它创建 4 个数据库，3 个联系人、2 个会话、6 条跨分库消息，包括同 sort_seq、最大有符号 int64、超过 2^53 的 local_id 和二进制内容。测试也覆盖查询参数错误、cursor 绑定、symlink/WAL/坏 schema、运行中修改和新增分库的拒绝。
 
-后续合法手动密钥接入应放在单独的导入/解密服务中：用户本地输入凭据，源文件始终只读，解密到独立受控目录，完成页校验及一致性检查后原子发布给本 bridge；错误密钥不得留下看似有效的数据库。此版本没有实现该服务，没有自动取密钥，也没有更改系统安全设置。
+手动密钥离线解密已在单独的 [alpha-snapshot-import](../alpha-snapshot-import/README.md) 模块实现：源文件只读，页认证与完整性检查后原子发布给本 bridge。桥接本身不负责解密/取钥，也不修改系统安全设置。
+
+## 搜索、定位与日期统计
+
+搜索是 Unicode 小写后字面包含匹配，不解释正则、SQL 通配符或布尔表达式；query 最多 512 字节。完整扫描时间/sender/会话过滤范围后取稳定排序前一页。groupByConversation 按真实会话聚合，代表记录是所选升降序的第一条，`matchCount` 为符合过滤与字面匹配的消息行数，不是关键词出现次数。游标绑定 query、sender、时间、会话、排序、分组和快照；每页重新扫描静止副本以得出一致分组计数，当前没有持久 FTS 索引。
+
+全账号搜索合并所有分库 `Name2Id`、contact 与 SessionTable 用户名（SQL 层只读非空且最多 1024 字节的值，身份映射累计估算最多 64 MiB），通过真实 username 的 MD5 匹配 Msg 表；已从会话表移除但仍能从 Name2Id 映射的会话仍能搜索。无法反推真实 username 的表不会伪造会话 ID。返回 `coverage={complete,unreadableMessages,unmappedTables}`：unreadableMessages 是时间/sender/会话范围内不可读文本行数的十进制字符串；unmappedTables 是全局搜索中存在符合时间/sender 范围记录、但无法确认会话归属的表数。complete=false 时可读结果与组计数仅代表已覆盖范围，界面必须明确提示部分结果。搜索不把不支持内容的占位说明当成原始消息匹配。超过扫描行数 1,000,000、累计扫描估算 512 MiB、候选/组内存估算 64 MiB 或 15 秒超时会整体失败，不发布已截断页。单条响应 JSON 超过 12 MiB 时返回 `RESPONSE_TOO_LARGE`，不会发送可能让 Node 16 MiB 行缓冲断连的部分结果；调用方应减小 page limit 或先筛选时间/会话。关联发送者名称在 SQL 层限制为 1024 字节，超长值按空 sender 处理并不用于身份映射。这些是资源阈值，不是大库性能验收。
+
+定位接受 uint64 字符串并按 SQLite 有符号位表示匹配 server_id，保留原始 local_id 和来源路径。当同一会话有多个相同 server_id 时返回 `MESSAGE_LOCATE_AMBIGUOUS`，不随意选中。缺失时返回 `{message:null,beforeCursor:"",afterCursor:""}`；存在时两个 cursor 均非空，即使目标在首尾。beforeCursor 只能供无时间过滤、ascending=false 的 messages.list 使用；afterCursor 则 ascending=true，均排除锚点本身。
+
+日期统计严格采用 `[fromUnixMs,toUnixMs)`，对秒数据库做精确 ceil 边界转换，按 `floor((create_time + utcOffsetMinutes*60)/86400)` 聚合；UTC offset 范围为 -720 至 +840，负 localDay 也向负无穷取整。只返回 count>0 的日，按 localDay 升序。stats 直接计原始 local_type，并提供真实最早/最晚时间；上层负责将已知类型归类，未知 subtype 不能伪装成已解析类型。
+
+新增合成数据入口为 [createSearchFixture](../../tests/search-fixture.mjs)，生成 10 条、3 个会话、9 条“维护”命中，含合法 zstd、无 session 的 Name2Id 会话、跨库重复 server_id、64 位 ID、时间与 sort_seq 故意不一致的消息。新增测试覆盖全局/会话/分组/筛选/分页、定位两侧游标、uint64、日期半开边界/时区、partial coverage 与超大字段；没有读取真实微信数据。

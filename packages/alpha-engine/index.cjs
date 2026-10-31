@@ -10,7 +10,7 @@ const { BridgeClient } = require('./bridge-client.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getDataRevision: 105 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, searchMessages: 17, getChatExportStats: 120, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getDataRevision: 105 });
 const EXACT_CONTACT = '__alpha_contact_exact:';
 const error = code => new Error(code);
 const sha = text => crypto.createHash('sha256').update(text).digest('hex');
@@ -49,6 +49,31 @@ function readCursor(value) {
 function checkedPage(result, limit) {
   if (!result || !Array.isArray(result.items) || result.items.length > limit || typeof result.nextCursor !== 'string' || result.nextCursor.length > 1024 || typeof result.hasMore !== 'boolean' || result.hasMore !== Boolean(result.nextCursor)) throw error('BRIDGE_PAGE_INVALID');
   return result;
+}
+const INT64_MAX = (1n << 63n) - 1n;
+const MAX_SAFE_COUNT = BigInt(Number.MAX_SAFE_INTEGER);
+function requestTime(value, code, optional = false) {
+  if (optional && value === undefined) return undefined;
+  if (typeof value !== 'bigint' || value < 0n || value > INT64_MAX) throw error(code);
+  return value;
+}
+function requestName(value, code, optional = false) {
+  if (typeof value !== 'string' || value !== value.trim() || (!optional && !value) || value.length > 1024 || /[\u0000-\u001f\u007f]/.test(value)) throw error(code);
+  return value;
+}
+function safeCount(value) {
+  const count = decimal(value);
+  if (count > MAX_SAFE_COUNT) throw error('BRIDGE_COUNT_OUT_OF_RANGE');
+  return count;
+}
+function localDay(unixMs, offsetMinutes) {
+  const shifted = unixMs + BigInt(offsetMinutes) * 60000n;
+  return shifted >= 0n ? shifted / 86400000n : -((-shifted + 86399999n) / 86400000n);
+}
+function statsCategory(raw) {
+  const kind = Number(decimal(raw) & 0xffffffffn);
+  // A type 49 without a separately verified subtype is counted as other.
+  return ({ 1: 'text', 3: 'image', 34: 'voice', 42: 'card', 43: 'video', 47: 'emoji', 48: 'location', 50: 'call', 10000: 'system', 10002: 'system' })[kind] || 'other';
 }
 function safeStateDirectory(directory) {
   if (!path.isAbsolute(directory)) throw error('ENGINE_STATE_PATH_INVALID');
@@ -129,6 +154,25 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   }
   async function callData(op, params) { await source(); const current = bridge; const result = await current.call(op, params); guard(); return result; }
   async function requireAccount(id) { guard(); if (id !== accountId || !configuredSourcePath) throw error('ACCOUNT_NOT_FOUND'); return source(); }
+  function messageFromRow(row, conversationId) {
+    if (typeof row?.conversationId !== 'string' || !row.conversationId || (conversationId && row.conversationId !== conversationId)) throw error('BRIDGE_MESSAGE_SCOPE_INVALID');
+    const local = decimal(row.localId), server = decimal(row.serverId, true), sentAt = milliseconds(row.createTime);
+    const identity = { accountId, database: text(row.source?.database), table: text(row.source?.table), localId: row.localId };
+    let content = '', unsupportedContent = false;
+    if (row.contentDecodeStatus !== undefined && row.contentDecodeStatus !== 'decoded') {
+      unsupportedContent = true; content = '[未支持的二进制消息内容]';
+    } else if (row.contentEncoding === 'utf8') content = text(row.content, 4 * 1024 * 1024);
+    else if (row.contentEncoding === 'binary') {
+      const bytes = Buffer.from(text(row.contentBase64, 6 * 1024 * 1024), 'base64');
+      if (bytes.subarray(0, 4).equals(Buffer.from([0x28, 0xb5, 0x2f, 0xfd]))) {
+        try { content = new TextDecoder('utf-8', { fatal: true }).decode(zlib.zstdDecompressSync(bytes, { maxOutputLength: 4 * 1024 * 1024 })); } catch { unsupportedContent = true; }
+      } else unsupportedContent = true;
+      if (unsupportedContent) content = '[未支持的二进制消息内容]';
+    } else throw error('BRIDGE_MESSAGE_ENCODING_INVALID');
+    const rawType = decimal(row.localType), type = Number(rawType & 0xffffffffn);
+    const kind = unsupportedContent ? 'unsupported' : ({ 1: 'text', 3: 'image', 34: 'voice', 42: 'contact', 43: 'video', 47: 'sticker', 48: 'location', 49: 'share', 10000: 'system' })[type] || 'unknown';
+    return { id: `msg-${sha(JSON.stringify(identity))}`, localId: local <= 2147483647n ? Number(local) : 0, serverId: server, conversationId: row.conversationId, sourceId: `source-${sha(JSON.stringify([accountId, identity.database]))}`, sentAtUnixMs: sentAt, direction: selfUsername && row.sender ? row.sender === selfUsername ? 2 : 1 : 0, kind, text: content, senderId: text(row.sender), sourceType: rawType, platformMessageId: row.serverId, sourceToken: 'independent1_' + Buffer.from(JSON.stringify(identity)).toString('base64url'), refs: [] };
+  }
   function account(value) {
     const selected = selectedId === accountId && selectedPath === configuredSourcePath;
     if (!value) return { id: accountId, sourceProfile: 'alpha-independent-encrypted-v4', subjectId: selfUsername, displayName: `加密数据源 · ${accountId}`, dataSourcePath: encryptedDir, schemaProfile: 'wechat-v4-encrypted', state: 1, handleState: 3, handleGeneration: 0n, activeHandleGeneration: 0n, selected, capabilities: ['offline-encrypted'], detected: true, usable: false, enabled: false, verified: false, ready: false };
@@ -237,34 +281,107 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       for (const row of page.items) { const username = text(row.username); items.push({ id: username, accountId, kind: username.endsWith('@chatroom') ? 2 : 1, displayName: await contactName(username), preview: text(row.summary, 1024 * 1024), lastActivityUnixMs: milliseconds(row.lastTimestamp), sortTimestamp: milliseconds(row.sortTimestamp) }); }
       return { items, nextCursor: Buffer.from(page.nextCursor) };
     },
+    async searchMessages(request) {
+      const accountInfo = await requireAccount(request.accountId);
+      const query = typeof request.query === 'string' ? request.query.trim() : '';
+      if (!query || Buffer.byteLength(query, 'utf8') > 512 || query.includes('\0')) throw error('SEARCH_PAGE_QUERY_INVALID');
+      const conversationId = requestName(request.conversationId, 'SEARCH_PAGE_OPTIONS_INVALID', true);
+      const senderId = requestName(request.senderId, 'SEARCH_PAGE_OPTIONS_INVALID', true);
+      const from = requestTime(request.fromUnixMs, 'SEARCH_PAGE_OPTIONS_INVALID', true), to = requestTime(request.toUnixMs, 'SEARCH_PAGE_OPTIONS_INVALID', true);
+      if (from !== undefined && to !== undefined && from > to) throw error('SEARCH_PAGE_OPTIONS_INVALID');
+      const limit = pageSize(request.page), cursor = readCursor(request.page?.cursor);
+      const lower = from === undefined ? undefined : (from + 999n) / 1000n, upper = to === undefined ? undefined : to / 1000n;
+      if (!accountInfo.capabilities.includes('messages.search')) throw error('CAPABILITY_UNAVAILABLE');
+      if (lower !== undefined && upper !== undefined && lower > upper) {
+        if (cursor) throw error('INVALID_CURSOR');
+        return { items: [], nextCursor: Buffer.alloc(0), incomplete: false, unreadableMessages: 0n, unmappedTables: 0 };
+      }
+      const page = checkedPage(await callData('messages.search', { query, conversationId, senderId, limit, cursor, ascending: request.ascending, groupByConversation: request.groupByConversation,
+        ...(lower !== undefined ? { afterTime: String(lower) } : {}), ...(upper !== undefined ? { beforeTime: String(upper) } : {}) }), limit);
+      const coverage = page.coverage;
+      if (!coverage || typeof coverage.complete !== 'boolean' || !Number.isInteger(coverage.unmappedTables) || coverage.unmappedTables < 0 || coverage.unmappedTables > 0xffffffff) throw error('SEARCH_COVERAGE_INVALID');
+      const unreadableMessages = decimal(coverage.unreadableMessages);
+      if (coverage.complete !== (unreadableMessages === 0n && coverage.unmappedTables === 0)) throw error('SEARCH_COVERAGE_INVALID');
+      const seen = new Set();
+      const items = page.items.map(row => {
+        const message = messageFromRow(row, conversationId);
+        if (message.kind === 'unsupported' || from !== undefined && message.sentAtUnixMs < from || to !== undefined && message.sentAtUnixMs > to || senderId && message.senderId !== senderId) throw error('BRIDGE_SEARCH_SCOPE_INVALID');
+        const matchCount = request.groupByConversation ? safeCount(row.matchCount) : 1n;
+        if (matchCount < 1n || request.groupByConversation && seen.has(message.conversationId)) throw error('BRIDGE_SEARCH_GROUP_INVALID');
+        seen.add(message.conversationId);
+        return { id: message.id, accountId, conversationId: message.conversationId, sentAtUnixMs: message.sentAtUnixMs, senderId: message.senderId, text: message.text, sourceType: message.sourceType, exactIdentity: true, matchCount };
+      });
+      return { items, nextCursor: Buffer.from(page.nextCursor), incomplete: !coverage.complete, unreadableMessages, unmappedTables: coverage.unmappedTables };
+    },
+    async locateMessage(request) {
+      await requireAccount(request.accountId);
+      const conversationId = requestName(request.conversationId, 'MESSAGE_LOCATE_REQUEST_INVALID');
+      if (typeof request.serverId !== 'string' || !/^[1-9][0-9]{0,19}$/.test(request.serverId) || BigInt(request.serverId) > (1n << 64n) - 1n) throw error('MESSAGE_LOCATE_REQUEST_INVALID');
+      const result = await callData('messages.locate', { conversationId, serverId: request.serverId });
+      if (!result || typeof result.beforeCursor !== 'string' || typeof result.afterCursor !== 'string') throw error('BRIDGE_LOCATE_RESPONSE_INVALID');
+      const beforeCursor = Buffer.from(result.beforeCursor), afterCursor = Buffer.from(result.afterCursor);
+      if (result.message === null || result.message === undefined) {
+        if (beforeCursor.length || afterCursor.length) throw error('BRIDGE_LOCATE_RESPONSE_INVALID');
+        return { beforeCursor, afterCursor };
+      }
+      if (!readCursor(beforeCursor) || !readCursor(afterCursor)) throw error('BRIDGE_LOCATE_RESPONSE_INVALID');
+      const message = messageFromRow(result.message, conversationId);
+      if (BigInt.asUintN(64, message.serverId) !== BigInt(request.serverId)) throw error('BRIDGE_LOCATE_RESPONSE_INVALID');
+      return { message, beforeCursor, afterCursor };
+    },
+    async getConversationDayCounts(request) {
+      await requireAccount(request.accountId);
+      const conversationId = requestName(request.conversationId, 'DAY_COUNTS_REQUEST_INVALID');
+      const from = requestTime(request.fromUnixMs, 'DAY_COUNTS_REQUEST_INVALID'), to = requestTime(request.toUnixMs, 'DAY_COUNTS_REQUEST_INVALID');
+      const offset = request.utcOffsetMinutes;
+      if (to <= from || !Number.isInteger(offset) || offset < -720 || offset > 840) throw error('DAY_COUNTS_REQUEST_INVALID');
+      if (to - from > 62n * 86400000n) throw error('DAY_COUNTS_RANGE_TOO_LONG');
+      const result = await callData('messages.dayCounts', { conversationId, fromUnixMs: String(from), toUnixMs: String(to), utcOffsetMinutes: offset });
+      if (!result || !Array.isArray(result.days) || result.days.length > 63) throw error('BRIDGE_DAY_COUNTS_INVALID');
+      let previous = localDay(from, offset) - 1n; const last = localDay(to - 1n, offset);
+      const days = result.days.map(row => {
+        const day = decimal(row.localDay, true), count = safeCount(row.count);
+        if (day <= previous || day > last || count === 0n) throw error('BRIDGE_DAY_COUNTS_INVALID');
+        previous = day; return { localDay: day, count };
+      });
+      return { days };
+    },
+    async getChatExportStats(request) {
+      await requireAccount(request.accountId);
+      const requested = request.conversationIds;
+      if (!Array.isArray(requested) || !requested.length || requested.length > 100 || new Set(requested).size !== requested.length) throw error('CHAT_EXPORT_REQUEST_INVALID');
+      for (const id of requested) requestName(id, 'CHAT_EXPORT_REQUEST_INVALID');
+      const items = [];
+      for (const conversationId of requested) {
+        const result = await callData('messages.stats', { conversationId });
+        if (!result || !Array.isArray(result.counts)) throw error('BRIDGE_STATS_INVALID');
+        const total = safeCount(result.messageCount), categories = new Map(); let sum = 0n;
+        for (const row of result.counts) {
+          const category = statsCategory(row.localType), count = safeCount(row.count); sum += count;
+          categories.set(category, (categories.get(category) || 0n) + count);
+        }
+        const first = total === 0n && result.firstTime === '' ? 0n : milliseconds(result.firstTime);
+        const last = total === 0n && result.lastTime === '' ? 0n : milliseconds(result.lastTime);
+        if (sum !== total || last < first || (total === 0n && (first !== 0n || last !== 0n))) throw error('BRIDGE_STATS_INVALID');
+        items.push({ conversationId, total, firstMessageUnixMs: first, lastMessageUnixMs: last, counts: [...categories].map(([category, count]) => ({ category, count })) });
+      }
+      return { items, failedConversationIds: [] };
+    },
     async listMessages(request) {
       const value = await requireAccount(request.accountId); const limit = pageSize(request.page);
       if (!request.conversationId || request.conversationId.length > 1024) throw error('CONVERSATION_ID_INVALID');
       const after = request.afterUnixMs, before = request.beforeUnixMs;
-      if (after !== undefined && after < 0n || before !== undefined && (before < 0n || after !== undefined && before <= after)) throw error('MESSAGE_TIME_RANGE_INVALID');
-      const lower = after === undefined ? 0n : after / 1000n + 1n;
+      if (after !== undefined && after < -1n || before !== undefined && (before < 0n || after !== undefined && before <= after)) throw error('MESSAGE_TIME_RANGE_INVALID');
+      const lower = after === undefined || after === -1n ? 0n : after / 1000n + 1n;
       const upper = before === undefined ? undefined : before === 0n ? -1n : (before - 1n) / 1000n;
       const applied = { ...(after !== undefined ? { appliedAfterUnixMs: after } : {}), ...(before !== undefined ? { appliedBeforeUnixMs: before } : {}) };
       // Millisecond-exclusive filters can describe no whole-second timestamps.
       if (upper !== undefined && lower > upper) return { items: [], nextCursor: Buffer.alloc(0), ...applied };
       const page = checkedPage(await callData('messages.list', { limit, cursor: readCursor(request.page?.cursor), conversationId: request.conversationId, ascending: request.ascending === true, ...(after !== undefined ? { afterTime: String(lower) } : {}), ...(upper !== undefined ? { beforeTime: String(upper) } : {}) }), limit);
       const items = page.items.map(row => {
-        if (row.conversationId !== request.conversationId) throw error('BRIDGE_MESSAGE_SCOPE_INVALID');
-        const local = decimal(row.localId), server = decimal(row.serverId, true), sentAt = milliseconds(row.createTime);
-        if (after !== undefined && sentAt <= after || before !== undefined && sentAt >= before) throw error('BRIDGE_MESSAGE_RANGE_INVALID');
-        const identity = { accountId, database: text(row.source?.database), table: text(row.source?.table), localId: row.localId };
-        let content = '', unsupportedContent = false;
-        if (row.contentEncoding === 'utf8') content = text(row.content, 4 * 1024 * 1024);
-        else if (row.contentEncoding === 'binary') {
-          const bytes = Buffer.from(text(row.contentBase64, 6 * 1024 * 1024), 'base64');
-          if (bytes.subarray(0, 4).equals(Buffer.from([0x28, 0xb5, 0x2f, 0xfd]))) {
-            try { content = new TextDecoder('utf-8', { fatal: true }).decode(zlib.zstdDecompressSync(bytes, { maxOutputLength: 4 * 1024 * 1024 })); } catch { unsupportedContent = true; }
-          } else unsupportedContent = true;
-          if (unsupportedContent) content = '[未支持的二进制消息内容]';
-        } else throw error('BRIDGE_MESSAGE_ENCODING_INVALID');
-        const rawType = decimal(row.localType), type = Number(rawType & 0xffffffffn);
-        const kind = unsupportedContent ? 'unsupported' : ({ 1: 'text', 3: 'image', 34: 'voice', 42: 'contact', 43: 'video', 47: 'sticker', 48: 'location', 49: 'share', 10000: 'system' })[type] || 'unknown';
-        return { id: `msg-${sha(JSON.stringify(identity))}`, localId: local <= 2147483647n ? Number(local) : 0, serverId: server, conversationId: row.conversationId, sourceId: `source-${sha(JSON.stringify([accountId, identity.database]))}`, sentAtUnixMs: sentAt, direction: selfUsername && row.sender ? row.sender === selfUsername ? 2 : 1 : 0, kind, text: content, senderId: text(row.sender), sourceType: rawType, platformMessageId: row.serverId, sourceToken: 'independent1_' + Buffer.from(JSON.stringify(identity)).toString('base64url'), refs: [] };
+        const message = messageFromRow(row, request.conversationId);
+        if (after !== undefined && message.sentAtUnixMs <= after || before !== undefined && message.sentAtUnixMs >= before) throw error('BRIDGE_MESSAGE_RANGE_INVALID');
+        return message;
       });
       return { items, nextCursor: Buffer.from(page.nextCursor), ...applied };
     }

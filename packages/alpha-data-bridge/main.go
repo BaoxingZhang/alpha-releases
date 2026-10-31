@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/md5"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
@@ -25,7 +24,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -50,13 +48,20 @@ type response struct {
 	Error  *bridgeError `json:"error,omitempty"`
 }
 type params struct {
-	Limit          int    `json:"limit"`
-	Cursor         string `json:"cursor"`
-	ConversationID string `json:"conversationId"`
-	Ascending      *bool  `json:"ascending"`
-	AfterTime      string `json:"afterTime"`
-	BeforeTime     string `json:"beforeTime"`
-	UsernameExact  string `json:"usernameExact"`
+	Limit               int    `json:"limit"`
+	Cursor              string `json:"cursor"`
+	ConversationID      string `json:"conversationId"`
+	Ascending           *bool  `json:"ascending"`
+	AfterTime           string `json:"afterTime"`
+	BeforeTime          string `json:"beforeTime"`
+	UsernameExact       string `json:"usernameExact"`
+	Query               string `json:"query"`
+	Sender              string `json:"senderId"`
+	GroupByConversation bool   `json:"groupByConversation"`
+	ServerID            string `json:"serverId"`
+	FromUnixMs          string `json:"fromUnixMs"`
+	ToUnixMs            string `json:"toUnixMs"`
+	UTCOffsetMinutes    *int   `json:"utcOffsetMinutes"`
 }
 type sourceRef struct {
 	Database string `json:"database"`
@@ -82,20 +87,24 @@ type session struct {
 	Source                sourceRef `json:"source"`
 }
 type message struct {
-	ConversationID   string    `json:"conversationId"`
-	LocalID          string    `json:"localId"`
-	ServerID         string    `json:"serverId"`
-	SortSeq          string    `json:"sortSeq"`
-	LocalType        string    `json:"localType"`
-	CreateTime       string    `json:"createTime"`
-	Sender           string    `json:"sender"`
-	RealSenderID     string    `json:"realSenderId"`
-	Status           string    `json:"status"`
-	Content          string    `json:"content"`
-	ContentBase64    string    `json:"contentBase64"`
-	ContentEncoding  string    `json:"contentEncoding"`
-	PackedInfoBase64 string    `json:"packedInfoBase64"`
-	Source           sourceRef `json:"source"`
+	ConversationID      string    `json:"conversationId"`
+	LocalID             string    `json:"localId"`
+	ServerID            string    `json:"serverId"`
+	SortSeq             string    `json:"sortSeq"`
+	LocalType           string    `json:"localType"`
+	CreateTime          string    `json:"createTime"`
+	Sender              string    `json:"sender"`
+	RealSenderID        string    `json:"realSenderId"`
+	Status              string    `json:"status"`
+	Content             string    `json:"content"`
+	ContentBase64       string    `json:"contentBase64"`
+	ContentEncoding     string    `json:"contentEncoding"`
+	ContentCompression  string    `json:"contentCompression,omitempty"`
+	ContentDecodeStatus string    `json:"contentDecodeStatus"`
+	MatchCount          string    `json:"matchCount,omitempty"`
+	PackedInfoBase64    string    `json:"packedInfoBase64"`
+	PackedInfoOmitted   bool      `json:"packedInfoOmitted,omitempty"`
+	Source              sourceRef `json:"source"`
 }
 type page[T any] struct {
 	Items      []T    `json:"items"`
@@ -108,6 +117,7 @@ type cursor struct {
 	Name     string `json:"name,omitempty"`
 	Number   string `json:"number,omitempty"`
 	Database string `json:"database,omitempty"`
+	Table    string `json:"table,omitempty"`
 	RowID    string `json:"rowId"`
 }
 type database struct {
@@ -435,7 +445,7 @@ func (b *bridge) info() any {
 		capabilities = append(capabilities, "sessions.list")
 	}
 	if len(b.messageDBs) > 0 {
-		capabilities = append(capabilities, "messages.list")
+		capabilities = append(capabilities, "messages.list", "messages.search", "messages.locate", "messages.dayCounts", "messages.stats")
 	}
 	files := []string{}
 	for _, d := range b.databases {
@@ -470,7 +480,7 @@ func queryKey(op string, p params) string {
 	p.Cursor = ""
 	p.Limit = 0
 	data, _ := json.Marshal(p)
-	sum := sha256.Sum256(append([]byte(op+"\x00"), data...))
+	sum := sha256.Sum256(append([]byte("bridge-cursor-v2\x00"+op+"\x00"), data...))
 	return hex.EncodeToString(sum[:])
 }
 func (b *bridge) readCursor(p params, key string) (*cursor, error) {
@@ -598,7 +608,7 @@ func (b *bridge) messages(ctx context.Context, p params, key string, c *cursor) 
 	if len(b.messageDBs) == 0 {
 		return nil, fail("CAPABILITY_UNAVAILABLE", "No message database is present")
 	}
-	if p.ConversationID == "" || len(p.ConversationID) > 512 || strings.IndexByte(p.ConversationID, 0) >= 0 {
+	if !validConversation(p.ConversationID) {
 		return nil, fail("INVALID_PARAMS", "conversationId is required")
 	}
 	ascending := p.Ascending == nil || *p.Ascending
@@ -606,121 +616,65 @@ func (b *bridge) messages(ctx context.Context, p params, key string, c *cursor) 
 	if !ascending {
 		order, greater = "DESC", "<"
 	}
-	sum := md5.Sum([]byte(p.ConversationID))
-	table := "Msg_" + hex.EncodeToString(sum[:])
+	table := conversationTable(p.ConversationID)
 	result := page[message]{Items: []message{}}
+	best := &messageHeap{ascending: ascending}
 	for _, d := range b.messageDBs {
 		if !d.tables[table] {
 			continue
 		}
-		if !d.tables["Name2Id"] {
-			return nil, fail("SCHEMA_UNSUPPORTED", "Name2Id table is missing")
-		}
-		clauses := []string{"1=1"}
-		args := []any{}
-		if p.AfterTime != "" {
-			value, err := parseInteger(p.AfterTime)
-			if err != nil {
-				return nil, err
-			}
-			clauses = append(clauses, "m.create_time>=?")
-			args = append(args, value)
-		}
-		if p.BeforeTime != "" {
-			value, err := parseInteger(p.BeforeTime)
-			if err != nil {
-				return nil, err
-			}
-			clauses = append(clauses, "m.create_time<=?")
-			args = append(args, value)
-		}
+		clauses, args := messageFilters(p)
 		if c != nil {
-			if c.Number == "" || c.Database == "" {
+			if c.Number == "" || c.Database == "" || c.Table != table {
 				return nil, fail("INVALID_CURSOR", "Message cursor requires source and order")
 			}
 			if d.relative == c.Database {
-				clauses = append(clauses, "(m.sort_seq"+greater+"? OR (m.sort_seq=? AND m.local_id"+greater+"?))")
+				clauses = append(clauses, "(m.create_time"+greater+"? OR (m.create_time=? AND m.local_id"+greater+"?))")
 				args = append(args, c.Number, c.Number, c.RowID)
 			} else {
-				inclusive := (ascending && d.relative > c.Database) || (!ascending && d.relative < c.Database)
 				op := greater
-				if inclusive {
+				if ascending && d.relative > c.Database || !ascending && d.relative < c.Database {
 					op += "="
 				}
-				clauses = append(clauses, "m.sort_seq"+op+"?")
+				clauses = append(clauses, "m.create_time"+op+"?")
 				args = append(args, c.Number)
 			}
 		}
-		query := `SELECT m.local_id,m.server_id,m.sort_seq,m.local_type,m.create_time,COALESCE(n.user_name,''),m.real_sender_id,m.status,m.message_content,m.packed_info_data FROM "` + table + `" m LEFT JOIN Name2Id n ON m.real_sender_id=n.rowid WHERE ` + strings.Join(clauses, " AND ") + ` ORDER BY m.sort_seq ` + order + `,m.local_id ` + order + ` LIMIT ?`
+		query := messageQuery(table) + " WHERE " + strings.Join(clauses, " AND ") + " ORDER BY m.create_time " + order + ",m.local_id " + order + " LIMIT ?"
 		args = append(args, p.Limit+1)
 		rows, err := d.db.QueryContext(ctx, query, args...)
 		if err != nil {
-			return nil, fail("SCHEMA_UNSUPPORTED", "Cannot query expected message schema")
+			return nil, fail("QUERY_FAILED", "Cannot query expected message schema")
 		}
 		for rows.Next() {
-			var item message
-			var local, server, seq, kind, created, senderID, status int64
-			var content, packed []byte
-			if err := rows.Scan(&local, &server, &seq, &kind, &created, &item.Sender, &senderID, &status, &content, &packed); err != nil {
+			item, err := scanMessage(rows, d, table, p.ConversationID)
+			if err != nil {
 				rows.Close()
-				return nil, fail("ROW_INVALID", "Invalid message record")
+				return nil, err
 			}
-			item.ConversationID = p.ConversationID
-			item.LocalID = number(local)
-			item.ServerID = number(server)
-			item.SortSeq = number(seq)
-			item.LocalType = number(kind)
-			item.CreateTime = number(created)
-			item.RealSenderID = number(senderID)
-			item.Status = number(status)
-			item.ContentBase64 = base64.StdEncoding.EncodeToString(content)
-			item.PackedInfoBase64 = base64.StdEncoding.EncodeToString(packed)
-			item.ContentEncoding = "binary"
-			if utf8.Valid(content) {
-				item.Content = string(content)
-				item.ContentEncoding = "utf8"
+			if err := best.offer(item, p.Limit+1); err != nil {
+				rows.Close()
+				return nil, err
 			}
-			item.Source = sourceRef{Database: d.relative, Table: table, LocalID: item.LocalID}
-			result.Items = append(result.Items, item)
 		}
-		rowError := rows.Err()
+		err = rows.Err()
 		rows.Close()
-		if rowError != nil {
+		if err != nil {
 			return nil, fail("QUERY_FAILED", "Message query failed")
 		}
 	}
-	sort.Slice(result.Items, func(i, j int) bool {
-		a, z := result.Items[i], result.Items[j]
-		an, _ := strconv.ParseInt(a.SortSeq, 10, 64)
-		zn, _ := strconv.ParseInt(z.SortSeq, 10, 64)
-		cmp := 0
-		if an < zn {
-			cmp = -1
-		} else if an > zn {
-			cmp = 1
-		} else if a.Source.Database < z.Source.Database {
-			cmp = -1
-		} else if a.Source.Database > z.Source.Database {
-			cmp = 1
-		} else {
-			ai, _ := strconv.ParseInt(a.LocalID, 10, 64)
-			zi, _ := strconv.ParseInt(z.LocalID, 10, 64)
-			if ai < zi {
-				cmp = -1
-			} else if ai > zi {
-				cmp = 1
-			}
-		}
-		if ascending {
-			return cmp < 0
-		}
-		return cmp > 0
-	})
+	result.Items = best.items
+	if result.Items == nil {
+		result.Items = []message{}
+	}
+	sort.Slice(result.Items, func(i, j int) bool { return orderedMessage(result.Items[i], result.Items[j], ascending) })
 	if len(result.Items) > p.Limit {
 		result.HasMore = true
 		result.Items = result.Items[:p.Limit]
-		last := result.Items[len(result.Items)-1]
-		result.NextCursor = b.encodeCursor(key, cursor{Number: last.SortSeq, Database: last.Source.Database, RowID: last.LocalID})
+		result.NextCursor = b.encodeCursor(key, messageCursor(result.Items[len(result.Items)-1]))
+	}
+	if err := checkMessagePageBudget(result.Items); err != nil {
+		return nil, err
 	}
 	return result, nil
 }
@@ -762,36 +716,13 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 		return nil, fail("INVALID_PARAMS", "limit must be between 1 and 500")
 	}
 	if r.Op == "account.info" || r.Op == "accounts.info" {
-		if p.Cursor != "" || p.ConversationID != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Ascending != nil || p.UsernameExact != "" {
+		if p.Cursor != "" || p.ConversationID != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Ascending != nil || p.UsernameExact != "" || p.Query != "" || p.Sender != "" || p.GroupByConversation || p.ServerID != "" || p.FromUnixMs != "" || p.ToUnixMs != "" || p.UTCOffsetMinutes != nil {
 			return nil, fail("INVALID_PARAMS", "account.info has no query parameters")
 		}
 		return b.info(), nil
 	}
-	if r.Op != "contacts.list" && r.Op != "sessions.list" && r.Op != "messages.list" {
-		return nil, fail("UNSUPPORTED_OPERATION", "This read-only operation is not implemented")
-	}
-	if r.Op != "messages.list" && (p.ConversationID != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Ascending != nil) {
-		return nil, fail("INVALID_PARAMS", "Message filters are only supported by messages.list")
-	}
-	if p.UsernameExact != "" && (r.Op != "contacts.list" || len(p.UsernameExact) > 512 || strings.IndexByte(p.UsernameExact, 0) >= 0) {
-		return nil, fail("INVALID_PARAMS", "usernameExact is only available for bounded contact lookups")
-	}
-	if p.AfterTime != "" {
-		if _, err := parseInteger(p.AfterTime); err != nil {
-			return nil, err
-		}
-	}
-	if p.BeforeTime != "" {
-		if _, err := parseInteger(p.BeforeTime); err != nil {
-			return nil, err
-		}
-	}
-	if p.AfterTime != "" && p.BeforeTime != "" {
-		a, _ := parseInteger(p.AfterTime)
-		z, _ := parseInteger(p.BeforeTime)
-		if a > z {
-			return nil, fail("INVALID_PARAMS", "afterTime exceeds beforeTime")
-		}
+	if err := validateOperationParams(r.Op, &p); err != nil {
+		return nil, err
 	}
 	key := queryKey(r.Op, p)
 	c, err := b.readCursor(p, key)
@@ -806,6 +737,14 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 		value, err = b.sessions(ctx, p, key, c)
 	case "messages.list":
 		value, err = b.messages(ctx, p, key, c)
+	case "messages.search":
+		value, err = b.search(ctx, p, key, c)
+	case "messages.locate":
+		value, err = b.locate(ctx, p)
+	case "messages.dayCounts":
+		value, err = b.dayCounts(ctx, p)
+	case "messages.stats":
+		value, err = b.stats(ctx, p)
 	}
 	if err != nil {
 		return nil, err
@@ -819,8 +758,6 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 func serve(b *bridge, input io.Reader, output io.Writer) error {
 	scanner := bufio.NewScanner(input)
 	scanner.Buffer(make([]byte, 4096), 1024*1024)
-	encoder := json.NewEncoder(output)
-	encoder.SetEscapeHTML(false)
 	for scanner.Scan() {
 		var r request
 		var out response
@@ -831,7 +768,11 @@ func serve(b *bridge, input io.Reader, output io.Writer) error {
 			out = b.handle(ctx, r)
 			cancel()
 		}
-		if err := encoder.Encode(out); err != nil {
+		encoded, err := encodeBoundedResponse(out)
+		if err != nil {
+			return err
+		}
+		if _, err := output.Write(append(encoded, '\n')); err != nil {
 			return err
 		}
 	}

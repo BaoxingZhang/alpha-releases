@@ -25,8 +25,10 @@
     "test:engine": "node --test tests/engine*.test.mjs",
     "test:independent": "node tests/independent-smoke.mjs",
     "test:encrypted": "node tests/encrypted-smoke.mjs",
+    "test:search": "node tests/search-smoke.mjs",
     "demo": "node scripts/demo.mjs",
     "demo:encrypted": "node scripts/demo.mjs --encrypted",
+    "demo:search": "node scripts/demo.mjs --search",
     "test:boundaries": "node --test tests/independent-boundary-*.test.*",
     "test": "node --test tests/*.test.mjs tests/*.test.cjs",
     "record:maintenance": "node scripts/record-maintenance.mjs"
