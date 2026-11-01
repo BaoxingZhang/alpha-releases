@@ -1,8 +1,8 @@
 {
-  "testedAt": "2026-10-31T23:42:13.358Z",
-  "session": "independent-smoke-1793490133311",
+  "testedAt": "2026-11-01T00:02:51.220Z",
+  "session": "independent-smoke-1793491371180",
   "fixture": {
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793490133311/fixture",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793491371180/fixture",
     "accountId": "synthetic-account",
     "conversationId": "wxid_alpha",
     "selfUsername": "wxid_self",
@@ -20,7 +20,7 @@
     "independentRecordExportThroughRendererIpc": true,
     "independentRecordCategoriesGated": true,
     "independentUnsupportedContactCategoriesGated": true,
-    "independentContactExportGated": true,
+    "independentContactExportCapabilities": true,
     "contactDirectoryAndProfileRendered": true,
     "lockEnforcesReadAccess": true,
     "sourceUnchanged": true
@@ -48,7 +48,7 @@
     {
       "id": "synthetic-account",
       "sourceProfile": "alpha-independent-offline-v4",
-      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793490133311/fixture",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793491371180/fixture",
       "subjectId": "",
       "displayName": "离线数据源 · synthetic-account",
       "schemaProfile": "wechat-v4-offline",
@@ -310,40 +310,40 @@
   },
   "ownedChildProcesses": [
     {
-      "pid": 31898,
+      "pid": 25797,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 31899,
+      "pid": 25798,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 31900,
+      "pid": 25800,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
     },
     {
-      "pid": 31902,
+      "pid": 25803,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
     },
     {
-      "pid": 31903,
+      "pid": 25804,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge"
     },
     {
-      "pid": 31904,
+      "pid": 25805,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
     }
   ],
   "recordExport": {
-    "jobId": "fe98d247-e94f-4a9c-8e82-523186da0b52",
+    "jobId": "5c4c8449-4ec4-4f02-a611-f398e5941ab1",
     "accountId": "synthetic-account",
     "kind": "records",
     "state": "completed",
     "format": "json",
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793490133311/records-export",
-    "createdAtUnixMs": "1793490135061",
-    "updatedAtUnixMs": "1793490135069",
-    "finishedAtUnixMs": "1793490135069",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793491371180/records-export",
+    "createdAtUnixMs": "1793491372726",
+    "updatedAtUnixMs": "1793491372735",
+    "finishedAtUnixMs": "1793491372735",
     "items": [
       {
         "conversationId": "payments",
@@ -354,7 +354,7 @@
         "messagesTotal": 0,
         "mediaSaved": 0,
         "mediaFailed": 0,
-        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793490133311/records-export/payments-71a312ebf4b8.json"
+        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793491371180/records-export/payments-71a312ebf4b8.json"
       }
     ]
   },

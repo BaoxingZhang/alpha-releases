@@ -1,6 +1,6 @@
 {
   "recordedAt": "2026-11-01",
-  "scope": "Current independent recovery status after contact, export, partial general records, analysis, media metadata, persistent chat jobs, schedule plan and HTTP/MCP additions; not full Alpha parity",
+  "scope": "Current independent recovery status after contact XLSX export, export, partial general records, analysis, media metadata, persistent chat jobs, schedule plan and HTTP/MCP additions; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
     "implementedRequestBranches": 46,
@@ -25,7 +25,7 @@
         "realSqliteThroughDesktopIpc",
         "contactDirectoryAndProfileThroughRendererIpc",
         "independentUnsupportedContactCategoriesGated",
-        "independentContactExportGated",
+        "independentContactExportCapabilities",
         "independentRecordCategoriesGated",
         "independentRecordExportThroughRendererIpc",
         "contactDirectoryAndProfileRendered",
@@ -101,6 +101,22 @@
         "searches"
       ]
     },
+    "contactExport": {
+      "command": "node --test tests/engine.test.mjs",
+      "status": "passed",
+      "formats": [
+        "csv",
+        "json",
+        "vcf",
+        "html",
+        "xlsx"
+      ],
+      "categories": [
+        "friend",
+        "group"
+      ],
+      "avatars": "unsupported"
+    },
     "mediaMetadataExport": {
       "command": "node --test tests/media-metadata-export.test.mjs",
       "status": "passed",
@@ -124,7 +140,7 @@
       "nativeRecompiled": false,
       "projectSigned": false,
       "artifactCount": 256,
-      "artifactDigest": "b6bd33e70adc84330138438695a95a5f4fc1af130740615c9e58b3de0f5344ca"
+      "artifactDigest": "ae9bb7d985c025f1b5d92df665027a94e088cb6f016d410a35224f25a35d1269"
     }
   },
   "featureBoundary": {

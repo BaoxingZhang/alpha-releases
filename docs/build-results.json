@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-31T23:42:03.379Z",
+  "builtAt": "2026-11-01T00:02:06.889Z",
   "node": "v24.21.0",
   "electron": "44.0.0",
   "esbuild": "0.28.2",
@@ -200,7 +200,7 @@
           "format": "esm"
         },
         "src/renderer/assets/index-DPCwIOAb.js": {
-          "bytes": 2875070,
+          "bytes": 2875086,
           "imports": [],
           "format": "esm"
         },
@@ -301,7 +301,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 4998394
+          "bytes": 4998420
         },
         "dist/app/out/renderer/assets/index-DPCwIOAb.js": {
           "imports": [
@@ -330,10 +330,10 @@
           "entryPoint": "src/renderer/assets/index-DPCwIOAb.js",
           "inputs": {
             "src/renderer/assets/index-DPCwIOAb.js": {
-              "bytesInOutput": 3095158
+              "bytesInOutput": 3095177
             }
           },
-          "bytes": 3095201
+          "bytes": 3095220
         },
         "dist/app/out/renderer/assets/media-metadata-export.js.map": {
           "imports": [],
