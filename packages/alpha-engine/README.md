@@ -51,7 +51,7 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | discoverAccounts | 29 | 仅接受与已配置源路径完全一致的 sourceLocation |
 | importDatabaseKey | 30 | 仅对显式加密源接收一次性 32 字节 key；导入成功前保持 waiting_for_key |
 | listContacts | 42 | 升序、offset/limit、联系人字段字面量模糊查询和 `__alpha_contact_exact:` 精确 username 查询；带 `directory` 时基于同一 verified contacts.list 派生 friend/group 分类与完整八类计数，其他分类明确拒绝 |
-| exportContacts | 117 | 基于真实联系人字段导出 CSV、JSON、VCF、HTML；当前仅支持 `local_type=1` 好友和 `local_type=2`/`@chatroom` 群聊，头像及其他分类明确返回不可用 |
+| exportContacts | 117 | 基于真实联系人字段导出 CSV、JSON、VCF、HTML、XLSX；当前仅支持 `local_type=1` 好友和 `local_type=2`/`@chatroom` 群聊，头像及其他分类明确返回不可用 |
 | exportGroupMembers | 139 | 基于真实 `chat_room.ext_buffer` 成员记录导出 CSV、JSON、HTML、XLSX；每次完整读取最多 5000 条，头像和未知群资料明确不可用 |
 | getContactProfile | 115 | 普通联系人基于真实 contact 表返回精确存在性和 username；若有 `groups.members`，共同群来自 `chat_room.ext_buffer` 全表扫描，返回真实 count/limit/truncated 及 contact 表可证明的显示名；`@chatroom` 返回真实成员数和唯一群主；未知个人资料、头像、标签、公告和好友验证保持为空 |
 | listGeneral | 45 | `__alpha_group_members` 从 v4 `chat_room.ext_buffer` 解析群成员；`__alpha_general_payments`、`__alpha_general_revokes` 和 `__alpha_general_calls` 仅返回消息 XML 能证明的 partial/candidate 记录，保留 source fields；其他记录分类仍不可用 |
