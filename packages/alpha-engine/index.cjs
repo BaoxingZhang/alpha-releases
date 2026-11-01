@@ -21,7 +21,7 @@ const { loadMediaIndex } = require('./media-index.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, getMessageSource: 107, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, getContactProfile: 115, listGeneral: 45, exportContacts: 117, exportGroupMembers: 139, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, getMessageSource: 107, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, getContactProfile: 115, listGeneral: 45, exportContacts: 117, exportGroupMembers: 139, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
 // These enum values are recovered from the Alpha protocol. The independent
 // engine can report the local package boundary, but it cannot start or claim
 // a dynamically entitled native component. Keep this status explicit and
@@ -1348,6 +1348,36 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         writerErrorCode: 'MESSAGE_ANTI_RECALL_WRITER_DISABLED'
       };
       return { statuses: conversationIds.map(conversationId => ({ conversationId, status: { ...status } })) };
+    },
+    async manageMessageAntiRecall(request) {
+      // Keep the original control surface available while the independent
+      // backend has no verified retention writer, trigger schema, or recall
+      // record store. Every action reports the same explicit disabled state;
+      // no message database is opened and no operation is persisted.
+      const spec = request?.spec;
+      const accountId = requestName(spec?.accountId, 'MESSAGE_ANTI_RECALL_REQUEST_INVALID');
+      if (!Number.isInteger(spec?.action) || ![1, 2, 3, 4].includes(spec.action)) throw error('MESSAGE_ANTI_RECALL_REQUEST_INVALID');
+      await requireAccount(accountId);
+      return {
+        result: {
+          status: {
+            detected: false,
+            usable: false,
+            enabled: false,
+            verified: false,
+            knownTables: 0,
+            protectedTables: 0,
+            retainedRows: 0n,
+            confirmedRows: 0n,
+            droppedRows: 0n,
+            partial: false,
+            errorCode: 'MESSAGE_ANTI_RECALL_WRITER_DISABLED',
+            externalProtection: '',
+            externalTables: 0,
+            writerErrorCode: 'MESSAGE_ANTI_RECALL_WRITER_DISABLED'
+          }
+        }
+      };
     },
     async manageMomentsAntiDelete(request) {
       // The independent backend has no verified SnsTimeLine/snsmessage

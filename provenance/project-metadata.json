@@ -1,0 +1,36 @@
+{
+  "schema": "alpha-maintainable-project.v1",
+  "projectName": "Alpha Recovered",
+  "packageName": "alpha-recovered-local",
+  "version": "0.3.5",
+  "maintenanceStatus": "user-maintained-recovery",
+  "upstream": {
+    "releaseRepository": "https://github.com/xunchahaha/alpha-releases",
+    "sourceArtifact": "Alpha-0.3.5-arm64.dmg",
+    "sourceDmgSha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
+    "upstreamApplicationLicense": "not-published-in-release-repository"
+  },
+  "sourceBoundaries": {
+    "recoveredApplicationLayer": "editable emitted JavaScript and assets from the supplied package",
+    "originalRuntime": "provenance-only precompiled macOS arm64 artifacts; signatures and hashes are preserved",
+    "independentBackend": "new project-owned source implemented from verified protocol and synthetic fixtures",
+    "newCodeLicense": "not-yet-selected-by-maintainer"
+  },
+  "buildBaseline": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "nodeVersion": "24.21.0",
+    "electronVersion": "44.0.0",
+    "nativeRecompiled": false,
+    "projectSigned": false,
+    "notarized": false
+  },
+  "maintenanceEntrypoints": {
+    "contributing": "CONTRIBUTING.md",
+    "security": "SECURITY.md",
+    "changeLog": "CHANGELOG.md",
+    "playbook": "docs/maintainer-playbook.md",
+    "scope": "MAINTENANCE.md",
+    "gapRecord": "docs/source-gaps.md"
+  }
+}

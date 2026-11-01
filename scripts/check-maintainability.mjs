@@ -127,6 +127,7 @@ const goToolchain = await readJson('provenance/go-toolchain.json');
 const runtimeProvenance = await readJson('docs/native-runtime-provenance.json');
 const recoveredProvenance = await readJson('provenance/recovered-files.json');
 const maintenanceChanges = await readJson('provenance/maintenance-changes.json');
+const projectMetadata = await readJson('provenance/project-metadata.json');
 const currentValidation = await readJson('docs/independent-validation-current.json');
 try {
   const gitignore = await fs.readFile(path.join(root, '.gitignore'), 'utf8');
@@ -146,7 +147,7 @@ if (packageJson) {
   if (packageJson.name !== 'alpha-recovered-local' || packageJson.version !== '0.3.5') errors.push('package.json: project identity/version drifted');
   if (!packageJson.engines?.node || !nodeVersionInRange(process.version, packageJson.engines.node)) errors.push(`Node ${process.version} does not satisfy package.json engines.node (${packageJson.engines?.node ?? 'missing'})`);
   if (nvmrc && /^\d+\.\d+\.\d+$/.test(nvmrc) && !nodeVersionInRange(`v${nvmrc}`, packageJson.engines.node)) errors.push(`.nvmrc: pinned Node ${nvmrc} does not satisfy package.json engines.node (${packageJson.engines.node ?? 'missing'})`);
-  const requiredScripts = ['build', 'build:independent', 'build:packaged', 'package:macos-app', 'package:macos-app:from-build', 'package:macos-dmg', 'test', 'test:independent', 'test:smoke', 'verify:vendor', 'verify:protocol', 'bundle:recovery', 'check:maintainability'];
+  const requiredScripts = ['build', 'build:independent', 'build:packaged', 'package:macos-app', 'package:macos-app:from-build', 'package:macos-dmg', 'test', 'test:independent', 'test:smoke', 'verify:vendor', 'verify:protocol', 'bundle:recovery', 'check:project', 'check:maintainability'];
   for (const name of requiredScripts) if (typeof packageJson.scripts?.[name] !== 'string') errors.push(`package.json: missing script ${name}`);
 }
 
@@ -173,7 +174,8 @@ const requiredFiles = [
   'packages/alpha-data-bridge/go.mod', 'packages/alpha-data-bridge/go.sum',
   'packages/alpha-snapshot-import/go.mod', 'packages/alpha-snapshot-import/go.sum',
   'packages/alpha-desktop/backend-mode.cjs', 'packages/alpha-desktop/recovery-runtime.cjs', 'vendor/chatlog/go.mod',
-  'provenance/go-toolchain.json', 'provenance/recovered-files.json', 'provenance/maintenance-changes.json',
+  'provenance/go-toolchain.json', 'provenance/recovered-files.json', 'provenance/maintenance-changes.json', 'provenance/project-metadata.json',
+  'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', 'docs/maintainer-playbook.md',
   'docs/local-build-and-run.md', 'docs/native-runtime-provenance.json', 'docs/http-readonly-adapter-recovery.md',
   'docs/independent-validation-current.json'
 ];
@@ -200,6 +202,11 @@ if (runtimeProvenance) {
 }
 if (recoveredProvenance && (!Array.isArray(recoveredProvenance.files) || recoveredProvenance.files.length === 0)) errors.push('provenance/recovered-files.json: no recovered source files recorded');
 if (maintenanceChanges && (maintenanceChanges.originalNativeArtifactsModified !== false || !Array.isArray(maintenanceChanges.changed))) errors.push('provenance/maintenance-changes.json: maintenance record is incomplete');
+if (projectMetadata) {
+  if (projectMetadata.schema !== 'alpha-maintainable-project.v1') errors.push('provenance/project-metadata.json: unsupported schema');
+  if (projectMetadata.maintenanceStatus !== 'user-maintained-recovery') errors.push('provenance/project-metadata.json: maintenance status is not user-maintained-recovery');
+  if (projectMetadata.sourceBoundaries?.newCodeLicense !== 'not-yet-selected-by-maintainer') errors.push('provenance/project-metadata.json: new-code license boundary changed without a license record');
+}
 
 if (currentValidation) {
   try {

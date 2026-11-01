@@ -399,6 +399,30 @@ test('message anti-recall status reports the independent writer boundary per con
   })).error?.code, 'MESSAGE_RECALL_REQUEST_INVALID');
 });
 
+test('message anti-recall control reports the independent writer boundary without touching data', async t => {
+  const f = await fixture(t), c = f.start(); await handshake(c);
+  for (const action of [1, 2, 3, 4]) {
+    const result = ok(await c.send('manageMessageAntiRecall', {
+      operationId: action === 1 ? '' : `test-recall-${action}`,
+      spec: { accountId, conversationId: 'wxid_alpha', action }
+    }), 'manageMessageAntiRecall').result.status;
+    assert.equal(result.detected, false);
+    assert.equal(result.usable, false);
+    assert.equal(result.enabled, false);
+    assert.equal(result.verified, false);
+    assert.equal(result.knownTables, 0);
+    assert.equal(result.retainedRows, 0n);
+    assert.equal(result.errorCode, 'MESSAGE_ANTI_RECALL_WRITER_DISABLED');
+    assert.equal(result.writerErrorCode, 'MESSAGE_ANTI_RECALL_WRITER_DISABLED');
+  }
+  assert.equal((await c.send('manageMessageAntiRecall', {
+    operationId: 'invalid', spec: { accountId, conversationId: 'wxid_alpha', action: 0 }
+  })).error?.code, 'MESSAGE_ANTI_RECALL_REQUEST_INVALID');
+  assert.equal((await c.send('manageMessageAntiRecall', {
+    operationId: 'invalid', spec: { accountId: 'missing', conversationId: 'wxid_alpha', action: 1 }
+  })).error?.code, 'ACCOUNT_NOT_FOUND');
+});
+
 test('moments anti-delete control reports the independent writer boundary without touching data', async t => {
   const f = await fixture(t), c = f.start(); await handshake(c);
   for (const action of [1, 2, 3]) {

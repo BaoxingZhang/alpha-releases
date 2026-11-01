@@ -1,16 +1,16 @@
 {
   "recordedAt": "2026-11-01",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, image-key lifecycle, indexed image refs, persistent chat jobs, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions, upstream release audit, anti-recall and moments anti-delete status boundaries, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, image-key lifecycle, indexed image refs, persistent chat jobs, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 57,
-    "unsupportedRequestBranches": 71,
+    "implementedRequestBranches": 58,
+    "unsupportedRequestBranches": 70,
     "source": "packages/alpha-engine/index.cjs:SUPPORTED"
   },
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 188,
+      "passed": 189,
       "failed": 0
     },
     "mediaIndex": {
@@ -68,13 +68,13 @@
       "command": "npm run bundle:recovery",
       "status": "passed",
       "schema": "alpha-recovered.source-bundle.v1",
-      "fileCount": 660,
+      "fileCount": 666,
       "includesVendorRuntime": false,
       "nativeRecompiled": false,
       "projectSigned": false,
-      "archiveBytes": 3854345,
-      "archiveSha256": "a8836d5795aa0d9bc56576d3c916d92c1436c7101723fa9d9e1822c070009245",
-      "artifactManifestDigest": "a5ac909eda1999ce61d29c3d83e2f1031afe2e037cd9b33dcfbe2ccd35eb9079"
+      "archiveBytes": 3858732,
+      "archiveSha256": "a8950a866b4c7259c90db4c9faa07811861f39970029e11f221a78aaae86b2ad",
+      "artifactManifestDigest": "0bc6b6d11296fd4bc2132caa677055fee91fc73a1a0c50b0a2929d1e7312b7d7"
     },
     "desktopIndependent": {
       "record": "independent-run.json",
@@ -233,7 +233,7 @@
       "nativeRecompiled": false,
       "projectSigned": false,
       "artifactCount": 293,
-      "artifactDigest": "a5ac909eda1999ce61d29c3d83e2f1031afe2e037cd9b33dcfbe2ccd35eb9079"
+      "artifactDigest": "0bc6b6d11296fd4bc2132caa677055fee91fc73a1a0c50b0a2929d1e7312b7d7"
     },
     "fixtureAgent": {
       "command": "node --test tests/agent-fixture.test.mjs tests/independent-boundary-gateway.test.mjs tests/http-launch-environment.test.mjs",
@@ -248,10 +248,10 @@
       "status": "passed",
       "appPath": ".runtime/release-artifacts/Alpha Recovered.app",
       "dmgPath": ".runtime/release-artifacts/Alpha Recovered.dmg",
-      "appArtifactDigest": "d342c8fb7ae495f3ebbe309f69503dcf110c9585f241e162afc77cd1dba21ba2",
+      "appArtifactDigest": "48d062e8c8d3c121fc4c24aa0bbacaea8f89bf889e337c495402fd44834d944b",
       "appFileCount": 591,
-      "dmgBytes": 240671190,
-      "dmgSha256": "a29797e659f1e58528471a99565c930a61457fb2eee0712672eea9f7ca889f0d",
+      "dmgBytes": 240671651,
+      "dmgSha256": "56f98df7e73a7207760593c63cb42208258273e926ddd27fa7f3d76817d238d8",
       "projectSigned": false,
       "notarized": false,
       "nativeRecompiled": false
@@ -288,6 +288,22 @@
       "writerEnabled": false,
       "readsMessageDatabase": false
     },
+    "antiRecallControl": {
+      "command": "node --test tests/engine.test.mjs --test-name-pattern=\"message anti-recall control\"",
+      "status": "passed",
+      "tests": 1,
+      "method": "manageMessageAntiRecall",
+      "fieldNumber": 99,
+      "actions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "errorCode": "MESSAGE_ANTI_RECALL_WRITER_DISABLED",
+      "writerEnabled": false,
+      "readsMessageDatabase": false
+    },
     "momentsAntiDeleteStatus": {
       "command": "node --test tests/engine.test.mjs --test-name-pattern=\"moments anti-delete\"",
       "status": "passed",
@@ -302,6 +318,10 @@
       "errorCode": "MOMENTS_ANTI_DELETE_WRITER_DISABLED",
       "writerEnabled": false,
       "readsMomentsDatabase": false
+    },
+    "projectCheck": {
+      "command": "npm run check:project",
+      "status": "passed"
     }
   },
   "featureBoundary": {
@@ -323,7 +343,7 @@
     "fullFeatureParity": false
   },
   "buildArtifact": {
-    "artifactDigest": "a5ac909eda1999ce61d29c3d83e2f1031afe2e037cd9b33dcfbe2ccd35eb9079",
+    "artifactDigest": "0bc6b6d11296fd4bc2132caa677055fee91fc73a1a0c50b0a2929d1e7312b7d7",
     "target": "darwin-arm64",
     "nativeRecompiled": false,
     "projectSigned": false

@@ -60,6 +60,7 @@ jobs:
 
       - name: Verify maintenance boundaries
         run: |
+          npm run check:project
           npm run check:maintainability
           npm run verify:protocol
           npm run verify:vendor
