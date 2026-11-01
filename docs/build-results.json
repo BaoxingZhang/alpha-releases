@@ -1,10 +1,13 @@
 {
-  "builtAt": "2026-11-01T05:31:40.432Z",
+  "builtAt": "2026-11-01T08:17:01.261Z",
   "node": "v24.21.0",
   "electron": "44.10.1",
   "esbuild": "0.28.2",
   "sourceKind": "recovered emitted JavaScript; not original TypeScript",
   "nativeRecompiled": false,
+  "runtimeDependencies": [
+    "@bufbuild/protobuf"
+  ],
   "independentRuntime": {
     "schema": "alpha-recovered.independent-runtime.v1",
     "status": "ready",
@@ -25,7 +28,7 @@
         "source": "build/candidates/alpha-data-bridge",
         "path": "independent/bin/alpha-data-bridge",
         "bytes": 8447506,
-        "sha256": "3d64976cf595df93a9918a2e50d754e33cf60e1cf37b041b594a30bfa7578c4d",
+        "sha256": "58c91a0c3aef4bd5b82efdcd69b668c808525afe073644f50fae5fadf7f5c456",
         "mode": "755"
       },
       {
@@ -33,7 +36,7 @@
         "source": "build/candidates/alpha-snapshot-import",
         "path": "independent/bin/alpha-snapshot-import",
         "bytes": 7816610,
-        "sha256": "70bb2bfb4bc61080a66d1df3d9e1feb0ddc0ae553c0117952b78ef56d8f69cca",
+        "sha256": "757db089a75a6130a50c1f505e20880a706466319bce121a977498d735d64606",
         "mode": "755"
       }
     ],
@@ -43,7 +46,7 @@
     {
       "inputs": {
         "src/main/index.js": {
-          "bytes": 3191029,
+          "bytes": 3191474,
           "imports": [],
           "format": "cjs"
         }
@@ -53,7 +56,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 5356255
+          "bytes": 5356719
         },
         "dist/app/out/main/index.js": {
           "imports": [
@@ -132,10 +135,10 @@
           "entryPoint": "src/main/index.js",
           "inputs": {
             "src/main/index.js": {
-              "bytesInOutput": 3210928
+              "bytesInOutput": 3210980
             }
           },
-          "bytes": 3210976
+          "bytes": 3211028
         }
       }
     },

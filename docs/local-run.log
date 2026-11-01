@@ -27,5 +27,5 @@ Error occurred in handler for 'alpha:license:capabilities': Error: ENGINE_NOT_ST
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74380:19
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72100:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:1:119027)
-Debugger ending on ws://127.0.0.1:54057/10cde7ab-4978-4361-afa2-daab2ebd1ccb
+Debugger ending on ws://127.0.0.1:55108/0fd9f6b7-748f-4bef-951d-c1237fc01a94
 For help, see: https://nodejs.org/learn/getting-started/debugging

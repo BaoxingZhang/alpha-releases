@@ -1,8 +1,8 @@
 {
-  "testedAt": "2026-11-01T05:24:52.155Z",
-  "session": "independent-smoke-1793510692100",
+  "testedAt": "2026-11-01T08:21:19.576Z",
+  "session": "independent-smoke-1793521279524",
   "fixture": {
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793510692100/fixture",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793521279524/fixture",
     "accountId": "synthetic-account",
     "conversationId": "wxid_alpha",
     "selfUsername": "wxid_self",
@@ -48,7 +48,7 @@
     {
       "id": "synthetic-account",
       "sourceProfile": "alpha-independent-offline-v4",
-      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793510692100/fixture",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793521279524/fixture",
       "subjectId": "",
       "displayName": "离线数据源 · synthetic-account",
       "schemaProfile": "wechat-v4-offline",
@@ -310,40 +310,40 @@
   },
   "ownedChildProcesses": [
     {
-      "pid": 12318,
+      "pid": 45254,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 12320,
+      "pid": 45255,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 12323,
-      "executable": ""
+      "pid": 45258,
+      "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
     },
     {
-      "pid": 12327,
+      "pid": 45260,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
     },
     {
-      "pid": 12330,
+      "pid": 45261,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge"
     },
     {
-      "pid": 12332,
+      "pid": 45262,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
     }
   ],
   "recordExport": {
-    "jobId": "f8a6a5ed-eace-448b-b7a2-b55bf2111109",
+    "jobId": "e5af8c84-144a-47d1-a189-f839b1870cba",
     "accountId": "synthetic-account",
     "kind": "records",
     "state": "completed",
     "format": "json",
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793510692100/records-export",
-    "createdAtUnixMs": "1793510694036",
-    "updatedAtUnixMs": "1793510694045",
-    "finishedAtUnixMs": "1793510694045",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793521279524/records-export",
+    "createdAtUnixMs": "1793521281384",
+    "updatedAtUnixMs": "1793521281394",
+    "finishedAtUnixMs": "1793521281394",
     "items": [
       {
         "conversationId": "payments",
@@ -354,7 +354,7 @@
         "messagesTotal": 0,
         "mediaSaved": 0,
         "mediaFailed": 0,
-        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793510692100/records-export/payments-71a312ebf4b8.json"
+        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793521279524/records-export/payments-71a312ebf4b8.json"
       }
     ]
   },

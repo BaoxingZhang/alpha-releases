@@ -9,6 +9,8 @@ const src = path.join(root, 'src');
 const app = path.join(root, 'dist/app');
 const independentRequested = process.argv.includes('--independent') || process.env.ALPHA_BUILD_INDEPENDENT === '1';
 
+const runtimeDependencies = ['@bufbuild/protobuf'];
+
 async function digestFile(filename) {
   return crypto.createHash('sha256').update(await fs.readFile(filename)).digest('hex');
 }
@@ -65,6 +67,24 @@ async function copyIndependentRuntime() {
   return manifest;
 }
 
+async function copyRuntimeDependencies(destination) {
+  const nodeModules = path.join(destination, 'node_modules');
+  // The generated app (and its independent subdirectory) is recreated before
+  // this function runs, so there is no stale dependency tree to remove here.
+  // Avoid recursive deletion races on macOS while another build is finishing.
+  for (const dependency of runtimeDependencies) {
+    const source = path.join(root, 'node_modules', dependency);
+    const target = path.join(nodeModules, dependency);
+    const stat = await fs.lstat(source).catch(error => {
+      if (error.code === 'ENOENT') throw new Error(`RUNTIME_DEPENDENCY_MISSING:${dependency}`);
+      throw error;
+    });
+    if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error(`RUNTIME_DEPENDENCY_INVALID:${dependency}`);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.cp(source, target, { recursive: true });
+  }
+}
+
 await fs.rm(path.join(root, 'dist'), { recursive: true, force: true });
 await fs.mkdir(app, { recursive: true });
 await fs.cp(path.join(src, 'renderer'), path.join(app, 'out/renderer'), { recursive: true });
@@ -81,11 +101,17 @@ for (const name of ['alpha-desktop', 'alpha-engine', 'alpha-security', 'alpha-pr
   await fs.cp(path.join(root, 'packages', name), path.join(app, 'packages', name), { recursive: true });
 }
 const independentManifest = await copyIndependentRuntime();
+await copyRuntimeDependencies(path.join(app, 'independent'));
+// The recovered main process and the independent protocol package both load
+// @bufbuild/protobuf at runtime. Keep this dependency beside the app payload
+// so a packaged app does not accidentally depend on the developer's
+// node_modules directory.
+await copyRuntimeDependencies(app);
 await fs.writeFile(path.join(app, 'package.json'), JSON.stringify({ name: 'alpha-recovered-local', productName: 'Alpha Recovered', version: '0.3.5', private: true, main: 'bootstrap.cjs' }, null, 2) + '\n');
 await fs.mkdir(path.join(root, 'build'), { recursive: true });
 const runtimeBundle = path.join(root, 'build/runtime-bundle');
 // Original validation rejects symlinks anywhere in the resource path.
 await fs.rm(runtimeBundle, { recursive: true, force: true });
 await fs.cp(path.join(root, 'vendor/runtime'), runtimeBundle, { recursive: true, preserveTimestamps: true, mode: constants.COPYFILE_FICLONE });
-await fs.writeFile(path.join(root, 'docs/build-results.json'), JSON.stringify({ builtAt: new Date().toISOString(), node: process.version, electron: '44.10.1', esbuild: '0.28.2', sourceKind: 'recovered emitted JavaScript; not original TypeScript', nativeRecompiled: false, independentRuntime: independentManifest, outputs: outputs.map(x => x.metafile) }, null, 2) + '\n');
+await fs.writeFile(path.join(root, 'docs/build-results.json'), JSON.stringify({ builtAt: new Date().toISOString(), node: process.version, electron: '44.10.1', esbuild: '0.28.2', sourceKind: 'recovered emitted JavaScript; not original TypeScript', nativeRecompiled: false, runtimeDependencies, independentRuntime: independentManifest, outputs: outputs.map(x => x.metafile) }, null, 2) + '\n');
 console.log(`Built recovered JavaScript (${independentManifest.status} independent runtime). Original native binaries remain unchanged.`);

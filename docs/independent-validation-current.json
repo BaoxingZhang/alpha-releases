@@ -294,10 +294,10 @@
       "status": "passed",
       "appPath": ".runtime/release-artifacts/Alpha Recovered.app",
       "dmgPath": ".runtime/release-artifacts/Alpha Recovered.dmg",
-      "appArtifactDigest": "48d062e8c8d3c121fc4c24aa0bbacaea8f89bf889e337c495402fd44834d944b",
-      "appFileCount": 591,
-      "dmgBytes": 240671651,
-      "dmgSha256": "56f98df7e73a7207760593c63cb42208258273e926ddd27fa7f3d76817d238d8",
+      "appArtifactDigest": "60b9bac64f71c2934a34c1cc368baf412fe56bf674a4f1ca15ca7fd6c2fccc8a",
+      "appFileCount": 1630,
+      "dmgBytes": 252969038,
+      "dmgSha256": "80145dc45327fe212ab2ed9f620ef4b24d0fc319e25d20b45699f3b869103537",
       "projectSigned": false,
       "notarized": false,
       "nativeRecompiled": false
@@ -413,12 +413,25 @@
       "status": "passed",
       "manifest": ".runtime/release-artifacts/Alpha Recovered.app.manifest.json",
       "electronVersion": "44.10.1",
-      "fileCount": 598,
-      "totalBytes": 521546069,
-      "artifactDigest": "3d35aa469f863b1deb4e515f2aa3b69fd22b95842589381426c84c566e73a165",
+      "fileCount": 1630,
+      "totalBytes": 527299976,
+      "artifactDigest": "60b9bac64f71c2934a34c1cc368baf412fe56bf674a4f1ca15ca7fd6c2fccc8a",
       "signed": false,
       "notarized": false,
       "independentResources": "Resources/independent"
+    },
+    "packagedUiSmoke": {
+      "command": "open -n .runtime/release-artifacts/Alpha Recovered.app --args --no-sandbox",
+      "status": "passed",
+      "backend": "independent",
+      "optIn": "ALPHA_RECOVERY_BACKEND=independent ALPHA_INDEPENDENT_PACKAGED=1",
+      "fixture": ".runtime/packaged-smoke-fixture",
+      "observed": [
+        "首次设置页显示打开离线数据副本",
+        "检测到 synthetic-account",
+        "进入 Alpha 后显示合成联系人甲、Beta 两个会话和合成消息"
+      ],
+      "nativeBackend": "not exercised"
     }
   },
   "featureBoundary": {

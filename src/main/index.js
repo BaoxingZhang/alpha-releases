@@ -62997,12 +62997,17 @@ class EngineClient {
     // Packaged mode requires a second, explicit marker so an old environment
     // variable cannot accidentally bypass the shipped native runtime policy.
     const independentMode = independentBackendEnabled();
-    const packagedIndependentMode = independentMode && electron.app.isPackaged;
+    // Some local macOS assembly workflows keep Resources/app unpacked instead
+    // of producing app.asar, so Electron reports isPackaged=false even though
+    // the process is running from a generated application bundle. The explicit
+    // packaged opt-in is the authority for the independent resource layout;
+    // it does not alter the original backend path when the marker is absent.
+    const packagedIndependentMode = independentMode && (electron.app.isPackaged || process.env.ALPHA_INDEPENDENT_PACKAGED === '1');
     let executable, childEnvironment, childCwd = workspace;
     let executableArgs = [];
     if (independentMode) {
       try {
-        const runtime = require("./recovery-runtime.cjs").independentRuntime({ workspace, appPath: electron.app.getAppPath(), resourcesPath: electron.app.isPackaged ? process.resourcesPath : void 0, packaged: packagedIndependentMode, userData: electron.app.getPath("userData"), execPath: process.execPath, environment: process.env });
+        const runtime = require("./recovery-runtime.cjs").independentRuntime({ workspace, appPath: electron.app.getAppPath(), resourcesPath: packagedIndependentMode ? process.resourcesPath : void 0, packaged: packagedIndependentMode, userData: electron.app.getPath("userData"), execPath: process.execPath, environment: process.env });
         executable = runtime.executable;
         executableArgs = runtime.args;
         childCwd = runtime.cwd ?? workspace;

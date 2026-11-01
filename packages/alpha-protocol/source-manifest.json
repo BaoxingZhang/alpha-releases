@@ -11,8 +11,8 @@
   "sources": [
     {
       "path": "src/main/index.js",
-      "bytes": 3191029,
-      "sha256": "6fbac929d8b4369c9b5d10abbf2193c29a941828791185def7c9f96de20e0559"
+      "bytes": 3191474,
+      "sha256": "82f0c6f02a7a690c93bd9174306b01b05d21cab8c2395db3c6ac421f0bcc9fcd"
     },
     {
       "path": "src/preload/index.js",
@@ -23,7 +23,7 @@
   "modules": [
     {
       "file": "bindings.cjs",
-      "sha256": "a329c4cb7d8633295559c8d5729dffa20412bc61e4c8352e83b609b2c6df3944",
+      "sha256": "d9b6b0919f2991458d482668c06a65ed534b438d4184cbdd58d61da350581103",
       "source": "src/main/index.js",
       "roots": [
         "EngineClientFrame",

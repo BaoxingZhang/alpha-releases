@@ -31,4 +31,9 @@ test('independent packaged layout is self-contained when an independent build ex
     const stat = await fs.lstat(path.join(independent, 'packages', name));
     assert.equal(stat.isDirectory(), true, `${name} package must be copied`);
   }
+  const protobufPackage = path.join(independent, 'node_modules', '@bufbuild', 'protobuf');
+  const protobufStat = await fs.lstat(protobufPackage);
+  assert.equal(protobufStat.isDirectory(), true, 'protobuf runtime dependency must be copied');
+  const wireEntry = path.join(protobufPackage, 'dist', 'commonjs', 'wire', 'index.js');
+  assert.equal((await fs.lstat(wireEntry)).isFile(), true, 'protobuf wire CommonJS entry must be packaged');
 });
