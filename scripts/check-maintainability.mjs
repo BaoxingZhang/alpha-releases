@@ -206,6 +206,11 @@ if (projectMetadata) {
   if (projectMetadata.schema !== 'alpha-maintainable-project.v1') errors.push('provenance/project-metadata.json: unsupported schema');
   if (projectMetadata.maintenanceStatus !== 'user-maintained-recovery') errors.push('provenance/project-metadata.json: maintenance status is not user-maintained-recovery');
   if (projectMetadata.sourceBoundaries?.newCodeLicense !== 'not-yet-selected-by-maintainer') errors.push('provenance/project-metadata.json: new-code license boundary changed without a license record');
+  const electronVersion = projectMetadata.buildBaseline?.electronVersion;
+  if (!/^\d+\.\d+\.\d+$/.test(electronVersion ?? '')) errors.push('provenance/project-metadata.json: buildBaseline.electronVersion must be a pinned x.y.z version');
+  if (packageJson?.devDependencies?.electron !== electronVersion) errors.push(`package.json: devDependencies.electron ${packageJson?.devDependencies?.electron ?? 'missing'} does not match project metadata ${electronVersion ?? 'missing'}`);
+  const lockedElectronVersion = lockfile?.packages?.['node_modules/electron']?.version;
+  if (lockedElectronVersion !== electronVersion) errors.push(`package-lock.json: node_modules/electron ${lockedElectronVersion ?? 'missing'} does not match project metadata ${electronVersion ?? 'missing'}`);
 }
 
 if (currentValidation) {
@@ -217,6 +222,11 @@ if (currentValidation) {
     const recorded = currentValidation.protocol;
     if (recorded?.totalRequestBranches !== total || recorded?.implementedRequestBranches !== implemented || recorded?.unsupportedRequestBranches !== unsupported) {
       errors.push('docs/independent-validation-current.json: protocol counts do not match packages/alpha-engine/index.cjs');
+    }
+    const audit = currentValidation.validation?.dependencyAudit;
+    const electronVersion = packageJson?.devDependencies?.electron;
+    if (audit?.status !== 'passed' || audit?.electronVersion !== electronVersion || audit?.vulnerabilities?.total !== 0) {
+      errors.push('docs/independent-validation-current.json: dependency audit must record zero vulnerabilities for the pinned Electron version');
     }
   } catch (error) {
     errors.push(`packages/alpha-engine/index.cjs: cannot load for protocol count check (${error.message})`);

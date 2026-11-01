@@ -118,8 +118,8 @@
       "includesVendorRuntime": false,
       "nativeRecompiled": false,
       "projectSigned": false,
-      "archiveBytes": 3872407,
-      "archiveSha256": "6214df6e768994c05cd4ddbfa8ed7bac5678bd670a74b65599eb0f4086798a53",
+      "archiveBytes": 3872886,
+      "archiveSha256": "5a1f5faa0566d0543982e5e5faa11c83436444ecd49705ef60bbd9357e90b33b",
       "artifactManifestDigest": "0bc6b6d11296fd4bc2132caa677055fee91fc73a1a0c50b0a2929d1e7312b7d7"
     },
     "desktopIndependent": {
@@ -384,6 +384,20 @@
       ],
       "eventCursor": "in-process-observation-with-fingerprint",
       "durableNativeLease": false
+    },
+    "dependencyAudit": {
+      "command": "npm audit --omit=optional",
+      "status": "passed",
+      "recordedAt": "2026-11-01",
+      "electronVersion": "44.10.1",
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      }
     }
   },
   "featureBoundary": {

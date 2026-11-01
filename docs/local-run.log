@@ -7,16 +7,16 @@ Error occurred in handler for 'alpha:security:application-lock-status': Error: E
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74302:20
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72100:14
-    at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
+    at async Session.<anonymous> (node:electron/js2c/browser_init:1:119027)
 [alpha-engine]  INFO alpha-engine starting
 [alpha-engine]  WARN application lock security IPC failed code="SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
-Error: application lock is unavailable
+[alpha-engine] Error: application lock is unavailable
 Error occurred in handler for 'alpha:accounts:list': Error: ENGINE_NOT_STARTED
     at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64835:39)
     at EngineClient.listAccounts (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63628:33)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72100:14
-    at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
+    at async Session.<anonymous> (node:electron/js2c/browser_init:1:119027)
 [alpha-engine]  INFO alpha-engine starting
 [alpha-engine]  WARN application lock security IPC failed code="SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
 [alpha-engine] Error: application lock is unavailable
@@ -26,6 +26,6 @@ Error occurred in handler for 'alpha:license:capabilities': Error: ENGINE_NOT_ST
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74380:19
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72100:14
-    at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
-Debugger ending on ws://127.0.0.1:49257/42083536-4bdc-4eb5-8248-53534f99b00b
+    at async Session.<anonymous> (node:electron/js2c/browser_init:1:119027)
+Debugger ending on ws://127.0.0.1:54057/10cde7ab-4978-4361-afa2-daab2ebd1ccb
 For help, see: https://nodejs.org/learn/getting-started/debugging

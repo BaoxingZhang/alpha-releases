@@ -4,6 +4,6 @@ Error occurred in handler for 'alpha:messages:list': Error: APP_LOCK_LOCKED
     at async EngineClient.listMessages (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63761:13)
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74808:22
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72100:14
-    at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
-Debugger ending on ws://127.0.0.1:49256/23ab3773-1936-4842-8c15-8984ef9d63ea
+    at async Session.<anonymous> (node:electron/js2c/browser_init:1:119027)
+Debugger ending on ws://127.0.0.1:54056/780aa7c7-fa2f-4dc6-8dd5-0d5dcb910da0
 For help, see: https://nodejs.org/learn/getting-started/debugging

@@ -144,7 +144,7 @@ export async function packageMacosApp({ output = DEFAULT_OUTPUT, createDmg = fal
     version: '0.3.5',
     appPath: path.relative(root, destination).split(path.sep).join('/'),
     target: { platform: 'darwin', arch: 'arm64' },
-    electronVersion: '44.0.0',
+    electronVersion: '44.10.1',
     nativeRecompiled: false,
     projectSigned: false,
     notarized: false,

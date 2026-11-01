@@ -20,7 +20,7 @@
     "platform": "darwin",
     "architecture": "arm64",
     "nodeVersion": "24.21.0",
-    "electronVersion": "44.0.0",
+    "electronVersion": "44.10.1",
     "nativeRecompiled": false,
     "projectSigned": false,
     "notarized": false

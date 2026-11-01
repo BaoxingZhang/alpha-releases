@@ -87,5 +87,5 @@ const runtimeBundle = path.join(root, 'build/runtime-bundle');
 // Original validation rejects symlinks anywhere in the resource path.
 await fs.rm(runtimeBundle, { recursive: true, force: true });
 await fs.cp(path.join(root, 'vendor/runtime'), runtimeBundle, { recursive: true, preserveTimestamps: true, mode: constants.COPYFILE_FICLONE });
-await fs.writeFile(path.join(root, 'docs/build-results.json'), JSON.stringify({ builtAt: new Date().toISOString(), node: process.version, electron: '44.0.0', esbuild: '0.28.2', sourceKind: 'recovered emitted JavaScript; not original TypeScript', nativeRecompiled: false, independentRuntime: independentManifest, outputs: outputs.map(x => x.metafile) }, null, 2) + '\n');
+await fs.writeFile(path.join(root, 'docs/build-results.json'), JSON.stringify({ builtAt: new Date().toISOString(), node: process.version, electron: '44.10.1', esbuild: '0.28.2', sourceKind: 'recovered emitted JavaScript; not original TypeScript', nativeRecompiled: false, independentRuntime: independentManifest, outputs: outputs.map(x => x.metafile) }, null, 2) + '\n');
 console.log(`Built recovered JavaScript (${independentManifest.status} independent runtime). Original native binaries remain unchanged.`);

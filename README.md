@@ -63,7 +63,7 @@ npm run bundle:recovery  # 生成排除用户数据和构建输出的源码恢�
 
 `npm run bundle:recovery` 会生成 `.runtime/recovery-bundles/alpha-recovered-source.tar.gz` 及同名 manifest。源码包默认包含可编辑源码、测试、脚本、文档、协议材料和原生 provenance，但排除 `node_modules/`、`dist/`、`build/`、`.runtime/`、`.alpha/`、运行日志和截图，也不包含原生 runtime 二进制。需要在受控归档中携带原包二进制时可显式传入 `--include-vendor-runtime`；manifest 会记录 `includesVendorRuntime`、每个源文件的 SHA-256、原始 DMG 摘要，并始终标记 `nativeRecompiled=false`、`projectSigned=false`。这是一份未签名的维护源包，不是可直接安装的 DMG。
 
-Electron 44 的二进制安装是独立步骤，因此保留 `npm run setup`。恢复工程固定 Electron 44.0.0、esbuild 0.28.2、Playwright Core 1.64.1；`package-lock.json` 是此次新增的锁文件。React 19.2.8 等前端运行时已经包含在原 renderer chunks 中，无需再装一份 React。
+Electron 44 的二进制安装是独立步骤，因此保留 `npm run setup`。恢复工程固定 Electron 44.10.1、esbuild 0.28.2、Playwright Core 1.64.1；`package-lock.json` 是此次新增的锁文件。React 19.2.8 等前端运行时已经包含在原 renderer chunks 中，无需再装一份 React。
 
 `npm start` 默认离线隔离运行，数据位于项目 `.runtime/manual/`；每次自动测试使用新的 `.runtime/smoke-*/`。它保留真实开发模式，不伪装发行版。启动适配器将 Electron 的用户、文档、配置、缓存、临时路径指向项目内，外层 macOS Seatbelt 阻止读取用户主目录中项目外的文件内容，并拒绝远程 IP 出站连接，允许本机 loopback 用于自动测试。原生子进程继承同一沙箱。离线适配器将 Electron `safeStorage` 标为不可用，并让加解密调用明确失败，以避免系统钥匙串请求卡住启动；依赖其存储的凭据功能因此不可用，不使用明文回退。未导入真实账号、数据库、密钥或许可。
 

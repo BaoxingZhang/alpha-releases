@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-11-01T05:08:34.787Z",
+  "startedAt": "2026-11-01T05:20:40.645Z",
   "status": "passed",
   "sourceKind": "Original Go implementation; no Chatlog internal packages or binaries are imported",
   "sourceFiles": {
@@ -31,9 +31,9 @@
   "artifact": {
     "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge",
     "bytes": 8447506,
-    "sha256": "ceaff737f780048718271900c61275e35fbd897f1331fddbbdd9255c147596ba",
+    "sha256": "abc0deb57f94cc1b25608b4bb191b97071869717740fd8141bfbfdffd9e4e45f",
     "file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge: Mach-O 64-bit executable arm64",
-    "buildInfo": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge: go1.24.13\n\tpath\talpha.local/data-bridge\n\tmod\talpha.local/data-bridge\tv0.0.0-20261101045834-6cf6183b451a+dirty\t\n\tdep\tgithub.com/klauspost/compress\tv1.18.0\th1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=\n\tdep\tgithub.com/mattn/go-sqlite3\tv1.14.32\th1:JD12Ag3oLy1zQA+BNn74xRgaBbdhbNIDYvQUEuuErjs=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=1\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=6cf6183b451ab20bc84665378af5b4cc56ba5d06\n\tbuild\tvcs.time=2026-11-01T04:58:34Z\n\tbuild\tvcs.modified=true"
+    "buildInfo": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge: go1.24.13\n\tpath\talpha.local/data-bridge\n\tmod\talpha.local/data-bridge\tv0.0.0-20261101051410-e5adef0665ec+dirty\t\n\tdep\tgithub.com/klauspost/compress\tv1.18.0\th1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=\n\tdep\tgithub.com/mattn/go-sqlite3\tv1.14.32\th1:JD12Ag3oLy1zQA+BNn74xRgaBbdhbNIDYvQUEuuErjs=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=1\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=e5adef0665ec20759bad93ef0788de44bbf92254\n\tbuild\tvcs.time=2026-11-01T05:14:10Z\n\tbuild\tvcs.modified=true"
   },
-  "finishedAt": "2026-11-01T05:08:36.672Z"
+  "finishedAt": "2026-11-01T05:20:41.680Z"
 }

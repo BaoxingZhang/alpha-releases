@@ -8,7 +8,7 @@
 
 项目根目录的 `.nvmrc` 固定本地复现基线为 Node.js 24.21.0；`npm run check:maintainability` 会确认这个版本仍落在 `package.json` 的 Node 引擎范围内。使用 nvm 时先运行 `nvm use`，再执行下面的安装和构建命令。未使用 nvm 的环境仍需自行安装满足引擎范围的 Node.js 24.x。
 
-最终机器记录为 [local-run.json](local-run.json)，原生日志为 [local-run.log](local-run.log)，实际截图为 [local-run.png](local-run.png)。测试运行于 macOS arm64，Electron 44.0.0，使用新建的空白项目内配置目录。
+最终机器记录为 [local-run.json](local-run.json)，原生日志为 [local-run.log](local-run.log)，实际截图为 [local-run.png](local-run.png)。测试运行于 macOS arm64，Electron 44.10.1，使用新建的空白项目内配置目录。
 
 | 层次 | 结果 | 证据/限制 |
 | --- | --- | --- |
