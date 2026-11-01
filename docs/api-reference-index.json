@@ -230,5 +230,202 @@
       "wechat.chat.send_text",
       "wechat.chat.get_send_status"
     ]
+  },
+  "independentAdapter": {
+    "http": [
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/sns/timeline",
+        "status": "synthetic-only",
+        "sourceDatabase": "moments.db",
+        "sourceTable": "__alpha_moments_v1"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/sns/usernames",
+        "status": "synthetic-only",
+        "sourceDatabase": "moments.db",
+        "sourceTable": "__alpha_moments_v1"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/sns/day-counts",
+        "status": "synthetic-only",
+        "sourceDatabase": "moments.db",
+        "sourceTable": "__alpha_moments_v1"
+      },
+      {
+        "methods": [
+          "POST"
+        ],
+        "path": "/api/v1/independent/moments/exports",
+        "status": "synthetic-only",
+        "operation": "start",
+        "sourceDatabase": "moments.db",
+        "sourceTable": "__alpha_moments_v1",
+        "media": "metadata-only; media kinds rejected"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/moments/exports/:job_id",
+        "status": "synthetic-only",
+        "operation": "watch",
+        "sourceDatabase": "moments.db",
+        "sourceTable": "__alpha_moments_v1"
+      },
+      {
+        "methods": [
+          "POST"
+        ],
+        "path": "/api/v1/independent/moments/exports/:job_id/cancel",
+        "status": "synthetic-only",
+        "operation": "cancel",
+        "sourceDatabase": "moments.db",
+        "sourceTable": "__alpha_moments_v1"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/favorites",
+        "status": "synthetic-only",
+        "sourceDatabase": "favorite.db",
+        "sourceTable": "__alpha_favorites_v1"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/favorites/:favorite_id/media",
+        "status": "synthetic-only",
+        "sourceDatabase": "favorite.db",
+        "sourceTable": "__alpha_favorite_media_v1"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/favorites/media/:token",
+        "status": "synthetic-only",
+        "sourceDatabase": "favorite.db",
+        "sourceTable": "__alpha_favorite_media_v1"
+      }
+    ],
+    "mcp": [
+      {
+        "name": "wechat.core.list_tools",
+        "status": "alpha-independent-readonly-adapter",
+        "complete": false,
+        "packageFilter": true,
+        "nativeSchemaSupported": false,
+        "excluded": [
+          "wechat.chat.export_conversation",
+          "wechat.chat.export_media_metadata",
+          "alpha-independent.moments.start_export",
+          "alpha-independent.moments.watch_export",
+          "alpha-independent.moments.cancel_export"
+        ]
+      },
+      {
+        "name": "alpha-independent.messages.resolve_search_hit",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "sourceMethod": "locateMessage",
+        "media": "not returned"
+      },
+      {
+        "name": "alpha-independent.analytics.analyze_annual",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "sourceMethods": [
+          "analyzeAnnual",
+          "sessions.list",
+          "messages.list"
+        ],
+        "coverage": "discoverable-sessions"
+      },
+      {
+        "name": "alpha-independent.analytics.analyze_conversation",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "sourceMethods": [
+          "analyzeConversation",
+          "messages.list"
+        ],
+        "coverage": "verified-conversation-messages"
+      },
+      {
+        "name": "alpha-independent.media.browse_conversation",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "sourceMethod": "browseConversationMessages",
+        "coverage": "conversation-message-metadata",
+        "mediaReady": false
+      },
+      {
+        "name": "alpha-independent.media.browse_account",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "sourceMethod": "browseAccountMedia",
+        "coverage": "discoverable-session-message-metadata",
+        "mediaReady": false
+      },
+      {
+        "name": "alpha-independent.moments.list_timeline",
+        "status": "synthetic-only",
+        "sourceTable": "__alpha_moments_v1"
+      },
+      {
+        "name": "alpha-independent.moments.list_users",
+        "status": "synthetic-only",
+        "sourceTable": "__alpha_moments_v1"
+      },
+      {
+        "name": "alpha-independent.moments.day_counts",
+        "status": "synthetic-only",
+        "sourceTable": "__alpha_moments_v1"
+      },
+      {
+        "name": "alpha-independent.moments.start_export",
+        "status": "synthetic-only",
+        "sourceTable": "__alpha_moments_v1",
+        "media": "metadata-only; media kinds rejected"
+      },
+      {
+        "name": "alpha-independent.moments.watch_export",
+        "status": "synthetic-only",
+        "sourceTable": "__alpha_moments_v1"
+      },
+      {
+        "name": "alpha-independent.moments.cancel_export",
+        "status": "synthetic-only",
+        "sourceTable": "__alpha_moments_v1"
+      },
+      {
+        "name": "alpha-independent.favorites.list_items",
+        "status": "synthetic-only",
+        "sourceTable": "__alpha_favorites_v1"
+      },
+      {
+        "name": "alpha-independent.favorites.list_media_slots",
+        "status": "synthetic-only",
+        "sourceTable": "__alpha_favorite_media_v1"
+      },
+      {
+        "name": "alpha-independent.favorites.resolve_media",
+        "status": "synthetic-only",
+        "sourceTable": "__alpha_favorite_media_v1"
+      }
+    ],
+    "nativeMomentsSchemasSupported": [],
+    "nativeFavoriteSchemasSupported": []
   }
 }
