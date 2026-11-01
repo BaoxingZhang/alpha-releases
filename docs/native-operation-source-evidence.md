@@ -32,6 +32,22 @@
 
 这些路径和 operation 名称可以帮助定位后续请求/响应捕获或授权源码，但随包没有对应 Rust 源文件、wire schema、C ABI 头文件或 locator 结构定义。内嵌的 policy JSON 也只是发行运行时声明；它列出 operation 不等于当前环境通过完整性检查后能调用 operation。
 
+### 本轮 REA 对 operation 和语义字符串的补充
+
+REA/Ghidra 对同一 `alpha-data-host` arm64 文件的只读检查又确认了以下入口和语义族：
+
+- `native.list_favorites`、`native.list_moments`、`native.list_moment_authors`、`native.moments_year_stats`；
+- `native.resolve_image_media`、`native.read_image_media`、`native.read_voice_blob`、`native.cdn_media_transfer`；
+- `native.manage_moments_anti_delete`、`semantic.favorites`、`semantic.favorite_xml`、`semantic.moments`。
+
+这些是二进制中的字符串观察，不是运行时调用记录。对应 REA Evidence 为 `ev_b3c5dd36bda3b097b94881d1c35aeabefc3cdf50964a80d928c1e48f559b8b0d`、`ev_f1acd49d61402815c03fe786bee5e0c5323110cc6d5e71be27de66f3fdff04f0`、`ev_e05ad3bf6d4092cec26ec32a284c2cf2f447a379cfd9561f40c2b6728e8a263c`、`ev_aade22a182abf4af9240dc4eabeab0aa1b5c1449a5c9c5f4717e783102b0fbe8` 和 `ev_5cc76c2c5afaa105d69a4d7cd3fdd975ea25476b472cbc55e556de72cb7024ce`。Evidence 保存的是静态扫描范围和文件身份；它没有证明任何 operation 在当前授权、完整性检查和真实数据下成功。
+
+### REA 符号和协议类型索引
+
+针对同一 `alpha-data-host` 的 procedure 搜索还返回了原生符号入口：`NativeCore::list_moments`、`NativeCore::list_favorites`、`parse_favorite`、`favorite_record_field`、`locate_favorite_media`、`lookup_favorite_source`、`resolve_image_media_with_preference`、`resolve_record_media`、`AccountDataPort::moments_year_stats`、`browse_account_media`、`manage_moments_anti_delete`、`resolve_favorite_image_media` 和 `resolve_favorite_object_media`。同一 retained native inventory 还观察到 `ListMomentsRequest/Response`、`ListFavoritesRequest/Response`、`NativeFavoriteRecord`、`FavoriteTypeCount`、`FavoriteTag`、`NativeFavoriteSourceMessage`、`NativeFavoriteMediaLocator/Object`、`MomentsYearStatsRequest/Response`、`MomentsDayCountsOptions`、`ResolveImageMediaRequest/Response`、`PeekCachedMedia*`、`ReadImageMedia*` 和 `ManageMomentsAntiDelete*` 等协议类型名称。
+
+这比普通字符串搜索更接近原生实现的入口索引，但没有提供字段编号、完整 ABI、真实请求/响应、数据库 fixture 或授权状态。因此它只用于安排后续取证，不能据此调用这些入口或把独立实现标为已兼容。REA Evidence：`ev_ce99e3f342f8a8eb071b2ebcad8ac4d13ecc73ca2b169062c9fbefcc1468581a`；年度统计相关类型的补充字符串 Evidence：`ev_5a76bc93f036c83156a5011f4d37f2935529ce94847d817fed555ec6f75e0aed`。
+
 ## `libalpha_sqlcipher_readonly.dylib` 的符号线索
 
 Mach-O 导出符号检查可见：

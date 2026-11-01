@@ -38,6 +38,20 @@ type | local_type
 
 这段 SQL 只描述 `alpha_moments_deleted_v1` 保全表。它不是 `SnsTimeLine` 或 `snsmessage` 的原始表定义，不能作为原表主键、时间单位或内容编码的依据。
 
+## 本轮 REA 对字段和统计入口的补充
+
+REA/Ghidra 在 `alpha-data-host` 的只读字符串中还观察到以下 moments 输出字段：
+
+- `created_at_unix_ms`、`source_database`、`source_table`、`raw_xml`；
+- `username`、`owner_username`、`total_posts`、`day_counts`、`truncated`；
+- `likes_received`、`top_likers`、`likes_given`、`top_liked_authors`。
+
+同一静态范围保留了年度统计校验字符串 `year must be between 1970 and 2100`、错误标识 `NATIVE_MOMENTS_YEAR_STATS_REQUEST_INVALID` 和源码路径 `workers/data-host/src/moments_year_stats.rs`。这些观察支持“年度统计存在显式范围和截断/排行字段”的结论，但不能闭合表列类型、统计 SQL、分页排序或作者身份规则。相关 Evidence 为 `ev_1b92be03751eee362dd72673e26ac5b7280000eb9adef0014878fda17358d71b`、`ev_9bee35d805d3c6ba92d3a2e1da9b1c70724a4b513a5a27541fcac3149981f553`、`ev_6c6eda90c8440018052550b9a706a46dc2c71fb44e5b021eee1df54cf1310b17`、`ev_295360739c3b77a3059bba4dfc4582a6b46914a459ce44cac58bc9237620d868`、`ev_287fd15c5cc84a51c9bda617fe2cba53d0a25c0405baad994cd187c63e946fac`、`ev_73140bf649022673055c0d6f9981dda7c8b5ba1388f9dea3faa290e63aa9a770`、`ev_5734849788f41807597ad5c446416bb53895c7ec83a7452892231ce6c2fc214f` 和 `ev_02e6767614aa451ba31a2670f9672ee0843ee7e4911a15da7a63d38d6c719537`。
+
+REA 对 `_alpha_moments_project_row_v1` 还给出了一个低置信度的四参数调用形状候选，并观察到长度指针、可选输出缓冲区和内部投影序列化路径。该结果只能作为后续 ABI probe 的定位索引；由于 row 结构、输出编码、所有权和错误码仍未知，当前项目不会直接调用它。
+
+针对 `alpha-data-host` 的 REA procedure 搜索还定位到 `NativeCore::list_moments`、`AccountDataPort::moments_year_stats`、`browse_account_media` 和 `manage_moments_anti_delete`，并观察到 `ListMomentsRequest/Response`、`MomentsYearStatsRequest/Response`、`MomentsDayCountsOptions`、`NativeMomentsDayCount`、`NativeMomentsDayCounts`、`NativeMomentsDayCountsTypeCount` 和 `NativeMomentsDayCountsUserCount` 等协议类型名称。年度统计类型还出现 `struct WireMomentsYearStats` 和 `struct MomentsYearStats`。这些是静态 procedure/type 索引，未提供字段编号或序列化值，不能替代授权 fixture 或原生 request/response 捕获。REA Evidence：`ev_ce99e3f342f8a8eb071b2ebcad8ac4d13ecc73ca2b169062c9fbefcc1468581a`、`ev_5a76bc93f036c83156a5011f4d37f2935529ce94847d817fed555ec6f75e0aed`。
+
 ## 关联公开项目的交叉证据
 
 固定提交 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73` 的 WeFlow1 也没有公开朋友圈 SQL。`electron/services/backupService.ts` 只提供 `sns/sns.db` 的路径定位，`electron/services/wcdbCore.ts` 通过 `wcdb_get_sns_timeline`、`wcdb_get_sns_annual_stats`、`wcdb_get_sns_usernames` 和 `wcdb_get_sns_export_stats` 调用 native；`src/types/sns.ts` 与 `electron/services/snsService.ts` 只给出应用层 DTO/XML 解析字段。

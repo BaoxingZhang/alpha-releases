@@ -25,6 +25,14 @@
 
 `vendor/runtime/manifests/alpha-wcdb.component.json` 还声明 `native.list_favorites`、`format.favorites`、`format.favorites-json`、`semantic.favorites` 和 `semantic.favorite_xml`。这些是随包组件能力/格式声明，不能替代 reader 源码或数据库样本。
 
+## 本轮 REA 对收藏和媒体入口的补充
+
+REA/Ghidra 又确认了收藏/媒体相关 operation 字符串：`native.list_favorites`、`native.resolve_image_media`、`native.read_image_media`、`native.read_voice_blob`、`native.cdn_media_transfer`、`semantic.favorites` 和 `semantic.favorite_xml`。这组 Evidence 还同时保留了朋友圈 operation，因此只能说明同一 data-host 包含这些语义入口，不能证明收藏 reader 已经在当前独立后端可调用。对应 Evidence 为 `ev_b3c5dd36bda3b097b94881d1c35aeabefc3cdf50964a80d928c1e48f559b8b0d`、`ev_f1acd49d61402815c03fe786bee5e0c5323110cc6d5e71be27de66f3fdff04f0`、`ev_e05ad3bf6d4092cec26ec32a284c2cf2f447a379cfd9561f40c2b6728e8a263c`、`ev_aade22a182abf4af9240dc4eabeab0aa1b5c1449a5c9c5f4717e783102b0fbe8` 和 `ev_5cc76c2c5afaa105d69a4d7cd3fdd975ea25476b472cbc55e556de72cb7024ce`。
+
+静态 operation 名称与前文候选数据库/列名之间没有可验证的映射。尤其是媒体 operation 的 locator、token、文件所有权和过期状态仍未取得；本工程继续对 `resolveFavoriteMedia` 和媒体 slot 分支返回 `UNIMPLEMENTED`，直到获得授权数据库或 request/response fixture。
+
+REA procedure 搜索还定位到 `NativeCore::list_favorites`、`parse_favorite`、`favorite_record_field`、`locate_favorite_media`、`lookup_favorite_source`、`resolve_image_media_with_preference`、`resolve_record_media`、`resolve_favorite_image_media` 和 `resolve_favorite_object_media`。原生 inventory 同时保留了 `ListFavoritesRequest/Response`、`NativeFavoriteRecord`、`FavoriteTypeCount`、`FavoriteTag`、`NativeFavoriteSourceMessage`、`NativeFavoriteMediaLocator/Object`、`ResolveImageMediaRequest/Response`、`PeekCachedMedia*` 和 `ReadImageMedia*` 等协议类型名称。它们确认原包存在收藏、来源查找和媒体定位的实现入口，但没有闭合字段编号、数据库选择、token 所有权或实际文件读取语义。REA Evidence：`ev_ce99e3f342f8a8eb071b2ebcad8ac4d13ecc73ca2b169062c9fbefcc1468581a`。
+
 ## 关联公开项目的反查结果
 
 固定提交 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73` 的 WeFlow1 反查了 `electron/`、`src/`、`shared/`、`resources/` 和公开 HTTP API 文档，没有找到收藏读取服务、收藏表名或收藏 API。它的公开朋友圈/媒体 DTO 不能补齐 Alpha 收藏的 `fav_db_item`、标签绑定、XML projection 或媒体 token 语义；因此“没有在 WeFlow1 发现收藏实现”本身也是本轮证据边界的一部分，不能被解释为收藏数据库不存在。
