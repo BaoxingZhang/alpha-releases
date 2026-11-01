@@ -15,6 +15,7 @@ const { createChatExportJobs } = require('./chat-export-jobs.cjs');
 const { createRecordExportJobs } = require('./records-export-jobs.cjs');
 const { createChatExportSchedules } = require('./chat-export-schedules.cjs');
 const { contactsXlsx, conversationXlsx, groupMembersXlsx, recordsXlsx } = require('./xlsx-writer.cjs');
+const { CHAT_DERIVED_FORMATS, CHAT_FORMAT_EXTENSIONS, derivedConversationOutput } = require('./export-formats.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
@@ -71,6 +72,7 @@ const MAX_EXPORT_RUNTIME_MS = 30000;
 const MEDIA_METADATA_EXPORT_MAX_ITEMS = 20000;
 const MEDIA_METADATA_EXPORT_MAX_BYTES = 64 * 1024 * 1024;
 const MEDIA_METADATA_EXPORT_FORMATS = new Set(['media-json', 'media-csv']);
+const CONVERSATION_EXPORT_FORMATS = new Set(['json', 'markdown', 'txt', 'html', 'xlsx', ...CHAT_DERIVED_FORMATS]);
 // Keep normal exports efficient while reducing the page if a bridge response
 // is too large for an unusually big decoded/base64 payload.
 const EXPORT_PAGE_SIZE = 100;
@@ -985,10 +987,11 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       if (request.includeMedia !== false && request.includeMedia !== undefined) throw error('EXPORT_REQUEST_INVALID');
       const formatInput = requestedFormat;
       const format = formatInput === 'md' ? 'markdown' : formatInput;
-      if (!['json', 'markdown', 'txt', 'html', 'xlsx'].includes(format)) throw error('EXPORT_FORMAT_UNSUPPORTED');
+      if (!CONVERSATION_EXPORT_FORMATS.has(format)) throw error('EXPORT_FORMAT_UNSUPPORTED');
       const excluded = [configuredSourcePath, dataDir, stateDir];
       const destinationPath = inspectExportPath(request.destinationPath, excluded, true).destination;
-      if (format === 'xlsx' && path.extname(destinationPath).toLowerCase() !== '.xlsx') throw error('EXPORT_REQUEST_INVALID');
+      const expectedExtension = format === 'markdown' ? '.md' : CHAT_FORMAT_EXTENSIONS[format] || `.${format}`;
+      if (path.extname(destinationPath).toLowerCase() !== expectedExtension) throw error('EXPORT_REQUEST_INVALID');
       if (request.page?.cursor?.length) throw error('EXPORT_PAGE_UNSUPPORTED');
       const start = requestTime(request.startTimeUnixMs, 'EXPORT_REQUEST_INVALID', true);
       const end = requestTime(request.endTimeUnixMs, 'EXPORT_REQUEST_INVALID', true);
@@ -1032,7 +1035,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       }
       guard();
       const meta = { accountId, conversationId, ...(start !== undefined ? { startTimeUnixMs: start.toString() } : {}), ...(end !== undefined ? { endTimeUnixMs: end.toString() } : {}) };
-      const output = format === 'json' ? JSON.stringify({ version: 1, format, ...meta, itemCount: items.length, messages: items }) + '\n' : format === 'markdown' ? markdownExport(meta, items) : format === 'html' ? htmlExport(meta, items) : format === 'xlsx' ? conversationXlsxOutput(items) : textExport(meta, items);
+      const output = format === 'json' ? JSON.stringify({ version: 1, format, ...meta, itemCount: items.length, messages: items }) + '\n' : format === 'markdown' ? markdownExport(meta, items) : format === 'html' ? htmlExport(meta, items) : format === 'xlsx' ? conversationXlsxOutput(items) : CHAT_DERIVED_FORMATS.has(format) ? derivedConversationOutput(format, meta, items) : textExport(meta, items);
       if (Buffer.byteLength(output, 'utf8') > MAX_EXPORT_BYTES) throw error('EXPORT_LIMIT_EXCEEDED');
       if (Date.now() - startedAt > MAX_EXPORT_RUNTIME_MS) throw error('EXPORT_TIMEOUT');
       const temporary = path.join(path.dirname(destinationPath), `.alpha-export-${crypto.randomUUID()}.tmp`);

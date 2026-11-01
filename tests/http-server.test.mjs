@@ -114,6 +114,9 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   result = await request(base, '/api/v1/exports', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', conversation_id: 'wxid_peer', format: 'xlsx', destination_path: '/tmp/alpha-http-export.xlsx' }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.format, 'xlsx');
+  result = await request(base, '/api/v1/exports', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', conversation_id: 'wxid_peer', format: 'sql', destination_path: '/tmp/alpha-http-export.sql' }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.format, 'sql');
   result = await request(base, '/api/v1/media-metadata', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', format: 'media-json', destination_path: '/tmp/alpha-http-media.json' }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.destination_path, '/tmp/alpha-http-media.json');
@@ -134,7 +137,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   const headers = { Authorization: `Bearer ${token}`, 'content-type': 'application/json' };
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 20);
+  assert.equal(result.body.result.tools.length, 21);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'wechat.core.list_accounts', arguments: {} } }) });
   assert.equal(result.response.status, 200);
@@ -166,6 +169,15 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.isError, true);
   assert.equal(result.body.result.structuredContent.code, 'MCP_MESSAGE_IDENTIFIER_REQUIRED');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name: 'wechat.forensics.list_records', arguments: { category: 'payments' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.category, 'payments');
+  assert.equal(result.body.result.structuredContent.partial, true);
+  assert.equal(Object.hasOwn(result.body.result.structuredContent, 'total_count'), false);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 10, method: 'tools/call', params: { name: 'wechat.forensics.list_records', arguments: { category: 'payments', query: 'needle' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.isError, true);
+  assert.equal(result.body.result.structuredContent.code, 'MCP_ARGUMENTS_INVALID');
 });
 
 test('MCP adapter exposes bounded resolver, context, anchor and day-count helpers', async t => {

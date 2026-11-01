@@ -2,8 +2,9 @@
 
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { CHAT_FORMAT_EXTENSIONS } = require('./export-formats.cjs');
 
-const FORMATS = new Set(['json', 'markdown', 'txt', 'html', 'xlsx']);
+const FORMATS = new Set(['json', 'markdown', 'txt', 'html', 'xlsx', ...Object.keys(CHAT_FORMAT_EXTENSIONS)]);
 const MAX_CONVERSATIONS = 500;
 const MAX_JOBS = 64;
 const STATE_FILE = 'chat-export-jobs.v1.json';
@@ -78,7 +79,7 @@ function restoreJob(raw) {
 }
 
 function safeConversationFileName(conversationId, format) {
-  const extension = format === 'markdown' ? 'md' : format;
+  const extension = (CHAT_FORMAT_EXTENSIONS[format] || (format === 'markdown' ? '.md' : `.${format}`)).slice(1);
   const readable = conversationId.replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^\.+/, '').slice(0, 96);
   const suffix = crypto.createHash('sha256').update(conversationId).digest('hex').slice(0, 12);
   return `${readable || 'conversation'}-${suffix}.${extension}`;

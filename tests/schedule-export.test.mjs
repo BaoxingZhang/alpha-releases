@@ -51,6 +51,8 @@ test('schedule rejects multi-format and relative destinations', async t => {
   await assert.rejects(f.store.save({ plan: plan('relative/path'), mode: 'create', expectedUpdatedAtUnixMs: 0n }), /CHAT_EXPORT_SCHEDULE_INVALID/);
   const xlsx = await f.store.save({ plan: plan(f.output, { formats: ['xlsx'] }), mode: 'create', expectedUpdatedAtUnixMs: 0n });
   assert.deepEqual(xlsx.formats, ['xlsx']);
+  const sql = await f.store.save({ plan: plan(f.output, { scheduleId: '11111111-1111-4111-8111-111111111112', formats: ['sql'] }), mode: 'create', expectedUpdatedAtUnixMs: 0n });
+  assert.deepEqual(sql.formats, ['sql']);
 });
 
 test('run-now submits verified single export and records history', async t => {

@@ -118,3 +118,21 @@ test('chat export jobs can publish XLSX conversation files', async t => {
   assert.equal(exported.subarray(0, 4).toString('hex'), '504b0304');
   assert.ok(exported.includes(Buffer.from('wxid_alpha')));
 });
+
+test('chat export jobs publish derived formats with their declared extensions', async t => {
+  const f = await setup(t);
+  for (const [format, extension] of [['chatlab-json', '.json'], ['chatlab-jsonl', '.jsonl'], ['sql', '.sql'], ['weclone', '.csv']]) {
+    const outputDirectory = path.join(f.directory, `derived-${format}`);
+    const started = ok(await f.call('startChatExport', {
+      conversationIds: [f.conversationId], format, outputDirectory, voiceTranscripts: false,
+    }), 'startChatExport');
+    let snapshot;
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      snapshot = ok(await f.call('watchChatExport', { jobId: started.jobId }), 'watchChatExport');
+      if (['completed', 'completed_with_errors', 'failed', 'canceled'].includes(snapshot.state)) break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    assert.equal(snapshot.state, 'completed');
+    assert.match(snapshot.items[0].path, new RegExp(`${extension.replace('.', '\\.')}$`));
+  }
+});

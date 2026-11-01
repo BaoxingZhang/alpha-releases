@@ -1,6 +1,6 @@
 {
   "recordedAt": "2026-11-01",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, persistent chat jobs, schedule plan and HTTP/MCP additions; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, persistent chat jobs, schedule plan, derived conversation formats and HTTP/MCP additions; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
     "implementedRequestBranches": 46,
@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 155,
+      "passed": 157,
       "failed": 0
     },
     "build": {
@@ -45,14 +45,19 @@
       "command": "node --test tests/http-server.test.mjs",
       "status": "passed",
       "tests": 4,
-      "tools": 20,
+      "tools": 21,
       "conversationExportFormats": [
         "json",
         "markdown",
         "html",
         "txt",
-        "xlsx"
+        "xlsx",
+        "chatlab-json",
+        "chatlab-jsonl",
+        "sql",
+        "weclone"
       ],
+      "derivedFormatsCompatibility": "Derived from verified independent message DTOs; no native Alpha, ChatLab or WeClone byte/schema compatibility is claimed",
       "mediaMetadataExportFormats": [
         "media-json",
         "media-csv"
@@ -62,7 +67,7 @@
     "chatExportSchedules": {
       "command": "node --test tests/schedule-export.test.mjs",
       "status": "passed",
-      "tests": 7,
+      "tests": 6,
       "persistentPlanStore": true,
       "explicitRunNow": true,
       "backgroundAutomaticTimer": true,
@@ -140,8 +145,8 @@
       "target": "darwin-arm64",
       "nativeRecompiled": false,
       "projectSigned": false,
-      "artifactCount": 256,
-      "artifactDigest": "f28032e7ceea882365d61c0f5b9685769c4179343546ece9fb7ffb8dfd5399e1"
+      "artifactCount": 257,
+      "artifactDigest": "29edc4afff255d7ac2c498f86f25df3ed58abe1212af7c921fc8c558c5f5adeb"
     }
   },
   "featureBoundary": {

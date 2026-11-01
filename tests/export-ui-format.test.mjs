@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chatExportPolicy, independentFormatPreference } from '../src/renderer/assets/export-policy.mjs';
 
-const formats = ['xlsx', 'html', 'markdown', 'txt', 'json', 'sql'].map(id => ({ id }));
+const formats = ['xlsx', 'html', 'markdown', 'txt', 'json', 'chatlab-json', 'chatlab-jsonl', 'sql', 'weclone'].map(id => ({ id }));
 
 test('xlsx/media preferences select an independent export without altering original settings', () => {
   const preferences = Object.freeze({ format: 'xlsx', includeMedia: true });
   const independent = chatExportPolicy(preferences, formats, true);
-  assert.deepEqual(independent.formats.map(item => item.id), ['xlsx', 'markdown', 'txt', 'json']);
+  assert.deepEqual(independent.formats.map(item => item.id), ['xlsx', 'markdown', 'txt', 'json', 'chatlab-json', 'chatlab-jsonl', 'sql', 'weclone']);
   assert.equal(independent.format, 'xlsx');
   assert.equal(independent.includeMedia, false);
   assert.equal(chatExportPolicy(preferences, formats, false).format, 'xlsx');
@@ -19,5 +19,6 @@ test('center and dialog remember an independent selection separately from origin
   assert.equal(chatExportPolicy(preferences, formats, true).format, 'json');
   assert.equal(chatExportPolicy(preferences, formats, false).format, 'html');
   assert.equal(independentFormatPreference('xlsx'), 'xlsx');
+  assert.equal(independentFormatPreference('sql'), 'sql');
   assert.equal(chatExportPolicy({ format: 'txt' }, formats, true).format, 'txt');
 });

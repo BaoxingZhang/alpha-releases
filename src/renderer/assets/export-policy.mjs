@@ -1,6 +1,6 @@
 // Maintained export choices shared by the center and dialog. Original engine
 // preferences stay separate from the independent engine's remembered format.
-const INDEPENDENT_FORMATS = new Set(['json', 'markdown', 'txt', 'xlsx']);
+const INDEPENDENT_FORMATS = new Set(['json', 'markdown', 'txt', 'xlsx', 'chatlab-json', 'chatlab-jsonl', 'sql', 'weclone']);
 
 export function chatExportPolicy(preferences, offered, independent) {
   const formats = independent ? offered.filter(item => INDEPENDENT_FORMATS.has(item.id)) : offered;

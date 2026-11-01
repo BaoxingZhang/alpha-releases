@@ -98,6 +98,36 @@ test('html export is a safe static rendering of verified message DTOs', async t 
   assert.doesNotMatch(html, /xl\/worksheets/); // HTML must not be an XLSX masquerading as a web document.
 });
 
+test('derived exports are bounded, parseable and preserve verified message fields', async t => {
+  const f = await setup(t);
+  const cases = [
+    ['chatlab-json', 'chatlab.json'],
+    ['chatlab-jsonl', 'chatlab.jsonl'],
+    ['sql', 'chat.sql'],
+    ['weclone', 'chat.csv']
+  ];
+  for (const [format, file] of cases) {
+    const destinationPath = path.join(f.directory, file);
+    const result = ok(await f.call('exportConversation', { conversationId: f.conversationId, format, destinationPath }), 'exportConversation');
+    assert.equal(result.format, format);
+    const output = await fs.readFile(destinationPath, 'utf8');
+    assert.match(output, /wxid_alpha/);
+    assert.match(output, /same sequence/);
+    if (format === 'chatlab-json') assert.equal(JSON.parse(output).format, 'chatlab-json-derived');
+    if (format === 'chatlab-jsonl') {
+      const lines = output.trimEnd().split('\n').map(line => JSON.parse(line));
+      assert.equal(lines[0].format, 'chatlab-jsonl-derived');
+      assert.equal(lines[0].recordType, 'meta');
+      assert.equal(lines[1].recordType, 'message');
+    }
+    if (format === 'sql') assert.match(output, /CREATE TABLE IF NOT EXISTS alpha_messages/);
+    if (format === 'weclone') {
+      assert.match(output, /^conversation_id,message_id,/);
+      assert.match(output, /weclone-derived,alpha-independent-message-v1/);
+    }
+  }
+});
+
 test('exporter rejects media, existing destinations, symlink destinations and incomplete pages', async t => {
   const f = await setup(t);
   const destinationPath = path.join(f.directory, 'existing.json');
@@ -108,7 +138,7 @@ test('exporter rejects media, existing destinations, symlink destinations and in
   await fs.symlink(destinationPath, symlink);
   assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath: symlink })).error.code, 'EXPORT_DESTINATION_INVALID');
   assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath: path.join(f.directory, 'cursor.json'), page: { cursor: Buffer.from('cursor') } })).error.code, 'EXPORT_PAGE_UNSUPPORTED');
-  assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'chatlab-json', destinationPath: path.join(f.directory, 'unknown.json') })).error.code, 'EXPORT_FORMAT_UNSUPPORTED');
+  assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'arkme-json', destinationPath: path.join(f.directory, 'unknown.json') })).error.code, 'EXPORT_FORMAT_UNSUPPORTED');
   assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'xlsx', destinationPath: null })).error.code, 'EXPORT_DESTINATION_INVALID');
   assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath: path.join(f.directory, 'data', 'inside.json') })).error.code, 'EXPORT_DESTINATION_INVALID');
   assert.equal(await fs.readFile(destinationPath, 'utf8'), 'keep');

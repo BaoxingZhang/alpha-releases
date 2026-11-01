@@ -9,6 +9,7 @@ const fsp = fs.promises;
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { safeConversationFileName } = require('./chat-export-jobs.cjs');
+const { CHAT_FORMAT_EXTENSIONS } = require('./export-formats.cjs');
 
 const FILE_NAME = 'chat-export-schedules.v1.json';
 const MAX_PLANS = 1000;
@@ -22,7 +23,7 @@ const MAX_SCHEDULER_POLL_MS = 60 * 1000;
 const MIN_SCHEDULER_POLL_MS = 250;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const UUID_ZERO = '00000000-0000-0000-0000-000000000000';
-const FORMATS = new Set(['json', 'markdown', 'txt', 'html', 'xlsx']);
+const FORMATS = new Set(['json', 'markdown', 'txt', 'html', 'xlsx', ...Object.keys(CHAT_FORMAT_EXTENSIONS)]);
 const RUN_STATES = new Set(['queued', 'leasing', 'starting', 'running', 'waiting_tool', 'waiting_approval', 'waiting_input', 'checkpointing', 'retry_wait', 'cancel_requested', 'canceled', 'completed', 'completed_with_errors', 'failed']);
 const ATTEMPT_STATES = new Set(['queued', 'preparing', 'submitted', 'failed', 'skipped']);
 const ATTEMPT_REASONS = new Set(['account_unavailable', 'plan_invalid', 'snapshot_failed', 'storage_unavailable', 'preparation_timeout', 'schedule_disabled', 'schedule_deleted', 'schedule_owner_changed', 'no_new_messages', 'destination_unavailable', 'start_failed']);

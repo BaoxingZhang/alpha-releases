@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-01T00:13:25.491Z",
+  "builtAt": "2026-11-01T00:36:24.607Z",
   "node": "v24.21.0",
   "electron": "44.0.0",
   "esbuild": "0.28.2",
@@ -190,7 +190,7 @@
           "format": "esm"
         },
         "src/renderer/assets/export-policy.mjs": {
-          "bytes": 840,
+          "bytes": 891,
           "imports": [],
           "format": "esm"
         },
@@ -253,7 +253,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 1421
+          "bytes": 1496
         },
         "dist/app/out/renderer/assets/export-policy.js": {
           "imports": [],
@@ -264,10 +264,10 @@
           "entryPoint": "src/renderer/assets/export-policy.mjs",
           "inputs": {
             "src/renderer/assets/export-policy.mjs": {
-              "bytesInOutput": 688
+              "bytesInOutput": 739
             }
           },
-          "bytes": 792
+          "bytes": 843
         },
         "dist/app/out/renderer/assets/image-viewer-BiP1Iv4A.js.map": {
           "imports": [],
