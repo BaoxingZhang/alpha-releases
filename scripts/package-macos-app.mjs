@@ -9,6 +9,7 @@ const execFileAsync = promisify(execFile);
 export const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 export const DEFAULT_OUTPUT = path.join(root, '.runtime', 'release-artifacts', 'Alpha Recovered.app');
 const APP_NAME = 'Alpha Recovered';
+const REQUIRED_INDEPENDENT_DEPENDENCY = path.join('node_modules', '@bufbuild', 'protobuf', 'dist', 'commonjs', 'wire', 'index.js');
 
 function fail(message) { throw new Error(message); }
 
@@ -124,6 +125,14 @@ export async function packageMacosApp({ output = DEFAULT_OUTPUT, createDmg = fal
   await regularDirectory(recoveredApp, 'MACOS_APP_RECOVERED_BUILD_MISSING');
   await regularDirectory(runtime, 'MACOS_APP_RUNTIME_BUNDLE_MISSING');
   await regularDirectory(packagedIndependent, 'MACOS_APP_INDEPENDENT_RESOURCES_MISSING');
+  try {
+    const dependency = path.join(packagedIndependent, REQUIRED_INDEPENDENT_DEPENDENCY);
+    const stat = await fs.lstat(dependency);
+    if (!stat.isFile() || stat.isSymbolicLink()) fail('MACOS_APP_INDEPENDENT_DEPENDENCY_INVALID');
+  } catch (error) {
+    if (error?.message === 'MACOS_APP_INDEPENDENT_DEPENDENCY_INVALID') throw error;
+    fail('MACOS_APP_INDEPENDENT_DEPENDENCY_MISSING');
+  }
   await fs.rm(destination, { recursive: true, force: true });
   await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
   await copyDirectoryContents(electronApp, destination, { allowSymlinks: true, sourceRoot: electronApp });

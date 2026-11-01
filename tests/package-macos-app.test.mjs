@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { buildFileManifest, manifestDigest, rewriteElectronInfoPlist } from '../scripts/package-macos-app.mjs';
 
 test('macOS app packaging rewrites identity while retaining Electron executable', () => {
@@ -37,4 +38,16 @@ test('macOS app file manifests are deterministic and reject symlinks', async () 
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
+});
+
+test('generated app payloads keep the recovered protobuf runtime closure', async () => {
+  const app = path.join(path.dirname(path.dirname(new URL(import.meta.url).pathname)), 'dist', 'app');
+  const main = path.join(app, 'out', 'main', 'index.js');
+  const independentProtocol = path.join(app, 'independent', 'packages', 'alpha-protocol', 'index.cjs');
+  const mainRequire = createRequire(main);
+  const independentRequire = createRequire(independentProtocol);
+  const mainWire = mainRequire.resolve('@bufbuild/protobuf/wire');
+  const independentWire = independentRequire.resolve('@bufbuild/protobuf/wire');
+  assert.equal(mainWire, path.join(app, 'node_modules', '@bufbuild', 'protobuf', 'dist', 'commonjs', 'wire', 'index.js'));
+  assert.equal(independentWire, path.join(app, 'independent', 'node_modules', '@bufbuild', 'protobuf', 'dist', 'commonjs', 'wire', 'index.js'));
 });
