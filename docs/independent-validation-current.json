@@ -118,8 +118,8 @@
       "includesVendorRuntime": false,
       "nativeRecompiled": false,
       "projectSigned": false,
-      "archiveBytes": 3869966,
-      "archiveSha256": "ed8941c6e09889035d417b3777be336d541dae691bd34551ab3c9094ed52e8fb",
+      "archiveBytes": 3869980,
+      "archiveSha256": "1c49705742f61c76c41b99be7cff53cb6219385ec1f6654f30490dc0aec6e1e1",
       "artifactManifestDigest": "0bc6b6d11296fd4bc2132caa677055fee91fc73a1a0c50b0a2929d1e7312b7d7"
     },
     "desktopIndependent": {
