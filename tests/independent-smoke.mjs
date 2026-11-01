@@ -122,20 +122,21 @@ try {
   report.checks.independentRecordExportThroughRendererIpc = true;
   await page.getByRole('button', { name: '其他资料', exact: true }).click();
   await page.locator('section[aria-label="其他资料"]').waitFor({ timeout: 15000 });
-  for (const label of ['好友验证（暂不可用）', '朋友圈互动（暂不可用）', '搜索记录（暂不可用）']) {
+  for (const label of ['朋友圈互动（暂不可用）', '搜索记录（暂不可用）']) {
     assert.equal(await page.getByRole('tab', { name: label, exact: true }).isDisabled(), true, label);
   }
-  for (const label of ['转账与红包', '撤回']) {
+  for (const label of ['转账与红包', '好友验证', '撤回']) {
     assert.equal(await page.getByRole('tab', { name: label, exact: true }).isDisabled(), false, label);
   }
-  await page.getByText('独立离线模式支持转账与红包、撤回、通话候选', { exact: false }).waitFor({ timeout: 15000 });
+  await page.getByText('独立离线模式支持好友验证、转账与红包、撤回、通话候选', { exact: false }).waitFor({ timeout: 15000 });
   const recordsExportPopupPromise = page.waitForEvent('popup', { timeout: 15000 });
   await page.getByRole('button', { name: '导出其他资料', exact: true }).click();
   const recordsExportPopup = await recordsExportPopupPromise;
   await recordsExportPopup.locator('.dataset-export-dialog').waitFor({ timeout: 15000 });
-  for (const label of ['好友验证（暂不可用）', '朋友圈互动（暂不可用）', '搜索记录（暂不可用）']) {
+  for (const label of ['朋友圈互动（暂不可用）', '搜索记录（暂不可用）']) {
     assert.equal(await recordsExportPopup.getByRole('checkbox', { name: label, exact: true }).isDisabled(), true, label);
   }
+  assert.equal(await recordsExportPopup.getByRole('checkbox', { name: '好友验证', exact: true }).isDisabled(), false);
   assert.equal(await recordsExportPopup.getByRole('checkbox', { name: '转账与红包', exact: true }).isDisabled(), false);
   assert.equal(await recordsExportPopup.getByRole('checkbox', { name: '撤回', exact: true }).isDisabled(), false);
   assert.equal(await recordsExportPopup.getByRole('checkbox', { name: '通话记录', exact: true }).isDisabled(), false);

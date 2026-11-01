@@ -39,6 +39,24 @@ npm run demo -- --search
 
 直接运行 `npm run start:independent` 时不会自动寻找数据目录；它只启动一个没有配置账号的数据源，适合检查界面和锁状态。要打开指定副本，必须通过 `scripts/launch.mjs --independent --data-dir <项目内 .runtime 目录> --account-id <标识>` 显式传入，启动器会拒绝项目外路径、符号链接和缺少账号标识的配置。
 
+## 打包独立后端
+
+Electron 的 packaged 模式默认仍启动随原包提供的原生 engine。要把恢复的独立后端放入可分发的资源目录，先运行：
+
+```sh
+npm run build:packaged
+```
+
+该命令会在 `build/packaged-resources/independent/` 生成 `alpha-engine`、`alpha-security`、`alpha-protocol` 和两个只读 Go 适配器。打包器应将这个目录复制为应用 `Resources/independent/`，并保留普通文件属性。安装后的应用只有在同时设置 `ALPHA_RECOVERY_BACKEND=independent` 与 `ALPHA_INDEPENDENT_PACKAGED=1` 时才会选择该后端；缺少任一标记时保持原生启动链路和许可/完整性检查。独立资源不完整时主进程会 fail-closed，不会回退到原生 engine。
+
+在本机 macOS arm64 上可以生成未签名的 Electron app：
+
+```sh
+npm run package:macos-app
+```
+
+如果刚运行过 `npm run build:packaged`，可以使用 `npm run package:macos-app:from-build` 只组装 app，避免重复编译。产物写入 `.runtime/release-artifacts/Alpha Recovered.app`，旁边有包含逐文件 SHA-256 的 manifest。需要制作未签名、未公证的压缩 DMG 时运行 `npm run package:macos-dmg`；这些产物不能绕过 Gatekeeper、授权或原生完整性策略。
+
 ## 本次补齐的工程部分
 
 - 新建 `package.json`/`package-lock.json`，固定构建依赖和 Electron 版本。

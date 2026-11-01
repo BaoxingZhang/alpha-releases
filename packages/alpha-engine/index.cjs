@@ -14,12 +14,14 @@ const { inspectExportPath, prepareExportPath, cleanupExportDirectories } = requi
 const { createChatExportJobs } = require('./chat-export-jobs.cjs');
 const { createRecordExportJobs } = require('./records-export-jobs.cjs');
 const { createChatExportSchedules } = require('./chat-export-schedules.cjs');
+const { createAggregateAnalysisJobs } = require('./aggregate-analysis-jobs.cjs');
 const { contactsXlsx, conversationXlsx, groupMembersXlsx, recordsXlsx } = require('./xlsx-writer.cjs');
 const { CHAT_DERIVED_FORMATS, CHAT_FORMAT_EXTENSIONS, derivedConversationOutput } = require('./export-formats.cjs');
+const { loadMediaIndex } = require('./media-index.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, getMessageSource: 107, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, getContactProfile: 115, listGeneral: 45, exportContacts: 117, exportGroupMembers: 139, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, getAdvancedComponentStatus: 65, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, getMessageSource: 107, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, getContactProfile: 115, listGeneral: 45, exportContacts: 117, exportGroupMembers: 139, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
 // These enum values are recovered from the Alpha protocol. The independent
 // engine can report the local package boundary, but it cannot start or claim
 // a dynamically entitled native component. Keep this status explicit and
@@ -37,6 +39,20 @@ function decimal(value, signed = false) {
 function text(value, maximum = 4096) {
   if (typeof value !== 'string' || value.length > maximum || value.includes('\0')) throw error('BRIDGE_VALUE_INVALID');
   return value;
+}
+function telemetryConsentVersion(value) {
+  if (value === undefined || value === '') return TELEMETRY_DEFAULT_CONSENT_VERSION;
+  if (typeof value !== 'string' || value !== value.trim() || value.length > 128 || /[\u0000-\u001f\u007f]/.test(value)) throw error('TELEMETRY_VERSION_INVALID');
+  return value;
+}
+function telemetryCategories(value) {
+  if (!Array.isArray(value) || value.length > 64) throw error('TELEMETRY_CATEGORIES_INVALID');
+  const seen = new Set();
+  return value.map(category => {
+    if (typeof category !== 'string' || category !== category.trim() || !category || category.length > 128 || /[\u0000-\u001f\u007f]/.test(category) || seen.has(category)) throw error('TELEMETRY_CATEGORIES_INVALID');
+    seen.add(category);
+    return category;
+  });
 }
 function uint32(value) {
   const n = decimal(value);
@@ -88,7 +104,7 @@ const CONTACT_DIRECTORY_MAX_ITEMS = 100000;
 const CONTACT_DIRECTORY_MAX_PAGES = 256;
 const TYPE_BROWSE_CATEGORIES = new Set(['media', 'file', 'link']);
 const ACCOUNT_MEDIA_CATEGORIES = new Set(['media', 'image', 'video']);
-const GENERAL_RECORD_TABLES = new Set(['__alpha_group_members', '__alpha_general_payments', '__alpha_general_revokes', '__alpha_general_calls']);
+const GENERAL_RECORD_TABLES = new Set(['__alpha_group_members', '__alpha_general_payments', '__alpha_general_friend_requests', '__alpha_general_revokes', '__alpha_general_calls']);
 const BROWSE_PAGE_MAX = 120;
 const BROWSE_BRIDGE_PAGE = 120;
 const BROWSE_CURSOR_MAX_BYTES = 1024;
@@ -96,6 +112,11 @@ const BROWSE_MAX_SCAN_PAGES = 128;
 const BROWSE_MAX_SCAN_CONVERSATIONS = 10000;
 const MESSAGE_SOURCE_PAGE_SIZE = 100;
 const MESSAGE_SOURCE_MAX_SCAN_PAGES = 128;
+const TELEMETRY_STATE_VERSION = 1;
+const TELEMETRY_STATE_MAX_BYTES = 16 * 1024;
+const TELEMETRY_DEFAULT_CONSENT_VERSION = 'telemetry-v1';
+const TELEMETRY_DISABLED_ERROR = 'INDEPENDENT_TELEMETRY_DISABLED';
+const TELEMETRY_DECISIONS = new Set(['granted', 'revoked']);
 function requestTime(value, code, optional = false) {
   if (optional && value === undefined) return undefined;
   if (typeof value !== 'bigint' || value < 0n || value > INT64_MAX) throw error(code);
@@ -382,7 +403,7 @@ function groupMemberExportOutput(format, meta, items) {
   throw error('EXPORT_FORMAT_UNSUPPORTED');
 }
 
-const RECORD_EXPORT_TABLES = Object.freeze({ payments: '__alpha_general_payments', revokes: '__alpha_general_revokes', calls: '__alpha_general_calls' });
+const RECORD_EXPORT_TABLES = Object.freeze({ payments: '__alpha_general_payments', friend_requests: '__alpha_general_friend_requests', revokes: '__alpha_general_revokes', calls: '__alpha_general_calls' });
 const RECORD_EXPORT_MAX_ITEMS = 20000;
 const RECORD_EXPORT_MAX_BYTES = 64 * 1024 * 1024;
 // Keep each bridge response comfortably below the framed transport limit even
@@ -454,11 +475,71 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   if (!Number.isSafeInteger(importerTimeoutMs) || importerTimeoutMs < 1 || importerTimeoutMs > 115000) throw error('IMPORT_TIMEOUT_INVALID');
   if (selfUsername && /[\x00-\x1f]/.test(selfUsername)) throw error('SELF_USERNAME_INVALID');
   const selectionFile = path.join(stateDir, 'selected-source.v1.json');
+  const telemetryFile = path.join(stateDir, 'telemetry-consent.v1.json');
   let selectedId = '', selectedPath = '', bridge = null, info = null, helloDone = false;
+  let telemetryStateLoaded = false;
+  let telemetryState = { decision: '', categories: [], consentVersion: TELEMETRY_DEFAULT_CONSENT_VERSION };
+  // Image keys are deliberately process-local. The independent backend has
+  // no verified DAT decoder or native media provider yet, so retaining a
+  // manually supplied key must never imply that media is usable or write the
+  // key into stateDir, logs, manifests, or a child-process environment.
+  let imageKeyState = null;
+  // Optional independent media index. It is loaded only from the explicitly
+  // selected source root and never inferred from arbitrary home-directory
+  // paths. A malformed/missing manifest leaves metadata refs unchanged.
+  let mediaIndexState;
   let activeImport = null, snapshotLoaded = false, sourceInventory = null, outputInventory = null, sourceFailure = '', closed = false;
   const snapshotOptions = { snapshotRoot, accountId, encryptedDir };
   const names = new Map();
   const configuredSourcePath = encryptedDir || dataDir;
+  function loadTelemetryState() {
+    if (telemetryStateLoaded) return telemetryState;
+    let fd;
+    try {
+      fd = fs.openSync(telemetryFile, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+      const stat = fs.fstatSync(fd);
+      if (!stat.isFile() || stat.size > TELEMETRY_STATE_MAX_BYTES || (stat.mode & 0o077)) throw error('TELEMETRY_STATE_INVALID');
+      let parsed;
+      try { parsed = JSON.parse(fs.readFileSync(fd, 'utf8')); } catch { throw error('TELEMETRY_STATE_INVALID'); }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || parsed.version !== TELEMETRY_STATE_VERSION || !TELEMETRY_DECISIONS.has(parsed.decision)) throw error('TELEMETRY_STATE_INVALID');
+      const categories = telemetryCategories(parsed.categories);
+      const consentVersion = telemetryConsentVersion(parsed.consentVersion);
+      telemetryState = { decision: parsed.decision, categories, consentVersion };
+    } catch (failure) {
+      if (failure.code !== 'ENOENT') throw failure.message === 'TELEMETRY_STATE_INVALID' ? failure : error('TELEMETRY_STATE_INVALID');
+    } finally {
+      if (fd !== undefined) fs.closeSync(fd);
+    }
+    telemetryStateLoaded = true;
+    return telemetryState;
+  }
+  function saveTelemetryState(next) {
+    safeStateDirectory(stateDir);
+    const temporary = path.join(stateDir, `.telemetry-${crypto.randomUUID()}`);
+    const serialized = JSON.stringify({ version: TELEMETRY_STATE_VERSION, ...next }) + '\n';
+    if (Buffer.byteLength(serialized, 'utf8') > TELEMETRY_STATE_MAX_BYTES) throw error('TELEMETRY_STATE_INVALID');
+    try {
+      fs.writeFileSync(temporary, serialized, { flag: 'wx', mode: 0o600 });
+      fs.chmodSync(temporary, 0o600);
+      fs.renameSync(temporary, telemetryFile);
+    } finally {
+      fs.rmSync(temporary, { force: true });
+    }
+    telemetryState = { decision: next.decision, categories: [...next.categories], consentVersion: next.consentVersion };
+    telemetryStateLoaded = true;
+  }
+  function telemetryStatus() {
+    const state = loadTelemetryState();
+    return {
+      configured: Boolean(state.decision),
+      consentDecision: state.decision,
+      consentCategories: [...state.categories],
+      queuedCount: 0n,
+      queuedBytes: 0n,
+      nextAttemptUnixMs: 0n,
+      lastErrorCode: state.decision === 'granted' ? TELEMETRY_DISABLED_ERROR : ''
+    };
+  }
   try {
     const fd = fs.openSync(selectionFile, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
     try {
@@ -476,7 +557,52 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     selectedId = accountId; selectedPath = configuredSourcePath;
   }
   function guard(signal) { lock.assertAccess(); if (closed) throw error('ENGINE_CLOSED'); if (signal?.aborted) throw error(signal.reason?.message === 'IMPORT_TIMEOUT' ? 'IMPORT_TIMEOUT' : 'IMPORT_CANCELED'); }
-  async function dropBridge() { const old = bridge; bridge = null; info = null; names.clear(); if (old) await old.close(); }
+  function independentMediaIndex() {
+    if (mediaIndexState !== undefined) return mediaIndexState;
+    if (!dataDir || !path.isAbsolute(dataDir)) { mediaIndexState = null; return mediaIndexState; }
+    try {
+      // The data directory is explicitly selected by the caller. The optional
+      // manifest may add its own account binding; when present it must agree
+      // with the engine account before any local URI is emitted.
+      mediaIndexState = loadMediaIndex({ root: dataDir, expectedAccountId: accountId });
+    } catch (failure) {
+      // A missing manifest is the normal metadata-only case. A malformed
+      // manifest is remembered as unavailable for this engine lifetime so a
+      // later call cannot accidentally bless changed source state.
+      mediaIndexState = failure?.message === 'MEDIA_INDEX_MANIFEST_MISSING' ? null : { error: 'MEDIA_INDEX_UNAVAILABLE' };
+    }
+    return mediaIndexState;
+  }
+  function clearImageKeyState() {
+    if (imageKeyState?.aesKey instanceof Uint8Array) imageKeyState.aesKey.fill(0);
+    imageKeyState = null;
+  }
+  function imageMediaStatus() {
+    const configured = imageKeyState !== null;
+    return {
+      detected: false,
+      usable: false,
+      enabled: configured,
+      verified: false,
+      automaticSupported: false,
+      provider: configured ? 'independent-memory-key' : '',
+      sampleUri: '',
+      errorCode: configured ? 'INDEPENDENT_MEDIA_DECODER_UNAVAILABLE' : 'INDEPENDENT_IMAGE_KEY_UNCONFIGURED',
+      memoryScanSupported: false
+    };
+  }
+  function imageKeyEvidence() {
+    const digest = Buffer.from(sha('alpha-independent-image-key-v1:memory-only'), 'hex');
+    return {
+      provider: 'independent-memory-key',
+      datMagicVerified: false,
+      verification: 'memory-only-key-stored; media-decoder-unavailable',
+      templatesChecked: 0,
+      matchingTemplates: 0,
+      evidenceDigest: new Uint8Array(digest)
+    };
+  }
+  async function dropBridge() { const old = bridge; bridge = null; info = null; names.clear(); clearImageKeyState(); if (old) await old.close(); }
   function checkedInfo(value) {
     if (!value || value.id !== accountId || value.readOnly !== true || value.sourceKind !== 'offline-wechat-v4' || typeof value.snapshotId !== 'string' || !value.snapshotId || !Array.isArray(value.capabilities) || !value.capabilities.includes('account.info')) throw error('BRIDGE_ACCOUNT_INVALID');
     return value;
@@ -513,7 +639,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   }
   async function callData(op, params) { await source(); const current = bridge; const result = await current.call(op, params); guard(); return result; }
   async function requireAccount(id) { guard(); if (id !== accountId || !configuredSourcePath) throw error('ACCOUNT_NOT_FOUND'); return source(); }
-  function messageRefs(row) {
+  function messageRefs(row, conversationId, messageId) {
     if (row?.refs === undefined) return [];
     if (!Array.isArray(row.refs) || row.refs.length > 4) throw error('BRIDGE_MESSAGE_REFS_INVALID');
     return row.refs.map(ref => {
@@ -525,7 +651,21 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       if (!id && !uri) throw error('BRIDGE_MESSAGE_REFS_INVALID');
       if (uri && !/^https?:\/\/[^\s<>]+$/i.test(uri)) throw error('BRIDGE_MESSAGE_REFS_INVALID');
       if (id && !/^[A-Za-z0-9._:-]+$/.test(id)) throw error('BRIDGE_MESSAGE_REFS_INVALID');
-      return { kind: ref.kind, ...(ref.id ? { id: ref.id } : {}), ...(ref.uri ? { uri: ref.uri } : {}), ...(ref.mimeType ? { mimeType: ref.mimeType } : {}), ...(ref.rendition ? { rendition: ref.rendition } : {}) };
+      const result = { kind: ref.kind, ...(ref.id ? { id: ref.id } : {}), ...(ref.uri ? { uri: ref.uri } : {}), ...(ref.mimeType ? { mimeType: ref.mimeType } : {}), ...(ref.rendition ? { rendition: ref.rendition } : {}) };
+      // Bind a local image only when the explicitly supplied index identifies
+      // the same account-scoped conversation/message. The URI is an
+      // independent content-addressed token; it is never Alpha's media1_
+      // token and does not imply DAT/AES compatibility.
+      if (result.kind === 'image' && result.id) {
+        const index = independentMediaIndex();
+        const rendition = result.rendition || 'source';
+        const entry = index && Array.isArray(index.entries) ? index.entries.find(item => item.kind === 'image' && (!item.accountId || item.accountId === accountId) && item.id === result.id && item.rendition === rendition && (!item.conversationId || item.conversationId === conversationId) && (!item.messageId || item.messageId === messageId)) : null;
+        if (entry) {
+          result.uri = `alpha-media://sha256/${entry.sha256}`;
+          if (entry.mimeType) result.mimeType = entry.mimeType;
+        }
+      }
+      return result;
     });
   }
   function messageFromRow(row, conversationId) {
@@ -545,7 +685,8 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     } else throw error('BRIDGE_MESSAGE_ENCODING_INVALID');
     const rawType = decimal(row.localType), type = Number(rawType & 0xffffffffn);
     const kind = unsupportedContent ? 'unsupported' : ({ 1: 'text', 3: 'image', 34: 'voice', 42: 'contact', 43: 'video', 47: 'sticker', 48: 'location', 49: 'share', 10000: 'system' })[type] || 'unknown';
-    const refs = messageRefs(row);
+    const messageId = `msg-${sha(JSON.stringify(identity))}`;
+    const refs = messageRefs(row, row.conversationId, messageId);
     let display, displayJson = new Uint8Array(0);
     if (!unsupportedContent && row.display !== undefined) {
       const checked = validateMessageDisplay(row.display);
@@ -554,7 +695,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     }
     // A voice ref is verified from the row's real server_id, so retain it
     // when the encoded audio payload itself is not decodable as message text.
-    return { id: `msg-${sha(JSON.stringify(identity))}`, localId: local <= 2147483647n ? Number(local) : 0, serverId: server, conversationId: row.conversationId, sourceId: `source-${sha(JSON.stringify([accountId, identity.database]))}`, sentAtUnixMs: sentAt, direction: selfUsername && row.sender ? row.sender === selfUsername ? 2 : 1 : 0, kind, text: content, senderId: text(row.sender), sourceType: rawType, platformMessageId: row.serverId, sourceToken: 'independent1_' + Buffer.from(JSON.stringify(identity)).toString('base64url'), refs: unsupportedContent ? refs.filter(ref => ref.kind === 'voice') : refs,
+    return { id: messageId, localId: local <= 2147483647n ? Number(local) : 0, serverId: server, conversationId: row.conversationId, sourceId: `source-${sha(JSON.stringify([accountId, identity.database]))}`, sentAtUnixMs: sentAt, direction: selfUsername && row.sender ? row.sender === selfUsername ? 2 : 1 : 0, kind, text: content, senderId: text(row.sender), sourceType: rawType, platformMessageId: row.serverId, sourceToken: 'independent1_' + Buffer.from(JSON.stringify(identity)).toString('base64url'), refs: unsupportedContent ? refs.filter(ref => ref.kind === 'voice') : refs,
       // Keep exact bridge identity and decode state available to the offline exporter.
       rawLocalId: row.localId, rawServerId: row.serverId, rawLocalType: row.localType, rawSource: identity, contentDecodeStatus: unsupportedContent ? (row.contentDecodeStatus || 'unsupported') : 'decoded',
       ...(display ? { display, displayJson } : {}) };
@@ -747,7 +888,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     const check = () => guard(operation.controller.signal);
     let workDir, finalDir, candidate = null, published = false;
     try {
-      check(); await dropBridge(); dataDir = ''; sourceInventory = null; outputInventory = null; snapshotLoaded = false; sourceFailure = '';
+      check(); await dropBridge(); dataDir = ''; mediaIndexState = undefined; sourceInventory = null; outputInventory = null; snapshotLoaded = false; sourceFailure = '';
       await snapshot.safeDirectory(stateDir, check);
       try { await fs.promises.mkdir(snapshotRoot, { mode: 0o700 }); } catch (failure) { if (failure.code !== 'EEXIST') throw failure; }
       await snapshot.safeDirectory(snapshotRoot, check, true);
@@ -768,7 +909,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       // Atomic manifest rename is the commit point. Cancellation afterwards may
       // suppress the response and close handles, but must retain this valid cache.
       await snapshot.writeManifest(manifest, snapshotOptions, check);
-      dataDir = finalData; bridge = candidate; candidate = null; info = checked; sourceInventory = original; outputInventory = finalInventory; snapshotLoaded = true; published = true;
+      dataDir = finalData; mediaIndexState = undefined; bridge = candidate; candidate = null; info = checked; sourceInventory = original; outputInventory = finalInventory; snapshotLoaded = true; published = true;
       return account(checked);
     } finally {
       clearTimeout(deadline); request.databaseKey.fill(0);
@@ -861,6 +1002,284 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   let chatExportJobs;
   let recordExportJobs;
   let chatExportSchedules;
+  let aggregateAnalysisJobs;
+
+  async function listAnalysisSessions() {
+    const sessions = [];
+    let cursor = '';
+    for (let pageNumber = 0; pageNumber < 128; pageNumber += 1) {
+      const page = checkedPage(await callData('sessions.list', { limit: 500, cursor }), 500);
+      sessions.push(...page.items);
+      if (sessions.length > 10000) throw error('ANALYSIS_SCOPE_TOO_LARGE');
+      if (!page.nextCursor) return sessions;
+      cursor = page.nextCursor;
+    }
+    throw error('ANALYSIS_SCOPE_TOO_LARGE');
+  }
+
+  function validateAggregateAnalysisRequest(request) {
+    if (!request || typeof request !== 'object' || Array.isArray(request)) throw error('ANALYSIS_REQUEST_INVALID');
+    if (typeof request.accountId !== 'string' || !request.accountId.trim() || request.accountId.length > 256 || request.accountId.includes('\0')) throw error('ANALYSIS_REQUEST_INVALID');
+    if (!Number.isInteger(request.scope) || ![1, 2, 3, 4].includes(request.scope)) throw error('ANALYSIS_SCOPE_UNSUPPORTED');
+    const conversationId = request.conversationId === undefined ? '' : requestName(request.conversationId, 'ANALYSIS_REQUEST_INVALID', true);
+    const excluded = request.excludedConversationIds === undefined ? [] : request.excludedConversationIds;
+    if (!Array.isArray(excluded) || excluded.length > 500 || new Set(excluded).size !== excluded.length) throw error('ANALYSIS_REQUEST_INVALID');
+    for (const value of excluded) requestName(value, 'ANALYSIS_REQUEST_INVALID');
+    const from = request.fromUnixMs;
+    const to = request.toUnixMs;
+    if (from !== undefined && (typeof from !== 'bigint' || from < 0n || from > INT64_MAX)) throw error('ANALYSIS_REQUEST_INVALID');
+    if (to !== undefined && (typeof to !== 'bigint' || to < 0n || to > INT64_MAX)) throw error('ANALYSIS_REQUEST_INVALID');
+    if (from !== undefined && to !== undefined && from >= to) throw error('ANALYSIS_REQUEST_INVALID');
+    const utcOffsetMinutes = request.utcOffsetMinutes === undefined ? 0 : request.utcOffsetMinutes;
+    if (!Number.isInteger(utcOffsetMinutes) || utcOffsetMinutes < -720 || utcOffsetMinutes > 840) throw error('ANALYSIS_OPTIONS_INVALID');
+    if (request.scope === 2) {
+      if (!conversationId || excluded.length || from !== undefined || to !== undefined) throw error('ANALYSIS_SCOPE_OPTIONS_UNSUPPORTED');
+    } else if (request.scope === 4) {
+      if (!conversationId || excluded.length) throw error('ANALYSIS_SCOPE_OPTIONS_UNSUPPORTED');
+    } else if (request.scope === 1) {
+      if (conversationId || from === undefined || to === undefined) throw error('ANALYSIS_SCOPE_OPTIONS_INVALID');
+    } else if (from === undefined || to === undefined || conversationId) {
+      throw error('ANALYSIS_SCOPE_OPTIONS_INVALID');
+    }
+    if (request.scope === 3) annualYearFromBounds(from, to, utcOffsetMinutes);
+    return { accountId: request.accountId, scope: request.scope, conversationId, excludedConversationIds: excluded.slice(), ...(from === undefined ? {} : { fromUnixMs: from }), ...(to === undefined ? {} : { toUnixMs: to }), utcOffsetMinutes };
+  }
+
+  function annualYearFromBounds(from, to, offsetMinutes) {
+    const offset = BigInt(offsetMinutes) * 60000n;
+    const localFrom = Number(from + offset);
+    const localTo = Number(to + offset);
+    if (!Number.isSafeInteger(localFrom) || !Number.isSafeInteger(localTo)) throw error('ANALYSIS_TIME_INVALID');
+    const start = new Date(localFrom), end = new Date(localTo);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start.getUTCMonth() !== 0 || start.getUTCDate() !== 1 || start.getUTCHours() !== 0 || start.getUTCMinutes() !== 0 || start.getUTCSeconds() !== 0 || start.getUTCMilliseconds() !== 0 || end.getUTCMonth() !== 0 || end.getUTCDate() !== 1 || end.getUTCFullYear() !== start.getUTCFullYear() + 1) throw error('ANALYSIS_SCOPE_OPTIONS_INVALID');
+    return start.getUTCFullYear();
+  }
+
+  const AGGREGATE_CATEGORY_IDS = ['text', 'image', 'voice', 'video', 'emoji', 'link', 'file', 'mini_program', 'location', 'call', 'transfer', 'red_packet', 'card', 'pat', 'other'];
+  function aggregateCategories(counts = {}) {
+    return AGGREGATE_CATEGORY_IDS.map(category => ({ category, messages: Number(counts[category] || 0), sent: 0, received: 0 }));
+  }
+  function directionCategories(report) {
+    const categories = aggregateCategories();
+    const byKind = new Map(categories.map(item => [item.category, item]));
+    const kinds = report.message_types || {};
+    for (const [kind, count] of Object.entries(kinds)) {
+      const category = byKind.has(kind) ? kind : 'other';
+      byKind.get(category).messages += Number(count || 0);
+    }
+    return categories;
+  }
+  function longestDateRun(dates) {
+    const unique = [...new Set(dates)].sort();
+    let best = null, current = null;
+    for (const date of unique) {
+      const stamp = Date.parse(`${date}T00:00:00.000Z`);
+      if (!Number.isSafeInteger(stamp)) continue;
+      if (!current || stamp !== current.last + 86400000) current = { start: date, end: date, last: stamp };
+      else { current.end = date; current.last = stamp; }
+      if (!best || current.last - Date.parse(`${current.start}T00:00:00.000Z`) > best.last - Date.parse(`${best.start}T00:00:00.000Z`)) best = { ...current };
+    }
+    if (!best) return { days: 0, start: null, end: null };
+    return { days: Math.round((best.last - Date.parse(`${best.start}T00:00:00.000Z`)) / 86400000) + 1, start: best.start, end: best.end };
+  }
+  function contiguousMonthly(counts = {}) {
+    const keys = Object.keys(counts).filter(value => /^\d{4}-\d{2}$/.test(value)).sort();
+    if (!keys.length) return [];
+    const [startYear, startMonth] = keys[0].split('-').map(Number);
+    const [endYear, endMonth] = keys[keys.length - 1].split('-').map(Number);
+    const output = [];
+    for (let index = startYear * 12 + startMonth - 1, end = endYear * 12 + endMonth - 1; index <= end; index += 1) {
+      const year = Math.floor(index / 12), month = String(index % 12 + 1).padStart(2, '0'), key = `${year}-${month}`;
+      output.push({ month: key, sent: 0, received: 0, unknown: Number(counts[key] || 0) });
+    }
+    return output;
+  }
+  function modernAggregateReport(report, request) {
+    const dailyDirections = report.daily_directions || {};
+    const daily = Object.entries(dailyDirections).sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, sent: value.sent || 0, received: value.received || 0, unknown: value.unknown || 0 }));
+    const monthly = contiguousMonthly(report.monthly_counts || {});
+    const hourly = Array.from({ length: 24 }, (_, hour) => ({ hour, sent: 0, received: 0, unknown: report.active_hours?.[hour] || 0 }));
+    const run = longestDateRun(daily.map(item => item.date));
+    const first = report.first_message?.sent_at_unix_ms;
+    const last = report.last_message?.sent_at_unix_ms;
+    const from = request.fromUnixMs === undefined ? null : Number(request.fromUnixMs);
+    const to = request.toUnixMs === undefined ? null : Number(request.toUnixMs);
+    return {
+      algorithm_version: 'alpha-aggregate-v1',
+      scope: request.scope === 2 ? 'group_chat' : 'private_chats',
+      utc_offset_minutes: request.utcOffsetMinutes,
+      from_unix_ms: from,
+      to_unix_ms: to,
+      conversations_analyzed: report.total_messages > 0 ? 1 : 0,
+      conversations_with_messages: report.total_messages > 0 ? 1 : 0,
+      conversations_failed: 0,
+      conversations_excluded: 0,
+      truncated: Boolean(report.truncated),
+      total_messages: report.total_messages,
+      sent_messages: report.sent_messages,
+      received_messages: report.received_messages,
+      unknown_direction_messages: report.unknown_messages,
+      system_messages: report.message_types?.system || 0,
+      first_message_unix_ms: first === undefined ? null : first,
+      last_message_unix_ms: last === undefined ? null : last,
+      active_days: report.active_days,
+      longest_streak_days: run.days,
+      longest_streak_start: run.start,
+      longest_streak_end: run.end,
+      busiest_day: null,
+      categories: directionCategories(report),
+      hourly,
+      weekday_hour_counts: report.active_hours ? Array.from({ length: 7 }, () => Array(24).fill(0)) : Array.from({ length: 7 }, () => Array(24).fill(0)),
+      monthly,
+      daily,
+      top_conversations: [],
+      top_senders: [],
+      distinct_senders: 0
+    };
+  }
+  function modernAnnualReport(report, request, year) {
+    const periodFrom = Number(request.fromUnixMs), periodTo = Number(request.toUnixMs);
+    const categories = aggregateCategories();
+    const legacyMedia = report.media || {};
+    const categoryCounts = { text: report.total_messages - Object.values(legacyMedia).reduce((sum, value) => sum + Number(value || 0), 0), image: legacyMedia.image || 0, voice: legacyMedia.voice || 0, video: legacyMedia.video || 0, emoji: legacyMedia.emoji || 0, file: legacyMedia.file || 0, location: legacyMedia.location || 0 };
+    for (const item of categories) item.messages = Math.max(0, Number(categoryCounts[item.category] || 0));
+    const monthlyCounts = Array.isArray(report.monthly_counts) ? report.monthly_counts : Array.from({ length: 12 }, (_, index) => report.monthly_counts?.[`${year}-${String(index + 1).padStart(2, '0')}`] || 0);
+    const monthlyCompanions = Array.from({ length: 12 }, (_, index) => {
+      const period = `${year}-${String(index + 1).padStart(2, '0')}`;
+      const periodMessages = Number(monthlyCounts[index] || 0);
+      const top = report.top_conversations?.[0];
+      return { period, period_messages: periodMessages, conversation_id: periodMessages ? (top?.conversation_id || 'unknown') : null, display_name: periodMessages ? (top?.display_name || '未知会话') : null, messages: periodMessages ? (top ? Math.min(periodMessages, top.messages) : periodMessages) : null };
+    });
+    const heatmap = { weekday_hour_counts: report.weekday_hour_counts, peak: null };
+    let peak = null;
+    for (let weekday = 0; weekday < 7; weekday++) for (let hour = 0; hour < 24; hour++) if ((report.weekday_hour_counts?.[weekday]?.[hour] || 0) > (peak?.messages || 0)) peak = { weekday, hour, messages: report.weekday_hour_counts[weekday][hour] };
+    heatmap.peak = peak && peak.messages > 0 ? peak : null;
+    const messageRef = report.first_message ? { sent_at_unix_ms: report.first_message.sent_at_unix_ms, conversation_id: report.first_message.conversation_id, display_name: report.first_message.conversation_id } : null;
+    return {
+      algorithm_version: 'alpha-annual-v2',
+      utc_offset_minutes: request.utcOffsetMinutes,
+      from_unix_ms: periodFrom,
+      to_unix_ms: periodTo,
+      year,
+      all_time: false,
+      conversations_analyzed: request.conversationsTotal || report.active_conversations,
+      conversations_with_messages: report.active_conversations,
+      conversations_failed: 0,
+      conversations_excluded: request.excludedConversationIds.length,
+      truncated: Boolean(report.truncated),
+      overview: { total_messages: report.total_messages, sent_messages: report.sent_messages, received_messages: report.received_messages, unknown_direction_messages: 0, friends: report.active_conversations, active_days: report.active_days, first_message_unix_ms: messageRef?.sent_at_unix_ms ?? null, last_message_unix_ms: null, categories },
+      top_friends: (report.top_conversations || []).map(item => ({ conversation_id: item.conversation_id, display_name: item.display_name, messages: item.messages, sent: item.sent, received: item.received })),
+      monthly_companions: monthlyCompanions,
+      heatmap,
+      night_companion: null,
+      night_share_of_all: null,
+      initiative: { starts_mine: 0, starts_peer: 0, rate_mine: null, top_initiated: null },
+      response: { mine: null, peer: null, fastest_friend: null },
+      balanced_friend: null,
+      streak: null,
+      account_streak: null,
+      busiest_day: null,
+      fading_friend: null,
+      phrases: [],
+      moments: null
+    };
+  }
+  function modernDualReport(report, request) {
+    const from = request.fromUnixMs === undefined ? null : Number(request.fromUnixMs);
+    const to = request.toUnixMs === undefined ? null : Number(request.toUnixMs);
+    const monthly = contiguousMonthly(report.monthly_counts || {});
+    const categories = directionCategories(report);
+    const first = report.first_message?.sent_at_unix_ms;
+    const last = report.last_message?.sent_at_unix_ms;
+    return {
+      algorithm_version: 'alpha-dual-v1',
+      utc_offset_minutes: request.utcOffsetMinutes,
+      from_unix_ms: from,
+      to_unix_ms: to,
+      all_time: from === null && to === null,
+      conversation_id: request.conversationId,
+      display_name: request.conversationId,
+      year: null,
+      first_chat: null,
+      range_first_chat: null,
+      totals: {
+        messages: report.total_messages,
+        sent: report.sent_messages,
+        received: report.received_messages,
+        unknown: report.unknown_messages,
+        words_mine: 0,
+        words_peer: 0,
+        text_messages_mine: 0,
+        text_messages_peer: 0,
+        images: report.media?.image || 0,
+        voices: report.media?.voice || 0,
+        videos: report.media?.video || 0,
+        emojis: report.media?.emoji || 0,
+        active_days: report.active_days,
+        first_message_unix_ms: first === undefined ? null : first,
+        last_message_unix_ms: last === undefined ? null : last,
+        night_messages: 0
+      },
+      categories,
+      heatmap: { weekday_hour_counts: Array.from({ length: 7 }, () => Array(24).fill(0)), peak: null },
+      monthly,
+      initiative: { starts_mine: 0, starts_peer: 0, rate_mine: null },
+      response: { mine: null, peer: null },
+      streak: null,
+      busiest_day: null,
+      phrases: { shared: [], mine_exclusive: [], peer_exclusive: [] }
+    };
+  }
+  function modernPrivateReport(report, request, conversationsTotal) {
+    const legacyMedia = report.media || {};
+    const totalMedia = Object.values(legacyMedia).reduce((sum, value) => sum + Number(value || 0), 0);
+    const categories = aggregateCategories({ text: Math.max(0, report.total_messages - totalMedia), image: legacyMedia.image || 0, voice: legacyMedia.voice || 0, video: legacyMedia.video || 0, emoji: legacyMedia.emoji || 0, file: legacyMedia.file || 0, location: legacyMedia.location || 0 });
+    const daily = Object.entries(report.daily_counts || {}).sort(([a], [b]) => a.localeCompare(b)).map(([date, total]) => ({ date, sent: 0, received: 0, unknown: total }));
+    const monthly = (Array.isArray(report.monthly_counts) ? report.monthly_counts : []).map((total, index) => ({ month: `${report.year}-${String(index + 1).padStart(2, '0')}`, sent: 0, received: 0, unknown: total }));
+    return {
+      algorithm_version: 'alpha-aggregate-v1', scope: 'private_chats', utc_offset_minutes: request.utcOffsetMinutes,
+      from_unix_ms: Number(request.fromUnixMs), to_unix_ms: Number(request.toUnixMs),
+      conversations_analyzed: conversationsTotal, conversations_with_messages: report.active_conversations, conversations_failed: 0, conversations_excluded: request.excludedConversationIds.length,
+      truncated: Boolean(report.truncated), total_messages: report.total_messages, sent_messages: report.sent_messages, received_messages: report.received_messages, unknown_direction_messages: 0, system_messages: 0,
+      first_message_unix_ms: report.first_message?.sent_at_unix_ms ?? null, last_message_unix_ms: null, active_days: report.active_days,
+      longest_streak_days: 0, longest_streak_start: null, longest_streak_end: null, busiest_day: null, categories,
+      hourly: Array.from({ length: 24 }, (_, hour) => ({ hour, sent: 0, received: 0, unknown: report.weekday_hour_counts?.reduce((sum, row) => sum + (row[hour] || 0), 0) || 0 })),
+      weekday_hour_counts: report.weekday_hour_counts, monthly, daily,
+      top_conversations: (report.top_conversations || []).map(item => ({ conversation_id: item.conversation_id, display_name: item.display_name, messages: item.messages, sent: item.sent, received: item.received, active_days: 0, first_message_unix_ms: null, last_message_unix_ms: null })),
+      top_senders: [], distinct_senders: 0
+    };
+  }
+
+  async function runAggregateAnalysis(request, { isCanceled, conversationsTotal }) {
+    if (isCanceled()) throw error('ANALYSIS_CANCELED');
+    if (request.scope === 2 || request.scope === 4) {
+      const result = await buildConversationReport({
+        conversationId: request.conversationId,
+        utcOffsetMinutes: request.utcOffsetMinutes,
+        ...(request.scope === 4 && request.fromUnixMs === undefined ? {} : { fromUnixMs: request.fromUnixMs }),
+        ...(request.scope === 4 && request.toUnixMs === undefined ? {} : { toUnixMs: request.toUnixMs }),
+        listMessages: ({ conversationId, ascending, afterUnixMs, beforeUnixMs, page }) => handlers.listMessages({ accountId: request.accountId, conversationId, ascending, ...(afterUnixMs === undefined ? {} : { afterUnixMs }), ...(beforeUnixMs === undefined ? {} : { beforeUnixMs }), page }),
+        isCanceled
+      });
+      const reportJson = request.scope === 2 ? modernAggregateReport(result.report, request) : modernDualReport(result.report, request);
+      return { reportJson: Buffer.from(JSON.stringify(reportJson), 'utf8'), conversationsDone: 1, conversationsTotal: 1 };
+    }
+    const year = annualYearFromBounds(request.fromUnixMs, request.toUnixMs, request.utcOffsetMinutes);
+    const excluded = new Set(request.excludedConversationIds);
+    const result = await buildAnnualReport({
+      year,
+      utcOffsetMinutes: request.utcOffsetMinutes,
+      isCanceled,
+      listSessions: async ({ limit, cursor }) => {
+        const page = checkedPage(await callData('sessions.list', { limit, cursor }), limit);
+        return { ...page, items: page.items.filter(item => !excluded.has(item.username) && (request.scope !== 1 || !item.username.endsWith('@chatroom'))) };
+      },
+      listMessages: async ({ conversationId, ascending, afterUnixMs, beforeUnixMs, page }) => handlers.listMessages({ accountId: request.accountId, conversationId, ascending, afterUnixMs, beforeUnixMs, page })
+    });
+    const reportJson = request.scope === 1 ? modernPrivateReport(result.report, request, conversationsTotal) : modernAnnualReport(result.report, { ...request, conversationsTotal }, year);
+    return { reportJson: Buffer.from(JSON.stringify(reportJson), 'utf8'), conversationsDone: conversationsTotal, conversationsTotal };
+  }
+
   const handlers = {
     async hello(request) {
       if (request.protocol?.major !== 1) throw error('PROTOCOL_VERSION_UNSUPPORTED');
@@ -869,6 +1288,26 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       return { negotiatedProtocol: { major: 1, minor: 0 }, components: [{ component: 'alpha-independent-engine', version: '0.1.0', buildId: 'independent-node-stdio-v1', protocolMajor: 1, protocolMinor: 0 }], serverNonce: crypto.randomBytes(16), supportedMethodIds: Object.values(SUPPORTED).sort((a, b) => a - b), supportsExportTimeRange: true };
     },
     async getCapabilities() { return {}; }, // No original product entitlements exist in this backend.
+    async getTelemetryStatus() {
+      guard();
+      return telemetryStatus();
+    },
+    async setTelemetryConsent(request) {
+      guard();
+      if (!request || typeof request !== 'object' || Array.isArray(request) || !TELEMETRY_DECISIONS.has(request.decision)) throw error('TELEMETRY_DECISION_INVALID');
+      const categories = telemetryCategories(request.categories ?? []);
+      const consentVersion = telemetryConsentVersion(request.consentVersion);
+      saveTelemetryState({ decision: request.decision, categories, consentVersion });
+      return { status: telemetryStatus() };
+    },
+    async flushTelemetry() {
+      guard();
+      // The recovered package has no telemetry endpoint or queue schema. Keep
+      // the operation explicitly disabled instead of claiming that events were
+      // uploaded. Consent remains persisted for a later backend implementation.
+      loadTelemetryState();
+      return { outcome: 'disabled', acceptedCount: 0n, duplicateCount: 0n, queuedCount: 0n, nextAttemptUnixMs: 0n };
+    },
     async getAdvancedComponentStatus(request) {
       if (!Number.isInteger(request?.component) || !ADVANCED_COMPONENT_KINDS.has(request.component)) throw error('ADVANCED_COMPONENT_REQUEST_INVALID');
       // This is a static diagnostic for the independent backend. It reflects
@@ -879,6 +1318,63 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         target: 'macos-arm64',
         availability: 1, // ADVANCED_COMPONENT_AVAILABILITY_UNSUPPORTED_TARGET
         errorCode: 'INDEPENDENT_ADVANCED_COMPONENT_UNSUPPORTED'
+      };
+    },
+    async getMessageAntiRecallStatuses(request) {
+      // The independent backend has no verified retention writer, trigger
+      // schema, or recall-record store. Still answer the read-only status
+      // query with one explicit unavailable status per requested conversation
+      // so the recovered UI can explain the boundary instead of treating the
+      // entire status surface as a missing method. No table is opened and no
+      // protection claim is made.
+      await requireAccount(request.accountId);
+      if (!Array.isArray(request?.conversationIds) || request.conversationIds.length < 1 || request.conversationIds.length > 500) throw error('MESSAGE_RECALL_REQUEST_INVALID');
+      const conversationIds = request.conversationIds.map(conversationId => requestName(conversationId, 'MESSAGE_RECALL_REQUEST_INVALID'));
+      if (new Set(conversationIds).size !== conversationIds.length) throw error('MESSAGE_RECALL_REQUEST_INVALID');
+      const status = {
+        detected: false,
+        usable: false,
+        enabled: false,
+        verified: false,
+        knownTables: 0,
+        protectedTables: 0,
+        retainedRows: 0n,
+        confirmedRows: 0n,
+        droppedRows: 0n,
+        partial: false,
+        errorCode: 'MESSAGE_ANTI_RECALL_WRITER_DISABLED',
+        externalProtection: '',
+        externalTables: 0,
+        writerErrorCode: 'MESSAGE_ANTI_RECALL_WRITER_DISABLED'
+      };
+      return { statuses: conversationIds.map(conversationId => ({ conversationId, status: { ...status } })) };
+    },
+    async manageMomentsAntiDelete(request) {
+      // The independent backend has no verified SnsTimeLine/snsmessage
+      // schema, retention shadow table, or trigger writer. Preserve the
+      // existing Alpha control surface so the UI can display an explicit
+      // unavailable state, but never claim that install/uninstall changed a
+      // database. Status and write actions share the same fail-closed result.
+      const spec = request?.spec;
+      const accountId = requestName(spec?.accountId, 'MOMENTS_ANTI_DELETE_REQUEST_INVALID');
+      if (!Number.isInteger(spec?.action) || ![1, 2, 3].includes(spec.action)) throw error('MOMENTS_ANTI_DELETE_REQUEST_INVALID');
+      await requireAccount(accountId);
+      return {
+        result: {
+          status: {
+            detected: false,
+            usable: false,
+            enabled: false,
+            verified: false,
+            targetTable: '',
+            shadowTable: '',
+            triggerName: '',
+            retainedRows: 0n,
+            errorCode: 'MOMENTS_ANTI_DELETE_WRITER_DISABLED',
+            externalProtection: '',
+            writerErrorCode: 'MOMENTS_ANTI_DELETE_WRITER_DISABLED'
+          }
+        }
       };
     },
     async getMessageSource(request) {
@@ -909,8 +1405,31 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     },
     async getApplicationLockStatus() { return { status: lock.status() }; },
     async unlockApplication(request) { return { status: await lock.unlock(request.password) }; },
-    async lockApplication() { const status = lock.lock(); await cancelImport(); await dropBridge(); if (encryptedDir) { dataDir = ''; snapshotLoaded = false; sourceInventory = outputInventory = null; } return { status }; },
+    async lockApplication() { const status = lock.lock(); clearImageKeyState(); await cancelImport(); await dropBridge(); if (encryptedDir) { dataDir = ''; mediaIndexState = undefined; snapshotLoaded = false; sourceInventory = outputInventory = null; } return { status }; },
     async configureApplicationLock(request) { return { status: await lock.configure(request) }; },
+    async getImageMediaStatus(request) {
+      await requireAccount(request.accountId);
+      if (request.verifySample !== undefined && typeof request.verifySample !== 'boolean') throw error('IMAGE_MEDIA_REQUEST_INVALID');
+      return { status: imageMediaStatus() };
+    },
+    async configureImageKey(request) {
+      await requireAccount(request.accountId);
+      if (!Number.isInteger(request.mode) || request.mode < 0 || request.mode > 3 || request.mode === 0) throw error('IMAGE_KEY_REQUEST_INVALID');
+      // Automatic process-memory scanning needs a native provider and is not
+      // available in the independent backend. Refuse it explicitly instead
+      // of returning a successful but unusable key state.
+      if (request.mode !== 2) throw error('IMAGE_KEY_MODE_UNSUPPORTED');
+      if (!Number.isInteger(request.xorKey) || request.xorKey < 0 || request.xorKey > 255 || !(request.aesKey instanceof Uint8Array) || request.aesKey.length !== 16) throw error('IMAGE_KEY_REQUEST_INVALID');
+      const aesKey = Buffer.from(request.aesKey);
+      clearImageKeyState();
+      imageKeyState = { xorKey: request.xorKey, aesKey };
+      return { status: imageMediaStatus(), evidence: imageKeyEvidence() };
+    },
+    async clearImageKey(request) {
+      await requireAccount(request.accountId);
+      clearImageKeyState();
+      return { status: imageMediaStatus() };
+    },
     async importDatabaseKey(request) { return { account: await importKey(request) }; },
     async listAccounts() {
       guard(); if (activeImport) throw error('IMPORT_IN_PROGRESS');
@@ -969,6 +1488,23 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         listMessages: ({ conversationId: id, ascending, page }) => handlers.listMessages({ accountId: request.accountId, conversationId: id, ascending, page })
       });
       return { reportJson: Buffer.from(JSON.stringify(result.report), 'utf8'), itemCount: result.itemCount, truncated: result.truncated };
+    },
+    async startAggregateAnalysis(request) {
+      await requireAccount(request.accountId);
+      const normalized = validateAggregateAnalysisRequest(request);
+      let conversationsTotal = 1;
+      if (normalized.scope === 1 || normalized.scope === 3) {
+        const sessions = await listAnalysisSessions();
+        const excluded = new Set(normalized.excludedConversationIds);
+        conversationsTotal = sessions.filter(session => !excluded.has(session.username) && (normalized.scope !== 1 || !session.username.endsWith('@chatroom'))).length;
+      }
+      return aggregateAnalysisJobs.start(normalized, conversationsTotal);
+    },
+    async watchAggregateAnalysis(request) {
+      return aggregateAnalysisJobs.watch(request.analysisId);
+    },
+    async cancelAggregateAnalysis(request) {
+      return aggregateAnalysisJobs.cancel(request.analysisId);
     },
     async browseConversationMessages(request) {
       if (typeof request.accountId !== 'string' || !request.accountId.trim() || typeof request.conversationId !== 'string') throw error('TYPE_BROWSE_REQUEST_INVALID');
@@ -1176,7 +1712,6 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
           if (!scope || typeof scope !== 'object' || Array.isArray(scope) || typeof scope.includeProfile !== 'boolean' || typeof scope.includeAvatar !== 'boolean') throw error('CONTACT_DIRECTORY_REQUEST_INVALID');
           if (scope.includeProfile || scope.includeAvatar) throw error('CONTACT_DIRECTORY_EXPORT_SCOPE_UNSUPPORTED');
         }
-        if (request.ascending !== true) throw error('UNIMPLEMENTED');
         const limit = Math.min(request.limit || 100, 500), offset = request.offset || 0;
         if (!Number.isInteger(limit) || limit < 1 || !Number.isInteger(offset) || offset < 0 || offset > 100000) throw error('CONTACT_DIRECTORY_PAGE_INVALID');
         if (request.query !== undefined && typeof request.query !== 'string') throw error('CONTACT_QUERY_INVALID');
@@ -1191,9 +1726,8 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         }
         const selected = selectedCategories.size ? selectedCategories : CONTACT_DIRECTORY_KNOWN_CATEGORIES;
         const counts = Object.fromEntries(CONTACT_DIRECTORY_ALL_CATEGORIES.map(category => [category, 0]));
-        const items = [];
+        const contacts = [];
         const seenUsernames = new Set();
-        let total = 0;
         let cursor = '';
         let scanned = 0;
         let pageCount = 0;
@@ -1210,12 +1744,13 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
             const category = contactDirectoryCategory(contact);
             if (!category) continue;
             counts[category] += 1;
-            if (!selected.has(category)) continue;
-            if (total >= offset && items.length < limit) items.push({ contact, category, officialAccountKind: '' });
-            total += 1;
+            if (selected.has(category)) contacts.push({ contact, category, officialAccountKind: '' });
           }
           cursor = page.nextCursor;
         } while (cursor);
+        if (request.ascending !== true) contacts.reverse();
+        const total = contacts.length;
+        const items = contacts.slice(offset, offset + limit);
         return {
           response: {
             directory: {
@@ -1234,7 +1769,6 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         const value = contactCodec.checkedLookup(await callData('contacts.lookup', { usernames }), usernames);
         return { response: { items: value.items, sourceDatabase: value.sourceDatabase, sourceTable: value.sourceTable, lookup: { items: value.items } } };
       }
-      if (request.ascending !== true) throw error('UNIMPLEMENTED');
       const limit = Math.min(request.limit || 100, 500), offset = request.offset || 0;
       if (!Number.isInteger(limit) || limit < 1 || !Number.isInteger(offset) || offset < 0 || offset > 100000) throw error('CONTACT_PAGE_INVALID');
       if (request.query !== undefined && typeof request.query !== 'string') throw error('CONTACT_QUERY_INVALID');
@@ -1244,15 +1778,16 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         if (Buffer.byteLength(query, 'utf8') > 512 || query.trim() === '' || query.includes('\0')) throw error('CONTACT_QUERY_INVALID');
         literalQuery = query;
       }
-      let cursor = '', skipped = 0, response;
+      let cursor = '', response;
+      const contacts = [];
       do {
-        const count = skipped < offset ? Math.min(500, offset - skipped) : limit;
-        response = checkedPage(await callData('contacts.list', { limit: count, cursor, ...(usernameExact ? { usernameExact } : {}), ...(literalQuery ? { query: literalQuery } : {}) }), count);
-        if (skipped >= offset) break;
-        skipped += response.items.length; cursor = response.nextCursor;
-        if (!cursor) { response = { items: [] }; break; }
-      } while (true);
-      return { response: { items: response.items.map(row => contactCodec.nativeContactFromRow({ ...row, sourceTable: 'contact' })), sourceTable: 'contact' } };
+        response = checkedPage(await callData('contacts.list', { limit: 500, cursor, ...(usernameExact ? { usernameExact } : {}), ...(literalQuery ? { query: literalQuery } : {}) }), 500);
+        contacts.push(...response.items.map(row => contactCodec.nativeContactFromRow({ ...row, sourceTable: 'contact' })));
+        if (contacts.length > CONTACT_DIRECTORY_MAX_ITEMS) throw error('CONTACT_PAGE_TOO_LARGE');
+        cursor = response.nextCursor;
+      } while (cursor);
+      if (request.ascending !== true) contacts.reverse();
+      return { response: { items: contacts.slice(offset, offset + limit), sourceTable: 'contact' } };
     },
     async getContactProfile(request) {
       const accountInfo = await requireAccount(request.accountId);
@@ -1330,7 +1865,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     async listGeneral(request) {
       await requireAccount(request.accountId);
       if (!GENERAL_RECORD_TABLES.has(request.tableName)) throw error('UNIMPLEMENTED');
-      const recordTable = request.tableName === '__alpha_general_payments' || request.tableName === '__alpha_general_revokes' || request.tableName === '__alpha_general_calls';
+      const recordTable = request.tableName !== '__alpha_group_members';
       if (recordTable) {
         if (request.query !== '' || request.ascending !== false) throw error('GENERAL_RECORDS_REQUEST_INVALID');
       } else if (typeof request.query !== 'string' || request.query !== request.query.trim() || request.query.length <= 9 || request.query.length > 256 || !request.query.endsWith('@chatroom') || /[\u0000-\u001f\u007f]/.test(request.query) || request.ascending !== true) throw error('GROUP_MEMBERS_REQUEST_INVALID');
@@ -1528,6 +2063,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     startExport: request => chatExportJobs.start(request),
     watchExport: jobId => chatExportJobs.watch(jobId)
   });
+  aggregateAnalysisJobs = createAggregateAnalysisJobs({ runAnalysis: runAggregateAnalysis });
   return {
     supportedMethods: Object.keys(SUPPORTED),
     async dispatch(request) {
@@ -1547,6 +2083,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         return EngineServerFrame.fromPartial({ requestId, error: { code, category: code === 'UNIMPLEMENTED' ? 'independent.unsupported' : 'independent.backend', retryable: false, userMessageKey: code, diagnosticId: crypto.randomUUID() } });
       } finally {
         if (request.importDatabaseKey?.databaseKey instanceof Uint8Array) request.importDatabaseKey.databaseKey.fill(0);
+        if (request.configureImageKey?.aesKey instanceof Uint8Array) request.configureImageKey.aesKey.fill(0);
         for (const payload of [request.unlockApplication, request.configureApplicationLock]) {
           if (payload?.password instanceof Uint8Array) payload.password.fill(0);
           if (payload?.newPassword instanceof Uint8Array) payload.newPassword.fill(0);
@@ -1554,7 +2091,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       }
     },
     async cancelPending() { await cancelImport(); },
-    async close() { await chatExportSchedules.close(); await chatExportJobs.close(); closed = true; await cancelImport(); await dropBridge(); }
+    async close() { await aggregateAnalysisJobs.close(); await chatExportSchedules.close(); await chatExportJobs.close(); closed = true; await cancelImport(); await dropBridge(); }
   };
 }
 

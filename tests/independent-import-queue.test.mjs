@@ -14,6 +14,7 @@ function declaration(name) {
   return node;
 }
 const slice = node => source.slice(node.start, node.end);
+const independentModeSource = slice(declaration('independentBackendEnabled'));
 const prioritySource = slice(declaration('engineRequestPriority'));
 const queueSource = slice(declaration('EngineRequestQueue'));
 const callNode = declaration('EngineClient').body.body.find(node => node.type === 'ClassMethod' && node.key.name === 'call');
@@ -24,10 +25,11 @@ function desktop(t, backend, packaged) {
     setTimeout, clearTimeout, Buffer,
     electron: { app: { isPackaged: packaged } },
     process: { env: { ALPHA_RECOVERY_BACKEND: backend } },
+    backendMode: { isIndependentBackendEnabled(app, environment) { return environment.ALPHA_RECOVERY_BACKEND === 'independent' && (!app.isPackaged || environment.ALPHA_INDEPENDENT_PACKAGED === '1'); } },
     EngineClientFrame: { encode(frame) { return { finish: () => Buffer.from(String(frame.requestId)) }; } },
     encodeLengthDelimitedFrame: value => value
   });
-  const { Queue, call, priority } = vm.runInContext(`${prioritySource}\n${queueSource}\n({ Queue: EngineRequestQueue, call: ({ ${slice(callNode)} }).call, priority: engineRequestPriority })`, context);
+  const { Queue, call, priority } = vm.runInContext(`${independentModeSource}\n${prioritySource}\n${queueSource}\n({ Queue: EngineRequestQueue, call: ({ ${slice(callNode)} }).call, priority: engineRequestPriority })`, context);
   const queue = new Queue(5000), sent = [], pending = [];
   const client = {
     requests: queue,

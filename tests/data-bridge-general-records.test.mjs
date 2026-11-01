@@ -52,11 +52,13 @@ revoke='<msg><sysmsg type="revokemsg"><revokemsg><content>撤回了一条消息<
 call='<msg><voipmsg><voiptype>video</voiptype><duration>42</duration></voipmsg></msg>'
 unknown_call='<msg><text>not a voip payload</text></msg>'
 malformed_call='<msg><voipmsg></msg>'
+friend='<msg><sysmsg type="VerifyMsg"><username>wxid_gamma</username><nickname>Gamma</nickname><content>加个好友</content><scene>33</scene></sysmsg></msg>'
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(6,123456,301,49,1700000005,2,2,payment,''))
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(7,123457,302,10000,1700000006,1,2,revoke,''))
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(8,123458,303,50,1700000007,2,2,call,''))
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(9,123459,304,50,1700000008,2,2,unknown_call,''))
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(10,123460,305,50,1700000009,2,2,malformed_call,''))
+db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(11,123461,306,37,1700000010,2,2,friend,''))
 db.commit();db.close()
 `;
   await execute('/usr/bin/python3', ['-c', script, directory, fixture.table]);
@@ -97,6 +99,17 @@ db.commit();db.close()
   assert.equal(callFields.has('interrupted'), false);
   assert.equal(callFields.get('partial'), '1');
   assert.equal(callFields.get('candidate'), '1');
+
+  const friendRequests = await c.request('general.list', { tableName: '__alpha_general_friend_requests', query: '', limit: 10, offset: 0, ascending: false });
+  assert.equal(friendRequests.ok, true, JSON.stringify(friendRequests));
+  assert.equal(friendRequests.result.items.length, 1);
+  const friendFields = await fieldMap(friendRequests.result.items[0]);
+  assert.equal(friendFields.get('kind'), 'friend_request');
+  assert.equal(friendFields.get('person'), 'wxid_gamma');
+  assert.equal(friendFields.get('person_nickname'), 'Gamma');
+  assert.equal(friendFields.get('greeting'), '加个好友');
+  assert.equal(friendFields.get('partial'), '1');
+  assert.equal(friendFields.get('candidate'), '1');
   assert.equal((await c.request('general.list', { tableName: '__alpha_general_payments', query: '', limit: 10, offset: 0, ascending: true })).error.code, 'INVALID_PARAMS');
 });
 

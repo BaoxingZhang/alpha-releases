@@ -1,5 +1,7 @@
 > 后续进展：新增独立后端已实现离线微信 v4 数据副本的核心读取、密码应用锁、已有密钥的加密快照导入及搜索/日期导航。下文原包缺口仍成立；新的实现范围见 [independent-backend.md](independent-backend.md)、[encrypted-import.md](encrypted-import.md) 和 [search-navigation.md](search-navigation.md)。
 
+补充：独立后端已按 [`telemetry-recovery.md`](telemetry-recovery.md) 接通 field 21/22/23 的本地同意状态管理；该实现明确停用发送并不补齐原包缺失的遥测服务端、事件队列或上传协议。
+
 # Alpha 0.3.5 源码恢复范围与缺口
 
 本工程的输入是 macOS arm64 安装包 `Alpha-0.3.5-arm64.dmg`，SHA-256 为 `53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004`。安装包中的可读 JavaScript 可整理为可编辑、可重新构建的应用层；原生程序目前使用随包预编译文件。完整的原始源码工程仍有以下缺口。构建和启动是否通过，以本工程实际验证记录为准，本文只说明来源与恢复边界。

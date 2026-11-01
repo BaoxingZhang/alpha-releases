@@ -166,6 +166,25 @@ c.execute('UPDATE "'+beta+'" SET local_type=34,message_content=? WHERE local_id=
   assert.deepEqual(voice.refs, [{ kind: 'voice', id: '77', uri: '', mimeType: 'audio/amr', rendition: 'voice-data' }]);
 });
 
+test('engine binds an explicitly indexed image to an independent sha256 URI with message scope', async t => {
+  const f = await setup(t, async fixture => {
+    const media = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+    const relativePath = 'media/indexed-image.png';
+    await fs.mkdir(path.join(fixture.directory, 'media'), { mode: 0o700 });
+    await fs.writeFile(path.join(fixture.directory, relativePath), media, { mode: 0o600 });
+    const sha256 = (await import('node:crypto')).createHash('sha256').update(media).digest('hex');
+    const messageId = 'msg-' + (await import('node:crypto')).createHash('sha256').update(JSON.stringify({ accountId: fixture.accountId, database: 'message/message_0.db', table: fixture.table, localId: '2' })).digest('hex');
+    await fs.writeFile(path.join(fixture.directory, 'media-index.v1.json'), JSON.stringify({ version: 1, entries: [{ kind: 'image', id: '0123456789abcdef0123456789abcdef', rendition: 'source', relativePath, sha256, sizeBytes: media.length, mimeType: 'image/png', conversationId: fixture.conversationId, messageId }] }) + '\n', { mode: 0o600 });
+    const script = `import sqlite3,sys
+c=sqlite3.connect(sys.argv[1]);c.execute('UPDATE "'+sys.argv[2]+'" SET local_type=3,message_content=? WHERE local_id=2',('<img md5="0123456789abcdef0123456789abcdef" />',));c.commit();c.close()`;
+    await execute('/usr/bin/python3', ['-c', script, path.join(fixture.directory, 'message/message_0.db'), fixture.table]);
+  });
+  const messages = await f.pages('listMessages', { conversationId: f.conversationId, ascending: true }, 20);
+  const ref = messages.find(row => row.localId === 2).refs[0];
+  assert.equal(ref.uri, 'alpha-media://sha256/4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6');
+  assert.equal(ref.mimeType, 'image/png');
+});
+
 test('engine rejects declared media refs with unsupported URI schemes', async t => {
   const f = await setup(t, async fixture => {
     const script = `import sqlite3,sys

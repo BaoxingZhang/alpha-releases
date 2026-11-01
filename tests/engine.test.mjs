@@ -128,10 +128,14 @@ test('real Go SQLite data crosses protobuf with pagination, exact identifiers an
   assert.equal(ok(await c.send('selectAccount', { accountId }), 'selectAccount').account.selected, true);
   const contacts = ok(await c.send('listContacts', { accountId, ascending: true, limit: 100 }), 'listContacts').response.items;
   assert.deepEqual(contacts.map(x => x.username), ['wxid_alpha', 'wxid_beta', 'wxid_self']);
+  const descendingContacts = ok(await c.send('listContacts', { accountId, ascending: false, limit: 100 }), 'listContacts').response.items;
+  assert.deepEqual(descendingContacts.map(x => x.username), contacts.map(x => x.username).toReversed());
   const directory = ok(await c.send('listContacts', { accountId, ascending: true, limit: 2, offset: 1, directory: { categories: [] } }), 'listContacts').response.directory;
   assert.equal(directory.total, 3);
   assert.equal(directory.hasMore, false);
   assert.deepEqual(directory.items.map(item => [item.category, item.contact.username]), [['friend', 'wxid_beta'], ['friend', 'wxid_self']]);
+  const descendingDirectory = ok(await c.send('listContacts', { accountId, ascending: false, limit: 2, offset: 1, directory: { categories: [] } }), 'listContacts').response.directory;
+  assert.deepEqual(descendingDirectory.items.map(item => [item.category, item.contact.username]), [['friend', 'wxid_beta'], ['friend', 'wxid_alpha']]);
   assert.deepEqual(directory.counts, [
     { category: 'friend', count: 3 }, { category: 'group', count: 0 },
     { category: 'enterprise_friend', count: 0 }, { category: 'enterprise_group', count: 0 },
@@ -321,11 +325,104 @@ test('all unimplemented request branches and unsupported contact modes fail expl
   const unsupported = ALL_METHODS.filter(name => !Object.hasOwn(SUPPORTED, name));
   assert.equal(ALL_METHODS.length, 128); assert.equal(unsupported.length, ALL_METHODS.length - Object.keys(SUPPORTED).length);
   for (const method of unsupported) assert.equal((await c.send(method)).error?.code, 'UNIMPLEMENTED', method);
-  for (const payload of [{ query: '__alpha_contact_exact:' }, { query: '   ' }, { query: '中'.repeat(171) }, { directory: { categories: ['official'] } }, { lookup: {} }, { ascending: false }]) {
+  for (const payload of [{ query: '__alpha_contact_exact:' }, { query: '   ' }, { query: '中'.repeat(171) }, { directory: { categories: ['official'] } }, { lookup: {} }]) {
     const result = await c.send('listContacts', { accountId, ascending: true, ...payload });
     assert.ok(['UNIMPLEMENTED', 'CONTACT_QUERY_INVALID', 'CONTACT_LOOKUP_INVALID', 'CONTACT_DIRECTORY_REQUEST_INVALID', 'CONTACT_DIRECTORY_CATEGORY_UNSUPPORTED'].includes(result.error?.code), `${JSON.stringify(payload)} => ${JSON.stringify(result.error)}`);
   }
   assert.equal((await c.send('selectAccount', { accountId: 'another' })).error.code, 'ACCOUNT_NOT_FOUND');
+});
+
+test('telemetry consent is persisted while the independent backend stays explicitly disabled', async t => {
+  const f = await fixture(t, false), c = f.start(); await handshake(c);
+  const initial = ok(await c.send('getTelemetryStatus'), 'getTelemetryStatus');
+  assert.equal(initial.configured, false);
+  assert.equal(initial.consentDecision, '');
+  assert.deepEqual(initial.consentCategories, []);
+  assert.equal(initial.queuedCount, 0n);
+  assert.equal(initial.queuedBytes, 0n);
+  assert.equal(initial.nextAttemptUnixMs, 0n);
+  assert.equal(initial.lastErrorCode, '');
+
+  const granted = ok(await c.send('setTelemetryConsent', {
+    decision: 'granted', categories: ['crash', 'usage'], consentVersion: 'telemetry-v1'
+  }), 'setTelemetryConsent').status;
+  assert.equal(granted.configured, true);
+  assert.equal(granted.consentDecision, 'granted');
+  assert.deepEqual(granted.consentCategories, ['crash', 'usage']);
+  assert.equal(granted.lastErrorCode, 'INDEPENDENT_TELEMETRY_DISABLED');
+  assert.deepEqual(ok(await c.send('flushTelemetry'), 'flushTelemetry'), {
+    outcome: 'disabled', acceptedCount: 0n, duplicateCount: 0n, queuedCount: 0n, nextAttemptUnixMs: 0n
+  });
+  const telemetryFile = path.join(f.stateDir, 'telemetry-consent.v1.json');
+  const persisted = JSON.parse(await fs.readFile(telemetryFile, 'utf8'));
+  assert.deepEqual(persisted, { version: 1, decision: 'granted', categories: ['crash', 'usage'], consentVersion: 'telemetry-v1' });
+  assert.equal((await fs.stat(telemetryFile)).mode & 0o077, 0);
+
+  await c.close();
+  const reopened = f.start(); await handshake(reopened);
+  const restored = ok(await reopened.send('getTelemetryStatus'), 'getTelemetryStatus');
+  assert.equal(restored.configured, true);
+  assert.equal(restored.consentDecision, 'granted');
+  assert.deepEqual(restored.consentCategories, ['crash', 'usage']);
+  assert.equal((await reopened.send('setTelemetryConsent', { decision: 'unknown' })).error.code, 'TELEMETRY_DECISION_INVALID');
+  assert.equal((await reopened.send('setTelemetryConsent', { decision: 'revoked', categories: ['usage', 'usage'] })).error.code, 'TELEMETRY_CATEGORIES_INVALID');
+  const revoked = ok(await reopened.send('setTelemetryConsent', { decision: 'revoked' }), 'setTelemetryConsent').status;
+  assert.equal(revoked.configured, true);
+  assert.equal(revoked.consentDecision, 'revoked');
+  assert.deepEqual(revoked.consentCategories, []);
+  assert.equal(revoked.lastErrorCode, '');
+  assert.deepEqual(ok(await reopened.send('flushTelemetry'), 'flushTelemetry'), {
+    outcome: 'disabled', acceptedCount: 0n, duplicateCount: 0n, queuedCount: 0n, nextAttemptUnixMs: 0n
+  });
+});
+
+test('message anti-recall status reports the independent writer boundary per conversation', async t => {
+  const f = await fixture(t), c = f.start(); await handshake(c);
+  const status = ok(await c.send('getMessageAntiRecallStatuses', {
+    accountId,
+    conversationIds: ['wxid_alpha']
+  }), 'getMessageAntiRecallStatuses').statuses[0];
+  assert.equal(status.conversationId, 'wxid_alpha');
+  assert.equal(status.status.detected, false);
+  assert.equal(status.status.usable, false);
+  assert.equal(status.status.enabled, false);
+  assert.equal(status.status.knownTables, 0);
+  assert.equal(status.status.errorCode, 'MESSAGE_ANTI_RECALL_WRITER_DISABLED');
+  assert.equal(status.status.writerErrorCode, 'MESSAGE_ANTI_RECALL_WRITER_DISABLED');
+  assert.deepEqual(ok(await c.send('getMessageAntiRecallStatuses', {
+    accountId,
+    conversationIds: ['wxid_alpha', 'wxid_beta']
+  }), 'getMessageAntiRecallStatuses').statuses.map(item => item.conversationId), ['wxid_alpha', 'wxid_beta']);
+  assert.equal((await c.send('getMessageAntiRecallStatuses', {
+    accountId,
+    conversationIds: ['wxid_alpha', 'wxid_alpha']
+  })).error?.code, 'MESSAGE_RECALL_REQUEST_INVALID');
+});
+
+test('moments anti-delete control reports the independent writer boundary without touching data', async t => {
+  const f = await fixture(t), c = f.start(); await handshake(c);
+  for (const action of [1, 2, 3]) {
+    const result = ok(await c.send('manageMomentsAntiDelete', {
+      operationId: action === 1 ? '' : `test-moments-${action}`,
+      spec: { accountId, action }
+    }), 'manageMomentsAntiDelete').result.status;
+    assert.equal(result.detected, false);
+    assert.equal(result.usable, false);
+    assert.equal(result.enabled, false);
+    assert.equal(result.verified, false);
+    assert.equal(result.retainedRows, 0n);
+    assert.equal(result.targetTable, '');
+    assert.equal(result.shadowTable, '');
+    assert.equal(result.triggerName, '');
+    assert.equal(result.errorCode, 'MOMENTS_ANTI_DELETE_WRITER_DISABLED');
+    assert.equal(result.writerErrorCode, 'MOMENTS_ANTI_DELETE_WRITER_DISABLED');
+  }
+  assert.equal((await c.send('manageMomentsAntiDelete', {
+    operationId: '', spec: { accountId, action: 0 }
+  })).error?.code, 'MOMENTS_ANTI_DELETE_REQUEST_INVALID');
+  assert.equal((await c.send('manageMomentsAntiDelete', {
+    operationId: '', spec: { accountId: 'other-account', action: 1 }
+  })).error?.code, 'ACCOUNT_NOT_FOUND');
 });
 
 test('real persisted password lock denies data, survives restart, throttles failures, and permits verified unlock', async t => {

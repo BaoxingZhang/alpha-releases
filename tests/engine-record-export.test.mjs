@@ -24,9 +24,11 @@ async function addRecords(directory, table) {
     "payment='<msg><appmsg><type>2000</type><wcpayinfo><paysubtype>3</paysubtype><feedesc>￥8.00</feedesc><transferid>tr-export</transferid><receiver_username>wxid_self</receiver_username><payer_username>wxid_beta</payer_username></wcpayinfo></appmsg></msg>'",
     "revoke='<msg><sysmsg type=\"revokemsg\"><revokemsg><content>撤回导出</content><revoketime>1699999900</revoketime></revokemsg></sysmsg></msg>'",
     "call='<msg><voipmsg><voiptype>video</voiptype><duration>9</duration></voipmsg></msg>'",
+    "friend='<msg><sysmsg type=\"VerifyMsg\"><username>wxid_gamma</username><nickname>Gamma</nickname><content>加个好友</content><scene>33</scene></sysmsg></msg>'",
     "db.execute('INSERT INTO \"'+t+'\" VALUES (?,?,?,?,?,?,?,?,?)',(6,223,401,49,1700000010,1,2,payment,''))",
     "db.execute('INSERT INTO \"'+t+'\" VALUES (?,?,?,?,?,?,?,?,?)',(7,224,402,10000,1700000011,2,2,revoke,''))",
     "db.execute('INSERT INTO \"'+t+'\" VALUES (?,?,?,?,?,?,?,?,?)',(8,225,403,50,1700000012,1,2,call,''))",
+    "db.execute('INSERT INTO \"'+t+'\" VALUES (?,?,?,?,?,?,?,?,?)',(9,226,404,37,1700000013,1,2,friend,''))",
     'db.commit();db.close()'
   ].join('\n');
   await execute('/usr/bin/python3', ['-c', script, directory, table]);
@@ -42,7 +44,7 @@ async function waitForTerminal(call, jobId) {
   throw new Error('record export did not finish');
 }
 
-test('frame 136 exports partial payment/revoke/call candidates with shared job lifecycle', async t => {
+test('frame 136 exports partial payment/friend-request/revoke/call candidates with shared job lifecycle', async t => {
   const outer = await fs.mkdtemp(path.join(root, '.runtime/engine-record-export-'));
   const dataDir = path.join(outer, 'data');
   const fixture = await createFixture(dataDir);
@@ -64,13 +66,13 @@ test('frame 136 exports partial payment/revoke/call candidates with shared job l
     accountId: fixture.accountId,
     format: 'json',
     outputDirectory: outputRoot,
-    categories: [{ category: 'payments' }, { category: 'revokes' }, { category: 'calls' }]
+    categories: [{ category: 'payments' }, { category: 'friend_requests' }, { category: 'revokes' }, { category: 'calls' }]
   });
   assert.equal(started.error, undefined, String(started.error?.code || 'start failed'));
   const snapshot = await waitForTerminal(call, started.startRecordExport.jobId);
   assert.equal(snapshot.kind, 'records');
   assert.equal(snapshot.state, 'completed');
-  assert.equal(snapshot.items.length, 3);
+  assert.equal(snapshot.items.length, 4);
   let paymentId = '';
   for (const item of snapshot.items) {
     assert.equal(item.state, 'completed');

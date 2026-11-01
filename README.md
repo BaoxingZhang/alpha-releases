@@ -2,9 +2,11 @@
 
 这是从 `Alpha-0.3.5-arm64.dmg` 整理出的可编辑工程：重建 Electron 主进程、预加载、React 界面和 AI worker 的 JavaScript，复用原包 macOS arm64 原生二进制。
 
-**已能本地编译，并使用自有后端在原界面中读取、搜索、定位和导出离线微信 v4 聊天数据。** 已接通手动密钥导入与加密快照、联系人/会话/消息读取、联系人查询与有限档案存在性读取、联系人和群成员 CSV/JSON/VCF/HTML/XLSX 导出、跨分库分页、全账号和会话搜索、日期导航、会话/账号媒体元数据浏览及 metadata-only JSON/CSV 导出、部分消息结构化展示、JSON/Markdown/HTML/TXT/XLSX 会话导出，以及基于已验证消息 DTO 的 `chatlab-json`/`chatlab-jsonl`/`sql`/`weclone` 派生导出、payments/revokes/calls 候选资料的 xlsx/csv/json 导出、年度基础统计、会话关系基础统计、应用锁，以及有界后台定时导出计划和重启恢复。派生格式不声称与原 Alpha/native formatter 或第三方工具完全兼容。独立引擎还提供可选的本机受控 HTTP/MCP 适配器（包含已验证 DTO 查询、会话文件导出和媒体 JSON/CSV 元数据导出）。完整 Alpha 功能仍未恢复；真实微信数据、自动取钥、原生媒体、AI 和其他导出格式等尚待接手。朋友圈、收藏和“其他资料”记录的证据边界分别见 [朋友圈 schema 证据](docs/moments-schema-evidence.md)、[收藏 schema 证据](docs/favorites-schema-evidence.md) 和 [其他资料记录证据](docs/general-records-schema-evidence.md)。完整接手范围详见 [独立后端与实测](docs/independent-backend.md)、[独立 HTTP/MCP 适配器](docs/http-readonly-adapter-recovery.md)、[加密导入](docs/encrypted-import.md) 和 [搜索导航](docs/search-navigation.md)。
+**已能本地编译，并使用自有后端在原界面中读取、搜索、定位和导出离线微信 v4 聊天数据。** 已接通手动密钥导入与加密快照、联系人/会话/消息读取、联系人查询与有限档案存在性读取、联系人和群成员 CSV/JSON/VCF/HTML/XLSX 导出、跨分库分页、全账号和会话搜索、日期导航、会话/账号媒体元数据浏览及 metadata-only JSON/CSV 导出、显式媒体索引绑定的合成图片读取、部分消息结构化展示、JSON/Markdown/HTML/TXT/XLSX 会话导出，以及基于已验证消息 DTO 的 `chatlab-json`/`chatlab-jsonl`/`sql`/`weclone` 派生导出、payments/friend_requests/revokes/calls 候选资料的 xlsx/csv/json 导出、年度基础统计、会话关系基础统计、应用锁，以及有界后台定时导出计划和重启恢复。独立后端还接通了消息防撤回和朋友圈防删除的状态控制面，但在没有 verified writer/schema 时明确报告 writer disabled，不声称已启用保全。派生格式不声称与原 Alpha/native formatter 或第三方工具完全兼容。独立引擎还提供可选的本机受控 HTTP/MCP 适配器（包含已验证 DTO 查询、会话文件导出和媒体 JSON/CSV 元数据导出）。完整 Alpha 功能仍未恢复；真实微信数据、自动取钥、原生 DAT/AES 媒体、语音/视频播放、真实云模型和其他导出格式等尚待接手。独立模式另有一个显式 opt-in 的本地 fixture AI worker，仅用于回归演示，不代表模型服务或云端 AI。朋友圈、收藏和“其他资料”记录的证据边界分别见 [朋友圈 schema 证据](docs/moments-schema-evidence.md)、[收藏 schema 证据](docs/favorites-schema-evidence.md) 和 [其他资料记录证据](docs/general-records-schema-evidence.md)。完整接手范围详见 [独立后端与实测](docs/independent-backend.md)、[独立 HTTP/MCP 适配器](docs/http-readonly-adapter-recovery.md)、[加密导入](docs/encrypted-import.md) 和 [搜索导航](docs/search-navigation.md)。
 
 原包模式仍保留，启动仍返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，记录见 [local-run.json](docs/local-run.json)。这是恢复后的 JavaScript 工程与新增维护模块，并非作者原始 TypeScript/Rust/C++ 源码仓库。
+
+上游 [`xunchahaha/alpha-releases`](https://github.com/xunchahaha/alpha-releases) 是发行版、文档和更新策略仓库；本地审计没有发现 Alpha 应用源码，也没有公开许可证声明。版本、安装包摘要、公开功能范围和可复用边界记录在 [上游发行审计](docs/upstream-alpha-releases-current.json)。本工程因此保留原包 provenance，独立实现可维护后端和发布流程，不把上游 README 或安装包当作源码授权。
 
 长期维护以尽量完整保留现有功能为目标，范围与逐项验收条件见 [MAINTENANCE.md](MAINTENANCE.md)。
 
@@ -23,6 +25,14 @@ npm run demo
 
 `npm run demo:search` 生成包含压缩文本和历史会话的搜索演示。完成向导后搜索“维护”，可以验证分组、发送人筛选、命中定位与日期日历。
 
+独立模式默认保持 AI gateway 和外部 HTTP/MCP 关闭。需要测试本地 AI 对话链路时，明确传入 fixture 开关：
+
+```sh
+npm run start:independent -- --agent-fixture
+```
+
+该 worker 只提供固定的 `fixture` provider，模型列表为 `fixture`，输入 `hello` 会返回 `fixture:hello`。fixture 开关会给 gateway 注入独立的本地配置，不读取已保存的 provider 或凭据。它不调用网络，也不冒充 OpenAI 或其他云模型。`ALPHA_INDEPENDENT_AGENT` 只接受值 `fixture`；未传开关时独立模式继续返回 `INDEPENDENT_FEATURE_UNIMPLEMENTED`，普通 HTTP API 和外部 MCP 仍保持 fail-closed。
+
 修改 `src/` 或 `packages/` 后可运行 `npm run build`；改 Go 桥接或解密模块后分别运行 `npm run build:bridge`、`npm run build:snapshot-import`。以下命令启动保留的原包模式：
 
 ```sh
@@ -40,11 +50,18 @@ npm run build
 npm run check:maintainability
 npm run test:smoke
 npm run release:manifest # 生成未签名的本地构建清单
+npm run bundle:recovery  # 生成排除用户数据和构建输出的源码恢复包
 ```
 
-项目的 `.github/workflows/maintenance.yml` 固定了同一套 macOS arm64 维护基线：递归获取参考子模块、按 `package-lock.json` 安装依赖、构建独立后端和桌面 bundle、运行完整测试，并校验协议绑定、原包运行时哈希和维护边界。构建报告会作为 Actions artifact 保留；Go 桥接和快照导入仍只接受项目内固定的 macOS arm64 工具链，不会在 CI 中改用系统 Go。
+项目的 `.github/workflows/maintenance.yml` 固定了同一套 macOS arm64 维护基线：递归获取参考子模块、按 `package-lock.json` 安装依赖、构建独立后端和 packaged 资源、组装未签名 app、运行完整测试及独立/原包 smoke，并校验协议绑定、原包运行时哈希和维护边界。构建报告和 app manifest 会作为 Actions artifact 保留；Go 桥接和快照导入仍只接受项目内固定的 macOS arm64 工具链，不会在 CI 中改用系统 Go。
 
 `npm run release:manifest` 会对 `dist/app`、`build/runtime-bundle` 和 `workers/agent/dist` 的每个文件生成 SHA-256 清单与整体摘要，写入 `.runtime/release-manifest.json`。清单明确标记目标为 macOS arm64、原生代码未重新编译且项目未签名；它是发布审计材料，不是 DMG、代码签名或公证结果。原生运行时仍必须先通过 `npm run verify:vendor`。
+
+`npm run build:packaged` 在 `build/packaged-resources/independent/` 生成可复制到 Electron `Resources/independent/` 的独立后端资源。packaged 应用默认仍使用原包 native runtime；只有同时设置 `ALPHA_RECOVERY_BACKEND=independent` 和 `ALPHA_INDEPENDENT_PACKAGED=1` 才会选择独立资源。资源缺失时会明确失败，不回退到原生 engine，也不把 UI 启动成功当作后端就绪。
+
+`npm run package:macos-app` 会基于本机 Electron 44 生成未签名的 `Alpha Recovered.app`，并写出逐文件清单；已有 `build:packaged` 产物时可直接运行 `npm run package:macos-app:from-build`，避免重复构建；`npm run package:macos-dmg` 进一步使用 macOS `hdiutil` 生成未签名、未公证的 DMG。清单始终标记 `projectSigned=false`、`notarized=false`，这些产物用于本地验证和自有发布流程，不能替代代码签名、公证或原生授权。
+
+`npm run bundle:recovery` 会生成 `.runtime/recovery-bundles/alpha-recovered-source.tar.gz` 及同名 manifest。源码包默认包含可编辑源码、测试、脚本、文档、协议材料和原生 provenance，但排除 `node_modules/`、`dist/`、`build/`、`.runtime/`、`.alpha/`、运行日志和截图，也不包含原生 runtime 二进制。需要在受控归档中携带原包二进制时可显式传入 `--include-vendor-runtime`；manifest 会记录 `includesVendorRuntime`、每个源文件的 SHA-256、原始 DMG 摘要，并始终标记 `nativeRecompiled=false`、`projectSigned=false`。这是一份未签名的维护源包，不是可直接安装的 DMG。
 
 Electron 44 的二进制安装是独立步骤，因此保留 `npm run setup`。恢复工程固定 Electron 44.0.0、esbuild 0.28.2、Playwright Core 1.64.1；`package-lock.json` 是此次新增的锁文件。React 19.2.8 等前端运行时已经包含在原 renderer chunks 中，无需再装一份 React。
 

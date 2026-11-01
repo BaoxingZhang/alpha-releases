@@ -16,13 +16,116 @@ import (
 )
 
 const (
-	generalPaymentsTable = "__alpha_general_payments"
-	generalRevokesTable  = "__alpha_general_revokes"
-	generalCallsTable    = "__alpha_general_calls"
-	maxGeneralRecords    = 20000
-	maxRecordXMLBytes    = 256 << 10
-	maxRecordTextBytes   = 4096
+	generalPaymentsTable       = "__alpha_general_payments"
+	generalFriendRequestsTable = "__alpha_general_friend_requests"
+	generalRevokesTable        = "__alpha_general_revokes"
+	generalCallsTable          = "__alpha_general_calls"
+	maxGeneralRecords          = 20000
+	maxRecordXMLBytes          = 256 << 10
+	maxRecordTextBytes         = 4096
 )
+
+// friendRequestRecord deliberately exposes only the small subset of a
+// VerifyMsg/friend payload that can be observed in the message table.  The
+// native records database is not available to the independent bridge, so the
+// resulting row is always marked partial/candidate and keeps its source
+// message identity for auditing.
+func friendRequestRecord(tableName, conversation, database, table, sender, localID, serverID string, seconds int64, xmlValue string) (recordEnvelope, bool, error) {
+	decoder := xml.NewDecoder(strings.NewReader(xmlValue))
+	sysType := ""
+	username, nickname, greeting, scene := "", "", "", ""
+	inSysMsg := false
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return recordEnvelope{}, false, nil
+		}
+		switch value := token.(type) {
+		case xml.StartElement:
+			name := strings.ToLower(value.Name.Local)
+			if name == "sysmsg" {
+				inSysMsg = true
+				for _, attr := range value.Attr {
+					if strings.EqualFold(attr.Name.Local, "type") {
+						sysType = attr.Value
+					}
+				}
+			}
+			if !inSysMsg {
+				continue
+			}
+			if name == "username" || name == "user_name" {
+				var textValue string
+				if decoder.DecodeElement(&textValue, &value) == nil && username == "" {
+					username = strings.TrimSpace(textValue)
+				}
+			}
+			if name == "nickname" || name == "nick_name" {
+				var textValue string
+				if decoder.DecodeElement(&textValue, &value) == nil && nickname == "" {
+					nickname = strings.TrimSpace(textValue)
+				}
+			}
+			if name == "content" || name == "greeting" {
+				var textValue string
+				if decoder.DecodeElement(&textValue, &value) == nil && greeting == "" {
+					greeting = strings.TrimSpace(textValue)
+				}
+			}
+			if name == "scene" {
+				var textValue string
+				if decoder.DecodeElement(&textValue, &value) == nil && scene == "" {
+					scene = strings.TrimSpace(textValue)
+				}
+			}
+		case xml.EndElement:
+			if strings.EqualFold(value.Name.Local, "sysmsg") {
+				inSysMsg = false
+			}
+		}
+	}
+	lowerType := strings.ToLower(strings.TrimSpace(sysType))
+	if lowerType != "verifymsg" && lowerType != "friend" && lowerType != "friendmsg" {
+		return recordEnvelope{}, false, nil
+	}
+	if username == "" && nickname == "" && greeting == "" {
+		return recordEnvelope{}, false, nil
+	}
+	eventAt, err := unixMillis(seconds)
+	if err != nil {
+		return recordEnvelope{}, false, err
+	}
+	fields := []generalField{
+		recordField("kind", "friend_request", false),
+		recordField("state", "unknown", false),
+		recordField("message_found", "1", false),
+	}
+	if username != "" {
+		fields = append(fields, recordField("person", username, false), recordField("person_name", username, false))
+	}
+	if nickname != "" {
+		fields = append(fields, recordField("person_nickname", nickname, false))
+	}
+	if greeting != "" {
+		fields = append(fields, recordField("greeting", greeting, false))
+	}
+	if scene != "" {
+		fields = append(fields, recordField("scene", scene, false))
+	}
+	fields = append(fields, generalPersonFields("conversation", conversation)...)
+	fields = append(fields, candidateMetadata(database, table, localID, serverID)...)
+	return recordEnvelope{item: generalRecord{
+		TableName:     tableName,
+		ID:            "message:" + database + ":" + table + ":" + localID,
+		EventAtUnixMs: eventAt,
+		Actor:         sender,
+		Content:       "[好友申请候选记录，字段可能不完整]",
+		Fields:        fields,
+	}, seconds: seconds, database: database, table: table, localID: mustInt64(localID)}, true, nil
+}
 
 type paymentXML struct {
 	App struct {
@@ -298,7 +401,12 @@ func (b *bridge) generalMessageRecords(ctx context.Context, p params, tableName 
 				continue
 			}
 			kind := int64(49)
-			if tableName == generalRevokesTable {
+			if tableName == generalFriendRequestsTable {
+				// WeChat's VerifyMsg/friend notifications use local_type 37 in
+				// the recovered v4 message schema.  The XML discriminator below
+				// remains authoritative; rows with another payload are omitted.
+				kind = 37
+			} else if tableName == generalRevokesTable {
 				kind = 10000
 			} else if tableName == generalCallsTable {
 				kind = 50
@@ -331,6 +439,8 @@ func (b *bridge) generalMessageRecords(ctx context.Context, p params, tableName 
 				var candidateErr error
 				if tableName == generalPaymentsTable && kind == 49 {
 					candidate, found, candidateErr = paymentRecord(tableName, conversation, d.relative, table, sender, number(local), number(server), seconds, xmlValue)
+				} else if tableName == generalFriendRequestsTable && kind == 37 {
+					candidate, found, candidateErr = friendRequestRecord(tableName, conversation, d.relative, table, sender, number(local), number(server), seconds, xmlValue)
 				} else if tableName == generalRevokesTable && kind == 10000 {
 					candidate, found, candidateErr = revokeRecord(tableName, conversation, d.relative, table, sender, number(local), number(server), seconds, xmlValue)
 				} else if tableName == generalCallsTable && kind == 50 {
@@ -397,5 +507,5 @@ func (b *bridge) generalMessageRecords(ctx context.Context, p params, tableName 
 // General record tables that have a verified source in the recovered message
 // schema. Unknown tables continue to fail closed in groups.go.
 func verifiedGeneralRecordTable(name string) bool {
-	return name == generalPaymentsTable || name == generalRevokesTable || name == generalCallsTable
+	return name == generalPaymentsTable || name == generalFriendRequestsTable || name == generalRevokesTable || name == generalCallsTable
 }

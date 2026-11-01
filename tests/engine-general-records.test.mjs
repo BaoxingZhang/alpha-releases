@@ -27,9 +27,11 @@ table=sys.argv[2]
 payment='<msg><appmsg><type>2000</type><wcpayinfo><paysubtype>3</paysubtype><feedesc>￥8.00</feedesc><transferid>tr-engine</transferid><receiver_username>wxid_self</receiver_username><payer_username>wxid_beta</payer_username></wcpayinfo></appmsg></msg>'
 revoke='<msg><sysmsg type="revokemsg"><revokemsg><content>撤回测试</content><revoketime>1699999900</revoketime></revokemsg></sysmsg></msg>'
 call='<msg><voipinvitemsg><media>voice</media><durationseconds>7</durationseconds></voipinvitemsg></msg>'
+friend='<msg><sysmsg type="VerifyMsg"><username>wxid_gamma</username><nickname>Gamma</nickname><content>加个好友</content><scene>33</scene></sysmsg></msg>'
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(6,223,401,49,1700000010,1,2,payment,''))
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(7,224,402,10000,1700000011,2,2,revoke,''))
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(8,225,403,50,1700000012,1,2,call,''))
+db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(9,226,404,37,1700000013,1,2,friend,''))
 db.commit();db.close()
 `;
   await execute('/usr/bin/python3', ['-c', script, dataDir, fixture.table]);
@@ -67,5 +69,13 @@ db.commit();db.close()
   assert.equal(calls.items[0].fields.some(field => field.name === 'duration_seconds'), false);
   assert.equal(calls.items[0].fields.some(field => field.name === 'interrupted'), false);
   assert.equal(calls.items[0].fields.find(field => field.name === 'partial').value, '1');
+  const friendReply = await call('listGeneral', { accountId: fixture.accountId, tableName: '__alpha_general_friend_requests', query: '', limit: 100, offset: 0, ascending: false });
+  assert.equal(friendReply.error, undefined, String(friendReply.error?.code || 'friend request failed'));
+  const friendRequests = friendReply.listGeneral.response;
+  assert.equal(friendRequests.items.length, 1);
+  assert.equal(friendRequests.items[0].fields.find(field => field.name === 'person').value, 'wxid_gamma');
+  assert.equal(friendRequests.items[0].fields.find(field => field.name === 'person_nickname').value, 'Gamma');
+  assert.equal(friendRequests.items[0].fields.find(field => field.name === 'greeting').value, '加个好友');
+  assert.equal(friendRequests.items[0].fields.find(field => field.name === 'partial').value, '1');
 });
 

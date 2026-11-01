@@ -29657,7 +29657,7 @@ function createActivePlayback() {
   };
 }
 const FAVORITE_PAGE_SIZE = 50;
-function useFavoriteFeed(accountId, accountEpoch) {
+function useFavoriteFeed(accountId, accountEpoch, independent = false) {
   const queryClient2 = useQueryClient();
   const [search, setSearch] = reactExports.useState("");
   const [type, setType] = reactExports.useState(ALL_FAVORITE_TYPES);
@@ -29683,7 +29683,7 @@ function useFavoriteFeed(accountId, accountEpoch) {
     }),
     initialPageParam: 0,
     getNextPageParam: (last, pages) => last.hasMore && last.items.length ? pages.reduce((total, page) => total + page.items.length, 0) : void 0,
-    enabled: Boolean(accountId) && !searchError,
+    enabled: Boolean(accountId) && !independent && !searchError,
     retry: false,
     staleTime: 3e4,
     refetchOnWindowFocus: false
@@ -30567,9 +30567,9 @@ function FavoriteTypeChips({ chips, selected, disabled, onSelect }) {
     chip.type
   )) });
 }
-function FavoritesBrowser({ accountId }) {
+function FavoritesBrowser({ accountId, independent = false }) {
   const { remoteConversations, accountEpoch } = useWorkspace();
-  const data = useFavoriteFeed(accountId, accountEpoch);
+  const data = useFavoriteFeed(accountId, accountEpoch, independent);
   const { feed, entries } = data;
   const sessions2 = reactExports.useMemo(() => new Map(remoteConversations.map((item) => [item.id, item])), [remoteConversations]);
   const chips = favoriteTypeChips(data.typeCounts, data.total, data.type);
@@ -30597,6 +30597,7 @@ function FavoritesBrowser({ accountId }) {
         }
       )
     ] }) }),
+    independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立离线模式暂未接入微信收藏数据库，因此收藏页不会读取或猜测聊天中的收藏内容。保留原生模式可在取得授权的收藏库样本或原生组件后接入。" }),
     accountId && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "favorite-filters", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(FavoriteTypeChips, { chips, selected: data.type, disabled: !accountId, onSelect: data.setType }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(FavoriteTagSelect, { options: tagOptions, selected: data.tagId, disabled: !accountId, onSelect: data.setTagId })
@@ -30604,13 +30605,14 @@ function FavoritesBrowser({ accountId }) {
     data.searchError && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "favorites-search-error", role: "alert", children: data.searchError.message }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "favorites-body", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "favorites-feed", ref: feedRef, ...events, tabIndex: 0, "aria-label": "收藏列表", "aria-busy": feed.isFetching, children: [
-        !accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { size: 22 }), title: "等待账号数据", action: /* @__PURE__ */ jsxRuntimeExports.jsx(ConnectAccountButton, {}), description: "请先在账号设置中连接账号，再回来查看收藏。" }),
-        accountId && feed.isPending && !data.searchError && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "favorites-status", role: "status", children: [
+        independent && accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Bookmark, { size: 22 }), title: "独立模式暂不支持收藏", description: "需要微信收藏数据库与原生媒体解析组件；当前离线后端不会把聊天消息冒充收藏记录。" }),
+        !independent && !accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { size: 22 }), title: "等待账号数据", action: /* @__PURE__ */ jsxRuntimeExports.jsx(ConnectAccountButton, {}), description: "请先在账号设置中连接账号，再回来查看收藏。" }),
+        !independent && accountId && feed.isPending && !data.searchError && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "favorites-status", role: "status", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "spin", size: 18 }),
           "正在读取收藏…"
         ] }),
         feed.error && !pageError && /* @__PURE__ */ jsxRuntimeExports.jsx(FeedError, { error: feed.error, onRetry: () => void feed.refetch() }),
-        accountId && feed.isSuccess && entries.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        !independent && accountId && feed.isSuccess && entries.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
           EmptyState,
           {
             icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Bookmark, { size: 22 }),
@@ -30618,7 +30620,7 @@ function FavoritesBrowser({ accountId }) {
             description: filtered ? "换个关键词、类型或标签再试。" : "本机收藏库中没有可展示的收藏。"
           }
         ),
-        entries.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "favorites-list", role: "feed", "aria-busy": feed.isFetchingNextPage, children: entries.map(({ favorite, item }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+        !independent && entries.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "favorites-list", role: "feed", "aria-busy": feed.isFetchingNextPage, children: entries.map(({ favorite, item }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
           FavoriteCard,
           {
             accountId,
@@ -30629,12 +30631,12 @@ function FavoritesBrowser({ accountId }) {
           },
           item.key
         )) }),
-        pageError && /* @__PURE__ */ jsxRuntimeExports.jsx(FeedError, { error: feed.error, onRetry: retry }),
-        feed.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "favorites-status", role: "status", children: [
+        !independent && pageError && /* @__PURE__ */ jsxRuntimeExports.jsx(FeedError, { error: feed.error, onRetry: retry }),
+        !independent && feed.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "favorites-status", role: "status", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "spin", size: 16 }),
           "正在读取更多收藏…"
         ] }),
-        entries.length > 0 && !feed.hasNextPage && !feed.isFetching && !feed.error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "favorites-status", children: "已全部加载" })
+        !independent && entries.length > 0 && !feed.hasNextPage && !feed.isFetching && !feed.error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "favorites-status", children: "已全部加载" })
       ] }),
       record2.current && /* @__PURE__ */ jsxRuntimeExports.jsx(FavoriteRecordDrawer, { accountId, favorite: record2.current.favorite, item: record2.current.item, onClose: record2.close })
     ] })
@@ -30648,11 +30650,13 @@ function FeedError({ error, onRetry }) {
   ] });
 }
 function FavoritesPage(_) {
-  const { activeAccountId, accountEpoch, hasRemoteAccount } = useWorkspace();
+  const { activeAccountId, accountEpoch, hasRemoteAccount, status } = useWorkspace();
+  const independent = isIndependentEngineStatus(status);
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     FavoritesBrowser,
     {
-      accountId: hasRemoteAccount ? activeAccountId : ""
+      accountId: hasRemoteAccount ? activeAccountId : "",
+      independent
     },
     `favorites-${activeAccountId}-${accountEpoch}`
   );
@@ -30780,7 +30784,7 @@ function useMomentMonthDayCounts(accountId, accountEpoch, username, month, enabl
     refetchOnReconnect: false
   });
 }
-function useMomentsQuery(accountId) {
+function useMomentsQuery(accountId, independent = false) {
   const client = useQueryClient();
   const { accountEpoch } = useWorkspace();
   const [applied, setApplied] = reactExports.useState(EMPTY_MOMENT_FILTERS);
@@ -30795,7 +30799,7 @@ function useMomentsQuery(accountId) {
     queryFn: ({ pageParam }) => window.alpha.data.moments(accountId, buildMomentQueryOptions(filters, pageParam)),
     initialPageParam: 0,
     getNextPageParam: (_lastPage, pages) => nextMomentPageOffset(pages),
-    enabled: Boolean(accountId),
+    enabled: Boolean(accountId) && !independent,
     retry: false,
     refetchOnWindowFocus: false,
     staleTime: 5e3
@@ -31972,12 +31976,12 @@ const RECORD_TABS = [
   { id: "moment_interactions", label: "朋友圈互动" },
   { id: "searches", label: "搜索记录" }
 ];
-// The independent reader derives bounded payment, revoke, and call candidates
+// The independent reader derives bounded payment, friend-request, revoke, and call candidates
 // from message rows. Keep the original record surface for the packaged/native
-// backend, while making the three unavailable categories explicit in the
+// backend, while making the two unavailable categories explicit in the
 // independent UI instead of letting them fail after a click.
-const INDEPENDENT_RECORD_CATEGORIES = ["payments", "revokes", "calls"];
-const INDEPENDENT_UNSUPPORTED_RECORD_CATEGORIES = ["friend_requests", "moment_interactions", "searches"];
+const INDEPENDENT_RECORD_CATEGORIES = ["payments", "friend_requests", "revokes", "calls"];
+const INDEPENDENT_UNSUPPORTED_RECORD_CATEGORIES = ["moment_interactions", "searches"];
 function isIndependentEngineStatus(status) {
   return status?.components?.some((component) => component.component === "alpha-independent-engine") === true;
 }
@@ -33542,8 +33546,8 @@ function MomentExportAction({ accountId, icon, seed, label }) {
     opened && opened.accountId === accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportDialog, { accountId, accountScope: `${accountId}:${accountEpoch}`, seed: opened.seed, onClose: () => setOpened(null) })
   ] });
 }
-function MomentsBrowser({ accountId }) {
-  const data = useMomentsQuery(accountId);
+function MomentsBrowser({ accountId, independent = false }) {
+  const data = useMomentsQuery(accountId, independent);
   const { applied, author, query, moments, nextOffset, scope, mediaRevision, refresh } = data;
   const panel = useMomentsPanel();
   const { momentsRequest, consumeMomentsRequest } = useNavigation();
@@ -33563,8 +33567,9 @@ function MomentsBrowser({ accountId }) {
     fetchNextPage: () => query.fetchNextPage({ cancelRefetch: false })
   });
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "moments-workspace", "aria-label": "朋友圈浏览器", children: [
+    independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立离线模式暂未接入微信朋友圈数据库，因此不会把普通聊天消息冒充朋友圈动态。取得授权的朋友圈明文样本或原生组件后，可继续接入读取、媒体与导出。" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Masthead, { title: "朋友圈", actions: /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
+      !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(
         MomentsCalendarEntry,
         {
           accountId,
@@ -33574,8 +33579,8 @@ function MomentsBrowser({ accountId }) {
           onSelectDay: (date) => data.setDateRange(date, date)
         }
       ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsProtectionEntry, { accountId, ready: !query.isPending }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
+      !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsProtectionEntry, { accountId, ready: !query.isPending }),
+      !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(
         IconButton,
         {
           id: panel.toggleId,
@@ -33585,8 +33590,8 @@ function MomentsBrowser({ accountId }) {
           onClick: panel.toggle
         }
       ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(IconButton, { label: "刷新朋友圈", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCcw, { size: 17, className: query.isRefetching && !query.isFetchingNextPage ? "spin" : void 0 }), disabled, onClick: refresh }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportAction, { accountId, icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { size: 17 }), seed: () => ({
+      !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(IconButton, { label: "刷新朋友圈", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCcw, { size: 17, className: query.isRefetching && !query.isFetchingNextPage ? "spin" : void 0 }), disabled, onClick: refresh }),
+      !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportAction, { accountId, icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { size: 17 }), seed: () => ({
         authors: author && applied.username === author.username ? [{ username: author.username, name: author.name }] : [],
         keyword: applied.keyword,
         startDate: applied.startDate,
@@ -33607,15 +33612,16 @@ function MomentsBrowser({ accountId }) {
           }
         ),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-feed", ref: feedRef, ...events, tabIndex: 0, "aria-label": "朋友圈动态", "aria-busy": query.isFetching, children: [
-          author && applied.username === author.username && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsAuthorStrip, { accountId, author }),
-          query.isRefetching && !query.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "moments-feed-status", role: "status", children: "正在重新读取朋友圈…" }),
-          query.error && !query.isFetchNextPageError && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsError, { error: momentQueryErrorDetails(query.error), onRetry: () => void query.refetch() }),
-          !accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { size: 22 }), title: "等待账号数据", description: "请先在账号设置中连接账号，再回来查看朋友圈。" }),
-          accountId && query.isPending && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-loading", role: "status", children: [
+          independent && accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Aperture, { size: 22 }), title: "独立模式暂不支持朋友圈", description: "需要微信朋友圈数据库与原生投影组件；当前离线后端不会把聊天消息当作朋友圈。" }),
+          !independent && author && applied.username === author.username && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsAuthorStrip, { accountId, author }),
+          !independent && query.isRefetching && !query.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "moments-feed-status", role: "status", children: "正在重新读取朋友圈…" }),
+          !independent && query.error && !query.isFetchNextPageError && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsError, { error: momentQueryErrorDetails(query.error), onRetry: () => void query.refetch() }),
+          !independent && !accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { size: 22 }), title: "等待账号数据", description: "请先在账号设置中连接账号，再回来查看朋友圈。" }),
+          !independent && accountId && query.isPending && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-loading", role: "status", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "spin", size: 18 }),
             "正在读取朋友圈…"
           ] }),
-          accountId && !query.isPending && !query.error && moments.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          !independent && accountId && !query.isPending && !query.error && moments.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
             EmptyState,
             {
               icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Aperture, { size: 22 }),
@@ -33624,17 +33630,17 @@ function MomentsBrowser({ accountId }) {
               action: filtered && !query.hasNextPage ? /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "moments-empty-action", onClick: data.resetFilters, children: "清除筛选" }) : void 0
             }
           ),
-          moments.map((moment, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(MomentCard, { moment, accountId, mediaRevision, onSelectAuthor: data.selectAuthor }, moment.id || `moment-${index}`)),
-          query.isFetchNextPageError && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsError, { error: momentQueryErrorDetails(query.error), onRetry: retry }),
-          query.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-feed-status", role: "status", children: [
+          !independent && moments.map((moment, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(MomentCard, { moment, accountId, mediaRevision, onSelectAuthor: data.selectAuthor }, moment.id || `moment-${index}`)),
+          !independent && query.isFetchNextPageError && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsError, { error: momentQueryErrorDetails(query.error), onRetry: retry }),
+          !independent && query.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-feed-status", role: "status", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "spin", size: 16 }),
             "正在读取朋友圈…"
           ] }),
-          moments.length > 0 && !query.hasNextPage && !query.isFetching && !query.error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "moments-feed-status", children: "已到当前结果末尾" })
+          !independent && moments.length > 0 && !query.hasNextPage && !query.isFetching && !query.error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "moments-feed-status", children: "已到当前结果末尾" })
         ] })
       ] }),
-      panel.overlay && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "moments-panel-scrim", "aria-hidden": "true", onClick: panel.close }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsSidePanel, { accountId, data, open: panel.open, overlay: panel.overlay, onClose: panel.close })
+      !independent && panel.overlay && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "moments-panel-scrim", "aria-hidden": "true", onClick: panel.close }),
+      !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsSidePanel, { accountId, data, open: panel.open, overlay: panel.overlay, onClose: panel.close })
     ] })
   ] });
 }
@@ -33645,11 +33651,13 @@ function MomentsError({ error, onRetry }) {
   ] });
 }
 function MomentsPage(_) {
-  const { activeAccountId, accountEpoch, hasRemoteAccount } = useWorkspace();
+  const { activeAccountId, accountEpoch, hasRemoteAccount, status } = useWorkspace();
+  const independent = isIndependentEngineStatus(status);
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     MomentsBrowser,
     {
-      accountId: hasRemoteAccount ? activeAccountId : ""
+      accountId: hasRemoteAccount ? activeAccountId : "",
+      independent
     },
     `moments-${activeAccountId}-${accountEpoch}`
   );
@@ -41807,7 +41815,7 @@ function RecordExportDialog({ accountId, accountScope, seed, onClose, independen
     DatasetExportShell,
     {
       title: "导出其他资料",
-        subtitle: independent ? "独立离线模式支持转账与红包、撤回、通话候选；结果来自聊天消息推断，可能包含 partial/candidate 字段。" : "把转账红包、好友验证、撤回、通话、朋友圈互动和搜索记录导出为表格或数据文件，每类一个文件。",
+        subtitle: independent ? "独立离线模式支持好友验证、转账与红包、撤回、通话候选；结果来自聊天消息推断，可能包含 partial/candidate 字段。" : "把转账红包、好友验证、撤回、通话、朋友圈互动和搜索记录导出为表格或数据文件，每类一个文件。",
       side: /* @__PURE__ */ jsxRuntimeExports.jsx(RecordCategoryPicker, { draft }),
       summary: draft.summary,
       error: draft.error || draft.output.error,
@@ -41818,7 +41826,7 @@ function RecordExportDialog({ accountId, accountScope, seed, onClose, independen
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(DatasetFormatField, { formats: RECORD_EXPORT_FORMATS, value: draft.format, onChange: draft.setFormat }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "export-dialog-hint", children: "列与页面上看到的一致：时间、对方、金额、状态、备注等；JSON 另含每条记录的原始字段。" }),
-        draft.categories.some((category) => category === "payments" || category === "revokes") && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "export-dialog-hint", role: "note", children: "转账和撤回类别可能包含候选记录；导出内容会保留 partial/candidate 标记，字段可能不完整。" }),
+        draft.categories.some((category) => category === "payments" || category === "friend_requests" || category === "revokes" || category === "calls") && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "export-dialog-hint", role: "note", children: "独立模式的好友验证、转账、撤回和通话类别均可能包含候选记录；导出内容会保留 partial/candidate 标记，字段可能不完整。" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(DatasetOutputField, { output: draft.output, privacy: "其中有转账金额和联系人信息，请妥善保存。" })
       ]
     }
@@ -41841,7 +41849,7 @@ function RecordCategoryPicker({ draft }) {
       /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "checkbox", checked: draft.categories.includes(category), disabled: !available, onChange: () => draft.toggle(category) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: `${RECORD_CATEGORY_LABELS[category]}${available ? "" : "（暂不可用）"}` })
     ] }) }, category) }) }),
-    draft.independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "export-dialog-hint", role: "note", children: "好友验证、朋友圈互动和搜索记录尚未接入独立离线数据组件；通话仅提供来自消息的 partial/candidate 候选。" }),
+    draft.independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "export-dialog-hint", role: "note", children: "好友验证、转账红包、撤回和通话均来自聊天消息的 partial/candidate 候选；朋友圈互动和搜索记录尚未接入独立离线数据组件。" }),
     seed && draft.filtered && draft.categories.includes(seed) && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "export-dialog-segments", role: "radiogroup", "aria-label": `${RECORD_CATEGORY_LABELS[seed]}的范围`, children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: draft.onlyFiltered ? "is-selected" : void 0, children: [
@@ -41944,7 +41952,7 @@ function RecordsWorkspace({ accountId, accountEpoch, initial }) {
         description: "连接微信账号后，即可在这里查看转账、红包、好友验证等资料。"
       }
     ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-      independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立离线模式支持转账与红包、撤回、通话候选；这些结果来自聊天消息推断，标记为 partial/candidate，字段可能不完整。好友验证、朋友圈互动和搜索记录暂不可用。" }),
+      independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立离线模式支持好友验证、转账与红包、撤回、通话候选；这些结果来自聊天消息推断，标记为 partial/candidate，字段可能不完整。朋友圈互动和搜索记录暂不可用。" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "records-panel", role: "tabpanel", id: `records-panel-${selectedTab}`, "aria-labelledby": `records-tab-${selectedTab}`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
       RecordsCategoryView,
       {

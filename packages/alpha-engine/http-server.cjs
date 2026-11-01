@@ -10,11 +10,12 @@ const { URL } = require('node:url');
 const { EngineClientFrame, EngineServerFrame } = require('../alpha-protocol/index.cjs');
 
 const MAX_BODY_BYTES = 1024 * 1024;
+const MAX_ANALYSIS_REPORT_BYTES = 64 * 1024 * 1024;
 const PRINTABLE_TOKEN = /^[\x21-\x7e]{32,256}$/;
 // Conversation export only writes a new file through the engine's bounded,
 // non-overwriting exporter. It does not mutate the source database, but it is
 // kept separate from the ordinary DTO reads so the route remains explicit.
-const ALLOWED_METHODS = new Set(['listAccounts', 'listConversations', 'listMessages', 'searchMessages', 'listContacts', 'getContactProfile', 'listGeneral', 'getConversationDayCounts', 'exportConversation']);
+const ALLOWED_METHODS = new Set(['listAccounts', 'listConversations', 'listMessages', 'searchMessages', 'listContacts', 'getContactProfile', 'listGeneral', 'getConversationDayCounts', 'exportConversation', 'startAggregateAnalysis', 'watchAggregateAnalysis', 'cancelAggregateAnalysis']);
 const MCP_SCAN_MAX_PAGES = 128;
 const MCP_SCAN_MAX_ITEMS = 10000;
 
@@ -102,6 +103,26 @@ function cursorString(value) {
   if (!(value instanceof Uint8Array) || value.length === 0) return undefined;
   return Buffer.from(value).toString('base64url');
 }
+function base64Bytes(value, code) {
+  if (typeof value !== 'string' || value.length > Math.ceil(MAX_ANALYSIS_REPORT_BYTES / 3) * 4 || value.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) throw new HttpAdapterError(code, 502);
+  const padding = (value.match(/=+$/) || [''])[0].length;
+  if (padding && value.indexOf('=') < value.length - padding) throw new HttpAdapterError(code, 502);
+  const bytes = Buffer.from(value, 'base64');
+  if (bytes.length > MAX_ANALYSIS_REPORT_BYTES) throw new HttpAdapterError(code, 502);
+  return bytes;
+}
+function aggregateSnapshot(value) {
+  const snapshot = snakeKeys(value || {});
+  const encoded = value?.reportJson ?? value?.report_json ?? '';
+  delete snapshot.report_json;
+  if (!encoded) return snapshot;
+  let report;
+  try { report = JSON.parse(base64Bytes(encoded, 'HTTP_API_ANALYSIS_REPORT_INVALID').toString('utf8')); }
+  catch (failure) { if (failure instanceof HttpAdapterError) throw failure; throw new HttpAdapterError('HTTP_API_ANALYSIS_REPORT_INVALID', 502); }
+  if (!report || typeof report !== 'object' || Array.isArray(report)) throw new HttpAdapterError('HTTP_API_ANALYSIS_REPORT_INVALID', 502);
+  snapshot.report = report;
+  return snapshot;
+}
 function snakeKey(key) { return key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`); }
 function snakeKeys(value) {
   if (Array.isArray(value)) return value.map(snakeKeys);
@@ -136,10 +157,13 @@ function toolDefinitions() {
     { name: 'wechat.chat.get_message_anchor', description: '读取会话第一条消息或指定日期的第一条消息', inputSchema: { type: 'object', required: ['username', 'kind'], properties: { account_id: string, username: string, kind: { type: 'string', enum: ['first', 'day'] }, date: { type: 'string' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.get_daily_message_counts', description: '读取指定会话某月的每日消息数', inputSchema: { type: 'object', required: ['username', 'month'], properties: { account_id: string, username: string, month: { type: 'string' }, utc_offset_minutes: { type: 'integer', minimum: -720, maximum: 840 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.get_message_raw', description: '读取一条已验证消息的原始 DTO 字段（不含数据库密钥和未验证 XML）', inputSchema: { type: 'object', required: ['username'], properties: { account_id: string, username: string, message_id: string, server_id: string, local_id: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha.analysis.start', description: '启动已验证消息 DTO 的有界聚合分析任务；仅支持 scope 1–4，报告为独立算法结果', inputSchema: { type: 'object', required: ['scope'], properties: { account_id: string, scope: { type: 'integer', enum: [1, 2, 3, 4] }, conversation_id: string, excluded_conversation_ids: { type: 'array', items: string, maxItems: 500, uniqueItems: true }, from_unix_ms: string, to_unix_ms: string, utc_offset_minutes: { type: 'integer', minimum: -720, maximum: 840 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha.analysis.watch', description: '读取有界聚合分析任务状态；完成时返回已验证的独立报告 JSON', inputSchema: { type: 'object', required: ['analysis_id'], properties: { account_id: string, analysis_id: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha.analysis.cancel', description: '取消仍在运行的有界聚合分析任务', inputSchema: { type: 'object', required: ['analysis_id'], properties: { account_id: string, analysis_id: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_conversation', description: '将已验证会话导出到本机新文件；ChatLab/SQL/WeClone 为独立后端的派生格式', inputSchema: { type: 'object', required: ['username', 'format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['json', 'markdown', 'html', 'txt', 'xlsx', 'chatlab-json', 'chatlab-jsonl', 'sql', 'weclone'] }, destination_path: string, include_media: { type: 'boolean', const: false }, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_media_metadata', description: '将已验证媒体消息的元数据导出到本机新文件；不读取、解密或播放媒体文件', inputSchema: { type: 'object', required: ['format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['media-json', 'media-csv'] }, destination_path: string, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha.messages.search_page', description: '读取独立后端的跨会话搜索页', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, username: string, sender_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
-    { name: 'wechat.forensics.list_records', description: '读取已验证消息 XML 推导的 partial/candidate 记录（支付、撤回、通话）；只支持降序无筛选分页', inputSchema: { type: 'object', required: ['category'], properties: { account_id: string, category: { type: 'string', enum: ['payments', 'revokes', 'calls'] }, limit: { type: 'integer', minimum: 1, maximum: 1000 }, offset: { type: 'integer', minimum: 0 } }, additionalProperties: false }, outputSchema: { type: 'object' } }
+    { name: 'wechat.forensics.list_records', description: '读取已验证消息 XML 推导的 partial/candidate 记录（支付、好友申请、撤回、通话）；只支持降序无筛选分页', inputSchema: { type: 'object', required: ['category'], properties: { account_id: string, category: { type: 'string', enum: ['payments', 'friend_requests', 'revokes', 'calls'] }, limit: { type: 'integer', minimum: 1, maximum: 1000 }, offset: { type: 'integer', minimum: 0 } }, additionalProperties: false }, outputSchema: { type: 'object' } }
   ];
 }
 
@@ -237,6 +261,35 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       return snakeKeys(response);
     }
     const account = await selectedAccount(params);
+    if (pathname === '/api/v1/analysis') {
+      if (method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const scope = integer(params.scope, 1, 4, 'HTTP_API_ANALYSIS_SCOPE_INVALID');
+      if (scope === undefined) throw new HttpAdapterError('HTTP_API_ANALYSIS_SCOPE_REQUIRED', 400);
+      const conversation = text(oneAlias(params, ['conversation_id', 'conversationId'], 'HTTP_API_ANALYSIS_CONVERSATION_AMBIGUOUS'), 1024, 'HTTP_API_ANALYSIS_CONVERSATION_INVALID');
+      const excludedValue = params.excluded_conversation_ids ?? params.excludedConversationIds;
+      const excluded = excludedValue === undefined ? [] : excludedValue;
+      if (!Array.isArray(excluded) || excluded.length > 500 || new Set(excluded).size !== excluded.length || excluded.some(value => typeof value !== 'string' || !value.length || value.length > 1024 || value.includes('\0'))) throw new HttpAdapterError('HTTP_API_ANALYSIS_EXCLUDED_INVALID', 400);
+      const from = int64(params.from_unix_ms ?? params.fromUnixMs, 'HTTP_API_ANALYSIS_TIME_INVALID');
+      const to = int64(params.to_unix_ms ?? params.toUnixMs, 'HTTP_API_ANALYSIS_TIME_INVALID');
+      if (from !== undefined && from < 0n || to !== undefined && to < 0n || from !== undefined && to !== undefined && from >= to) throw new HttpAdapterError('HTTP_API_ANALYSIS_TIME_INVALID', 400);
+      const utcOffset = integer(params.utc_offset_minutes ?? params.utcOffsetMinutes, -720, 840, 'HTTP_API_ANALYSIS_OFFSET_INVALID');
+      const response = await call('startAggregateAnalysis', { accountId: account, scope, conversationId: conversation || '', excludedConversationIds: excluded, ...(from === undefined ? {} : { fromUnixMs: from }), ...(to === undefined ? {} : { toUnixMs: to }), ...(utcOffset === undefined ? {} : { utcOffsetMinutes: utcOffset }) });
+      return snakeKeys(response);
+    }
+    const analysisWatch = /^\/api\/v1\/analysis\/([^/]+)(\/cancel)?$/.exec(pathname);
+    if (analysisWatch) {
+      let analysisId;
+      try { analysisId = decodeURIComponent(analysisWatch[1]); } catch { throw new HttpAdapterError('HTTP_API_ANALYSIS_ID_INVALID', 400); }
+      analysisId = text(analysisId, 128, 'HTTP_API_ANALYSIS_ID_INVALID');
+      if (!analysisId) throw new HttpAdapterError('HTTP_API_ANALYSIS_ID_INVALID', 400);
+      if (analysisWatch[2]) {
+        if (method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+        const response = await call('cancelAggregateAnalysis', { analysisId });
+        return { canceled: response.canceled === true };
+      }
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      return aggregateSnapshot(await call('watchAggregateAnalysis', { analysisId }));
+    }
     if (pathname === '/api/v1/sessions') return snakeKeys(await call('listConversations', { accountId: account, page: page(params, 500) }));
     const sessionMatch = /^\/api\/v1\/sessions\/([^/]+)\/messages$/.exec(pathname);
     if (sessionMatch) params.username = decodeURIComponent(sessionMatch[1]);
@@ -269,6 +322,16 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const response = await call('listGeneral', { accountId: account, tableName: '__alpha_group_members', query: room, limit: integer(params.limit, 1, 1000, 'HTTP_API_LIMIT_INVALID') ?? 100, offset: integer(params.offset, 0, 100000, 'HTTP_API_OFFSET_INVALID') ?? 0, ascending: true });
       const pageResponse = response.response || {};
       return { items: (pageResponse.items || []).map(item => { const fields = Object.fromEntries((item.fields || []).map(field => [field.name, field.value])); return { username: item.actor, group_nickname: fields.groupNickname || '', nickname: fields.nickname || '', remark: fields.remark || '', alias: fields.alias || '', ...(fields.isOwner === 'true' ? { is_owner: true } : {}) }; }), source_database: pageResponse.sourceDatabase || '', source_table: pageResponse.sourceTable || '' };
+    }
+    if (pathname === '/api/v1/records') {
+      const category = text(params.category, 32, 'HTTP_API_RECORD_CATEGORY_INVALID');
+      const tables = { payments: '__alpha_general_payments', friend_requests: '__alpha_general_friend_requests', revokes: '__alpha_general_revokes', calls: '__alpha_general_calls' };
+      if (!Object.hasOwn(tables, category)) throw new HttpAdapterError('HTTP_API_RECORD_CATEGORY_INVALID', 400);
+      if (params.query !== undefined && params.query !== '') throw new HttpAdapterError('HTTP_API_RECORD_QUERY_UNSUPPORTED', 400);
+      if (params.ascending !== undefined && params.ascending !== 'false') throw new HttpAdapterError('HTTP_API_RECORD_ORDER_UNSUPPORTED', 400);
+      const response = await call('listGeneral', { accountId: account, tableName: tables[category], query: '', limit: integer(params.limit, 1, 1000, 'HTTP_API_LIMIT_INVALID') ?? 100, offset: integer(params.offset, 0, 20000, 'HTTP_API_OFFSET_INVALID') ?? 0, ascending: false });
+      const page = response.response || response;
+      return snakeKeys({ category, tableName: tables[category], partial: true, candidate: true, items: page.items || [], sourceDatabase: page.sourceDatabase || '', sourceTable: page.sourceTable || '', ...(page.totalCount !== undefined ? { totalCount: page.totalCount } : {}) });
     }
     throw new HttpAdapterError('HTTP_API_ROUTE_NOT_FOUND', 404);
   }
@@ -364,7 +427,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'],
       'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
       'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'],
-      'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'limit', 'offset'],
+      'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'wechat.forensics.list_records': ['account_id', 'category', 'limit', 'offset'],
       'wechat.chat.list_search_senders': ['account_id', 'query', 'username', 'limit'], 'wechat.chat.get_message_around': ['account_id', 'username', 'anchor_id', 'before', 'after'],
       'wechat.chat.get_message_anchor': ['account_id', 'username', 'kind', 'date'], 'wechat.chat.get_daily_message_counts': ['account_id', 'username', 'month', 'utc_offset_minutes'], 'wechat.chat.get_message_raw': ['account_id', 'username', 'message_id', 'server_id', 'local_id'], 'wechat.chat.export_conversation': ['account_id', 'username', 'format', 'destination_path', 'include_media', 'start_time_unix_ms', 'end_time_unix_ms'], 'wechat.chat.export_media_metadata': ['account_id', 'username', 'format', 'destination_path', 'start_time_unix_ms', 'end_time_unix_ms']
     };
@@ -405,10 +468,16 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     else if (name === 'wechat.chat.resolve_session') pathName = '/api/v1/sessions';
     else if (name === 'wechat.chat.get_messages') { pathName = '/api/v1/messages'; params.username = args.username; params.after_unix_ms = args.after_unix_ms; params.before_unix_ms = args.before_unix_ms; }
     else if (name === 'wechat.chat.search_messages' || name === 'alpha.messages.search_page') { pathName = '/api/v1/search'; params.query = args.query; params.username = args.username; }
+    else if (name === 'alpha.analysis.start') { pathName = '/api/v1/analysis'; }
+    else if (name === 'alpha.analysis.watch' || name === 'alpha.analysis.cancel') {
+      const analysisId = text(args.analysis_id, 128, 'MCP_ANALYSIS_ID_INVALID');
+      if (!analysisId) throw new HttpAdapterError('MCP_ANALYSIS_ID_INVALID', 400);
+      pathName = `/api/v1/analysis/${encodeURIComponent(analysisId)}${name === 'alpha.analysis.cancel' ? '/cancel' : ''}`;
+    }
     else if (name === 'wechat.forensics.list_records') {
       const account = await selectedAccount(params);
       const category = text(args.category, 32, 'MCP_RECORD_CATEGORY_INVALID');
-      const tables = { payments: '__alpha_general_payments', revokes: '__alpha_general_revokes', calls: '__alpha_general_calls' };
+      const tables = { payments: '__alpha_general_payments', friend_requests: '__alpha_general_friend_requests', revokes: '__alpha_general_revokes', calls: '__alpha_general_calls' };
       if (!Object.hasOwn(tables, category)) throw new HttpAdapterError('MCP_RECORD_CATEGORY_INVALID', 400);
       const limit = mcpLimit(args.limit, 100, 1000, 'MCP_LIMIT_INVALID');
       const offset = integer(args.offset, 0, 20000, 'MCP_OFFSET_INVALID') ?? 0;
@@ -483,7 +552,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     }
     else return { jsonrpc: '2.0', id: rpc.id, result: { isError: true, structuredContent: { code: 'MCP_TOOL_NOT_FOUND', message: 'MCP_TOOL_NOT_FOUND' }, content: [{ type: 'text', text: JSON.stringify({ code: 'MCP_TOOL_NOT_FOUND', message: 'MCP_TOOL_NOT_FOUND' }) }] } };
     try {
-      let result = await route(pathName, params, ['wechat.chat.export_conversation', 'wechat.chat.export_media_metadata'].includes(name) ? 'POST' : 'GET');
+      let result = await route(pathName, params, ['wechat.chat.export_conversation', 'wechat.chat.export_media_metadata', 'alpha.analysis.start', 'alpha.analysis.cancel'].includes(name) ? 'POST' : 'GET');
       if (name === 'wechat.contacts.resolve_contact') {
         result = { items: (result.items || []).map(item => ({ username: item.username, display_name: item.remark || item.nickname || item.alias || item.username, kind: item.username?.endsWith('@chatroom') ? 'group' : 'contact' })) };
       } else if (name === 'wechat.chat.resolve_session') {

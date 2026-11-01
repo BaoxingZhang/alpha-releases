@@ -13,6 +13,7 @@ export function launchEnvironment(session = 'manual', options = {}) {
   // receives an operator HTTP token or listener port.
   const independentHttpToken = env.ALPHA_INDEPENDENT_HTTP_TOKEN;
   const independentHttpPort = env.ALPHA_INDEPENDENT_HTTP_PORT;
+  const independentAgent = env.ALPHA_INDEPENDENT_AGENT;
   for (const k of Object.keys(env)) if (/^ALPHA_|^ELECTRON_|^NODE_OPTIONS$|^NODE_PATH$|^DYLD_|^(?:HTTP|HTTPS|ALL)_PROXY$/i.test(k)) delete env[k];
   const runtime = path.join(root, 'build/runtime-bundle');
   Object.assign(env, {
@@ -43,6 +44,11 @@ export function launchEnvironment(session = 'manual', options = {}) {
       const port = Number(independentHttpPort);
       if (!Number.isSafeInteger(port) || port < 0 || port > 65535) throw new Error('HTTP_PORT_INVALID');
       env.ALPHA_INDEPENDENT_HTTP_PORT = independentHttpPort;
+    }
+    if (options.agentFixture) env.ALPHA_INDEPENDENT_AGENT = 'fixture';
+    else if (independentAgent !== undefined) {
+      if (independentAgent !== 'fixture') throw new Error('INDEPENDENT_AGENT_INVALID');
+      env.ALPHA_INDEPENDENT_AGENT = independentAgent;
     }
     const base = path.join(root, '.runtime');
     const validateDatasetDirectory = (value, optionName) => {

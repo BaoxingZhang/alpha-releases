@@ -1,15 +1,49 @@
 {
-  "builtAt": "2026-11-01T00:37:15.876Z",
+  "builtAt": "2026-11-01T03:43:33.479Z",
   "node": "v24.21.0",
   "electron": "44.0.0",
   "esbuild": "0.28.2",
   "sourceKind": "recovered emitted JavaScript; not original TypeScript",
   "nativeRecompiled": false,
+  "independentRuntime": {
+    "schema": "alpha-recovered.independent-runtime.v1",
+    "status": "ready",
+    "version": "0.3.5",
+    "platform": "darwin",
+    "arch": "arm64",
+    "entry": "packages/alpha-engine/cli.cjs",
+    "bridge": "bin/alpha-data-bridge",
+    "importer": "bin/alpha-snapshot-import",
+    "packages": [
+      "alpha-engine",
+      "alpha-security",
+      "alpha-protocol"
+    ],
+    "files": [
+      {
+        "name": "alpha-data-bridge",
+        "source": "build/candidates/alpha-data-bridge",
+        "path": "independent/bin/alpha-data-bridge",
+        "bytes": 8447506,
+        "sha256": "b55a274ebec38301d56e3776a94b6b31173ab522a4f481d1e54c714ac580b26b",
+        "mode": "755"
+      },
+      {
+        "name": "alpha-snapshot-import",
+        "source": "build/candidates/alpha-snapshot-import",
+        "path": "independent/bin/alpha-snapshot-import",
+        "bytes": 7816610,
+        "sha256": "2db7240ee35977e3dcfd8714c0fd4163808ae31414998eed37c31b10817e6b57",
+        "mode": "755"
+      }
+    ],
+    "sourceKind": "maintained independent implementations; never the original native backend"
+  },
   "outputs": [
     {
       "inputs": {
         "src/main/index.js": {
-          "bytes": 3186664,
+          "bytes": 3191029,
           "imports": [],
           "format": "cjs"
         }
@@ -19,7 +53,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 5350035
+          "bytes": 5356255
         },
         "dist/app/out/main/index.js": {
           "imports": [
@@ -64,6 +98,16 @@
               "external": true
             },
             {
+              "path": "../../packages/alpha-desktop/backend-mode.cjs",
+              "kind": "require-call",
+              "external": true
+            },
+            {
+              "path": "../../packages/alpha-engine/media-index.cjs",
+              "kind": "require-call",
+              "external": true
+            },
+            {
               "path": "@bufbuild/protobuf/wire",
               "kind": "require-call",
               "external": true
@@ -88,10 +132,10 @@
           "entryPoint": "src/main/index.js",
           "inputs": {
             "src/main/index.js": {
-              "bytesInOutput": 3207635
+              "bytesInOutput": 3210928
             }
           },
-          "bytes": 3207683
+          "bytes": 3210976
         }
       }
     },
@@ -200,7 +244,7 @@
           "format": "esm"
         },
         "src/renderer/assets/index-DPCwIOAb.js": {
-          "bytes": 2875086,
+          "bytes": 2877261,
           "imports": [],
           "format": "esm"
         },
@@ -301,7 +345,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 4998420
+          "bytes": 5002232
         },
         "dist/app/out/renderer/assets/index-DPCwIOAb.js": {
           "imports": [
@@ -330,10 +374,10 @@
           "entryPoint": "src/renderer/assets/index-DPCwIOAb.js",
           "inputs": {
             "src/renderer/assets/index-DPCwIOAb.js": {
-              "bytesInOutput": 3095177
+              "bytesInOutput": 3098121
             }
           },
-          "bytes": 3095220
+          "bytes": 3098164
         },
         "dist/app/out/renderer/assets/media-metadata-export.js.map": {
           "imports": [],

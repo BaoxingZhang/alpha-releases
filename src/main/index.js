@@ -8,6 +8,11 @@ const electron = require("electron");
 const node_http = require("node:http");
 const node_os = require("node:os");
 const node_child_process = require("node:child_process");
+const backendMode = require("../../packages/alpha-desktop/backend-mode.cjs");
+function independentBackendEnabled() {
+  return backendMode.isIndependentBackendEnabled(electron.app, process.env);
+}
+const { loadMediaIndex, readMediaEntry } = require("../../packages/alpha-engine/media-index.cjs");
 const wire = require("@bufbuild/protobuf/wire");
 const node_util = require("node:util");
 const LIMIT = 64 * 1024 * 1024;
@@ -17,6 +22,15 @@ const VERIFIED_LIMIT = 4096;
 const fail$e = (code2) => {
   throw new Error(code2);
 };
+function indexedImageMime(entry, bytes2) {
+  const mimeType = typeof entry?.mimeType === "string" ? entry.mimeType : "";
+  if (mimeType === "image/jpeg") return imageMime(bytes2, "jpg");
+  if (mimeType === "image/png") return imageMime(bytes2, "png");
+  if (mimeType === "image/gif") return imageMime(bytes2, "gif");
+  if (mimeType === "image/webp") return imageMime(bytes2, "webp");
+  if (mimeType === "image/bmp") return imageMime(bytes2, "bmp");
+  fail$e("IMAGE_CACHE_FORMAT_INVALID");
+}
 class ImageCacheAccess {
   grants = /* @__PURE__ */ new Map();
   /** Paths whose SHA-256 this process checked, with the exact file identity and times seen then. */
@@ -107,7 +121,27 @@ class ImageCacheAccess {
         if (error.code !== "ENOENT") fail$e("IMAGE_CACHE_READ_FAILED");
       }
     }
-    if (candidates.length !== 1) fail$e(candidates.length ? "IMAGE_CACHE_AMBIGUOUS" : "IMAGE_CACHE_NOT_FOUND");
+    if (candidates.length === 0) {
+      let index;
+      try {
+        index = loadMediaIndex({ root: directory2 });
+      } catch (reason) {
+        if (reason?.message === "MEDIA_INDEX_MANIFEST_MISSING") fail$e("IMAGE_CACHE_NOT_FOUND");
+        fail$e("IMAGE_CACHE_INDEX_INVALID");
+      }
+      const entry = index.entries.find((item) => item.kind === "image" && item.sha256 === opaqueId);
+      if (!entry) fail$e("IMAGE_CACHE_NOT_FOUND");
+      try {
+        const media = await readMediaEntry(index, entry, { maxBytes: LIMIT });
+        return { mimeType: indexedImageMime(entry, media.bytes), bytes: media.bytes };
+      } catch (reason) {
+        const code2 = reason instanceof Error ? reason.message : "";
+        if (/^MEDIA_INDEX_(?:FILE_NOT_FOUND|ENTRY_NOT_FOUND)$/.test(code2)) fail$e("IMAGE_CACHE_NOT_FOUND");
+        if (/^MEDIA_INDEX_(?:FILE_TOO_LARGE|SIZE_MISMATCH|HASH_MISMATCH|FILE_SYMLINK|PATH_INVALID|FILE_INVALID)$/.test(code2)) fail$e("IMAGE_CACHE_INDEX_INVALID");
+        fail$e("IMAGE_CACHE_READ_FAILED");
+      }
+    }
+    if (candidates.length > 1) fail$e("IMAGE_CACHE_AMBIGUOUS");
     const { path, extension } = candidates[0];
     const before = await promises.lstat(path, { bigint: true });
     if (before.isSymbolicLink() || !before.isFile() || before.nlink !== 1n || before.size <= 0n || before.size > BigInt(LIMIT)) fail$e("IMAGE_CACHE_FILE_INVALID");
@@ -62959,15 +62993,24 @@ class EngineClient {
     const workspace = node_path.resolve(electron.app.getAppPath(), "../..");
     // Maintenance addition: select the independent implementation explicitly.
     // Original runtime preparation and trust checks remain unchanged below.
-    const independentMode = !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent";
-    let executable, childEnvironment;
+    // Development mode opts into the independent implementation directly.
+    // Packaged mode requires a second, explicit marker so an old environment
+    // variable cannot accidentally bypass the shipped native runtime policy.
+    const independentMode = independentBackendEnabled();
+    const packagedIndependentMode = independentMode && electron.app.isPackaged;
+    let executable, childEnvironment, childCwd = workspace;
     let executableArgs = [];
     if (independentMode) {
       try {
-        const runtime = require("./recovery-runtime.cjs").independentRuntime({ workspace, userData: electron.app.getPath("userData"), execPath: process.execPath, environment: process.env });
+        const runtime = require("./recovery-runtime.cjs").independentRuntime({ workspace, appPath: electron.app.getAppPath(), resourcesPath: electron.app.isPackaged ? process.resourcesPath : void 0, packaged: packagedIndependentMode, userData: electron.app.getPath("userData"), execPath: process.execPath, environment: process.env });
         executable = runtime.executable;
         executableArgs = runtime.args;
+        childCwd = runtime.cwd ?? workspace;
         childEnvironment = runtime.environment;
+        // The independent backend treats the explicitly selected data root as
+        // the optional media-index root. Main still verifies every indexed
+        // file by size/hash before serving it through alpha-media://.
+        this.mediaCacheRoot = childEnvironment.ALPHA_MEDIA_CACHE_ROOT ?? childEnvironment.ALPHA_INDEPENDENT_DATA_DIR ?? "";
       } catch (error) {
         return this.status = { state: "unavailable", components: [], errorCode: error.message || "INDEPENDENT_RUNTIME_UNAVAILABLE" };
       }
@@ -63020,7 +63063,7 @@ class EngineClient {
     }
     this.artifactRoot = childEnvironment.ALPHA_ARTIFACT_DIR ?? "";
     const child = node_child_process.spawn(executable, executableArgs, {
-      cwd: workspace,
+      cwd: childCwd,
       env: childEnvironment,
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true
@@ -63631,7 +63674,7 @@ class EngineClient {
       const response = await this.call({
         requestId: this.nextRequestId++,
         importDatabaseKey: { accountId: trimmedAccount, databaseKey: key }
-      }, !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent" ? 125e3 : 5e3);
+      }, independentBackendEnabled() ? 125e3 : 5e3);
       if (response.error) throw new Error(response.error.code);
       if (!response.importDatabaseKey?.account) throw new Error("ACCOUNT_RESPONSE_MISSING");
       return mapAccount(response.importDatabaseKey.account);
@@ -63880,7 +63923,7 @@ class EngineClient {
       throw searchRequestFailure(error);
     });
     if (response.error) throw new Error(response.error.code);
-    return searchPageResponse(response.searchMessages, request2, !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent");
+    return searchPageResponse(response.searchMessages, request2, independentBackendEnabled());
   }
   async mutateMessage(request2, tracking) {
     const accountId2 = request2.accountId.trim();
@@ -64041,7 +64084,7 @@ class EngineClient {
     await this.start();
     const response = await this.call({ requestId: this.nextRequestId++, getChatExportStats: request2 }, CHAT_EXPORT_STATS_TIMEOUT_MS);
     if (response.error) throw new Error(response.error.code);
-    return chatExportStatsFromWire(response.getChatExportStats, request2, !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent");
+    return chatExportStatsFromWire(response.getChatExportStats, request2, independentBackendEnabled());
   }
   /** null while the Engine runs no v2 export jobs. */
   async chatExportCapabilities() {
@@ -64808,7 +64851,7 @@ class EngineClient {
         this.failAll(error);
         if (!child.killed) child.kill();
       });
-    }, timeoutMs, engineRequestPriority(frame, !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent"));
+    }, timeoutMs, engineRequestPriority(frame, independentBackendEnabled()));
   }
   onData(child, chunk) {
     if (this.child !== child) return;
@@ -67521,7 +67564,7 @@ class PersonaGatewayService {
     return this.connection ? { ...this.connection } : null;
   }
   async getOrStart() {
-    if (!electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent") throw new PersonaGatewayError("INDEPENDENT_FEATURE_UNIMPLEMENTED", "INDEPENDENT_FEATURE_UNIMPLEMENTED");
+    if (independentBackendEnabled() && process.env.ALPHA_INDEPENDENT_AGENT !== "fixture") throw new PersonaGatewayError("INDEPENDENT_FEATURE_UNIMPLEMENTED", "INDEPENDENT_FEATURE_UNIMPLEMENTED");
     const epoch = this.lifecycleEpoch;
     if (!this.options.agentConfiguration && !this.options.externalMcpRuntimeConfiguration) return this.startConfigured({}, epoch);
     const operation = this.configurationOperation.catch(() => void 0).then(async () => {
@@ -68203,7 +68246,7 @@ function parseAgentModelSettings(value) {
 const AGENT_TOOL_APPROVALS = ["always-ask", "read-only", "full-access"];
 const AGENT_MAX_APPROVED_TOOLS = 256;
 const TOOL_NAME = /^[A-Za-z0-9_.:-]{1,128}$/;
-const AGENT_PROVIDER_KINDS = ["openai-chat", "openai-responses", "anthropic", "gemini", "opencode-go"];
+const AGENT_PROVIDER_KINDS = ["openai-chat", "openai-responses", "anthropic", "gemini", "opencode-go", "fixture"];
 const AGENT_CHATGPT_BASE_URL = "https://api.openai.com/v1";
 const AGENT_CHATGPT_KIND = "openai-responses";
 const AGENT_MAX_ENABLED_MODELS = 100;
@@ -68222,7 +68265,10 @@ const AGENT_PROVIDER_PRESETS = [
   { value: "ollama", label: "本机 Ollama", kind: "openai-chat", baseUrl: "http://127.0.0.1:11434/v1" },
   // CLIProxyAPI turns subscription logins (Gemini CLI, Codex, Claude Code, Qwen…) into one
   // OpenAI-compatible endpoint; its key is one of the api-keys in its config.yaml.
-  { value: "cliproxyapi", label: "本机 CLIProxyAPI", kind: "openai-chat", baseUrl: "http://127.0.0.1:8317/v1" }
+  { value: "cliproxyapi", label: "本机 CLIProxyAPI", kind: "openai-chat", baseUrl: "http://127.0.0.1:8317/v1" },
+  // This provider is deterministic and process-local. It is only reachable
+  // when the independent launcher explicitly opts into ALPHA_INDEPENDENT_AGENT=fixture.
+  { value: "fixture", label: "本地恢复演示（仅本地）", kind: "fixture", baseUrl: "http://127.0.0.1" }
 ];
 function parseAgentChatGptSignInRequest(value) {
   if (value === void 0) return {};
@@ -68369,6 +68415,7 @@ function headers(kind2, credential) {
   return { accept: "application/json", authorization: `Bearer ${credential}` };
 }
 async function fetchAgentModels(kind2, baseUrl, credential, fetchImpl = fetch, timeoutMs = TIMEOUT_MS$1, order = "sorted") {
+  if (kind2 === "fixture") return [{ id: "fixture", name: "本地恢复演示" }];
   const signal = AbortSignal.timeout(timeoutMs);
   for (const url of agentModelListUrls(kind2, baseUrl)) {
     const models = [];
@@ -73470,7 +73517,20 @@ async function stopOwnedGateway() {
   await personaGateway?.stop();
 }
 async function assertHttpApiAllowed() {
-  if (!electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent") throw new Error("INDEPENDENT_FEATURE_UNIMPLEMENTED");
+  if (independentBackendEnabled()) throw new Error("INDEPENDENT_FEATURE_UNIMPLEMENTED");
+  if (apiLockTransition || gatewayWindowSuspended || shutdownStarted || blocksBusinessOperations()) throw new Error("HTTP_API_OPERATION_BLOCKED");
+  const lock = await engine.getApplicationLockStatus();
+  if (lock.locked || apiLockTransition || gatewayWindowSuspended || shutdownStarted || blocksBusinessOperations()) throw new Error("HTTP_API_OPERATION_BLOCKED");
+}
+function independentFixtureEnabled() {
+  return independentBackendEnabled() && process.env.ALPHA_INDEPENDENT_AGENT === "fixture";
+}
+// The recovered agent host includes a deterministic fixture provider. It is
+// useful for local development and regression tests, but must be explicitly
+// opted into so independent mode never silently starts a model gateway. The
+// normal HTTP API gate remains closed in independent mode.
+async function assertAgentApiAllowed() {
+  if (independentBackendEnabled() && process.env.ALPHA_INDEPENDENT_AGENT !== "fixture") throw new Error("INDEPENDENT_FEATURE_UNIMPLEMENTED");
   if (apiLockTransition || gatewayWindowSuspended || shutdownStarted || blocksBusinessOperations()) throw new Error("HTTP_API_OPERATION_BLOCKED");
   const lock = await engine.getApplicationLockStatus();
   if (lock.locked || apiLockTransition || gatewayWindowSuspended || shutdownStarted || blocksBusinessOperations()) throw new Error("HTTP_API_OPERATION_BLOCKED");
@@ -73869,13 +73929,31 @@ if (primaryInstance) electron.app.whenReady().then(async () => {
   windowCloseBehavior = await windowCloseStore.load();
   void launchAtStartup.repair().catch(() => void 0);
   const workspaceRoot = node_path.resolve(electron.app.getAppPath(), "../..");
-  desktopEngineBridge = new DesktopEngineBridge((bytes2, signal) => engine.dispatchReadOnlyFrame(bytes2, signal), assertHttpApiAllowed);
+  desktopEngineBridge = new DesktopEngineBridge((bytes2, signal) => engine.dispatchReadOnlyFrame(bytes2, signal), assertAgentApiAllowed);
   personaGateway = new PersonaGatewayService({
     agentConfiguration: async () => {
-      await assertHttpApiAllowed();
+      await assertAgentApiAllowed();
+      // Fixture mode is a complete local configuration. It deliberately does
+      // not consult persisted providers or credentials, so opting in cannot
+      // accidentally resume a real cloud model from an earlier profile.
+      if (independentFixtureEnabled()) return {
+        mode: "agent",
+        memoryScope: "none",
+        toolApproval: "read-only",
+        approvedTools: [],
+        providerKind: "fixture",
+        baseUrl: "http://127.0.0.1",
+        model: "fixture",
+        credential: "",
+        revision: "fixture",
+        selectedAccountId: null
+      };
       return agentSettings.runtimeConfiguration();
     },
     externalMcpRuntimeConfiguration: async () => {
+      // The fixture gateway has no external MCP snapshot. Keep the HTTP/MCP
+      // API gate closed while allowing the local Agent worker to start.
+      if (independentFixtureEnabled()) return void 0;
       await assertHttpApiAllowed();
       return externalMcpSettings.runtimeConfiguration();
     },
@@ -73983,7 +74061,7 @@ if (primaryInstance) electron.app.whenReady().then(async () => {
   const checkedAgentSettings = async (event) => {
     if (!isTrustedMainRendererEvent(event) || event.sender.isDestroyed()) throw new Error("AGENT_SETTINGS_CALLER_INVALID");
     try {
-      await assertHttpApiAllowed();
+      await assertAgentApiAllowed();
     } catch {
       throw new Error("AGENT_SETTINGS_OPERATION_BLOCKED");
     }
@@ -74064,7 +74142,7 @@ if (primaryInstance) electron.app.whenReady().then(async () => {
   electron.ipcMain.handle(IPC_CHANNELS.chatSummaryPreferences, (event) => guardedChatSummary(event, () => chatSummaries.preferences()));
   electron.ipcMain.handle(IPC_CHANNELS.chatSummarySetPreferences, (event, value) => guardedChatSummary(event, () => chatSummaries.setPreferences(value)));
   const mcpStdioName = process.platform === "win32" ? "alpha-mcp-stdio.exe" : "alpha-mcp-stdio";
-  const mcpStdioPath = !electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent" ? void 0 : (electron.app.isPackaged ? [node_path.join(process.resourcesPath, "bin", mcpStdioName)] : [process.env.ALPHA_GATEWAY_PATH ? node_path.join(node_path.dirname(process.env.ALPHA_GATEWAY_PATH), mcpStdioName) : "", node_path.join(workspaceRoot, "target", "debug", mcpStdioName)]).find((path) => path && node_fs.existsSync(path));
+  const mcpStdioPath = independentBackendEnabled() ? void 0 : (electron.app.isPackaged ? [node_path.join(process.resourcesPath, "bin", mcpStdioName)] : [process.env.ALPHA_GATEWAY_PATH ? node_path.join(node_path.dirname(process.env.ALPHA_GATEWAY_PATH), mcpStdioName) : "", node_path.join(workspaceRoot, "target", "debug", mcpStdioName)]).find((path) => path && node_fs.existsSync(path));
   httpApi = new HttpApiService(node_path.resolve(electron.app.getPath("userData"), "http-api-v1.json"), {
     connection: async () => {
       const status = httpApi?.status();
@@ -74347,7 +74425,7 @@ if (primaryInstance) electron.app.whenReady().then(async () => {
   electron.ipcMain.handle(IPC_CHANNELS.installUpdate, installUpdate);
   electron.ipcMain.handle(IPC_CHANNELS.detectAccountDataSources, async (event) => {
     await checkAccountDiscoveryAccess(event);
-    if (!electron.app.isPackaged && process.env.ALPHA_RECOVERY_BACKEND === "independent") {
+    if (independentBackendEnabled()) {
       const accounts = await engine.listAccounts();
       await checkAccountDiscoveryAccess(event);
       return { ...emptyDetection(), candidates: accounts.map((account) => ({ path: account.dataSourcePath, accountDirectory: account.id, nickname: account.displayName, origin: "explicit-snapshot" })) };

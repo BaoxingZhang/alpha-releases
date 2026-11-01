@@ -1,6 +1,6 @@
 {
-  "testedAt": "2026-10-31T23:29:45.471Z",
-  "session": "smoke-1793489385471",
+  "testedAt": "2026-11-01T03:42:58.031Z",
+  "session": "smoke-1793504578031",
   "checks": {
     "projectReadable": true,
     "personalFileReadDenied": true,
@@ -12,7 +12,6 @@
   },
   "errors": [],
   "windows": [
-    "(splash data URL)",
     "file:///Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/renderer/index.html"
   ],
   "backend": {
@@ -32,8 +31,8 @@
     "version": "0.3.5",
     "isPackaged": false,
     "appPath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app",
-    "userData": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/smoke-1793489385471/userData",
-    "home": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/smoke-1793489385471/home",
+    "userData": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/smoke-1793504578031/userData",
+    "home": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/smoke-1793504578031/home",
     "electron": "44.0.0"
   },
   "bridge": [

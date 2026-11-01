@@ -38,14 +38,25 @@ jobs:
       - name: Install Electron and esbuild binaries
         run: npm run setup
 
-      - name: Build independent backend and desktop bundle
-        run: npm run build:independent
+      - name: Build independent backend, packaged resources, and desktop bundle
+        run: npm run build:packaged
 
-      - name: Generate unsigned artifact manifest
-        run: npm run release:manifest
+      - name: Assemble unsigned macOS app and verify its manifest
+        run: npm run package:macos-app:from-build
 
       - name: Run complete test suite
         run: npm test
+
+      - name: Run independent desktop smoke
+        run: npm run test:independent
+
+      - name: Run original runtime and isolation smoke
+        run: npm run test:smoke
+
+      - name: Generate unsigned artifact manifest and recovery source bundle
+        run: |
+          npm run release:manifest
+          npm run bundle:recovery
 
       - name: Verify maintenance boundaries
         run: |
@@ -68,3 +79,6 @@ jobs:
             packages/alpha-data-bridge/build-validation.json
             packages/alpha-snapshot-import/build-validation.json
             .runtime/release-manifest.json
+            .runtime/release-artifacts/Alpha Recovered.app.manifest.json
+            .runtime/recovery-bundles/alpha-recovered-source.tar.gz
+            .runtime/recovery-bundles/alpha-recovered-source.tar.gz.manifest.json

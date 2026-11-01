@@ -41,7 +41,7 @@ const methods = methodNames.map(name => {
   assert.ok(node, `main EngineClient method missing: ${name}`);
   return mainSource.slice(node.start, node.end);
 });
-const functionNames = ['messageAfterUnixMs', 'messagePageRequest', 'messagePageResponse', 'conversationPageRequest', 'searchPageRequest', 'searchPageResponse', 'searchRequestFailure', 'searchContextTarget', 'readSearchMessageContext', 'readAnchoredMessageContext', 'scope', 'locateRequest', 'locatedSearchResult', 'LocatedMessages', 'localDay', 'dayCountsRequest', 'dayCountsFromWire', 'CHAT_EXPORT_MESSAGE_TYPES', 'MESSAGE_TYPES', 'MAX_SAFE', 'safeCount$1', 'chatExportStatsFromWire'];
+const functionNames = ['independentBackendEnabled', 'messageAfterUnixMs', 'messagePageRequest', 'messagePageResponse', 'conversationPageRequest', 'searchPageRequest', 'searchPageResponse', 'searchRequestFailure', 'searchContextTarget', 'readSearchMessageContext', 'readAnchoredMessageContext', 'scope', 'locateRequest', 'locatedSearchResult', 'LocatedMessages', 'localDay', 'dayCountsRequest', 'dayCountsFromWire', 'CHAT_EXPORT_MESSAGE_TYPES', 'MESSAGE_TYPES', 'MAX_SAFE', 'safeCount$1', 'chatExportStatsFromWire'];
 const desktop = vm.runInNewContext(functionNames.map(declaration).join('\n') + `\n({methods:{${methods.join(',\n')}}, searchPageRequest, searchPageResponse, readSearchMessageContext, LocatedMessages, dayCountsRequest, dayCountsFromWire, chatExportStatsFromWire})`, {
   Buffer, Uint8Array, TextEncoder, TextDecoder,
   MAX_INT64$3: 9223372036854775807n, MAX_INT64$1: 9223372036854775807n,
@@ -50,7 +50,8 @@ const desktop = vm.runInNewContext(functionNames.map(declaration).join('\n') + `
   MAX_DAY_COUNT_RANGE_MS: 62n * 86400000n, SEARCH_REQUEST_TIMEOUT_MS: 30000,
   displayFields: () => ({}),
   electron: { app: { isPackaged: false } },
-  process: { env: { ALPHA_RECOVERY_BACKEND: 'independent' } }
+  process: { env: { ALPHA_RECOVERY_BACKEND: 'independent' } },
+  backendMode: { isIndependentBackendEnabled(app, environment) { return environment.ALPHA_RECOVERY_BACKEND === 'independent' && (!app.isPackaged || environment.ALPHA_INDEPENDENT_PACKAGED === '1'); } }
 });
 const toPlain = value => JSON.parse(JSON.stringify(value));
 

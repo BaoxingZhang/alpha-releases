@@ -6240,11 +6240,12 @@
         },
         {
           "table": "__alpha_general_friend_requests",
-          "status": "missing",
+          "status": "compose_or_new",
           "evidence": [
-            "surface"
+            "surface",
+            "message_model"
           ],
-          "work": "新增好友请求专用数据源。"
+          "work": "独立 bridge 已增加 local_type=37 且 VerifyMsg/friend XML 的 partial/candidate 视图；仍需原生记录库证据补齐方向、状态、标签、去重和完整导出语义。"
         },
         {
           "table": "__alpha_general_moment_interactions",

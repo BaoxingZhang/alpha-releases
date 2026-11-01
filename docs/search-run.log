@@ -1,24 +1,16 @@
-Error occurred in handler for 'alpha:media:image-status': Error: UNIMPLEMENTED
-    at EngineClient.getImageMediaStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63187:28)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72059:14
-    at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
+[87732:1101/092247.413579:ERROR:base/process/process_mac.cc:53] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
+[87732:1101/092247.413593:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
 Error occurred in handler for 'alpha:messages:search-page': Error: APP_LOCK_LOCKED
     at EngineClient.searchMessagePage (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63879:31)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72059:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
-Debugger ending on ws://127.0.0.1:62387/96f0c1c6-e421-4691-9c2e-10fb96612806
+Debugger ending on ws://127.0.0.1:64102/973484e9-006f-4406-b763-0f897f3b6f31
 For help, see: https://nodejs.org/learn/getting-started/debugging
-Error occurred in handler for 'alpha:media:image-status': Error: UNIMPLEMENTED
-    at EngineClient.getImageMediaStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63187:28)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72059:14
-    at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
 Error occurred in handler for 'alpha:messages:search': Error: SEARCH_RESULTS_INCOMPLETE
     at EngineClient.searchMessages (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63744:51)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72059:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
-Debugger ending on ws://127.0.0.1:62448/f8d30c55-4f81-420a-bd93-862ae2afb0ef
+Debugger ending on ws://127.0.0.1:64137/de8c5bc4-436f-47f9-9c45-acec6613e382
 For help, see: https://nodejs.org/learn/getting-started/debugging

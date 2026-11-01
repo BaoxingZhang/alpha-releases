@@ -26,3 +26,5 @@
 
 因此，媒体文件定位、解密、缩略图、播放、CDN 补齐和语音转写继续保持显式未实现。后续若要推进，应先增加人工生成的 hardlink/VoiceInfo fixture，验证列类型、路径存在性和字节上限，再设计独立 token/DTO，并保持与原 Alpha token 明确隔离。
 
+当前独立引擎已接通图片 key 的进程内手动配置、状态查询和清除生命周期，但该状态不会探测 DAT、验证样本或开启媒体解码；`usable=false` 是预期结果，不能把这一步当作 `resolveMessageMedia` 已恢复。
+

@@ -1,21 +1,80 @@
 {
   "recordedAt": "2026-11-01",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, persistent chat jobs, schedule plan, derived conversation formats and HTTP/MCP additions; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, image-key lifecycle, indexed image refs, persistent chat jobs, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions, upstream release audit, anti-recall and moments anti-delete status boundaries, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 46,
-    "unsupportedRequestBranches": 82,
+    "implementedRequestBranches": 57,
+    "unsupportedRequestBranches": 71,
     "source": "packages/alpha-engine/index.cjs:SUPPORTED"
   },
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 157,
+      "passed": 188,
       "failed": 0
+    },
+    "mediaIndex": {
+      "command": "node --test tests/media-index.test.mjs",
+      "status": "passed",
+      "tests": 6,
+      "format": "media-index.v1.json",
+      "explicitRootOnly": true,
+      "hashAndSizeVerified": true,
+      "symlinkAndTraversalRejected": true,
+      "protocolIntegrated": true
+    },
+    "imageKey": {
+      "command": "node --test tests/engine-image-key.test.mjs",
+      "status": "passed",
+      "tests": 1,
+      "methods": [
+        "getImageMediaStatus",
+        "configureImageKey",
+        "clearImageKey"
+      ],
+      "manualMode": true,
+      "memoryOnly": true,
+      "mediaDecoderAvailable": false,
+      "datVerified": false,
+      "automaticModes": "unsupported"
+    },
+    "aggregateAnalysis": {
+      "command": "node --test tests/engine-aggregate-analysis.test.mjs",
+      "status": "passed",
+      "tests": 3,
+      "methods": [
+        "startAggregateAnalysis",
+        "watchAggregateAnalysis",
+        "cancelAggregateAnalysis"
+      ],
+      "supportedScopes": [
+        "AGGREGATE_ANALYSIS_SCOPE_PRIVATE_CHATS",
+        "AGGREGATE_ANALYSIS_SCOPE_GROUP_CHAT",
+        "AGGREGATE_ANALYSIS_SCOPE_ANNUAL_REPORT",
+        "AGGREGATE_ANALYSIS_SCOPE_DUAL_REPORT"
+      ],
+      "unsupportedScopes": [
+        "AGGREGATE_ANALYSIS_SCOPE_MENTIONS",
+        "AGGREGATE_ANALYSIS_SCOPE_FOOTPRINT"
+      ],
+      "boundedInMemoryJobs": true,
+      "restartRecovery": false
     },
     "build": {
       "command": "npm run build:independent",
       "status": "passed"
+    },
+    "recoveryBundle": {
+      "command": "npm run bundle:recovery",
+      "status": "passed",
+      "schema": "alpha-recovered.source-bundle.v1",
+      "fileCount": 660,
+      "includesVendorRuntime": false,
+      "nativeRecompiled": false,
+      "projectSigned": false,
+      "archiveBytes": 3854345,
+      "archiveSha256": "a8836d5795aa0d9bc56576d3c916d92c1436c7101723fa9d9e1822c070009245",
+      "artifactManifestDigest": "a5ac909eda1999ce61d29c3d83e2f1031afe2e037cd9b33dcfbe2ccd35eb9079"
     },
     "desktopIndependent": {
       "record": "independent-run.json",
@@ -24,14 +83,18 @@
         "independentBackendReady",
         "realSqliteThroughDesktopIpc",
         "contactDirectoryAndProfileThroughRendererIpc",
+        "noOriginalAlphaChildObserved",
+        "originalOnboardingCompleted",
+        "messageRendered",
+        "independentRecordExportThroughRendererIpc",
+        "independentRecordCategoriesGated",
         "independentUnsupportedContactCategoriesGated",
         "independentContactExportCapabilities",
-        "independentRecordCategoriesGated",
-        "independentRecordExportThroughRendererIpc",
         "contactDirectoryAndProfileRendered",
         "lockEnforcesReadAccess",
         "sourceUnchanged"
-      ]
+      ],
+      "checkCount": 13
     },
     "encryptedImport": {
       "record": "encrypted-run.json",
@@ -45,7 +108,7 @@
       "command": "node --test tests/http-server.test.mjs",
       "status": "passed",
       "tests": 4,
-      "tools": 21,
+      "tools": 24,
       "conversationExportFormats": [
         "json",
         "markdown",
@@ -62,7 +125,28 @@
         "media-json",
         "media-csv"
       ],
-      "metadataOnly": true
+      "metadataOnly": true,
+      "recordsPath": "/api/v1/records",
+      "recordCategories": [
+        "payments",
+        "friend_requests",
+        "revokes",
+        "calls"
+      ],
+      "recordSemantics": "partial-candidate-only",
+      "analysisPaths": [
+        "/api/v1/analysis",
+        "/api/v1/analysis/:analysis_id",
+        "/api/v1/analysis/:analysis_id/cancel"
+      ],
+      "analysisScopes": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "analysisReportLimitBytes": 67108864,
+      "analysisSemantics": "verified-message-dto-independent-report"
     },
     "chatExportSchedules": {
       "command": "node --test tests/schedule-export.test.mjs",
@@ -76,7 +160,10 @@
     "originalPackageMode": {
       "record": "local-run.json",
       "backendReady": false,
-      "errorCode": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
+      "errorCode": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY",
+      "smokeCommand": "npm run test:smoke",
+      "uiSmokeStatus": "passed",
+      "securityBoundary": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
     },
     "maintenance": {
       "command": "npm run check:maintainability",
@@ -98,11 +185,11 @@
       ],
       "categories": [
         "payments",
+        "friend_requests",
         "revokes",
         "calls"
       ],
       "unsupportedCategories": [
-        "friend_requests",
         "moment_interactions",
         "searches"
       ]
@@ -145,8 +232,76 @@
       "target": "darwin-arm64",
       "nativeRecompiled": false,
       "projectSigned": false,
-      "artifactCount": 257,
-      "artifactDigest": "29edc4afff255d7ac2c498f86f25df3ed58abe1212af7c921fc8c558c5f5adeb"
+      "artifactCount": 293,
+      "artifactDigest": "a5ac909eda1999ce61d29c3d83e2f1031afe2e037cd9b33dcfbe2ccd35eb9079"
+    },
+    "fixtureAgent": {
+      "command": "node --test tests/agent-fixture.test.mjs tests/independent-boundary-gateway.test.mjs tests/http-launch-environment.test.mjs",
+      "status": "passed",
+      "network": "none",
+      "credentialAccess": false,
+      "defaultIndependentMode": "fail-closed",
+      "optIn": "--agent-fixture / ALPHA_INDEPENDENT_AGENT=fixture"
+    },
+    "packagedArtifact": {
+      "command": "npm run package:macos-dmg",
+      "status": "passed",
+      "appPath": ".runtime/release-artifacts/Alpha Recovered.app",
+      "dmgPath": ".runtime/release-artifacts/Alpha Recovered.dmg",
+      "appArtifactDigest": "d342c8fb7ae495f3ebbe309f69503dcf110c9585f241e162afc77cd1dba21ba2",
+      "appFileCount": 591,
+      "dmgBytes": 240671190,
+      "dmgSha256": "a29797e659f1e58528471a99565c930a61457fb2eee0712672eea9f7ca889f0d",
+      "projectSigned": false,
+      "notarized": false,
+      "nativeRecompiled": false
+    },
+    "telemetry": {
+      "command": "node --test tests/engine.test.mjs --test-name-pattern=\"telemetry consent\"",
+      "status": "passed",
+      "tests": 1,
+      "methods": [
+        "getTelemetryStatus",
+        "setTelemetryConsent",
+        "flushTelemetry"
+      ],
+      "persistedState": "stateDir/telemetry-consent.v1.json",
+      "atomicPermissions": "0600",
+      "network": "none",
+      "queue": "always-empty",
+      "flushOutcome": "disabled",
+      "grantedStatusError": "INDEPENDENT_TELEMETRY_DISABLED"
+    },
+    "upstreamReleaseAudit": {
+      "record": "upstream-alpha-releases-current.json",
+      "status": "passed",
+      "latestVersion": "0.3.5",
+      "sourceFilesObserved": 0
+    },
+    "antiRecallStatus": {
+      "command": "node --test tests/engine.test.mjs --test-name-pattern=\"anti-recall status\"",
+      "status": "passed",
+      "tests": 1,
+      "method": "getMessageAntiRecallStatuses",
+      "maxConversations": 500,
+      "errorCode": "MESSAGE_ANTI_RECALL_WRITER_DISABLED",
+      "writerEnabled": false,
+      "readsMessageDatabase": false
+    },
+    "momentsAntiDeleteStatus": {
+      "command": "node --test tests/engine.test.mjs --test-name-pattern=\"moments anti-delete\"",
+      "status": "passed",
+      "tests": 1,
+      "method": "manageMomentsAntiDelete",
+      "fieldNumber": 47,
+      "actions": [
+        1,
+        2,
+        3
+      ],
+      "errorCode": "MOMENTS_ANTI_DELETE_WRITER_DISABLED",
+      "writerEnabled": false,
+      "readsMomentsDatabase": false
     }
   },
   "featureBoundary": {
@@ -155,16 +310,22 @@
     "generalRecordListing": {
       "payments": "partial-candidate-from-message-xml",
       "revokes": "partial-candidate-from-message-xml",
-      "friend_requests": "unimplemented",
+      "friend_requests": "partial-candidate-from-message-xml",
       "calls": "partial-candidate-from-message-xml",
       "moment_interactions": "unimplemented",
       "searches": "unimplemented"
     },
-    "generalRecordExports": "partial-candidate-payments-revokes-calls",
+    "generalRecordExports": "partial-candidate-payments-friend_requests-revokes-calls",
     "automatedKeyAcquisition": "unimplemented",
     "aiAndModelServices": "unimplemented",
     "messageWritingAndSending": "unimplemented",
     "realWeChatData": "untested",
     "fullFeatureParity": false
+  },
+  "buildArtifact": {
+    "artifactDigest": "a5ac909eda1999ce61d29c3d83e2f1031afe2e037cd9b33dcfbe2ccd35eb9079",
+    "target": "darwin-arm64",
+    "nativeRecompiled": false,
+    "projectSigned": false
   }
 }

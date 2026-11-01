@@ -2,5 +2,6 @@ node_modules/
 dist/
 build/
 .runtime/
+.alpha/
 .DS_Store
 workers/agent/dist/

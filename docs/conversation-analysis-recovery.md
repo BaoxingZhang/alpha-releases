@@ -21,3 +21,5 @@ node --test tests/engine-conversation-analysis.test.mjs
 ```
 
 未访问真实微信目录、未获取密钥、未写入聊天数据库，也未调用云端或 AI 服务。
+
+聚合分析字段 110–112 在此基础上提供 scope 2 群聊报告和 scope 4 指定会话双人报告。scope 4 支持可选的半开毫秒时间范围，分别输出 `alpha-aggregate-v1` 或 `alpha-dual-v1` 协议外壳；报告只来自已验证的消息 DTO，NLP、回复速度、朋友圈和媒体文件仍保持空值或不可用。任务状态是进程内 bounded 管理，取消时不发布报告，进程重启不会续跑。

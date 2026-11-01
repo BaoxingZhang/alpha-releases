@@ -2,7 +2,7 @@
 
 这是自有后端的真实适配层。输入为恢复的 `EngineClientFrame`，输出为 `EngineServerFrame`，均使用 4 字节大端长度前缀。数据库读取委托同项目的 Go `alpha-data-bridge`，应用锁委托 `alpha-security`；不加载 Electron、恢复后的整份 main 或原闭源引擎。
 
-当前实现 128 个请求分支中的 46 个，其余 82 个明确返回 `UNIMPLEMENTED`。已接入基础聊天、搜索、日期导航、群成员读取、群成员 CSV/JSON/HTML/XLSX 只读导出、有限联系人档案（含基于 RoomData 的共同群）、联系人目录的 friend/group 分类、联系人 CSV/JSON/VCF/HTML/XLSX 只读导出、文本/JSON/Markdown/HTML/TXT/XLSX 及 `chatlab-json`/`chatlab-jsonl`/`sql`/`weclone` 派生导出、消息中的声明性媒体引用、会话媒体/文件/链接元数据浏览、账号图片/视频元数据浏览、独立 source token 的已解码文本读取、只读聊天导出任务状态、独立 stateDir 的聊天导出计划 CRUD/CAS、显式 run-now 运行/准备记录和重试、显式数据源变化监控目标、年度统计基础报告、会话关系基础统计、静态高级组件不可用状态、手动解密与密码锁。四种派生格式均带独立兼容标记，基于已验证消息 DTO 生成，不声称与原 Alpha/native formatter 或第三方工具完全兼容。`listGeneral` 支持经真实 `chat_room.ext_buffer` 解析的 `__alpha_group_members`，以及从消息 XML 提取并明确标记为 `partial/candidate` 的 payments/revokes/calls；friend requests、moments interactions 和 searches 仍保持不可用。`startRecordExport` 已接入独立内存任务管理器，接受 payments/revokes/calls、xlsx/csv/json，并把每类写成独立文件；输出保留 partial/candidate/source 字段，其他分类和未知格式明确拒绝，证据见 [`docs/general-records-schema-evidence.md`](../../docs/general-records-schema-evidence.md)。`http-server.cjs` 可选地把其中的已验证 DTO、九种会话文件导出和媒体 JSON/CSV 元数据导出暴露给本机 HTTP/MCP，详见 `docs/http-readonly-adapter-recovery.md`。媒体元数据导出只保留 metadata-only DTO，不读取本地媒体；媒体文件解析/播放、原 Alpha `media1_`/raw/XML source、朋友圈、完整调度冲突与跨进程租约、完整分析报表、AI、自动获取密钥和写入等功能仍需逐项实现，不把页面能打开视作功能完成。完整范围仍见 `docs/backend-compatibility-map.json`。
+当前实现 128 个请求分支中的 57 个，其余 71 个明确返回 `UNIMPLEMENTED`。已接入基础聊天、搜索、日期导航、群成员读取、群成员 CSV/JSON/HTML/XLSX 只读导出、有限联系人档案（含基于 RoomData 的共同群）、联系人目录的 friend/group 分类、联系人 CSV/JSON/VCF/HTML/XLSX 只读导出、文本/JSON/Markdown/HTML/TXT/XLSX 及 `chatlab-json`/`chatlab-jsonl`/`sql`/`weclone` 派生导出、消息中的声明性媒体引用、会话媒体/文件/链接元数据浏览、账号图片/视频元数据浏览、独立 source token 的已解码文本读取、只读聊天导出任务状态、独立 stateDir 的聊天导出计划 CRUD/CAS、显式 run-now 运行/准备记录和重试、显式数据源变化监控目标、年度统计基础报告、会话关系基础统计、图片 key 的进程内手动配置/清除状态（不声称媒体解码可用）、bounded 内存聚合分析任务（scope 1 私聊完整年份、scope 2 群聊、scope 3 年度完整年份、scope 4 指定会话双人报告，支持 watch/cancel；scope 5/6 明确拒绝）、本地持久化遥测同意状态和显式禁用的 flush、只读消息防撤回状态查询，以及朋友圈防删除控制面的明确禁用状态（均不声称 writer 可用）。聚合任务最多保留 32 个、结果上限 64 MiB、默认 TTL 10 分钟，进程重启不恢复；scope 1/2/4 报告使用原协议认可的 `alpha-aggregate-v1` / `alpha-dual-v1` JSON 外壳，scope 3 使用 `alpha-annual-v2`，统计值只来自已验证消息/session DTO，未恢复的 NLP、回复、朋友圈等字段保持空值，不声称与原 Alpha 完全等价。四种派生格式均带独立兼容标记，基于已验证消息 DTO 生成，不声称与原 Alpha/native formatter 或第三方工具完全兼容。`listGeneral` 支持经真实 `chat_room.ext_buffer` 解析的 `__alpha_group_members`，以及从消息 XML 提取并明确标记为 `partial/candidate` 的 payments/revokes/calls/friend_requests；friend requests 仅匹配 local_type=37 且 XML 为 `VerifyMsg`/`friend` 的消息，字段保持未知或候选，不声称完整记录库。moments interactions 和 searches 仍保持不可用。`startRecordExport` 已接入独立内存任务管理器，接受 payments/friend_requests/revokes/calls、xlsx/csv/json，并把每类写成独立文件；输出保留 partial/candidate/source 字段，其他分类和未知格式明确拒绝，证据见 [`docs/general-records-schema-evidence.md`](../../docs/general-records-schema-evidence.md)。`http-server.cjs` 可选地把其中的已验证 DTO、scope 1–4 聚合分析任务、九种会话文件导出和媒体 JSON/CSV 元数据导出暴露给本机 HTTP/MCP，详见 `docs/http-readonly-adapter-recovery.md`。聚合报告使用独立算法版本和 64 MiB 上限，不声称与原 Alpha 报告兼容；媒体元数据导出只保留 metadata-only DTO，不读取本地媒体；媒体文件解析/播放、原 Alpha `media1_`/raw/XML source、朋友圈、完整调度冲突与跨进程租约、AI、自动获取密钥和写入、防撤回写入、防删除写入等功能仍需逐项实现，不把页面能打开视作功能完成。遥测分支的状态边界见 [`docs/telemetry-recovery.md`](../../docs/telemetry-recovery.md)。完整范围仍见 `docs/backend-compatibility-map.json`。
 
 ## 启动与模块边界
 
@@ -17,6 +17,8 @@
 | `ALPHA_INDEPENDENT_IMPORTER_PATH` | 配置加密源时必填，Go importer 可执行文件绝对路径 |
 | `ALPHA_INDEPENDENT_ACCOUNT_ID` | 配置数据时必填，调用者指定的数据集标识，不代表验证过的微信登录身份 |
 | `ALPHA_INDEPENDENT_SELF_USERNAME` | 可选，显式提供的自身 username；缺失时消息方向为 unknown |
+
+明文数据源根目录可以额外放置 `media-index.v1.json`。引擎不会扫描其他位置；它只把已声明且绑定到当前账号/会话/消息的图片引用映射为独立 `alpha-media://sha256/...` URI。索引文件和媒体文件仍属于数据源快照，源变化会触发既有的不可变数据集检查。
 
 无数据配置时，账号清单真实为空。配置错误或 Go 退出会返回错误，不变成成功的空清单。明文源在未锁定启动时，只有 `account.info` 验证实际 SQLite 成功后才接受 Hello。加密源的 Hello 仅声明自有协议层可用；首次未锁定账号/数据请求再验证源和已有快照，导入前账号为 discovered / waiting_for_key。已锁定启动不访问加密源或明文快照，所有账号和数据请求受锁限制。
 
@@ -38,23 +40,30 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | --- | ---: | --- |
 | hello | 10 | 自有引擎版本协商；不冒充原引擎的 bootstrap 证明 |
 | getCapabilities | 11 | 无原产品 entitlements，返回空对象 |
+| getTelemetryStatus | 21 | 返回 stateDir 中已持久化的本地同意选择；队列、字节数和下一次尝试恒为 0，已同意时明确报告 `INDEPENDENT_TELEMETRY_DISABLED` |
+| setTelemetryConsent | 22 | 校验并原子保存 `granted`/`revoked`、分类和版本到 `telemetry-consent.v1.json`；不启动网络发送 |
+| flushTelemetry | 23 | 返回 `outcome=disabled` 和全 0 计数；没有遥测端点或事件队列，不伪造上传成功 |
 | getAdvancedComponentStatus | 65 | 对协议中的五种高级组件返回独立后端的静态 `UNSUPPORTED_TARGET` 状态；不读取或伪造动态授权、设备密钥、下载进度或 native ready |
+| getMessageAntiRecallStatuses | 119 | 对最多 500 个会话返回独立后端的只读防撤回状态；当前无 retention writer/trigger，逐项返回 `MESSAGE_ANTI_RECALL_WRITER_DISABLED`，不读取或修改消息库 |
+| manageMomentsAntiDelete | 47 | 保留朋友圈防删除控制面；status/install/uninstall 均返回 `MOMENTS_ANTI_DELETE_WRITER_DISABLED`、`enabled=false`，不读取或修改朋友圈数据库 |
+| getImageMediaStatus | 52 | 返回独立后端的图片媒体静态状态；当前不探测 DAT、不验证样本、不声称媒体可用，状态会明确 `usable=false` |
+| configureImageKey / clearImageKey | 53 / 54 | 仅支持显式手动 16 字节 AES + 0..255 XOR key 的进程内暂存和清除；key 不写入 stateDir、日志或环境，媒体解码器仍不可用；自动/内存扫描模式明确拒绝 |
 | listAccounts | 12 | 显式离线数据源的实时验证及账号状态 |
 | selectAccount | 13 | 成功验证后持久保存选择 |
 | listConversations | 14 | 真实会话表分页，联系人备注/昵称为名称；无 contact.db 时回退 username |
 | listMessages | 15 | 跨分库稳定分页、顺序和排他毫秒时间范围；保留可验证的消息 `refs` |
 | getMessageSource | 107 | 仅接受本引擎生成的 `independent1_` source token，最多重新扫描 128 个 100 条消息页来定位同一账号/库/表/完整 localId 的已验证消息，返回其已解码文本（`format=text`）；原 Alpha `media1_` token、raw/XML 和媒体文件读取明确不可用 |
 | browseConversationMessages | 137 | 真实 `messages.list` 的降序元数据筛选；支持 `media`、`file`、`link`，保留消息 refs/display；`music`、`mini-program`、`transaction` 明确返回不可用 |
-| browseAccountMedia | 138 | 直接读取指定会话，或按真实 session index 扫描账号范围的 `media`、`image`、`video` 元数据；支持分页和毫秒范围，不读媒体文件、不生成 token、不播放 |
+| browseAccountMedia | 138 | 直接读取指定会话，或按真实 session index 扫描账号范围的 `media`、`image`、`video` 元数据；支持分页和毫秒范围，不读媒体文件、不生成 token、不播放；消息中的图片 ref 可按显式 `media-index.v1.json` 绑定为独立 `alpha-media://sha256/...` URI，主进程按大小、哈希、路径边界和图片 magic 读取；详情见 [`docs/media-index-foundation.md`](../../docs/media-index-foundation.md) |
 | exportConversation | 16 | 只读 JSON/Markdown/HTML/TXT/XLSX 和四种消息 DTO 派生格式导出，支持精确毫秒范围和安全新文件发布；HTML 是安全转义的静态页面，XLSX 是固定列的单工作表，SQL/CSV/JSON 派生文件只含验证过的文本和元数据，不含媒体 |
 | searchMessages | 17 | 全局/会话搜索、Unicode 小写字面匹配、发送者/闭区间时间筛选、按会话分组及真实数量 |
 | discoverAccounts | 29 | 仅接受与已配置源路径完全一致的 sourceLocation |
 | importDatabaseKey | 30 | 仅对显式加密源接收一次性 32 字节 key；导入成功前保持 waiting_for_key |
-| listContacts | 42 | 升序、offset/limit、联系人字段字面量模糊查询和 `__alpha_contact_exact:` 精确 username 查询；带 `directory` 时基于同一 verified contacts.list 派生 friend/group 分类与完整八类计数，其他分类明确拒绝 |
+| listContacts | 42 | 升序/降序、offset/limit、联系人字段字面量模糊查询和 `__alpha_contact_exact:` 精确 username 查询；带 `directory` 时基于同一 verified contacts.list 派生 friend/group 分类与完整八类计数，其他分类明确拒绝 |
 | exportContacts | 117 | 基于真实联系人字段导出 CSV、JSON、VCF、HTML、XLSX；当前仅支持 `local_type=1` 好友和 `local_type=2`/`@chatroom` 群聊，头像及其他分类明确返回不可用 |
 | exportGroupMembers | 139 | 基于真实 `chat_room.ext_buffer` 成员记录导出 CSV、JSON、HTML、XLSX；每次完整读取最多 5000 条，头像和未知群资料明确不可用 |
 | getContactProfile | 115 | 普通联系人基于真实 contact 表返回精确存在性和 username；若有 `groups.members`，共同群来自 `chat_room.ext_buffer` 全表扫描，返回真实 count/limit/truncated 及 contact 表可证明的显示名；`@chatroom` 返回真实成员数和唯一群主；未知个人资料、头像、标签、公告和好友验证保持为空 |
-| listGeneral | 45 | `__alpha_group_members` 从 v4 `chat_room.ext_buffer` 解析群成员；`__alpha_general_payments`、`__alpha_general_revokes` 和 `__alpha_general_calls` 仅返回消息 XML 能证明的 partial/candidate 记录，保留 source fields；其他记录分类仍不可用 |
+| listGeneral | 45 | `__alpha_group_members` 从 v4 `chat_room.ext_buffer` 解析群成员；`__alpha_general_payments`、`__alpha_general_friend_requests`、`__alpha_general_revokes` 和 `__alpha_general_calls` 仅返回消息 XML 能证明的 partial/candidate 记录，保留 source fields；其他记录分类仍不可用 |
 | getApplicationLockStatus | 48 | 真实独立密码锁状态 |
 | unlockApplication | 50 | 真实密码校验、失败退避和持久状态 |
 | lockApplication | 51 | 关闭数据桥并锁定访问 |
@@ -66,10 +75,13 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | listChatExports | 123 | 列出指定账号的已持久化导出任务历史与当前任务快照；未完成任务在重启后显式标记失败，不伪造续跑 |
 | watchChatExport | 124 | 读取当前内存任务快照，包含会话状态、消息计数、输出路径和错误码 |
 | cancelChatExport | 125 | 请求取消尚未完成的任务；当前导出调用完成后停止后续会话，任务状态明确为 `canceled` |
-| startRecordExport | 136 | 为 payments/revokes/calls 候选记录创建内存导出任务；每类一个 xlsx/csv/json 文件，其他分类和格式明确拒绝 |
+| startRecordExport | 136 | 为 payments/friend_requests/revokes/calls 候选记录创建内存导出任务；每类一个 xlsx/csv/json 文件，其他分类和格式明确拒绝 |
 | locateMessage | 126 | uint64 serverId 精确定位及无时间筛选的双向游标；重复 ID 明确报歧义 |
 | getConversationDayCounts | 127 | 按 UTC offset 汇总最多 62 天半开时间区间内的消息数 |
 | analyzeConversation | 24 | 基于指定会话 `messages.list` DTO 的关系报告基础统计（总数、方向、活跃天/小时、月分布、媒体/消息类型、首末消息）；NLP、完整回复语义和 moments 明确为空，详见 `docs/conversation-analysis-recovery.md` |
+| startAggregateAnalysis | 110 | 创建 bounded 内存聚合分析任务；scope 1/3 要求本地时区完整年份 `[Jan 1,next Jan 1)`，scope 2/4 要求 `conversationId`（scope 4 可带时间范围）；scope 1/3 支持排除会话；返回 `analysisId`、会话总数和 TTL 到期时间；scope 5/6 明确拒绝 |
+| watchAggregateAnalysis | 111 | 返回任务状态 1/2/3/4（running/completed/failed/canceled）、会话进度、失败数、报告 JSON 或稳定错误码；任务默认 10 分钟 TTL，进程重启不恢复 |
+| cancelAggregateAnalysis | 112 | 请求取消尚未终止的聚合任务；任务结束后返回 `canceled=false`，取消期间报告不发布 |
 | configureApplicationLock | 131 | enable_password / change_password / disable，交给真实安全模块 |
 
 账号 capabilities 来自 Go 实际可用数据库；只有 session.db 的副本不会宣布 contacts 或 messages。每次查询账号状态或 revision 都重新调用 Go 验证不可变快照，文件变动不会沿用缓存 ready。
@@ -106,4 +118,4 @@ manifest 文件名保持 `snapshots/manifest.v1.json`，内容版本为 2，严�
 node --test tests/engine.test.mjs tests/engine-import.test.mjs tests/engine-search.test.mjs tests/independent-boundary-engine.test.mjs tests/import-security-boundary.test.mjs
 ```
 
-测试只使用合成普通/加密/搜索 SQLite 数据，主路径使用真实 Node stdio → protobuf → Go importer / Go bridge。覆盖分片/粘包、协议编号、82 个未实现分支、64 位 ID、分页、独立 source token 文本读取、联系人档案存在性、通讯录 directory 分类、群成员 RoomData、群成员 CSV/JSON/HTML/XLSX 导出、联系人 CSV/JSON/VCF/HTML/XLSX 导出、JSON/Markdown/HTML/TXT/XLSX 导出、payments/revokes/calls 的 xlsx/csv/json 候选记录导出、内存导出任务状态、持久计划 CAS/run-now/历史记录、显式数据源 watcher 目标、静态高级组件状态、年度及会话分析统计、全局与会话搜索、分组/筛选/覆盖、日期与定位、声明性媒体 refs DTO 校验、会话/账号媒体元数据浏览、锁/重启、真实加密源导入、错误密钥、manifest 越界/篡改、导入中状态查询/锁定/EOF、提交时锁定、超时和源改变。小脚本仅用于故障注入，不作为正常导入或数据实现。
+测试只使用合成普通/加密/搜索 SQLite 数据，主路径使用真实 Node stdio → protobuf → Go importer / Go bridge。覆盖分片/粘包、协议编号、71 个未实现分支、遥测同意持久化/重启恢复/禁用 flush、只读防撤回和朋友圈防删除状态边界、64 位 ID、分页、独立 source token 文本读取、联系人档案存在性、通讯录 directory 分类、群成员 RoomData、群成员 CSV/JSON/HTML/XLSX 导出、联系人 CSV/JSON/VCF/HTML/XLSX 导出、JSON/Markdown/HTML/TXT/XLSX 导出、payments/friend_requests/revokes/calls 的 xlsx/csv/json 候选记录导出、内存导出任务状态、持久计划 CAS/run-now/历史记录、显式数据源 watcher 目标、静态高级组件状态、年度及会话分析统计、全局与会话搜索、分组/筛选/覆盖、日期与定位、声明性媒体 refs DTO 校验、媒体索引路径/大小/hash 边界、会话/账号媒体元数据浏览、锁/重启、真实加密源导入、错误密钥、manifest 越界/篡改、导入中状态查询/锁定/EOF、提交时锁定、超时和源改变。小脚本仅用于故障注入，不作为正常导入或数据实现。

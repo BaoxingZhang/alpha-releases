@@ -15,6 +15,7 @@ const bridgePath = path.join(root, 'build/candidates/alpha-data-bridge');
 
 function fakeEngine() {
   let calls = 0;
+  const analysisId = '00000000-0000-4000-8000-000000000001';
   return {
     get calls() { return calls; },
     async dispatch(request) {
@@ -27,6 +28,9 @@ function fakeEngine() {
       if (request.listContacts?.directory) return EngineServerFrame.fromPartial({ requestId: request.requestId, listContacts: { response: { directory: { items: [{ contact: { username: 'wxid_peer', alias: 'peer', remark: '联系人', nickname: '联系人', localType: 1 }, category: 'friend', officialAccountKind: '' }], counts: [{ category: 'friend', count: 1 }, { category: 'group', count: 0 }], total: 1, hasMore: false } } } });
       if (request.listContacts) return EngineServerFrame.fromPartial({ requestId: request.requestId, listContacts: { response: { items: [{ username: 'wxid_peer', alias: 'peer', remark: '联系人', nickname: '联系人', localType: 1 }], nextCursor: '', totalCount: 1 } } });
       if (request.listGeneral) return EngineServerFrame.fromPartial({ requestId: request.requestId, listGeneral: { response: { items: [{ actor: 'wxid_peer', fields: [{ name: 'groupNickname', value: '群昵称' }, { name: 'isOwner', value: 'true' }] }], sourceDatabase: 'contact/contact.db', sourceTable: 'chat_room' } } });
+      if (request.startAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, startAggregateAnalysis: { analysisId, conversationsTotal: 1, expiresAtUnixMs: BigInt(Date.now() + 600000) } });
+      if (request.watchAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, watchAggregateAnalysis: { analysisId, state: 2, conversationsDone: 1, conversationsTotal: 1, conversationsFailed: 0, reportJson: new Uint8Array(Buffer.from(JSON.stringify({ algorithm_version: 'alpha-aggregate-v1', scope: 'group_chat', total_messages: 1 }), 'utf8')) } });
+      if (request.cancelAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, cancelAggregateAnalysis: { canceled: false } });
       if (request.exportConversation) return EngineServerFrame.fromPartial({ requestId: request.requestId, exportConversation: { destinationPath: request.exportConversation.destinationPath, format: request.exportConversation.format, itemCount: 1, mediaManifestPath: '', mediaIncluded: 0, mediaFailed: 0 } });
       throw new Error('unexpected method');
     }
@@ -105,6 +109,28 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   result = await request(base, '/api/v1/group-members?chatroom_id=room%40chatroom', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.items[0].is_owner, true);
+  result = await request(base, '/api/v1/records?category=friend_requests', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.category, 'friend_requests');
+  assert.equal(result.body.table_name, '__alpha_general_friend_requests');
+  assert.equal(result.body.partial, true);
+  assert.equal(result.body.candidate, true);
+  result = await request(base, '/api/v1/analysis', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', scope: 2, conversation_id: 'wxid_peer' }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.conversations_total, 1);
+  result = await request(base, '/api/v1/analysis/00000000-0000-4000-8000-000000000001', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.state, 'AGGREGATE_ANALYSIS_STATE_COMPLETED');
+  assert.equal(result.body.report.algorithm_version, 'alpha-aggregate-v1');
+  result = await request(base, '/api/v1/analysis/00000000-0000-4000-8000-000000000001/cancel', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: '{}' });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.canceled, false);
+  result = await request(base, '/api/v1/analysis', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', scope: 5 }) });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.body.error.code, 'HTTP_API_ANALYSIS_SCOPE_INVALID');
+  result = await request(base, '/api/v1/records?category=moments', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.body.error.code, 'HTTP_API_RECORD_CATEGORY_INVALID');
   result = await request(base, '/api/v1/exports', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', conversation_id: 'wxid_peer', format: 'json', destination_path: '/tmp/alpha-http-export.json', include_media: false, start_time_unix_ms: '1700000000000' }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.destination_path, '/tmp/alpha-http-export.json');
@@ -137,8 +163,11 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   const headers = { Authorization: `Bearer ${token}`, 'content-type': 'application/json' };
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 21);
+  assert.equal(result.body.result.tools.length, 24);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
+  assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha.analysis.start'));
+  const recordsTool = result.body.result.tools.find(tool => tool.name === 'wechat.forensics.list_records');
+  assert.deepEqual(recordsTool.inputSchema.properties.category.enum, ['payments', 'friend_requests', 'revokes', 'calls']);
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'wechat.core.list_accounts', arguments: {} } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.accounts[0].id, 'acct-1');
@@ -174,6 +203,22 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(result.body.result.structuredContent.category, 'payments');
   assert.equal(result.body.result.structuredContent.partial, true);
   assert.equal(Object.hasOwn(result.body.result.structuredContent, 'total_count'), false);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 91, method: 'tools/call', params: { name: 'wechat.forensics.list_records', arguments: { category: 'friend_requests' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.category, 'friend_requests');
+  assert.equal(result.body.result.structuredContent.table_name, '__alpha_general_friend_requests');
+  assert.equal(result.body.result.structuredContent.partial, true);
+  assert.equal(result.body.result.structuredContent.candidate, true);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 92, method: 'tools/call', params: { name: 'alpha.analysis.start', arguments: { scope: 2, conversation_id: 'wxid_peer' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.conversations_total, 1);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 93, method: 'tools/call', params: { name: 'alpha.analysis.watch', arguments: { analysis_id: '00000000-0000-4000-8000-000000000001' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.state, 'AGGREGATE_ANALYSIS_STATE_COMPLETED');
+  assert.equal(result.body.result.structuredContent.report.algorithm_version, 'alpha-aggregate-v1');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 94, method: 'tools/call', params: { name: 'alpha.analysis.cancel', arguments: { analysis_id: '00000000-0000-4000-8000-000000000001' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.canceled, false);
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 10, method: 'tools/call', params: { name: 'wechat.forensics.list_records', arguments: { category: 'payments', query: 'needle' } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.isError, true);
@@ -254,4 +299,20 @@ test('HTTP conversation export reaches the real independent engine and publishes
   assert.equal(rawResponse.response.status, 200);
   assert.equal(rawResponse.body.result.structuredContent.raw.server_id, fixture.uniqueServerId);
   assert.equal(rawResponse.body.result.structuredContent.raw.source_token.startsWith('independent1_'), true);
+  const analysisStart = await request(`http://${address.host}:${address.port}`, '/api/v1/analysis', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${'r'.repeat(32)}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ account_id: fixture.accountId, scope: 2, conversation_id: fixture.conversationId })
+  });
+  assert.equal(analysisStart.response.status, 200);
+  assert.equal(analysisStart.body.conversations_total, 1);
+  let analysisWatch;
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    analysisWatch = await request(`http://${address.host}:${address.port}`, `/api/v1/analysis/${analysisStart.body.analysis_id}`, { headers: { Authorization: `Bearer ${'r'.repeat(32)}` } });
+    assert.equal(analysisWatch.response.status, 200);
+    if (analysisWatch.body.state !== 'AGGREGATE_ANALYSIS_STATE_RUNNING') break;
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+  assert.equal(analysisWatch.body.state, 'AGGREGATE_ANALYSIS_STATE_COMPLETED');
+  assert.equal(analysisWatch.body.report.algorithm_version, 'alpha-aggregate-v1');
 });

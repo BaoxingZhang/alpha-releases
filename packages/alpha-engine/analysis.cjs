@@ -34,7 +34,7 @@ function emptyHeatmap() { return Array.from({ length: 7 }, () => Array(24).fill(
  * verified messages.list/session.list DTOs. NLP phrases, moments and reply
  * timing are left empty rather than guessed.
  */
-async function buildAnnualReport({ listSessions, listMessages, year, utcOffsetMinutes = 0 }) {
+async function buildAnnualReport({ listSessions, listMessages, year, utcOffsetMinutes = 0, isCanceled = () => false }) {
   if (!Number.isInteger(year) || year < 1970 || year > 9999) throw new Error('ANALYSIS_YEAR_INVALID');
   if (!Number.isInteger(utcOffsetMinutes) || utcOffsetMinutes < -720 || utcOffsetMinutes > 840) throw new Error('ANALYSIS_OPTIONS_INVALID');
   const start = BigInt(Date.UTC(year, 0, 1)) - BigInt(utcOffsetMinutes) * 60000n;
@@ -53,14 +53,17 @@ async function buildAnnualReport({ listSessions, listMessages, year, utcOffsetMi
   const media = { image: 0, voice: 0, video: 0, emoji: 0, file: 0, location: 0 };
   let scanned = 0, truncated = false, first = null;
   for (const session of sessions) {
+    if (isCanceled()) throw new Error('ANALYSIS_CANCELED');
     const conversationId = typeof session.username === 'string' ? session.username : '';
     if (!conversationId) continue;
     let cursor = '';
     do {
+      if (isCanceled()) throw new Error('ANALYSIS_CANCELED');
       if (scanned >= MAX_MESSAGES) { truncated = true; break; }
       const page = await listMessages({ conversationId, ascending: true, afterUnixMs: start > -1n ? start - 1n : undefined, beforeUnixMs: end, page: { pageSize: Math.min(500, MAX_MESSAGES - scanned), cursor: cursor ? Buffer.from(cursor) : new Uint8Array(0) } });
       if (!page || !Array.isArray(page.items) || !(page.nextCursor instanceof Uint8Array)) throw new Error('BRIDGE_PAGE_INVALID');
       for (const message of page.items) {
+        if (isCanceled()) throw new Error('ANALYSIS_CANCELED');
         if (scanned >= MAX_MESSAGES) { truncated = true; break; }
         // listMessages applies the millisecond bounds, but keep this check at
         // the aggregation boundary so alternate adapters cannot widen scope.
@@ -139,10 +142,12 @@ function localDateNumber(date) {
  * deliberately bounded adapter over the verified messages.list DTO. It does
  * not read SQLite tables directly or invent NLP, moments, or reply semantics.
  */
-async function buildConversationReport({ listMessages, conversationId, maxMessages = 50000, utcOffsetMinutes = 0 }) {
+async function buildConversationReport({ listMessages, conversationId, maxMessages = 50000, utcOffsetMinutes = 0, fromUnixMs, toUnixMs, isCanceled = () => false }) {
   if (typeof conversationId !== 'string' || !conversationId || conversationId.length > 1024) throw new Error('CONVERSATION_ID_INVALID');
   if (!Number.isInteger(maxMessages) || maxMessages < 1 || maxMessages > MAX_MESSAGES) throw new Error('ANALYSIS_MAX_MESSAGES_INVALID');
   if (!Number.isInteger(utcOffsetMinutes) || utcOffsetMinutes < -720 || utcOffsetMinutes > 840) throw new Error('ANALYSIS_OPTIONS_INVALID');
+  if (fromUnixMs !== undefined && (typeof fromUnixMs !== 'bigint' || fromUnixMs < 0n)) throw new Error('ANALYSIS_OPTIONS_INVALID');
+  if (toUnixMs !== undefined && (typeof toUnixMs !== 'bigint' || toUnixMs < 0n || fromUnixMs !== undefined && toUnixMs <= fromUnixMs)) throw new Error('ANALYSIS_OPTIONS_INVALID');
   if (typeof listMessages !== 'function') throw new Error('ANALYSIS_HANDLER_INVALID');
 
   const activeHours = Array(24).fill(0);
@@ -151,6 +156,8 @@ async function buildConversationReport({ listMessages, conversationId, maxMessag
   const sideMedia = { mine: emptyCounts(RELATIONSHIP_MEDIA_KEYS), peer: emptyCounts(RELATIONSHIP_MEDIA_KEYS), unknown: emptyCounts(RELATIONSHIP_MEDIA_KEYS) };
   const messageTypes = emptyCounts(RELATIONSHIP_TYPE_KEYS);
   const monthlyCounts = {};
+  const dailyCounts = {};
+  const dailyDirections = {};
   const activeDates = new Set();
   const dates = [];
   let first = null, last = null, previous = null;
@@ -162,9 +169,12 @@ async function buildConversationReport({ listMessages, conversationId, maxMessag
   const seenCursors = new Set();
 
   for (;;) {
+    if (isCanceled()) throw new Error('ANALYSIS_CANCELED');
     const page = await listMessages({
       conversationId,
       ascending: true,
+      ...(fromUnixMs === undefined ? {} : { afterUnixMs: fromUnixMs - 1n }),
+      ...(toUnixMs === undefined ? {} : { beforeUnixMs: toUnixMs }),
       page: { pageSize: Math.min(500, maxMessages - scanned), cursor }
     });
     if (!page || !Array.isArray(page.items) || !(page.nextCursor instanceof Uint8Array)) throw new Error('BRIDGE_PAGE_INVALID');
@@ -176,8 +186,10 @@ async function buildConversationReport({ listMessages, conversationId, maxMessag
       truncated = true;
     }
     for (const message of items) {
+      if (isCanceled()) throw new Error('ANALYSIS_CANCELED');
       if (!message || typeof message.sentAtUnixMs !== 'bigint') throw new Error('BRIDGE_MESSAGE_INVALID');
       if (typeof message.conversationId !== 'string' || message.conversationId !== conversationId) throw new Error('BRIDGE_MESSAGE_SCOPE_INVALID');
+      if (fromUnixMs !== undefined && message.sentAtUnixMs < fromUnixMs || toUnixMs !== undefined && message.sentAtUnixMs >= toUnixMs) continue;
       if (scanned >= maxMessages) { truncated = true; break; }
       const parts = localParts(message.sentAtUnixMs, utcOffsetMinutes);
       const side = sideOf(message);
@@ -185,6 +197,12 @@ async function buildConversationReport({ listMessages, conversationId, maxMessag
       const date = parts.date;
       scanned += 1;
       activeDates.add(date); dates.push(date);
+      dailyCounts[date] = (dailyCounts[date] || 0) + 1;
+      const dailyDirection = dailyDirections[date] || { sent: 0, received: 0, unknown: 0 };
+      if (side === 'mine') dailyDirection.sent += 1;
+      else if (side === 'peer') dailyDirection.received += 1;
+      else dailyDirection.unknown += 1;
+      dailyDirections[date] = dailyDirection;
       activeHours[parts.hour] += 1;
       sideHours[side][parts.hour] += 1;
       initiative[side] += 1;
@@ -245,6 +263,8 @@ async function buildConversationReport({ listMessages, conversationId, maxMessag
     peer_media: sideMedia.peer,
     unknown_media: sideMedia.unknown,
     monthly_counts: Object.fromEntries(Object.entries(monthlyCounts).sort(([a], [b]) => a.localeCompare(b))),
+    daily_counts: dailyCounts,
+    daily_directions: Object.fromEntries(Object.entries(dailyDirections).sort(([a], [b]) => a.localeCompare(b))),
     top_terms: [],
     shared_terms: [],
     mine_exclusive_terms: [],

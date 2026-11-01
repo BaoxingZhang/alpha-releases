@@ -128,6 +128,12 @@ const runtimeProvenance = await readJson('docs/native-runtime-provenance.json');
 const recoveredProvenance = await readJson('provenance/recovered-files.json');
 const maintenanceChanges = await readJson('provenance/maintenance-changes.json');
 const currentValidation = await readJson('docs/independent-validation-current.json');
+try {
+  const gitignore = await fs.readFile(path.join(root, '.gitignore'), 'utf8');
+  if (!gitignore.split(/\r?\n/).some(line => line.trim() === '.alpha/')) errors.push('.gitignore: .alpha/ runtime state must remain ignored');
+} catch (error) {
+  errors.push(`.gitignore: ${error.code === 'ENOENT' ? 'missing' : error.message}`);
+}
 let nvmrc = null;
 try {
   nvmrc = (await fs.readFile(path.join(root, '.nvmrc'), 'utf8')).trim();
@@ -140,7 +146,7 @@ if (packageJson) {
   if (packageJson.name !== 'alpha-recovered-local' || packageJson.version !== '0.3.5') errors.push('package.json: project identity/version drifted');
   if (!packageJson.engines?.node || !nodeVersionInRange(process.version, packageJson.engines.node)) errors.push(`Node ${process.version} does not satisfy package.json engines.node (${packageJson.engines?.node ?? 'missing'})`);
   if (nvmrc && /^\d+\.\d+\.\d+$/.test(nvmrc) && !nodeVersionInRange(`v${nvmrc}`, packageJson.engines.node)) errors.push(`.nvmrc: pinned Node ${nvmrc} does not satisfy package.json engines.node (${packageJson.engines.node ?? 'missing'})`);
-  const requiredScripts = ['build', 'build:independent', 'test', 'test:smoke', 'verify:vendor', 'verify:protocol', 'check:maintainability'];
+  const requiredScripts = ['build', 'build:independent', 'build:packaged', 'package:macos-app', 'package:macos-app:from-build', 'package:macos-dmg', 'test', 'test:independent', 'test:smoke', 'verify:vendor', 'verify:protocol', 'bundle:recovery', 'check:maintainability'];
   for (const name of requiredScripts) if (typeof packageJson.scripts?.[name] !== 'string') errors.push(`package.json: missing script ${name}`);
 }
 
@@ -159,14 +165,14 @@ if (lockfile && packageJson) {
 const requiredFiles = [
   'AGENTS.md', 'README.md', 'MAINTENANCE.md', '.gitignore', '.gitattributes',
   '.github/workflows/maintenance.yml',
-  'scripts/build.mjs', 'scripts/environment.mjs', 'scripts/launch.mjs', 'scripts/verify-vendor.mjs', 'scripts/release-manifest.mjs',
-  'scripts/setup-go.mjs', 'scripts/check-maintainability.mjs',
+  'scripts/build.mjs', 'scripts/build-packaged-resources.mjs', 'scripts/package-macos-app.mjs', 'scripts/environment.mjs', 'scripts/launch.mjs', 'scripts/verify-vendor.mjs', 'scripts/release-manifest.mjs',
+  'scripts/setup-go.mjs', 'scripts/recovery-bundle.mjs', 'scripts/check-maintainability.mjs',
   'src/main/index.js', 'src/agent-host/index.cjs', 'src/renderer/index.html',
   'src/renderer/assets/index-DPCwIOAb.js', 'src/renderer/assets/export-policy.mjs',
   'packages/alpha-protocol/index.cjs', 'packages/alpha-engine/index.cjs', 'packages/alpha-engine/http-server.cjs',
   'packages/alpha-data-bridge/go.mod', 'packages/alpha-data-bridge/go.sum',
   'packages/alpha-snapshot-import/go.mod', 'packages/alpha-snapshot-import/go.sum',
-  'packages/alpha-desktop/recovery-runtime.cjs', 'vendor/chatlog/go.mod',
+  'packages/alpha-desktop/backend-mode.cjs', 'packages/alpha-desktop/recovery-runtime.cjs', 'vendor/chatlog/go.mod',
   'provenance/go-toolchain.json', 'provenance/recovered-files.json', 'provenance/maintenance-changes.json',
   'docs/local-build-and-run.md', 'docs/native-runtime-provenance.json', 'docs/http-readonly-adapter-recovery.md',
   'docs/independent-validation-current.json'
