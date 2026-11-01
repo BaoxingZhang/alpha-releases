@@ -67,6 +67,7 @@
 - [独立 HTTP/MCP 适配器接手记录](docs/http-readonly-adapter-recovery.md)
 - [源码与原生材料缺口](docs/source-gaps.md)
 - [其他资料记录的 schema 证据](docs/general-records-schema-evidence.md)
+- [原生 operation 与 ABI 证据](docs/native-operation-source-evidence.md)
 - [公共源码与替代后端候选](docs/public-source-candidates.md)
 - [相关公开项目与可复用边界](docs/related-open-source-evidence.md)
 - [JavaScript拆分与IPC边界](docs/independent-maintenance-js.md)

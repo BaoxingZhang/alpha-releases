@@ -114,12 +114,12 @@
       "command": "npm run bundle:recovery",
       "status": "passed",
       "schema": "alpha-recovered.source-bundle.v1",
-      "fileCount": 670,
+      "fileCount": 671,
       "includesVendorRuntime": false,
       "nativeRecompiled": false,
       "projectSigned": false,
-      "archiveBytes": 3869980,
-      "archiveSha256": "1c49705742f61c76c41b99be7cff53cb6219385ec1f6654f30490dc0aec6e1e1",
+      "archiveBytes": 3872407,
+      "archiveSha256": "6214df6e768994c05cd4ddbfa8ed7bac5678bd670a74b65599eb0f4086798a53",
       "artifactManifestDigest": "0bc6b6d11296fd4bc2132caa677055fee91fc73a1a0c50b0a2929d1e7312b7d7"
     },
     "desktopIndependent": {
