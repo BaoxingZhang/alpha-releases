@@ -170,13 +170,13 @@ const requiredFiles = [
   'scripts/setup-go.mjs', 'scripts/recovery-bundle.mjs', 'scripts/check-maintainability.mjs',
   'src/main/index.js', 'src/agent-host/index.cjs', 'src/renderer/index.html',
   'src/renderer/assets/index-DPCwIOAb.js', 'src/renderer/assets/export-policy.mjs',
-  'packages/alpha-protocol/index.cjs', 'packages/alpha-engine/index.cjs', 'packages/alpha-engine/http-server.cjs',
+  'packages/alpha-protocol/index.cjs', 'packages/alpha-engine/index.cjs', 'packages/alpha-engine/http-server.cjs', 'packages/alpha-engine/media-decoder.cjs',
   'packages/alpha-data-bridge/go.mod', 'packages/alpha-data-bridge/go.sum',
   'packages/alpha-snapshot-import/go.mod', 'packages/alpha-snapshot-import/go.sum',
   'packages/alpha-desktop/backend-mode.cjs', 'packages/alpha-desktop/recovery-runtime.cjs', 'vendor/chatlog/go.mod',
   'provenance/go-toolchain.json', 'provenance/recovered-files.json', 'provenance/maintenance-changes.json', 'provenance/project-metadata.json',
   'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', 'docs/maintainer-playbook.md',
-  'docs/local-build-and-run.md', 'docs/native-runtime-provenance.json', 'docs/http-readonly-adapter-recovery.md',
+  'docs/local-build-and-run.md', 'docs/native-runtime-provenance.json', 'docs/http-readonly-adapter-recovery.md', 'docs/media-decoder-evidence.md',
   'docs/independent-validation-current.json'
 ];
 for (const relativePath of requiredFiles) await exists(relativePath);

@@ -36,7 +36,7 @@
     "demo:encrypted": "node scripts/demo.mjs --encrypted",
     "demo:search": "node scripts/demo.mjs --search",
     "test:boundaries": "node --test tests/independent-boundary-*.test.*",
-    "test": "node --test tests/*.test.mjs tests/*.test.cjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs tests/*.test.cjs",
     "record:maintenance": "node scripts/record-maintenance.mjs",
     "check:project": "node scripts/check-project.mjs",
     "check:maintainability": "node scripts/check-maintainability.mjs"

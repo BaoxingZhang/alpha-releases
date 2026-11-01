@@ -6,6 +6,7 @@
 - 接通离线微信 v4 数据读取、搜索、定位、联系人/群成员查询、导出、分析、计划任务、应用锁和受控本机 HTTP/MCP。
 - 保留原包 native runtime 的来源、签名、哈希和许可证边界；原生二进制没有重新编译。
 - 增加构建、隔离 smoke、协议、vendor、维护性和恢复源码包检查。
+- 增加独立、无文件系统副作用的 DAT 图片解码基础模块；仅接受调用方字节和显式 key，尚未接入媒体定位、Alpha token 或 UI。
 - 明确记录 58/128 协议分支已实现，完整功能 parity 尚未达到；详见 [当前验证](docs/independent-validation-current.json) 和 [缺口清单](docs/source-gaps.md)。
 
 ## 后续版本

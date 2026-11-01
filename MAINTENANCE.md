@@ -24,7 +24,7 @@
 | 搜索、日期跳转、上下文 | UI、IPC、协议；新增自有字面搜索、过滤、稳定游标、精确上下文和日历计数 | 大库索引与性能、更多消息编码/语义、真实数据完整验收 | 跨页结果稳定，过滤正确，可回到原消息；部分覆盖明确说明 |
 | 通讯录、群成员、公告 | UI、IPC、协议；新增联系人字面量查询、friend/group directory 分页与计数、有限 profile 存在性读取、真实 RoomData 共同群计数/列表、群成员读取和 CSV/JSON/VCF/HTML/XLSX 只读导出，群成员另支持 CSV/JSON/HTML/XLSX 导出，群 profile 可返回真实成员数和唯一群主；独立模式 UI 会禁用未验证分类和头像导出 | 高级通讯录分类、完整资料、头像导出、群公告和管理员身份；企微/公众号/服务号/曾经好友/黑名单分类保持不可用 | 备注/昵称/群身份与实际记录一致；查询结果有分页且 `%`/`_` 按字面量处理，未验证分类请求失败关闭 |
 | 收藏、其他资料 | UI、IPC、协议；独立后端已从消息 XML 提供 payments/revokes/calls 的 partial/candidate 读取，并支持 xlsx/csv/json 只读导出 | 嵌套收藏、好友验证/朋友圈互动/搜索记录、完整支付字段和通话语义和原始 Alpha 记录库 | 原始与结构化内容可对照，候选和来源字段明确标记，未知类型不伪造 |
-| 图片、视频、语音、实况照片 | UI、缓存/协议部分 JS、FFmpeg；独立后端可读取消息中的真实 refs 与媒体类型元数据 | 原生媒体读取、解密、SILK、WXGF、附件定位 | 正确解码，缺失/损坏有明确状态，不越界取文件；当前仅元数据，不能读取、解密或播放本地媒体 |
+| 图片、视频、语音、实况照片 | UI、缓存/协议部分 JS、FFmpeg；独立后端可读取消息中的真实 refs 与媒体类型元数据；另有只接受调用方字节的独立 DAT 图片解码模块（v4 需显式 AES/XOR key，旧式 DAT 按 magic 推断），见 [`docs/media-decoder-evidence.md`](docs/media-decoder-evidence.md) | 原生媒体定位、key 获取、解密接入、SILK、WXGF、附件定位 | 纯函数 decoder 的合成字节测试通过；它尚未接入 Alpha `resolveMessageMedia`、媒体索引或 UI，当前产品仍只有元数据，不能读取、解密或播放真实本地媒体 |
 | 媒体墙与图片查看器 | UI、分页及窗口逻辑；独立 `browseConversationMessages`/`browseAccountMedia` 已支持真实消息的 media/file/link 与 media/image/video 元数据筛选、时间范围和分页，并可通过 `window.alpha.messages.exportMediaMetadata` 导出 metadata-only JSON/CSV | 媒体索引与服务实现、文件路径/下载/token | 全账号扫描基于可发现 session index；导出明确标记 `metadataOnly=true`、`mediaReady=false`；本地文件读取、解密、缩略图、原图和播放仍未实现 |
 | 语音转文字 | UI、任务接口、模型目录 | 运行引擎、模型文件、取消与缓存 | 有模型时真实产出，无模型时明确不可用 |
 | 聊天/联系人/资料导出 | UI、部分导出协调 JS、协议；独立后端已支持 JSON/Markdown/HTML/TXT/XLSX 单次导出、四种消息 DTO 派生格式和独立 stateDir 多会话任务状态/取消及终态历史 | 原 Alpha/第三方 ChatLab、SQL、WeClone 完整兼容语义、附件打包、完整格式语义和进程级恢复 | 已实现格式文件有效、条数一致；派生格式兼容边界和完整任务生命周期仍需补齐 |

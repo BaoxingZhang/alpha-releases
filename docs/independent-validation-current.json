@@ -1,6 +1,6 @@
 {
   "recordedAt": "2026-11-01",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, image-key lifecycle, indexed image refs, persistent chat jobs, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, persistent chat jobs, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
     "implementedRequestBranches": 58,
@@ -10,8 +10,9 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 189,
-      "failed": 0
+      "passed": 192,
+      "failed": 0,
+      "testConcurrency": 1
     },
     "mediaIndex": {
       "command": "node --test tests/media-index.test.mjs",
@@ -37,6 +38,33 @@
       "mediaDecoderAvailable": false,
       "datVerified": false,
       "automaticModes": "unsupported"
+    },
+    "mediaDecoder": {
+      "command": "node --test tests/media-decoder.test.mjs",
+      "status": "passed",
+      "tests": 3,
+      "inputBoundary": "caller-supplied bytes only",
+      "algorithms": [
+        "v4 AES-ECB head",
+        "v4 clear middle",
+        "v4 XOR tail",
+        "legacy DAT XOR inference"
+      ],
+      "formats": [
+        "jpg",
+        "png",
+        "gif",
+        "tiff",
+        "bmp",
+        "wxgf"
+      ],
+      "filesystemAccess": false,
+      "processAccess": false,
+      "networkAccess": false,
+      "engineIntegrated": false,
+      "uiIntegrated": false,
+      "realMediaCompatibility": "unverified",
+      "mediaReady": false
     },
     "aggregateAnalysis": {
       "command": "node --test tests/engine-aggregate-analysis.test.mjs",
@@ -68,12 +96,12 @@
       "command": "npm run bundle:recovery",
       "status": "passed",
       "schema": "alpha-recovered.source-bundle.v1",
-      "fileCount": 666,
+      "fileCount": 669,
       "includesVendorRuntime": false,
       "nativeRecompiled": false,
       "projectSigned": false,
-      "archiveBytes": 3858732,
-      "archiveSha256": "a8950a866b4c7259c90db4c9faa07811861f39970029e11f221a78aaae86b2ad",
+      "archiveBytes": 3861306,
+      "archiveSha256": "cb2b66284012059731c074af226333fcf69cc064a467112d30a008ec60db7a71",
       "artifactManifestDigest": "0bc6b6d11296fd4bc2132caa677055fee91fc73a1a0c50b0a2929d1e7312b7d7"
     },
     "desktopIndependent": {
