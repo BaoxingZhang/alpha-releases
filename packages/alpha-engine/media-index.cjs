@@ -92,6 +92,104 @@ function readManifestFile(manifestPath, maxBytes) {
   try { return JSON.parse(source); } catch { throw error('MEDIA_INDEX_MANIFEST_INVALID'); }
 }
 
+function assertManifestDestination(root, fileName) {
+  if (typeof fileName !== 'string' || fileName !== MANIFEST_NAME) throw error('MEDIA_INDEX_MANIFEST_INVALID');
+  const manifestPath = path.join(root, fileName);
+  let stat;
+  try { stat = fs.lstatSync(manifestPath); } catch (failure) {
+    if (failure.code !== 'ENOENT') throw error('MEDIA_INDEX_MANIFEST_INVALID');
+    return manifestPath;
+  }
+  if (stat.isSymbolicLink() || !stat.isFile()) throw error('MEDIA_INDEX_MANIFEST_INVALID');
+  throw error('MEDIA_INDEX_MANIFEST_EXISTS');
+}
+
+async function hashMediaFile(root, relativePath, maxFileBytes) {
+  const target = pathWithin(root, relativePath);
+  assertNoSymlinkParents(root, target);
+  let handle;
+  let stat;
+  try {
+    handle = await fs.promises.open(target, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+    stat = await handle.stat();
+  } catch (failure) {
+    if (handle) await handle.close().catch(() => {});
+    if (failure.code === 'ENOENT') throw error('MEDIA_INDEX_FILE_NOT_FOUND');
+    if (failure.code === 'ELOOP') throw error('MEDIA_INDEX_FILE_SYMLINK');
+    throw error('MEDIA_INDEX_FILE_INVALID');
+  }
+  if (!stat.isFile()) { await handle.close().catch(() => {}); throw error('MEDIA_INDEX_FILE_INVALID'); }
+  if (stat.size > maxFileBytes) { await handle.close().catch(() => {}); throw error('MEDIA_INDEX_FILE_TOO_LARGE'); }
+  const hash = crypto.createHash('sha256');
+  let total = 0;
+  let stream;
+  try { stream = handle.createReadStream({ highWaterMark: 64 * 1024, autoClose: false }); } catch { await handle.close().catch(() => {}); throw error('MEDIA_INDEX_FILE_INVALID'); }
+  try {
+    for await (const chunk of stream) {
+      total += chunk.length;
+      if (total > maxFileBytes) throw error('MEDIA_INDEX_FILE_TOO_LARGE');
+      hash.update(chunk);
+    }
+  } catch (failure) {
+    stream.destroy();
+    await handle.close().catch(() => {});
+    if (/^MEDIA_INDEX_/.test(failure.message || '')) throw failure;
+    throw error('MEDIA_INDEX_READ_FAILED');
+  }
+  await handle.close().catch(() => {});
+  if (total !== stat.size) throw error('MEDIA_INDEX_SIZE_MISMATCH');
+  return { filePath: target, sizeBytes: total, sha256: hash.digest('hex') };
+}
+
+async function writeMediaIndex({ root, entries, accountId = '', fileName = MANIFEST_NAME, maxEntries = DEFAULT_MAX_ENTRIES, maxFileBytes = DEFAULT_MAX_FILE_BYTES, overwrite = false } = {}) {
+  const absoluteRoot = boundedRoot(root);
+  assertDirectory(absoluteRoot);
+  if (!Number.isSafeInteger(maxEntries) || maxEntries < 1 || maxEntries > DEFAULT_MAX_ENTRIES || !Number.isSafeInteger(maxFileBytes) || maxFileBytes < 1 || maxFileBytes > DEFAULT_MAX_FILE_BYTES) throw error('MEDIA_INDEX_LIMIT_INVALID');
+  if (typeof accountId !== 'string' || accountId.length > 256 || accountId.includes('\0') || /[\u0000-\u001f\u007f]/.test(accountId)) throw error('MEDIA_INDEX_ACCOUNT_INVALID');
+  if (!Array.isArray(entries) || entries.length > maxEntries) throw error('MEDIA_INDEX_ENTRIES_INVALID');
+  if (typeof overwrite !== 'boolean') throw error('MEDIA_INDEX_OVERWRITE_INVALID');
+  const manifestPath = overwrite ? path.join(absoluteRoot, MANIFEST_NAME) : assertManifestDestination(absoluteRoot, fileName);
+  if (overwrite) {
+    if (fileName !== MANIFEST_NAME) throw error('MEDIA_INDEX_MANIFEST_INVALID');
+    let existing;
+    try { existing = fs.lstatSync(manifestPath); } catch (failure) { if (failure.code !== 'ENOENT') throw error('MEDIA_INDEX_MANIFEST_INVALID'); }
+    if (existing && existing.isSymbolicLink()) throw error('MEDIA_INDEX_MANIFEST_SYMLINK');
+    if (existing && !existing.isFile()) throw error('MEDIA_INDEX_MANIFEST_INVALID');
+  }
+  const byKey = new Set();
+  const normalized = [];
+  for (const raw of entries) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw error('MEDIA_INDEX_ENTRY_INVALID');
+    const kind = boundedText(raw.kind, 32);
+    if (!MEDIA_KINDS.has(kind)) throw error('MEDIA_INDEX_KIND_UNSUPPORTED');
+    const id = boundedText(raw.id, 1024);
+    const rendition = raw.rendition === undefined ? 'source' : boundedText(raw.rendition, 64);
+    const relativePath = boundedText(raw.relativePath, 4096);
+    if (relativePath === MANIFEST_NAME) throw error('MEDIA_INDEX_PATH_INVALID');
+    const key = `${kind}\0${id}\0${rendition}`;
+    if (byKey.has(key)) throw error('MEDIA_INDEX_DUPLICATE_ENTRY');
+    byKey.add(key);
+    const digest = await hashMediaFile(absoluteRoot, relativePath, maxFileBytes);
+    const entry = normalizeEntry({ ...raw, kind, id, rendition, relativePath, sha256: digest.sha256, sizeBytes: digest.sizeBytes }, absoluteRoot, maxFileBytes);
+    if (accountId && entry.accountId && entry.accountId !== accountId) throw error('MEDIA_INDEX_ACCOUNT_MISMATCH');
+    normalized.push(entry);
+  }
+  const document = { version: MANIFEST_VERSION, ...(accountId ? { accountId } : {}), entries: normalized.map(({ filePath, ...entry }) => entry) };
+  const temporary = path.join(absoluteRoot, `.${MANIFEST_NAME}.${crypto.randomUUID()}.tmp`);
+  try {
+    const encoded = `${JSON.stringify(document, null, 2)}\n`;
+    if (Buffer.byteLength(encoded) > DEFAULT_MAX_MANIFEST_BYTES) throw error('MEDIA_INDEX_MANIFEST_TOO_LARGE');
+    await fs.promises.writeFile(temporary, encoded, { flag: 'wx', mode: 0o600 });
+    await fs.promises.chmod(temporary, 0o600);
+    await fs.promises.rename(temporary, manifestPath);
+  } catch (failure) {
+    await fs.promises.rm(temporary, { force: true }).catch(() => {});
+    if (/^MEDIA_INDEX_/.test(failure.message || '')) throw failure;
+    throw error('MEDIA_INDEX_MANIFEST_WRITE_FAILED');
+  }
+  return loadMediaIndex({ root: absoluteRoot, expectedAccountId: accountId });
+}
+
 function loadMediaIndex({ root, fileName = MANIFEST_NAME, maxEntries = DEFAULT_MAX_ENTRIES, maxManifestBytes = DEFAULT_MAX_MANIFEST_BYTES, maxFileBytes = DEFAULT_MAX_FILE_BYTES, expectedAccountId = '' } = {}) {
   const absoluteRoot = boundedRoot(root);
   if (!Number.isSafeInteger(maxEntries) || maxEntries < 1 || maxEntries > DEFAULT_MAX_ENTRIES) throw error('MEDIA_INDEX_LIMIT_INVALID');
@@ -184,6 +282,7 @@ module.exports = {
   DEFAULT_MAX_MANIFEST_BYTES,
   DEFAULT_MAX_FILE_BYTES,
   loadMediaIndex,
+  writeMediaIndex,
   findMediaEntry,
   readMediaEntry
 };

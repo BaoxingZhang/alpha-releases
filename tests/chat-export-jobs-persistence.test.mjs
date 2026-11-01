@@ -13,7 +13,21 @@ async function make(t) {
   const root = await fs.mkdtemp(path.join(process.cwd(), '.runtime/chat-export-jobs-persist-'));
   const stateDir = path.join(root, 'state');
   await fs.mkdir(stateDir, { mode: 0o700 });
-  t.after(async () => fs.rm(root, { recursive: true, force: true }));
+  // A newly opened job manager normalizes its durable snapshot through an
+  // atomic background write. Test cleanup can run before that write finishes,
+  // so retry removal briefly instead of leaving a state directory behind or
+  // turning a successful lifecycle assertion into an ENOTEMPTY failure.
+  t.after(async () => {
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      try {
+        await fs.rm(root, { recursive: true, force: true });
+        return;
+      } catch (failure) {
+        if (!['ENOTEMPTY', 'EINVAL', 'EBUSY'].includes(failure?.code) || attempt === 49) throw failure;
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
+    }
+  });
   return { root, stateDir };
 }
 

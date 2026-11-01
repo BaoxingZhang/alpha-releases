@@ -1,16 +1,16 @@
 {
   "recordedAt": "2026-11-01",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, persistent chat jobs, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 58,
-    "unsupportedRequestBranches": 70,
+    "implementedRequestBranches": 62,
+    "unsupportedRequestBranches": 66,
     "source": "packages/alpha-engine/index.cjs:SUPPORTED"
   },
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 192,
+      "passed": 197,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -22,7 +22,25 @@
       "explicitRootOnly": true,
       "hashAndSizeVerified": true,
       "symlinkAndTraversalRejected": true,
-      "protocolIntegrated": true
+      "protocolIntegrated": true,
+      "writer": "writeMediaIndex",
+      "writerBoundary": "caller-selected relative files only",
+      "writerAtomic": true,
+      "automaticDiscovery": false,
+      "resolveMessageMedia": {
+        "command": "node --test tests/engine-media-index.test.mjs",
+        "status": "passed",
+        "tests": 4,
+        "token": "alpha-media://sha256/<64hex>",
+        "requiresUniqueBinding": [
+          "accountId",
+          "conversationId",
+          "messageId"
+        ],
+        "rechecksFileHashAndSize": true,
+        "nativeMedia1Compatible": false,
+        "remotePendingLiveAndMd5": "unsupported"
+      }
     },
     "imageKey": {
       "command": "node --test tests/engine-image-key.test.mjs",
@@ -96,12 +114,12 @@
       "command": "npm run bundle:recovery",
       "status": "passed",
       "schema": "alpha-recovered.source-bundle.v1",
-      "fileCount": 669,
+      "fileCount": 670,
       "includesVendorRuntime": false,
       "nativeRecompiled": false,
       "projectSigned": false,
-      "archiveBytes": 3861306,
-      "archiveSha256": "cb2b66284012059731c074af226333fcf69cc064a467112d30a008ec60db7a71",
+      "archiveBytes": 3869966,
+      "archiveSha256": "ed8941c6e09889035d417b3777be336d541dae691bd34551ab3c9094ed52e8fb",
       "artifactManifestDigest": "0bc6b6d11296fd4bc2132caa677055fee91fc73a1a0c50b0a2929d1e7312b7d7"
     },
     "desktopIndependent": {
@@ -350,10 +368,26 @@
     "projectCheck": {
       "command": "npm run check:project",
       "status": "passed"
+    },
+    "genericJobs": {
+      "command": "node --test --test-concurrency=1 tests/chat-export-jobs.test.mjs tests/engine-record-export.test.mjs",
+      "status": "passed",
+      "tests": 8,
+      "methods": [
+        "getJob",
+        "watchJob",
+        "cancelJob"
+      ],
+      "mappedJobKinds": [
+        "chat-export",
+        "record-export"
+      ],
+      "eventCursor": "in-process-observation-with-fingerprint",
+      "durableNativeLease": false
     }
   },
   "featureBoundary": {
-    "mediaFilesAndVoicePlayback": "unimplemented",
+    "mediaFilesAndVoicePlayback": "partial-indexed-image-only; native media, DAT/AES integration, voice/video playback unimplemented",
     "momentsAndFavorites": "unimplemented",
     "generalRecordListing": {
       "payments": "partial-candidate-from-message-xml",

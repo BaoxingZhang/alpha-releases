@@ -20,11 +20,17 @@
 
 `packages/alpha-data-bridge` 目前只接收 `contact.db`、`session.db` 和 `message[_数字].db`，启动时会拒绝不满足这些核心 schema 的数据库，但对目录中的未知文件不建立媒体连接。`account.info` 也不会声明媒体索引或语音能力。Node 层的 `browseConversationMessages`/`browseAccountMedia` 因而只返回消息 DTO 中明确声明的 `refs`、`display` 和来源身份；它不会使用上表推断本地路径、读取 `.dat`、读取 `voice_data`、解码、播放或生成 `media1_...` token。
 
-## 为什么暂不接入 `resolveMessageMedia`
+## 原生 `resolveMessageMedia` 与独立索引解析的边界
 
-原协议的 `resolveMessageMedia` 请求需要 Alpha `mediaResolveToken`，并带有账号、消息、MD5、时间和大小等交叉校验字段。仅凭上述候选表查询无法证明 token 与数据库行之间的绑定，也无法证明消息 XML 中的 ID 与 `md5`/`file_name` 的对应关系。直接把候选路径或 `voice_data` 接到该请求会把“候选读取线索”误报为原生兼容能力，还会绕过当前工程对密钥、媒体解密和本地文件完整性的边界。
+原协议的 `resolveMessageMedia` 请求需要 Alpha `mediaResolveToken`，并带有账号、消息、MD5、时间和大小等交叉校验字段。仅凭上述候选表查询无法证明原 token 与数据库行之间的绑定，也无法证明消息 XML 中的 ID 与 `md5`/`file_name` 的对应关系。当前独立引擎只在调用方显式提供并绑定 `media-index.v1.json` 时，接受自有 `alpha-media://sha256/<sha256>` token，重新读取文件并扫描真实消息 DTO 做一致性验证；这不是 Alpha 原生 token 兼容实现。
 
-因此，媒体文件定位、解密、缩略图、播放、CDN 补齐和语音转写继续保持显式未实现。后续若要推进，应先增加人工生成的 hardlink/VoiceInfo fixture，验证列类型、路径存在性和字节上限，再设计独立 token/DTO，并保持与原 Alpha token 明确隔离。
+因此，媒体解密、缩略图、播放、CDN 补齐和语音转写继续保持显式未实现。独立图片解析要求索引条目同时绑定账号、会话和消息，并拒绝 MD5、远程、pending、live video 及非零 record offset 语义；后续若要推进其他媒体，应先增加人工生成的 hardlink/VoiceInfo fixture，验证列类型、路径存在性和字节上限，并保持与原 Alpha token 明确隔离。
 
 当前独立引擎已接通图片 key 的进程内手动配置、状态查询和清除生命周期，但该状态不会探测 DAT、验证样本或开启媒体解码；`usable=false` 是预期结果，不能把这一步当作 `resolveMessageMedia` 已恢复。
 
+
+## `decodeVoicePlayback` 的已知契约与阻塞
+
+恢复的 Electron 代码还给出了 field 128 的缓存边界：`decodeVoicePlayback` 只接收账号和 64 位十六进制 `mediaId`，返回同样受校验的 `wavMediaId`；随后播放层只在受控 cache root 的 `av/` 下读取 `<wavMediaId>.wav`，并要求文件 SHA-256 等于该 ID 且通过 WAV 校验。播放缓存还限制输入/输出大小和候选数量，并要求由受控账号/generation 授权。
+
+这只是客户端契约，不是可编译的解码实现。当前原生清单只声明 `native.read_voice_blob`、`native.peek_cached_media` 等能力，没有 VoiceInfo schema/ABI、`voice_data` 编码参数或 SILK→WAV 实现。候选 Chatlog 的 `VoiceInfo(svr_id, voice_data)` 读取和 SILK→MP3 工具也不能证明 Alpha 的 token 绑定、缓存哈希或 WAV 语义。因此独立后端继续拒绝 field 128；要恢复它，需要先取得授权的 VoiceInfo fixture/bridge 操作和可复现的解码、哈希、账号代际测试。

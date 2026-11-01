@@ -2,7 +2,7 @@
 
 固定候选：`a7162bca9454fa43b5950a2414670983fe180e56`。覆盖 Alpha `EngineClientFrame` 的 **128/128** 请求分支；逐项codec、wire字段号、源码行号和证据位于 [JSON清单](backend-compatibility-map.json)。此为静态映射，未读取用户数据，未验证真实微信环境。
 
-分类：读取基础 6 项，需组合或新实现 30 项，候选缺失 92 项。**0 项认定为可直接替换 Alpha 接口；这些数量不是功能完成率。**
+分类：读取基础 5 项，需组合或新实现 34 项，候选缺失 89 项。**0 项认定为可直接替换 Alpha 接口；这些数量不是功能完成率。**
 
 Chatlog适合作为会话、消息、联系人、群、本地媒体的读取底座。完整Alpha目标仍包括朋友圈/收藏、导出任务与调度、统计、AI、写入、安全和许可，不能将读取底座交付成全功能后端。
 
@@ -37,9 +37,9 @@ Chatlog适合作为会话、消息、联系人、群、本地媒体的读取底�
 | `flushTelemetry` | 23 | 候选缺失 | telemetry | Chatlog没有Alpha遥测同意、队列和发送协议。 证据：`internal/wechatdb/datasource/datasource.go:16`、`internal/chatlog/http/route.go:55` |
 | `analyzeConversation` | 24 | 组合/新实现 | analytics | 真实消息、联系人和群读取可作为统计输入；候选没有Alpha年度/关系/汇总分析算法。 证据：`internal/wechatdb/datasource/v4/datasource.go:184`、`internal/wechatdb/repository/contact.go:105`、`internal/wechatdb/repository/chatroom.go:99` |
 | `startOfficialExport` | 25 | 候选缺失 | official_export | 读取本地聊天分享链接不等于连接公众号历史文章并在线导出；未见对应实现。 证据：`internal/wechatdb/datasource/datasource.go:16`、`internal/chatlog/http/route.go:55`、`internal/wechatdb/datasource/v4/datasource.go:184` |
-| `getJob` | 26 | 候选缺失 | jobs | 候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。 证据：`internal/wechatdb/datasource/datasource.go:16`、`internal/chatlog/http/route.go:55`、`internal/chatlog/http/route.go:90` |
-| `watchJob` | 27 | 候选缺失 | jobs | 候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。 证据：`internal/wechatdb/datasource/datasource.go:16`、`internal/chatlog/http/route.go:55`、`internal/chatlog/http/route.go:90` |
-| `cancelJob` | 28 | 候选缺失 | jobs | 候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。 证据：`internal/wechatdb/datasource/datasource.go:16`、`internal/chatlog/http/route.go:55`、`internal/chatlog/http/route.go:90` |
+| `getJob` | 26 | 组合/新实现 | jobs | 独立后端将已验证的 chat/record export 快照映射为通用 JobSummary；不声称原生 Alpha 通用任务、租约或跨进程事件日志兼容。 证据：`packages/alpha-engine/generic-jobs.cjs`、`tests/chat-export-jobs.test.mjs`、`tests/engine-record-export.test.mjs` |
+| `watchJob` | 27 | 组合/新实现 | jobs | 独立后端提供有界的状态变化/进度事件视图；没有把它当作原生持久事件订阅或远程通知。 证据：`packages/alpha-engine/generic-jobs.cjs`、`tests/chat-export-jobs.test.mjs`、`tests/engine-record-export.test.mjs` |
+| `cancelJob` | 28 | 组合/新实现 | jobs | 独立后端将取消请求转发到已验证的本地导出任务管理器；原生租约、跨进程取消和其他任务种类仍未恢复。 证据：`packages/alpha-engine/generic-jobs.cjs`、`tests/chat-export-jobs.test.mjs`、`tests/engine-record-export.test.mjs` |
 | `discoverAccounts` | 29 | 组合/新实现 | accounts | 候选能发现运行中的微信进程及目录；不能等价Alpha已保存账号清单、手动目录发现与读取状态。 证据：`internal/wechat/manager.go:52`、`internal/wechat/wechat.go:14`、`internal/wechatdb/wechatdb.go:23` |
 | `importDatabaseKey` | 30 | 组合/新实现 | account_keys | 存在密钥验证和解密器；无Alpha按账号导入、受保护存储、复核与句柄结果。 证据：`internal/wechat/decrypt/validator.go:51`、`internal/wechat/decrypt/darwin/v4.go:79`、`internal/chatlog/conf/server.go:7` |
 | `transcribeVoice` | 31 | 候选缺失 | voice_transcription | SILK转MP3只是音频转换，候选未实现ASR、模型选择或批量转写。 证据：`internal/wechatdb/datasource/v4/datasource.go:705`、`pkg/util/silk/silk.go:10`、`internal/wechatdb/datasource/datasource.go:16` |
@@ -111,7 +111,7 @@ Chatlog适合作为会话、消息、联系人、群、本地媒体的读取底�
 | `listMessageRecallRecords` | 100 | 候选缺失 | retention | 文件变化Webhook不是防撤回保全、撤回记录库或逐会话保全状态。 证据：`internal/wechatdb/datasource/datasource.go:16`、`internal/chatlog/webhook/webhook.go:159` |
 | `maintainMessageResource` | 101 | 候选缺失 | writer_local | 未见消息编辑/插入/还原或资源修复事务；临时DB副本读取不是writer。 证据：`internal/wechatdb/datasource/datasource.go:16`、`internal/wechatdb/datasource/dbm/dbm.go:114` |
 | `discoverPendingMessageResources` | 102 | 候选缺失 | writer_local | 未见消息编辑/插入/还原或资源修复事务；临时DB副本读取不是writer。 证据：`internal/wechatdb/datasource/datasource.go:16`、`internal/wechatdb/datasource/dbm/dbm.go:114` |
-| `resolveMessageMedia` | 103 | 读取基础 | media | 有本地媒体key/path查找和dat解码基础；无Alphaopaque token、proof或账号绑定。 证据：`internal/wechatdb/datasource/v4/datasource.go:601`、`internal/chatlog/http/route.go:295`、`pkg/util/dat2img/dat2img.go:48`、`internal/model/message_v4.go:47` |
+| `resolveMessageMedia` | 103 | 组合/新实现 | media | 独立后端只对显式 `media-index.v1.json` 条目提供 `alpha-media://sha256/<sha256>` 解析，要求唯一账号/会话/消息绑定并重新校验文件和真实消息；不兼容原生 `media1_`、MD5、远程补齐或语音/视频。 证据：`packages/alpha-engine/index.cjs`、`packages/alpha-engine/media-index.cjs`、`tests/engine-media-index.test.mjs` |
 | `analyzeAnnual` | 104 | 组合/新实现 | analytics | 真实消息、联系人和群读取可作为统计输入；候选没有Alpha年度/关系/汇总分析算法。 证据：`internal/wechatdb/datasource/v4/datasource.go:184`、`internal/wechatdb/repository/contact.go:105`、`internal/wechatdb/repository/chatroom.go:99` |
 | `getDataRevision` | 105 | 组合/新实现 | live_data | 存在文件组监控与回调，但没有Alpha revision、targets身份与账号epoch协议。 证据：`internal/wechatdb/wechatdb.go:129`、`pkg/filemonitor/filegroup.go:106`、`internal/chatlog/webhook/webhook.go:159` |
 | `getDataWatchTargets` | 106 | 组合/新实现 | live_data | 存在文件组监控与回调，但没有Alpha revision、targets身份与账号epoch协议。 证据：`internal/wechatdb/wechatdb.go:129`、`pkg/filemonitor/filegroup.go:106`、`internal/chatlog/webhook/webhook.go:159` |

@@ -6,7 +6,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { loadMediaIndex, findMediaEntry, readMediaEntry } = require('../packages/alpha-engine/media-index.cjs');
+const { loadMediaIndex, writeMediaIndex, findMediaEntry, readMediaEntry } = require('../packages/alpha-engine/media-index.cjs');
 
 async function fixture(t) {
   const root = await fs.mkdtemp(path.join(process.cwd(), '.runtime/media-index-'));
@@ -32,6 +32,44 @@ test('media index loads an explicit bounded entry and verifies bytes', async t =
   assert.deepEqual(resolved.bytes, f.media);
   assert.equal(resolved.entry.mimeType, 'image/png');
   await assert.rejects(readMediaEntry(index, { ...entry, filePath: path.join(f.root, entry.relativePath) }), /MEDIA_INDEX_ENTRY_INVALID/);
+});
+
+test('media index writer hashes caller-selected files and publishes an atomic manifest', async t => {
+  const root = await fs.mkdtemp(path.join(process.cwd(), '.runtime/media-index-write-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  await fs.mkdir(path.join(root, 'media'), { mode: 0o700 });
+  const media = Buffer.from('caller supplied media fixture\n', 'utf8');
+  await fs.writeFile(path.join(root, 'media', 'image.dat'), media, { mode: 0o600 });
+  const index = await writeMediaIndex({
+    root,
+    accountId: 'synthetic-account',
+    entries: [{ kind: 'image', id: 'image-id', relativePath: 'media/image.dat', mimeType: 'image/jpeg', conversationId: 'wxid_peer' }]
+  });
+  assert.equal(index.accountId, 'synthetic-account');
+  const entry = findMediaEntry(index, { kind: 'image', id: 'image-id' });
+  assert.equal(entry.sizeBytes, media.length);
+  assert.equal(entry.sha256, crypto.createHash('sha256').update(media).digest('hex'));
+  assert.deepEqual((await readMediaEntry(index, entry)).bytes, media);
+  await assert.rejects(writeMediaIndex({ root, entries: [{ kind: 'image', id: 'other', relativePath: 'media/image.dat' }] }), /MEDIA_INDEX_MANIFEST_EXISTS/);
+  await writeMediaIndex({ root, overwrite: true, entries: [{ kind: 'image', id: 'other', relativePath: 'media/image.dat' }] });
+  assert.equal(findMediaEntry(loadMediaIndex({ root }), { kind: 'image', id: 'image-id' }), null);
+  assert.ok(findMediaEntry(loadMediaIndex({ root }), { kind: 'image', id: 'other' }));
+});
+
+test('media index writer rejects traversal, symlinks, duplicates and oversized files before publishing', async t => {
+  const root = await fs.mkdtemp(path.join(process.cwd(), '.runtime/media-index-write-invalid-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  await fs.mkdir(path.join(root, 'media'), { mode: 0o700 });
+  await fs.writeFile(path.join(root, 'media', 'image.dat'), Buffer.from('x'), { mode: 0o600 });
+  const cases = [
+    { entries: [{ kind: 'image', id: 'x', relativePath: '../escape' }], code: 'MEDIA_INDEX_PATH_INVALID' },
+    { entries: [{ kind: 'image', id: 'x', relativePath: 'media/image.dat' }, { kind: 'image', id: 'x', relativePath: 'media/image.dat' }], code: 'MEDIA_INDEX_DUPLICATE_ENTRY' },
+    { entries: [{ kind: 'image', id: 'x', relativePath: 'media/image.dat' }], maxFileBytes: 0, code: 'MEDIA_INDEX_LIMIT_INVALID' }
+  ];
+  for (const item of cases) await assert.rejects(writeMediaIndex({ root, ...item }), new RegExp(item.code));
+  await fs.symlink(path.join(root, 'media', 'image.dat'), path.join(root, 'media', 'link.dat'));
+  await assert.rejects(writeMediaIndex({ root, entries: [{ kind: 'image', id: 'link', relativePath: 'media/link.dat' }] }), /MEDIA_INDEX_FILE_SYMLINK/);
+  await assert.rejects(fs.access(path.join(root, 'media-index.v1.json')));
 });
 
 test('media index rejects traversal, absolute paths, duplicate keys and malformed bounds', async t => {

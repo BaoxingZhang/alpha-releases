@@ -14,14 +14,15 @@ const { inspectExportPath, prepareExportPath, cleanupExportDirectories } = requi
 const { createChatExportJobs } = require('./chat-export-jobs.cjs');
 const { createRecordExportJobs } = require('./records-export-jobs.cjs');
 const { createChatExportSchedules } = require('./chat-export-schedules.cjs');
+const { createGenericJobs } = require('./generic-jobs.cjs');
 const { createAggregateAnalysisJobs } = require('./aggregate-analysis-jobs.cjs');
 const { contactsXlsx, conversationXlsx, groupMembersXlsx, recordsXlsx } = require('./xlsx-writer.cjs');
 const { CHAT_DERIVED_FORMATS, CHAT_FORMAT_EXTENSIONS, derivedConversationOutput } = require('./export-formats.cjs');
-const { loadMediaIndex } = require('./media-index.cjs');
+const { loadMediaIndex, readMediaEntry } = require('./media-index.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, getMessageSource: 107, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, getContactProfile: 115, listGeneral: 45, exportContacts: 117, exportGroupMembers: 139, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, getContactProfile: 115, listGeneral: 45, exportContacts: 117, exportGroupMembers: 139, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
 // These enum values are recovered from the Alpha protocol. The independent
 // engine can report the local package boundary, but it cannot start or claim
 // a dynamically entitled native component. Keep this status explicit and
@@ -112,6 +113,8 @@ const BROWSE_MAX_SCAN_PAGES = 128;
 const BROWSE_MAX_SCAN_CONVERSATIONS = 10000;
 const MESSAGE_SOURCE_PAGE_SIZE = 100;
 const MESSAGE_SOURCE_MAX_SCAN_PAGES = 128;
+const MEDIA_RESOLVE_MAX_SCAN_PAGES = 128;
+const INDEPENDENT_MEDIA_TOKEN = /^alpha-media:\/\/sha256\/([0-9a-f]{64})$/;
 const TELEMETRY_STATE_VERSION = 1;
 const TELEMETRY_STATE_MAX_BYTES = 16 * 1024;
 const TELEMETRY_DEFAULT_CONSENT_VERSION = 'telemetry-v1';
@@ -700,6 +703,53 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       rawLocalId: row.localId, rawServerId: row.serverId, rawLocalType: row.localType, rawSource: identity, contentDecodeStatus: unsupportedContent ? (row.contentDecodeStatus || 'unsupported') : 'decoded',
       ...(display ? { display, displayJson } : {}) };
   }
+  async function resolveIndexedMessageMedia(request) {
+    const account = requestName(request?.accountId, 'MESSAGE_MEDIA_REQUEST_INVALID');
+    await requireAccount(account);
+    if (typeof request.mediaResolveToken !== 'string' || request.mediaResolveToken.length > 4096) throw error('MESSAGE_MEDIA_REQUEST_INVALID');
+    const tokenMatch = INDEPENDENT_MEDIA_TOKEN.exec(request.mediaResolveToken);
+    if (!tokenMatch) throw error('MESSAGE_MEDIA_TOKEN_UNSUPPORTED');
+    if (request.recordOffset !== undefined && (!Number.isInteger(request.recordOffset) || request.recordOffset < 0 || request.recordOffset > 1000000)) throw error('MESSAGE_MEDIA_REQUEST_INVALID');
+    for (const field of ['preferLive', 'fetchRemote', 'allowPending', 'liveVideo']) if (request[field] !== undefined && typeof request[field] !== 'boolean') throw error('MESSAGE_MEDIA_REQUEST_INVALID');
+    if (request.preferLive === true || request.fetchRemote === true || request.allowPending === true || request.liveVideo === true || (request.recordOffset || 0) !== 0) throw error('MESSAGE_MEDIA_OPTION_UNSUPPORTED');
+    if (request.expectedMediaMd5 !== undefined && typeof request.expectedMediaMd5 !== 'string') throw error('MESSAGE_MEDIA_REQUEST_INVALID');
+    if (request.expectedMediaMd5) throw error('MESSAGE_MEDIA_MD5_UNVERIFIED');
+    const expectedSentAt = request.expectedSentAtUnixMs;
+    if (expectedSentAt !== undefined && (typeof expectedSentAt !== 'bigint' || expectedSentAt < 0n)) throw error('MESSAGE_MEDIA_REQUEST_INVALID');
+    const expectedSize = request.expectedSizeBytes;
+    if (expectedSize !== undefined && (typeof expectedSize !== 'bigint' || expectedSize < 0n)) throw error('MESSAGE_MEDIA_REQUEST_INVALID');
+    const expectedConversation = request.expectedConversationId === undefined ? '' : request.expectedConversationId;
+    const expectedMessage = request.expectedMessageId === undefined ? '' : request.expectedMessageId;
+    if (typeof expectedConversation !== 'string' || expectedConversation.length > 1024 || expectedConversation.includes('\0') || typeof expectedMessage !== 'string' || expectedMessage.length > 2048 || expectedMessage.includes('\0')) throw error('MESSAGE_MEDIA_REQUEST_INVALID');
+    const index = independentMediaIndex();
+    if (!index || !Array.isArray(index.entries)) throw error(index?.error || 'MEDIA_INDEX_UNAVAILABLE');
+    const sha256 = tokenMatch[1];
+    const candidates = index.entries.filter(entry => entry.kind === 'image' && entry.sha256 === sha256 && (!entry.accountId || entry.accountId === account) && typeof entry.conversationId === 'string' && entry.conversationId && typeof entry.messageId === 'string' && entry.messageId && (!expectedConversation || entry.conversationId === expectedConversation) && (!expectedMessage || entry.messageId === expectedMessage));
+    if (candidates.length !== 1) throw error(candidates.length ? 'MESSAGE_MEDIA_AMBIGUOUS' : 'MESSAGE_MEDIA_NOT_FOUND');
+    const entry = candidates[0];
+    if (expectedSize !== undefined && expectedSize !== BigInt(entry.sizeBytes)) throw error('MESSAGE_MEDIA_SIZE_MISMATCH');
+    if (expectedSentAt !== undefined && (entry.sentAtUnixMs === undefined || BigInt(entry.sentAtUnixMs) !== expectedSentAt)) throw error('MESSAGE_MEDIA_TIMESTAMP_MISMATCH');
+    // Re-read and hash the explicitly indexed file before exposing a ready
+    // message. This keeps the manifest binding useful after source changes.
+    await readMediaEntry(index, entry, { maxBytes: 64 * 1024 * 1024 });
+    let cursor = '';
+    const visited = new Set();
+    for (let pageNumber = 0; pageNumber < MEDIA_RESOLVE_MAX_SCAN_PAGES; pageNumber += 1) {
+      const page = checkedPage(await callData('messages.list', { conversationId: entry.conversationId, limit: MESSAGE_SOURCE_PAGE_SIZE, cursor, ascending: true }), MESSAGE_SOURCE_PAGE_SIZE);
+      for (const row of page.items) {
+        const message = messageFromRow(row, entry.conversationId);
+        if (message.id !== entry.messageId) continue;
+        const ref = message.refs.find(item => item.kind === 'image' && item.id === entry.id && item.uri === `alpha-media://sha256/${entry.sha256}` && (item.rendition || 'source') === (entry.rendition || 'source'));
+        if (!ref) throw error('MESSAGE_MEDIA_REF_MISMATCH');
+        if (expectedSentAt !== undefined && message.sentAtUnixMs !== expectedSentAt) throw error('MESSAGE_MEDIA_TIMESTAMP_MISMATCH');
+        return { message: { ...message, mediaSizeBytes: BigInt(entry.sizeBytes) } };
+      }
+      if (!page.nextCursor) break;
+      if (visited.has(page.nextCursor)) throw error('MESSAGE_MEDIA_UNAVAILABLE');
+      visited.add(page.nextCursor); cursor = page.nextCursor;
+    }
+    throw error('MESSAGE_MEDIA_NOT_FOUND');
+  }
   function generalRecordFromRow(row) {
     if (!row || !GENERAL_RECORD_TABLES.has(row.tableName) || typeof row.id !== 'string' || row.id.length > 2048 || row.id.includes('\0') || typeof row.eventAtUnixMs !== 'string' || typeof row.actor !== 'string' || typeof row.content !== 'string' || !Array.isArray(row.fields) || row.fields.length > 32) throw error('BRIDGE_GENERAL_RECORD_INVALID');
     const eventAtUnixMs = decimal(row.eventAtUnixMs, true);
@@ -1003,6 +1053,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   let recordExportJobs;
   let chatExportSchedules;
   let aggregateAnalysisJobs;
+  let genericJobs;
 
   async function listAnalysisSessions() {
     const sessions = [];
@@ -1432,6 +1483,9 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         cursor = page.nextCursor;
       }
       throw error('MESSAGE_SOURCE_UNAVAILABLE');
+    },
+    async resolveMessageMedia(request) {
+      return resolveIndexedMessageMedia(request);
     },
     async getApplicationLockStatus() { return { status: lock.status() }; },
     async unlockApplication(request) { return { status: await lock.unlock(request.password) }; },
@@ -2026,6 +2080,15 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       try { return chatExportJobs.cancel(request.jobId); }
       catch (failure) { if (failure?.message !== 'CHAT_EXPORT_JOB_NOT_FOUND') throw failure; return recordExportJobs.cancel(request.jobId); }
     },
+    async getJob(request) {
+      return genericJobs.getJob(request);
+    },
+    async watchJob(request) {
+      return genericJobs.watchJob(request);
+    },
+    async cancelJob(request) {
+      return genericJobs.cancelJob(request);
+    },
     async listChatExportSchedules(request) {
       await requireAccount(request.accountId);
       return chatExportSchedules.listSchedules(request);
@@ -2094,6 +2157,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     watchExport: jobId => chatExportJobs.watch(jobId)
   });
   aggregateAnalysisJobs = createAggregateAnalysisJobs({ runAnalysis: runAggregateAnalysis });
+  genericJobs = createGenericJobs({ chatExportJobs, recordExportJobs });
   return {
     supportedMethods: Object.keys(SUPPORTED),
     async dispatch(request) {

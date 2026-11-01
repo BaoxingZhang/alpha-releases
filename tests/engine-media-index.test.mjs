@@ -82,3 +82,36 @@ test('media index account binding fails closed and leaves the source ref unchang
   const { response } = await readMessage(t, f);
   assert.equal(response.listMessages.items[0].refs[0].uri, '');
 });
+
+test('resolveMessageMedia serves a uniquely bound independent index entry', async t => {
+  const f = await fixture(t);
+  const messageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({ accountId, database: 'message_0.db', table: 'Msg_test', localId: '1' })).digest('hex')}`;
+  const entry = { ...f.entry, messageId, sentAtUnixMs: '1700000000000' };
+  await fs.writeFile(path.join(f.dataDir, 'media-index.v1.json'), JSON.stringify({ version: 1, accountId, entries: [entry] }) + '\n', { mode: 0o600 });
+  const engine = await createEngine({
+    lock: lock(), stateDir: f.stateDir, dataDir: f.dataDir, accountId,
+    bridgePath: '/absolute/synthetic-bridge', bridgeFactory
+  });
+  t.after(() => engine.close());
+  assert.equal((await engine.dispatch({ requestId: 1n, hello: { protocol: { major: 1, minor: 0 } } })).error, undefined);
+  const token = `alpha-media://sha256/${entry.sha256}`;
+  const response = await engine.dispatch({ requestId: 2n, resolveMessageMedia: {
+    accountId, mediaResolveToken: token, expectedConversationId: 'wxid_peer', expectedMessageId: messageId,
+    expectedSentAtUnixMs: 1700000000000n, expectedSizeBytes: BigInt(entry.sizeBytes)
+  } });
+  assert.equal(response.error, undefined, response.error?.code);
+  assert.equal(response.resolveMessageMedia.message.id, messageId);
+  assert.equal(response.resolveMessageMedia.message.mediaSizeBytes, BigInt(entry.sizeBytes));
+  assert.equal(response.resolveMessageMedia.message.refs[0].uri, token);
+});
+
+test('resolveMessageMedia rejects native media1 tokens and unverified expectations', async t => {
+  const f = await fixture(t);
+  const engine = await createEngine({ lock: lock(), stateDir: f.stateDir, dataDir: f.dataDir, accountId, bridgePath: '/absolute/synthetic-bridge', bridgeFactory });
+  t.after(() => engine.close());
+  await engine.dispatch({ requestId: 1n, hello: { protocol: { major: 1, minor: 0 } } });
+  const native = await engine.dispatch({ requestId: 2n, resolveMessageMedia: { accountId, mediaResolveToken: `media1_${'0'.repeat(32)}` } });
+  assert.equal(native.error.code, 'MESSAGE_MEDIA_TOKEN_UNSUPPORTED');
+  const independent = await engine.dispatch({ requestId: 3n, resolveMessageMedia: { accountId, mediaResolveToken: `alpha-media://sha256/${f.entry.sha256}`, expectedMediaMd5: '0'.repeat(32) } });
+  assert.equal(independent.error.code, 'MESSAGE_MEDIA_MD5_UNVERIFIED');
+});

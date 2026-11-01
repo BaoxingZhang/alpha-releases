@@ -72,6 +72,15 @@ test('frame 136 exports partial payment/friend-request/revoke/call candidates wi
   const snapshot = await waitForTerminal(call, started.startRecordExport.jobId);
   assert.equal(snapshot.kind, 'records');
   assert.equal(snapshot.state, 'completed');
+  const generic = await call('getJob', { jobId: started.startRecordExport.jobId });
+  assert.equal(generic.error, undefined, generic.error?.code);
+  assert.equal(generic.getJob.kind, 1);
+  assert.equal(generic.getJob.state, 10);
+  assert.equal(generic.getJob.phase, 8);
+  const genericWatch = await call('watchJob', { jobId: started.startRecordExport.jobId, afterEventSeq: 0n });
+  assert.equal(genericWatch.error, undefined, genericWatch.error?.code);
+  assert.equal(genericWatch.watchJob.done, true);
+  assert.equal(genericWatch.watchJob.events.length, 1);
   assert.equal(snapshot.items.length, 4);
   let paymentId = '';
   for (const item of snapshot.items) {
@@ -132,4 +141,8 @@ test('record export rejects unsupported category/format and protects source path
   const snapshot = await waitForTerminal(call, sourceOutput.startRecordExport.jobId);
   assert.equal(snapshot.state, 'completed_with_errors');
   assert.equal(snapshot.items[0].errorCode, 'EXPORT_DESTINATION_INVALID');
+  const generic = await call('getJob', { jobId: sourceOutput.startRecordExport.jobId });
+  assert.equal(generic.error, undefined, generic.error?.code);
+  assert.equal(generic.getJob.state, 11);
+  assert.equal(generic.getJob.error.code, 'EXPORT_DESTINATION_INVALID');
 });

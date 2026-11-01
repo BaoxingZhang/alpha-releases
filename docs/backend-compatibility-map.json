@@ -16,9 +16,9 @@
     "missing": "在所审查固定commit的数据源/API/服务实现中未找到对应领域能力；保留为全功能目标待实现"
   },
   "counts": {
-    "missing": 92,
-    "compose_or_new": 30,
-    "read_foundation": 6
+    "missing": 89,
+    "compose_or_new": 34,
+    "read_foundation": 5
   },
   "limitations": [
     "全部记录都是静态源码证据；候选编译通过不等于真实微信数据兼容。",
@@ -1178,15 +1178,16 @@
     {
       "request": "getJob",
       "domain": "jobs",
-      "status": "missing",
+      "status": "compose_or_new",
       "evidence": [
         "surface",
-        "http_routes",
-        "export_http"
+        "independent_backend",
+        "tests/chat-export-jobs.test.mjs",
+        "tests/engine-record-export.test.mjs"
       ],
-      "reason": "候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。",
+      "reason": "独立后端将已验证的本地 chat/record export 快照映射为通用 JobSummary/JobEvent；不声称原生 Alpha 通用任务、租约、远程通知或事件日志兼容。",
       "requiredWork": [
-        "新增统一job运行器、任务状态机、取消与重启恢复；保留全功能待实现项。"
+        "取得原生统一 job 运行器的租约、事件持久化和跨进程语义；保留独立映射的兼容边界。"
       ],
       "alpha": {
         "fieldNumber": 26,
@@ -1214,22 +1215,23 @@
           "jobId"
         ]
       },
-      "confidence": "static-source",
+      "confidence": "static-source+independent-test",
       "dropInCompatible": false,
       "runtimeValidated": false
     },
     {
       "request": "watchJob",
       "domain": "jobs",
-      "status": "missing",
+      "status": "compose_or_new",
       "evidence": [
         "surface",
-        "http_routes",
-        "export_http"
+        "independent_backend",
+        "tests/chat-export-jobs.test.mjs",
+        "tests/engine-record-export.test.mjs"
       ],
-      "reason": "候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。",
+      "reason": "独立后端将已验证的本地 chat/record export 快照映射为通用 JobSummary/JobEvent；不声称原生 Alpha 通用任务、租约、远程通知或事件日志兼容。",
       "requiredWork": [
-        "新增统一job运行器、任务状态机、取消与重启恢复；保留全功能待实现项。"
+        "取得原生统一 job 运行器的租约、事件持久化和跨进程语义；保留独立映射的兼容边界。"
       ],
       "alpha": {
         "fieldNumber": 27,
@@ -1258,22 +1260,23 @@
           "afterEventSeq"
         ]
       },
-      "confidence": "static-source",
+      "confidence": "static-source+independent-test",
       "dropInCompatible": false,
       "runtimeValidated": false
     },
     {
       "request": "cancelJob",
       "domain": "jobs",
-      "status": "missing",
+      "status": "compose_or_new",
       "evidence": [
         "surface",
-        "http_routes",
-        "export_http"
+        "independent_backend",
+        "tests/chat-export-jobs.test.mjs",
+        "tests/engine-record-export.test.mjs"
       ],
-      "reason": "候选HTTP输出是同步请求；未见Alpha任务ID、快照、订阅、取消和持久历史服务。",
+      "reason": "独立后端将已验证的本地 chat/record export 快照映射为通用 JobSummary/JobEvent；不声称原生 Alpha 通用任务、租约、远程通知或事件日志兼容。",
       "requiredWork": [
-        "新增统一job运行器、任务状态机、取消与重启恢复；保留全功能待实现项。"
+        "取得原生统一 job 运行器的租约、事件持久化和跨进程语义；保留独立映射的兼容边界。"
       ],
       "alpha": {
         "fieldNumber": 28,
@@ -1302,7 +1305,7 @@
           "reasonCode"
         ]
       },
-      "confidence": "static-source",
+      "confidence": "static-source+independent-test",
       "dropInCompatible": false,
       "runtimeValidated": false
     },
@@ -4451,16 +4454,18 @@
     {
       "request": "resolveMessageMedia",
       "domain": "media",
-      "status": "read_foundation",
+      "status": "compose_or_new",
       "evidence": [
         "media",
         "media_http",
         "image_decode",
-        "message_wrap"
+        "message_wrap",
+        "independent_backend",
+        "tests/engine-media-index.test.mjs"
       ],
-      "reason": "有本地媒体key/path查找和dat解码基础；无Alphaopaque token、proof或账号绑定。",
+      "reason": "独立后端只对调用方显式提供的 media-index 条目提供 alpha-media://sha256/<sha256> 解析；要求唯一账号、会话、消息绑定并重新校验文件和真实消息，不兼容 Alpha media1_ token、MD5、远程补齐或语音/视频。",
       "requiredWork": [
-        "建立受控媒体引用、路径归属、缺失状态与缓存；补各种消息引用映射。"
+        "取得原生 media1_ token、媒体库 schema、proof、远程补齐和其他媒体类型语义；保留独立索引分支的兼容边界。"
       ],
       "alpha": {
         "fieldNumber": 103,
@@ -4499,7 +4504,7 @@
           "liveVideo"
         ]
       },
-      "confidence": "static-source",
+      "confidence": "static-source+independent-test",
       "dropInCompatible": false,
       "runtimeValidated": false
     },

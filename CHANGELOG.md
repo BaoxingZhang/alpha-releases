@@ -7,7 +7,8 @@
 - 保留原包 native runtime 的来源、签名、哈希和许可证边界；原生二进制没有重新编译。
 - 增加构建、隔离 smoke、协议、vendor、维护性和恢复源码包检查。
 - 增加独立、无文件系统副作用的 DAT 图片解码基础模块；仅接受调用方字节和显式 key，尚未接入媒体定位、Alpha token 或 UI。
-- 明确记录 58/128 协议分支已实现，完整功能 parity 尚未达到；详见 [当前验证](docs/independent-validation-current.json) 和 [缺口清单](docs/source-gaps.md)。
+- 增加显式媒体索引写入器、独立 alpha-media URI 的有限媒体解析和通用导出任务视图；两者均有边界文档，不声称原生 token、租约或事件日志兼容。
+- 明确记录 62/128 协议分支已实现，完整功能 parity 尚未达到；详见 [当前验证](docs/independent-validation-current.json) 和 [缺口清单](docs/source-gaps.md)。
 
 ## 后续版本
 

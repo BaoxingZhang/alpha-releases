@@ -1,5 +1,3 @@
-[56361:1101/115651.655840:ERROR:base/process/process_mac.cc:53] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
-[56361:1101/115651.655867:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
 Error occurred in handler for 'alpha:messages:list': Error: APP_LOCK_LOCKED
     at EngineClient.listMessagePage (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63776:31)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
@@ -7,5 +5,5 @@ Error occurred in handler for 'alpha:messages:list': Error: APP_LOCK_LOCKED
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74808:22
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72100:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:2:122837)
-Debugger ending on ws://127.0.0.1:60669/f10c2662-9a08-44a8-9757-6578ad593aed
+Debugger ending on ws://127.0.0.1:58506/1a66bcac-872d-48f6-809b-ecece868284a
 For help, see: https://nodejs.org/learn/getting-started/debugging
