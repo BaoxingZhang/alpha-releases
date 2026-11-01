@@ -3,7 +3,7 @@
 const path = require('node:path');
 const crypto = require('node:crypto');
 
-const FORMATS = new Set(['json', 'markdown', 'txt', 'html']);
+const FORMATS = new Set(['json', 'markdown', 'txt', 'html', 'xlsx']);
 const MAX_CONVERSATIONS = 500;
 const MAX_JOBS = 64;
 const STATE_FILE = 'chat-export-jobs.v1.json';

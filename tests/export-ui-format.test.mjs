@@ -4,11 +4,11 @@ import { chatExportPolicy, independentFormatPreference } from '../src/renderer/a
 
 const formats = ['xlsx', 'html', 'markdown', 'txt', 'json', 'sql'].map(id => ({ id }));
 
-test('old xlsx/media preferences select a usable independent export without altering original settings', () => {
+test('xlsx/media preferences select an independent export without altering original settings', () => {
   const preferences = Object.freeze({ format: 'xlsx', includeMedia: true });
   const independent = chatExportPolicy(preferences, formats, true);
-  assert.deepEqual(independent.formats.map(item => item.id), ['markdown', 'txt', 'json']);
-  assert.equal(independent.format, 'markdown');
+  assert.deepEqual(independent.formats.map(item => item.id), ['xlsx', 'markdown', 'txt', 'json']);
+  assert.equal(independent.format, 'xlsx');
   assert.equal(independent.includeMedia, false);
   assert.equal(chatExportPolicy(preferences, formats, false).format, 'xlsx');
   assert.equal(chatExportPolicy(preferences, formats, false).includeMedia, true);
@@ -18,6 +18,6 @@ test('center and dialog remember an independent selection separately from origin
   const preferences = { format: 'html', independentFormat: independentFormatPreference('json') };
   assert.equal(chatExportPolicy(preferences, formats, true).format, 'json');
   assert.equal(chatExportPolicy(preferences, formats, false).format, 'html');
-  assert.equal(independentFormatPreference('xlsx'), '');
+  assert.equal(independentFormatPreference('xlsx'), 'xlsx');
   assert.equal(chatExportPolicy({ format: 'txt' }, formats, true).format, 'txt');
 });

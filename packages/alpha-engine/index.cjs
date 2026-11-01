@@ -14,7 +14,7 @@ const { inspectExportPath, prepareExportPath, cleanupExportDirectories } = requi
 const { createChatExportJobs } = require('./chat-export-jobs.cjs');
 const { createRecordExportJobs } = require('./records-export-jobs.cjs');
 const { createChatExportSchedules } = require('./chat-export-schedules.cjs');
-const { contactsXlsx, groupMembersXlsx, recordsXlsx } = require('./xlsx-writer.cjs');
+const { contactsXlsx, conversationXlsx, groupMembersXlsx, recordsXlsx } = require('./xlsx-writer.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
@@ -227,6 +227,15 @@ function textExport(meta, items) {
   lines.push('');
   for (const item of items) lines.push(`[${item.sentAt}] ${item.senderId || '(unknown sender)'} <${item.kind}> ${item.text}`, '');
   return lines.join('\n');
+}
+function conversationXlsxOutput(items) {
+  const headers = ['id', 'accountId', 'conversationId', 'localId', 'serverId', 'localType', 'sentAtUnixMs', 'sentAt', 'senderId', 'direction', 'kind', 'text', 'contentDecodeStatus', 'sourceDatabase', 'sourceTable', 'sourceLocalId', 'refs', 'display'];
+  return conversationXlsx(headers, items.map(item => [
+    item.id, item.accountId, item.conversationId, item.localId, item.serverId, item.localType,
+    item.sentAtUnixMs, item.sentAt, item.senderId, item.direction, item.kind, item.text,
+    item.contentDecodeStatus, item.source.database, item.source.table, item.source.localId,
+    JSON.stringify(item.refs || []), JSON.stringify(item.display || null)
+  ]));
 }
 function htmlExport(meta, items) {
   const title = `Alpha conversation export · ${meta.conversationId}`;
@@ -976,9 +985,10 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       if (request.includeMedia !== false && request.includeMedia !== undefined) throw error('EXPORT_REQUEST_INVALID');
       const formatInput = requestedFormat;
       const format = formatInput === 'md' ? 'markdown' : formatInput;
-      if (!['json', 'markdown', 'txt', 'html'].includes(format)) throw error('EXPORT_FORMAT_UNSUPPORTED');
+      if (!['json', 'markdown', 'txt', 'html', 'xlsx'].includes(format)) throw error('EXPORT_FORMAT_UNSUPPORTED');
       const excluded = [configuredSourcePath, dataDir, stateDir];
       const destinationPath = inspectExportPath(request.destinationPath, excluded, true).destination;
+      if (format === 'xlsx' && path.extname(destinationPath).toLowerCase() !== '.xlsx') throw error('EXPORT_REQUEST_INVALID');
       if (request.page?.cursor?.length) throw error('EXPORT_PAGE_UNSUPPORTED');
       const start = requestTime(request.startTimeUnixMs, 'EXPORT_REQUEST_INVALID', true);
       const end = requestTime(request.endTimeUnixMs, 'EXPORT_REQUEST_INVALID', true);
@@ -1022,7 +1032,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       }
       guard();
       const meta = { accountId, conversationId, ...(start !== undefined ? { startTimeUnixMs: start.toString() } : {}), ...(end !== undefined ? { endTimeUnixMs: end.toString() } : {}) };
-      const output = format === 'json' ? JSON.stringify({ version: 1, format, ...meta, itemCount: items.length, messages: items }) + '\n' : format === 'markdown' ? markdownExport(meta, items) : format === 'html' ? htmlExport(meta, items) : textExport(meta, items);
+      const output = format === 'json' ? JSON.stringify({ version: 1, format, ...meta, itemCount: items.length, messages: items }) + '\n' : format === 'markdown' ? markdownExport(meta, items) : format === 'html' ? htmlExport(meta, items) : format === 'xlsx' ? conversationXlsxOutput(items) : textExport(meta, items);
       if (Buffer.byteLength(output, 'utf8') > MAX_EXPORT_BYTES) throw error('EXPORT_LIMIT_EXCEEDED');
       if (Date.now() - startedAt > MAX_EXPORT_RUNTIME_MS) throw error('EXPORT_TIMEOUT');
       const temporary = path.join(path.dirname(destinationPath), `.alpha-export-${crypto.randomUUID()}.tmp`);

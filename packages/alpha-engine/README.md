@@ -2,7 +2,7 @@
 
 这是自有后端的真实适配层。输入为恢复的 `EngineClientFrame`，输出为 `EngineServerFrame`，均使用 4 字节大端长度前缀。数据库读取委托同项目的 Go `alpha-data-bridge`，应用锁委托 `alpha-security`；不加载 Electron、恢复后的整份 main 或原闭源引擎。
 
-当前实现 128 个请求分支中的 46 个，其余 82 个明确返回 `UNIMPLEMENTED`。已接入基础聊天、搜索、日期导航、群成员读取、群成员 CSV/JSON/HTML/XLSX 只读导出、有限联系人档案（含基于 RoomData 的共同群）、联系人目录的 friend/group 分类、联系人 CSV/JSON/VCF/HTML/XLSX 只读导出、文本/JSON/Markdown/HTML 导出、消息中的声明性媒体引用、会话媒体/文件/链接元数据浏览、账号图片/视频元数据浏览、独立 source token 的已解码文本读取、只读聊天导出任务状态、独立 stateDir 的聊天导出计划 CRUD/CAS、显式 run-now 运行/准备记录和重试、显式数据源变化监控目标、年度统计基础报告、会话关系基础统计、静态高级组件不可用状态、手动解密与密码锁。`listGeneral` 支持经真实 `chat_room.ext_buffer` 解析的 `__alpha_group_members`，以及从消息 XML 提取并明确标记为 `partial/candidate` 的 payments/revokes/calls；friend requests、moments interactions 和 searches 仍保持不可用。`startRecordExport` 已接入独立内存任务管理器，接受 payments/revokes/calls、xlsx/csv/json，并把每类写成独立文件；输出保留 partial/candidate/source 字段，其他分类和未知格式明确拒绝，证据见 [`docs/general-records-schema-evidence.md`](../../docs/general-records-schema-evidence.md)。`http-server.cjs` 可选地把其中的已验证 DTO、四种会话文件导出和媒体 JSON/CSV 元数据导出暴露给本机 HTTP/MCP，详见 `docs/http-readonly-adapter-recovery.md`。媒体元数据导出只保留 metadata-only DTO，不读取本地媒体；媒体文件解析/播放、原 Alpha `media1_`/raw/XML source、朋友圈、后台自动定时触发、完整分析报表、AI、自动获取密钥和写入等功能仍需逐项实现，不把页面能打开视作功能完成。完整范围仍见 `docs/backend-compatibility-map.json`。
+当前实现 128 个请求分支中的 46 个，其余 82 个明确返回 `UNIMPLEMENTED`。已接入基础聊天、搜索、日期导航、群成员读取、群成员 CSV/JSON/HTML/XLSX 只读导出、有限联系人档案（含基于 RoomData 的共同群）、联系人目录的 friend/group 分类、联系人 CSV/JSON/VCF/HTML/XLSX 只读导出、文本/JSON/Markdown/HTML/TXT/XLSX 导出、消息中的声明性媒体引用、会话媒体/文件/链接元数据浏览、账号图片/视频元数据浏览、独立 source token 的已解码文本读取、只读聊天导出任务状态、独立 stateDir 的聊天导出计划 CRUD/CAS、显式 run-now 运行/准备记录和重试、显式数据源变化监控目标、年度统计基础报告、会话关系基础统计、静态高级组件不可用状态、手动解密与密码锁。`listGeneral` 支持经真实 `chat_room.ext_buffer` 解析的 `__alpha_group_members`，以及从消息 XML 提取并明确标记为 `partial/candidate` 的 payments/revokes/calls；friend requests、moments interactions 和 searches 仍保持不可用。`startRecordExport` 已接入独立内存任务管理器，接受 payments/revokes/calls、xlsx/csv/json，并把每类写成独立文件；输出保留 partial/candidate/source 字段，其他分类和未知格式明确拒绝，证据见 [`docs/general-records-schema-evidence.md`](../../docs/general-records-schema-evidence.md)。`http-server.cjs` 可选地把其中的已验证 DTO、五种会话文件导出和媒体 JSON/CSV 元数据导出暴露给本机 HTTP/MCP，详见 `docs/http-readonly-adapter-recovery.md`。媒体元数据导出只保留 metadata-only DTO，不读取本地媒体；媒体文件解析/播放、原 Alpha `media1_`/raw/XML source、朋友圈、后台自动定时触发、完整分析报表、AI、自动获取密钥和写入等功能仍需逐项实现，不把页面能打开视作功能完成。完整范围仍见 `docs/backend-compatibility-map.json`。
 
 ## 启动与模块边界
 
@@ -46,7 +46,7 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | getMessageSource | 107 | 仅接受本引擎生成的 `independent1_` source token，最多重新扫描 128 个 100 条消息页来定位同一账号/库/表/完整 localId 的已验证消息，返回其已解码文本（`format=text`）；原 Alpha `media1_` token、raw/XML 和媒体文件读取明确不可用 |
 | browseConversationMessages | 137 | 真实 `messages.list` 的降序元数据筛选；支持 `media`、`file`、`link`，保留消息 refs/display；`music`、`mini-program`、`transaction` 明确返回不可用 |
 | browseAccountMedia | 138 | 直接读取指定会话，或按真实 session index 扫描账号范围的 `media`、`image`、`video` 元数据；支持分页和毫秒范围，不读媒体文件、不生成 token、不播放 |
-| exportConversation | 16 | 只读 JSON/Markdown/HTML/TXT 导出，支持精确毫秒范围和安全新文件发布；HTML 是安全转义的静态页面，不含媒体 |
+| exportConversation | 16 | 只读 JSON/Markdown/HTML/TXT/XLSX 导出，支持精确毫秒范围和安全新文件发布；HTML 是安全转义的静态页面，XLSX 是固定列的单工作表，不含媒体 |
 | searchMessages | 17 | 全局/会话搜索、Unicode 小写字面匹配、发送者/闭区间时间筛选、按会话分组及真实数量 |
 | discoverAccounts | 29 | 仅接受与已配置源路径完全一致的 sourceLocation |
 | importDatabaseKey | 30 | 仅对显式加密源接收一次性 32 字节 key；导入成功前保持 waiting_for_key |
@@ -61,7 +61,7 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | getDataRevision | 105 | 由真实已验证 snapshotId 导出的 16 位十六进制 revision |
 | getDataWatchTargets | 106 | 仅返回调用者显式选择的离线数据源根目录，供主进程通知 watcher 使用；不扫描用户目录，源改变或路径失效时失败关闭 |
 | getChatExportStats | 120 | 1–100 个会话的真实消息数量、类型计数和首末时间；不表示导出功能已实现 |
-| getChatExportCapabilities | 121 | 声明独立任务仅支持无媒体 JSON/Markdown/HTML/TXT、最多 500 个会话；消息类型筛选、附件、头像、XLSX 和语音转写保持不可用 |
+| getChatExportCapabilities | 121 | 声明独立任务最多支持 500 个会话；独立导出策略允许无媒体 JSON/Markdown/HTML/TXT/XLSX，XLSX 使用固定已验证消息列；消息类型筛选、附件、头像、自定义 XLSX 列和语音转写保持不可用 |
 | startChatExport | 122 | 为已验证会话创建只读导出任务；任务逐会话调用 `exportConversation`，输出目录和文件发布仍受安全路径检查，终态任务与计数原子保存到独立 stateDir；重启将未完成任务标记为 `CHAT_EXPORT_PROCESS_RESTARTED` |
 | listChatExports | 123 | 列出指定账号的已持久化导出任务历史与当前任务快照；未完成任务在重启后显式标记失败，不伪造续跑 |
 | watchChatExport | 124 | 读取当前内存任务快照，包含会话状态、消息计数、输出路径和错误码 |
@@ -106,4 +106,4 @@ manifest 文件名保持 `snapshots/manifest.v1.json`，内容版本为 2，严�
 node --test tests/engine.test.mjs tests/engine-import.test.mjs tests/engine-search.test.mjs tests/independent-boundary-engine.test.mjs tests/import-security-boundary.test.mjs
 ```
 
-测试只使用合成普通/加密/搜索 SQLite 数据，主路径使用真实 Node stdio → protobuf → Go importer / Go bridge。覆盖分片/粘包、协议编号、82 个未实现分支、64 位 ID、分页、独立 source token 文本读取、联系人档案存在性、通讯录 directory 分类、群成员 RoomData、群成员 CSV/JSON/HTML/XLSX 导出、联系人 CSV/JSON/VCF/HTML 导出、JSON/Markdown/HTML/TXT 导出、payments/revokes/calls 的 xlsx/csv/json 候选记录导出、内存导出任务状态、持久计划 CAS/run-now/历史记录、显式数据源 watcher 目标、静态高级组件状态、年度及会话分析统计、全局与会话搜索、分组/筛选/覆盖、日期与定位、声明性媒体 refs DTO 校验、会话/账号媒体元数据浏览、锁/重启、真实加密源导入、错误密钥、manifest 越界/篡改、导入中状态查询/锁定/EOF、提交时锁定、超时和源改变。小脚本仅用于故障注入，不作为正常导入或数据实现。
+测试只使用合成普通/加密/搜索 SQLite 数据，主路径使用真实 Node stdio → protobuf → Go importer / Go bridge。覆盖分片/粘包、协议编号、82 个未实现分支、64 位 ID、分页、独立 source token 文本读取、联系人档案存在性、通讯录 directory 分类、群成员 RoomData、群成员 CSV/JSON/HTML/XLSX 导出、联系人 CSV/JSON/VCF/HTML/XLSX 导出、JSON/Markdown/HTML/TXT/XLSX 导出、payments/revokes/calls 的 xlsx/csv/json 候选记录导出、内存导出任务状态、持久计划 CAS/run-now/历史记录、显式数据源 watcher 目标、静态高级组件状态、年度及会话分析统计、全局与会话搜索、分组/筛选/覆盖、日期与定位、声明性媒体 refs DTO 校验、会话/账号媒体元数据浏览、锁/重启、真实加密源导入、错误密钥、manifest 越界/篡改、导入中状态查询/锁定/EOF、提交时锁定、超时和源改变。小脚本仅用于故障注入，不作为正常导入或数据实现。

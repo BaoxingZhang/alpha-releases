@@ -99,3 +99,22 @@ test('chat export jobs can publish static HTML conversation files', async t => {
   assert.match(exported, /Content-Security-Policy/);
   assert.match(exported, /压缩维护 needle zstd 中文/);
 });
+
+test('chat export jobs can publish XLSX conversation files', async t => {
+  const f = await setup(t);
+  const outputDirectory = path.join(f.directory, 'xlsx-jobs');
+  const started = ok(await f.call('startChatExport', {
+    conversationIds: [f.conversationId], format: 'xlsx', outputDirectory, voiceTranscripts: false,
+  }), 'startChatExport');
+  let snapshot;
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    snapshot = ok(await f.call('watchChatExport', { jobId: started.jobId }), 'watchChatExport');
+    if (['completed', 'completed_with_errors', 'failed', 'canceled'].includes(snapshot.state)) break;
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+  assert.equal(snapshot.state, 'completed');
+  assert.equal(snapshot.items[0].state, 'completed');
+  const exported = await fs.readFile(snapshot.items[0].path);
+  assert.equal(exported.subarray(0, 4).toString('hex'), '504b0304');
+  assert.ok(exported.includes(Buffer.from('wxid_alpha')));
+});

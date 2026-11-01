@@ -1,6 +1,6 @@
 {
   "recordedAt": "2026-11-01",
-  "scope": "Current independent recovery status after contact XLSX export, export, partial general records, analysis, media metadata, persistent chat jobs, schedule plan and HTTP/MCP additions; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, persistent chat jobs, schedule plan and HTTP/MCP additions; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
     "implementedRequestBranches": 46,
@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 153,
+      "passed": 155,
       "failed": 0
     },
     "build": {
@@ -50,7 +50,8 @@
         "json",
         "markdown",
         "html",
-        "txt"
+        "txt",
+        "xlsx"
       ],
       "mediaMetadataExportFormats": [
         "media-json",
@@ -140,7 +141,7 @@
       "nativeRecompiled": false,
       "projectSigned": false,
       "artifactCount": 256,
-      "artifactDigest": "ae9bb7d985c025f1b5d92df665027a94e088cb6f016d410a35224f25a35d1269"
+      "artifactDigest": "f28032e7ceea882365d61c0f5b9685769c4179343546ece9fb7ffb8dfd5399e1"
     }
   },
   "featureBoundary": {

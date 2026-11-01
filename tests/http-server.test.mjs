@@ -112,8 +112,8 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   result = await request(base, '/api/v1/exports', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 405);
   result = await request(base, '/api/v1/exports', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', conversation_id: 'wxid_peer', format: 'xlsx', destination_path: '/tmp/alpha-http-export.xlsx' }) });
-  assert.equal(result.response.status, 400);
-  assert.equal(result.body.error.code, 'HTTP_API_FORMAT_UNSUPPORTED');
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.format, 'xlsx');
   result = await request(base, '/api/v1/media-metadata', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', format: 'media-json', destination_path: '/tmp/alpha-http-media.json' }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.destination_path, '/tmp/alpha-http-media.json');

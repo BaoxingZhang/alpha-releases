@@ -54,6 +54,18 @@ test('offline exporter advertises field 16 and preserves exact identities in JSO
   assert.equal(document.messages[1].source.localId, document.messages[1].localId);
 });
 
+test('offline exporter writes a bounded XLSX message sheet with verified identities', async t => {
+  const f = await setup(t);
+  const destinationPath = path.join(f.directory, 'export.xlsx');
+  const result = ok(await f.call('exportConversation', { conversationId: f.conversationId, format: 'xlsx', destinationPath }), 'exportConversation');
+  assert.equal(result.itemCount, 6);
+  const output = await fs.readFile(destinationPath);
+  assert.equal(output.subarray(0, 4).toString('hex'), '504b0304');
+  assert.ok(output.includes(Buffer.from('wxid_alpha')));
+  assert.ok(output.includes(Buffer.from('same sequence')));
+  assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'xlsx', destinationPath: path.join(f.directory, 'wrong.json') })).error.code, 'EXPORT_REQUEST_INVALID');
+});
+
 test('markdown and txt exports apply exact inclusive millisecond bounds', async t => {
   const f = await setup(t);
   const markdownPath = path.join(f.directory, 'export.md');
@@ -96,7 +108,8 @@ test('exporter rejects media, existing destinations, symlink destinations and in
   await fs.symlink(destinationPath, symlink);
   assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath: symlink })).error.code, 'EXPORT_DESTINATION_INVALID');
   assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath: path.join(f.directory, 'cursor.json'), page: { cursor: Buffer.from('cursor') } })).error.code, 'EXPORT_PAGE_UNSUPPORTED');
-  assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'xlsx', destinationPath: path.join(f.directory, 'unknown.xlsx') })).error.code, 'EXPORT_FORMAT_UNSUPPORTED');
+  assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'chatlab-json', destinationPath: path.join(f.directory, 'unknown.json') })).error.code, 'EXPORT_FORMAT_UNSUPPORTED');
+  assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'xlsx', destinationPath: null })).error.code, 'EXPORT_DESTINATION_INVALID');
   assert.equal((await f.call('exportConversation', { conversationId: f.conversationId, format: 'json', destinationPath: path.join(f.directory, 'data', 'inside.json') })).error.code, 'EXPORT_DESTINATION_INVALID');
   assert.equal(await fs.readFile(destinationPath, 'utf8'), 'keep');
   assert.deepEqual((await fs.readdir(f.directory)).filter(name => name.startsWith('.alpha-export-')), []);

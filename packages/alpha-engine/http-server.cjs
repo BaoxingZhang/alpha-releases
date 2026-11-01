@@ -136,7 +136,7 @@ function toolDefinitions() {
     { name: 'wechat.chat.get_message_anchor', description: '读取会话第一条消息或指定日期的第一条消息', inputSchema: { type: 'object', required: ['username', 'kind'], properties: { account_id: string, username: string, kind: { type: 'string', enum: ['first', 'day'] }, date: { type: 'string' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.get_daily_message_counts', description: '读取指定会话某月的每日消息数', inputSchema: { type: 'object', required: ['username', 'month'], properties: { account_id: string, username: string, month: { type: 'string' }, utc_offset_minutes: { type: 'integer', minimum: -720, maximum: 840 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.get_message_raw', description: '读取一条已验证消息的原始 DTO 字段（不含数据库密钥和未验证 XML）', inputSchema: { type: 'object', required: ['username'], properties: { account_id: string, username: string, message_id: string, server_id: string, local_id: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
-    { name: 'wechat.chat.export_conversation', description: '将已验证会话导出到本机新文件', inputSchema: { type: 'object', required: ['username', 'format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['json', 'markdown', 'html', 'txt'] }, destination_path: string, include_media: { type: 'boolean', const: false }, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'wechat.chat.export_conversation', description: '将已验证会话导出到本机新文件', inputSchema: { type: 'object', required: ['username', 'format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['json', 'markdown', 'html', 'txt', 'xlsx'] }, destination_path: string, include_media: { type: 'boolean', const: false }, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_media_metadata', description: '将已验证媒体消息的元数据导出到本机新文件；不读取、解密或播放媒体文件', inputSchema: { type: 'object', required: ['format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['media-json', 'media-csv'] }, destination_path: string, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha.messages.search_page', description: '读取独立后端的跨会话搜索页', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, username: string, sender_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } }
   ];
@@ -190,7 +190,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
   }
   async function route(pathname, params, method = 'GET') {
     if (pathname === '/api/v1/accounts') return snakeKeys(await call('listAccounts'));
-    if (pathname === '/api/v1/exports/formats') return { formats: ['json', 'markdown', 'html', 'txt', 'media-json', 'media-csv', 'group-members-csv', 'group-members-json', 'group-members-html', 'group-members-xlsx'] };
+    if (pathname === '/api/v1/exports/formats') return { formats: ['json', 'markdown', 'html', 'txt', 'xlsx', 'media-json', 'media-csv', 'group-members-csv', 'group-members-json', 'group-members-html', 'group-members-xlsx'] };
     if (pathname === '/api/v1/exports') {
       if (method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
       const account = await selectedAccount(params);
@@ -200,7 +200,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       if (!destination) throw new HttpAdapterError('HTTP_API_DESTINATION_REQUIRED', 400);
       const format = text(params.format, 32, 'HTTP_API_FORMAT_INVALID');
       if (!format) throw new HttpAdapterError('HTTP_API_FORMAT_REQUIRED', 400);
-      if (!['json', 'md', 'markdown', 'html', 'txt'].includes(format.toLowerCase())) throw new HttpAdapterError('HTTP_API_FORMAT_UNSUPPORTED', 400);
+      if (!['json', 'md', 'markdown', 'html', 'txt', 'xlsx'].includes(format.toLowerCase())) throw new HttpAdapterError('HTTP_API_FORMAT_UNSUPPORTED', 400);
       const includeMedia = boolean(params.include_media ?? params.includeMedia, 'HTTP_API_INCLUDE_MEDIA_INVALID');
       const start = int64(params.start_time_unix_ms ?? params.startTimeUnixMs, 'HTTP_API_TIME_INVALID');
       const end = int64(params.end_time_unix_ms ?? params.endTimeUnixMs, 'HTTP_API_TIME_INVALID');

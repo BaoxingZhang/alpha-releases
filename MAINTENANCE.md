@@ -27,8 +27,8 @@
 | 图片、视频、语音、实况照片 | UI、缓存/协议部分 JS、FFmpeg；独立后端可读取消息中的真实 refs 与媒体类型元数据 | 原生媒体读取、解密、SILK、WXGF、附件定位 | 正确解码，缺失/损坏有明确状态，不越界取文件；当前仅元数据，不能读取、解密或播放本地媒体 |
 | 媒体墙与图片查看器 | UI、分页及窗口逻辑；独立 `browseConversationMessages`/`browseAccountMedia` 已支持真实消息的 media/file/link 与 media/image/video 元数据筛选、时间范围和分页，并可通过 `window.alpha.messages.exportMediaMetadata` 导出 metadata-only JSON/CSV | 媒体索引与服务实现、文件路径/下载/token | 全账号扫描基于可发现 session index；导出明确标记 `metadataOnly=true`、`mediaReady=false`；本地文件读取、解密、缩略图、原图和播放仍未实现 |
 | 语音转文字 | UI、任务接口、模型目录 | 运行引擎、模型文件、取消与缓存 | 有模型时真实产出，无模型时明确不可用 |
-| 聊天/联系人/资料导出 | UI、部分导出协调 JS、协议；独立后端已支持 JSON/Markdown/HTML/TXT 单次导出和内存多会话任务状态/取消 | Excel、ChatLab、SQL、WeClone、附件打包、持久任务和完整进度恢复 | 已实现格式文件有效、条数一致；完整格式与任务生命周期仍需补齐 |
-| 定时导出及任务历史 | 调度 UI、IPC、独立 stateDir 计划与 bounded scheduler | Alpha 完整调度冲突/增量语义、后台任务跨进程租约 | 当前独立 runner 仅支持无媒体 JSON/Markdown/HTML/TXT；重启最多补一条到期 run，失败可追踪并手工重试 |
+| 聊天/联系人/资料导出 | UI、部分导出协调 JS、协议；独立后端已支持 JSON/Markdown/HTML/TXT/XLSX 单次导出和独立 stateDir 多会话任务状态/取消及终态历史 | ChatLab、SQL、WeClone、附件打包、完整格式语义和进程级恢复 | 已实现格式文件有效、条数一致；完整格式与任务生命周期仍需补齐 |
+| 定时导出及任务历史 | 调度 UI、IPC、独立 stateDir 计划与 bounded scheduler | Alpha 完整调度冲突/增量语义、后台任务跨进程租约 | 当前独立 runner 支持单一无媒体 JSON/Markdown/HTML/TXT/XLSX；XLSX 不支持自定义列；重启最多补一条到期 run，失败可追踪并手工重试 |
 | 数据变化监控 | UI、IPC、协议；独立后端字段 106 返回显式离线数据源根目录并由主进程 watcher 使用 | 在线微信变化、自动数据发现、切号/重启后的实时监控语义 | 只监控授权且显式选择的源，源失效时停止并报告错误 |
 | 统计、足迹、年度/双人报告 | UI、图表/报告组件、协议；独立后端已支持基于可发现会话和消息的年度基础聚合及指定会话关系基础统计 | 完整统计语义、足迹、回复速度、口头禅、朋友圈互动、双人报告和图片导出 | 合成样本的年度/会话基础计数正确，并明确报告覆盖边界 |
 | 朋友圈浏览、日历、导出 | UI、IPC、协议 | SNS 读取、媒体与互动解析 | 时间线分页、筛选、媒体、导出一致 |
