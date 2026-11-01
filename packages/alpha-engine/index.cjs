@@ -14,7 +14,7 @@ const { inspectExportPath, prepareExportPath, cleanupExportDirectories } = requi
 const { createChatExportJobs } = require('./chat-export-jobs.cjs');
 const { createRecordExportJobs } = require('./records-export-jobs.cjs');
 const { createChatExportSchedules } = require('./chat-export-schedules.cjs');
-const { groupMembersXlsx, recordsXlsx } = require('./xlsx-writer.cjs');
+const { contactsXlsx, groupMembersXlsx, recordsXlsx } = require('./xlsx-writer.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
@@ -76,7 +76,7 @@ const MEDIA_METADATA_EXPORT_FORMATS = new Set(['media-json', 'media-csv']);
 const EXPORT_PAGE_SIZE = 100;
 const CONTACT_EXPORT_MAX_ITEMS = 100000;
 const CONTACT_EXPORT_MAX_BYTES = 64 * 1024 * 1024;
-const CONTACT_EXPORT_FORMATS = new Set(['csv', 'json', 'vcf', 'html']);
+const CONTACT_EXPORT_FORMATS = new Set(['csv', 'json', 'vcf', 'html', 'xlsx']);
 const GROUP_MEMBER_EXPORT_FORMATS = new Set(['csv', 'json', 'html', 'xlsx']);
 const CONTACT_EXPORT_CATEGORIES = new Set(['friend', 'group']);
 const CONTACT_EXPORT_ALL_CATEGORIES = new Set(['friend', 'group', 'enterprise_friend', 'enterprise_group', 'official', 'service', 'former_friend', 'blocked']);
@@ -332,6 +332,10 @@ function contactExportOutput(format, meta, items) {
     'END:VCARD'
   ].filter(Boolean).join('\r\n')).join('\r\n') + (items.length ? '\r\n' : '');
   if (format === 'html') return `<!doctype html><meta charset="utf-8"><title>Alpha 通讯录</title><table><thead><tr><th>用户名</th><th>别名</th><th>备注</th><th>昵称</th><th>类型</th><th>分类</th></tr></thead><tbody>${items.map(item => `<tr><td>${htmlEscape(item.username)}</td><td>${htmlEscape(item.alias)}</td><td>${htmlEscape(item.remark)}</td><td>${htmlEscape(item.nickname)}</td><td>${htmlEscape(item.localType)}</td><td>${htmlEscape(item.category)}</td></tr>`).join('')}</tbody></table>\n`;
+  if (format === 'xlsx') {
+    const headers = ['username', 'alias', 'remark', 'nickname', 'localType', 'category'];
+    return contactsXlsx(headers, items.map(item => headers.map(header => item[header])));
+  }
   throw error('EXPORT_FORMAT_UNSUPPORTED');
 }
 function groupMemberExportText(value, maximum = 4096) {

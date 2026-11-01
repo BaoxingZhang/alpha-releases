@@ -1,6 +1,6 @@
 # Alpha offline data bridge
 
-这是自有 Go 读取模块，不依赖 Alpha 原厂 engine/guard，也不导入 Chatlog 的 internal 包。当前支持用户显式指定的、已经解密的离线微信 v4 SQLite 副本：账号信息、联系人、会话、分页消息、全文搜索、消息定位、日期计数与消息类型统计。Node 引擎的媒体浏览复用 `sessions.list`/`messages.list` 做真实元数据筛选；bridge 本身不建立媒体索引，也不读取媒体文件。这是完整 Alpha 后端的第一批数据依赖，不代表完整功能已经恢复。
+这是自有 Go 读取模块，不依赖 Alpha 原厂 engine/guard，也不导入 Chatlog 的 internal 包。当前支持用户显式指定的、已经解密的离线微信 v4 SQLite 副本：账号信息、联系人、会话、分页消息、全文搜索、消息定位、日期计数与消息类型统计。Node 引擎的媒体浏览复用 `sessions.list`/`messages.list` 做真实元数据筛选；bridge 本身不建立媒体索引，也不读取媒体文件。这是完整 Alpha 后端的第一批数据依赖，不代表完整功能已经恢复。v4 候选媒体库的表名、字段与路径线索见 [`docs/media-schema-evidence.md`](../../docs/media-schema-evidence.md)；本 bridge 目前不会打开这些媒体库。
 
 源码的 schema 参考固定 [Chatlog v4 数据源](https://github.com/imldy/chatlog/blob/a7162bca9454fa43b5950a2414670983fe180e56/internal/wechatdb/datasource/v4/datasource.go)，查询、验证、协议和分页代码为本项目实现。固定 Go module 依赖为 `github.com/mattn/go-sqlite3 v1.14.32` 与 `github.com/klauspost/compress v1.18.0`（有界 zstd 解码）；使用已校验的 go.sum，不更新到 latest。源码和许可证保留在项目内依赖缓存及 [已有依赖许可索引](../../docs/chatlog-dependency-licenses.json)，另保留 [zstd 依赖许可证](licenses/klauspost-compress-LICENSE)。没有复制上游实现或改动 `vendor/chatlog`。
 

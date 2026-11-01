@@ -155,11 +155,11 @@ try {
   await page.locator('.contact-export-trigger').click();
   const exportPopup = await exportPopupPromise;
   await exportPopup.locator('.contact-export-dialog').waitFor({ timeout: 15000 });
-  assert.equal(await exportPopup.getByRole('radio', { name: /Excel 表格/ }).isDisabled(), true);
+  assert.equal(await exportPopup.getByRole('radio', { name: /Excel 表格/ }).isDisabled(), false);
   assert.equal(await exportPopup.getByRole('checkbox', { name: /企微好友/ }).isDisabled(), true);
   assert.equal(await exportPopup.getByRole('checkbox', { name: /导出本机已缓存的头像|独立离线导出暂不包含头像/ }).isDisabled(), true);
   await exportPopup.locator('.contact-export-dialog').getByRole('button', { name: '取消', exact: true }).click();
-  report.checks.independentContactExportGated = true;
+  report.checks.independentContactExportCapabilities = true;
   await page.locator('.contacts-row').filter({ hasText: '合成联系人甲' }).click({ timeout: 15000 });
   await page.locator('.contact-profile[aria-label="联系人 合成联系人甲"]').waitFor({ timeout: 15000 });
   await page.getByText('资料', { exact: true }).waitFor({ timeout: 15000 });

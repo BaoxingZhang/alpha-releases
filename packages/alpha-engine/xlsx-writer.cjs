@@ -70,6 +70,10 @@ function groupMembersXlsx(headers, rows) {
   return recordsXlsx(headers, rows, 'Members', 'GROUP_MEMBER_EXPORT_TOO_LARGE', 5000);
 }
 
+function contactsXlsx(headers, rows) {
+  return recordsXlsx(headers, rows, 'Contacts', 'CONTACT_EXPORT_TOO_LARGE', 100000);
+}
+
 function recordsXlsx(headers, rows, sheetName = 'Records', tooLargeCode = 'RECORD_EXPORT_TOO_LARGE', maxRows = 20000) {
   if (!Array.isArray(headers) || headers.length < 1 || headers.length > 256 || headers.some(header => typeof header !== 'string' || !header || header.length > 256) || !Array.isArray(rows) || rows.length > maxRows || rows.some(row => !Array.isArray(row) || row.length !== headers.length)) throw new Error(tooLargeCode);
   const safeSheetName = String(sheetName).replace(/[\\/*?:\[\]]/g, '_').slice(0, 31) || 'Records';
@@ -87,4 +91,4 @@ function recordsXlsx(headers, rows, sheetName = 'Records', tooLargeCode = 'RECOR
   return zipStore(entries, tooLargeCode);
 }
 
-module.exports = { groupMembersXlsx, recordsXlsx, MAX_BYTES };
+module.exports = { contactsXlsx, groupMembersXlsx, recordsXlsx, MAX_BYTES };

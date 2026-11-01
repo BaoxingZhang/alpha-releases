@@ -51,7 +51,7 @@ friend/group 页面可以使用这层投影，其他分类保持明确不可用�
 分页与计数，并带齐协议要求的八类 count；六个未验证类别的零值只是响应占位。目录请求包含
 其他分类时返回 `CONTACT_DIRECTORY_CATEGORY_UNSUPPORTED`，同一 username 出现多行时返回
 `CONTACT_DIRECTORY_AMBIGUOUS`。基础联系人分页、批量 lookup、有限 profile 和只读
-CSV/JSON/VCF/HTML 导出继续使用真实五列；导出层与目录层都不会把未知类型归入其他分类。
+CSV/JSON/VCF/HTML/XLSX 导出继续使用真实五列（XLSX 使用同样的列集）；导出层与目录层都不会把未知类型归入其他分类。
 
 要实现 directory，至少需要一份可追溯的 Alpha 数据组件 schema/源码或合成 fixture，明确
 证明：

@@ -236,7 +236,7 @@ test('read-only contact export uses verified contact fields and rejects unsuppor
     utcOffsetMinutes: 0
   });
   assert.equal(avatars.error.code, 'CONTACT_EXPORT_AVATARS_UNSUPPORTED');
-  const xlsx = await c.send('exportContacts', {
+  const xlsx = ok(await c.send('exportContacts', {
     accountId,
     categories: ['friend'],
     query: '',
@@ -245,8 +245,11 @@ test('read-only contact export uses verified contact fields and rejects unsuppor
     includeAvatars: false,
     destinationPath: path.join(f.directory, 'contacts.xlsx'),
     utcOffsetMinutes: 0
-  });
-  assert.equal(xlsx.error.code, 'EXPORT_FORMAT_UNSUPPORTED');
+  }), 'exportContacts');
+  assert.equal(xlsx.itemCount, 3);
+  const xlsxBytes = await fs.readFile(path.join(f.directory, 'contacts.xlsx'));
+  assert.equal(xlsxBytes.subarray(0, 4).toString('hex'), '504b0304');
+  assert.ok(xlsxBytes.includes(Buffer.from('wxid_alpha')));
 });
 
 test('contact directory derives only verified friend/group categories', async t => {

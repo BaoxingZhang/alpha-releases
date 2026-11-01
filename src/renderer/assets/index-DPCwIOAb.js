@@ -28105,7 +28105,7 @@ const CONTACT_EXPORT_FORMAT_CHOICES = [
   { id: "html", extension: "html", name: "HTML 网页", description: "用浏览器直接查看的名单页面。" }
 ];
 const INDEPENDENT_CONTACT_EXPORT_CATEGORIES = ["friend", "group"];
-const INDEPENDENT_CONTACT_EXPORT_FORMATS = ["csv", "json", "vcf", "html"];
+const INDEPENDENT_CONTACT_EXPORT_FORMATS = ["csv", "json", "vcf", "html", "xlsx"];
 const MAX_QUERY_BYTES = 1024;
 const MAX_PATH_LENGTH = 4096;
 function initialContactExportDraft({ category, query = "", independent = false } = {}) {
@@ -28152,7 +28152,7 @@ function contactExportIssue(draft, selectedCount, { independent = false } = {}) 
   const valid2 = new Set(independent ? INDEPENDENT_CONTACT_EXPORT_CATEGORIES : CONTACT_CATEGORIES.map((item) => item.id));
   if (!draft.categories.length || !draft.categories.every((id) => valid2.has(id))) return { field: "categories", message: "请至少选择一个分类。" };
   const formats = independent ? INDEPENDENT_CONTACT_EXPORT_FORMATS : CONTACT_EXPORT_FORMAT_CHOICES.map((item) => item.id);
-  if (!formats.includes(draft.format)) return { field: "format", message: independent ? "独立离线导出目前支持 CSV、JSON、vCard 和 HTML。" : "请选择导出格式。" };
+  if (!formats.includes(draft.format)) return { field: "format", message: independent ? "独立离线导出目前支持 Excel、CSV、JSON、vCard 和 HTML。" : "请选择导出格式。" };
   if (independent && draft.includeAvatars) return { field: "avatars", message: "独立离线导出不读取头像文件。" };
   const query = contactExportQuery(draft);
   if (new TextEncoder().encode(query).length > MAX_QUERY_BYTES || query.includes("\0")) return { field: "query", message: "搜索词过长，请缩短后重新搜索。" };

@@ -14,11 +14,11 @@
     {
       "path": "src/renderer/assets/index-DPCwIOAb.js",
       "originalSha256": "8547e1338248bf174063cf7153c398a6d1a7d8c72ec0e6780e25ed01a954bde3",
-      "currentSha256": "365752985cb19ded47f03ab16982422bf1d48ee504efcad00083a035893a1bb6",
-      "currentBytes": 2875003
+      "currentSha256": "3e0071ee1fe3c52d4486e307215f11068e15c4ab82e01f1f30d7f505754ec852",
+      "currentBytes": 2875086
     }
   ],
-  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; search/navigation, contact/profile and group reads, group-member CSV/JSON/HTML/XLSX exports, media metadata, explicit data-watch targets, read-only exports and in-memory export jobs, annual and conversation base statistics, read-only local HTTP/MCP adapter, and UI capability-boundary maintenance.",
+  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; search/navigation, contact/profile and group reads, contact and group-member CSV/JSON/VCF/HTML/XLSX exports, media metadata, explicit data-watch targets, read-only exports and in-memory export jobs, annual and conversation base statistics, read-only local HTTP/MCP adapter, and UI capability-boundary maintenance.",
   "authoredModules": [
     "packages/alpha-engine",
     "packages/alpha-data-bridge",
