@@ -42,6 +42,14 @@ _alpha_moments_project_row_v1
 
 目前只知道它是一个导出符号，无法从安装包确定参数个数、`row` 结构、输出编码、缓冲区所有权、返回码含义或线程/生命周期约束。没有这些 ABI 证据时，不能通过 `dlsym` 直接调用，也不能据此实现朋友圈读取。
 
+### REA/Ghidra 对导出函数的进一步证据
+
+使用 REA 的 Ghidra 12.1.4 对同一 arm64 文件（SHA-256 `90bbfd625de14ceac0b9d47fbe820f4a2bf67c9d9a5f8706a92980bb8144ccfe`）做了只读分析。`_alpha_moments_project_row_v1` 的入口为 `0x81a8`，函数体是连续的 `0x1c8` 字节（`0x81a8..0x836f`），共 30 个基本块。REA Evidence：`ev_59591dcdf846afd6afbdb878ffca2037486a23403597a19664176d75b15b7dbb`（函数体/入口元数据）、`ev_4877a1f2b9d46fc7cd69ab11217b78acdb305edcbf4410f386c30c97382c7c2e`（Ghidra 伪代码）和 `ev_5cb3fa685afca667ba1d913a542b1a7d7afb2b360044ea9e0cae5e405a963aa7`（REA 组合 API 边界分析）。
+
+Ghidra/REA 观察到的调用约定候选是四个参数：`param_1` 为内部 row/projection 上下文指针，`param_2` 为可选输出缓冲区，`param_3` 为缓冲区容量，`param_4` 为必需的输出长度指针；函数返回 64 位整数错误码。控制流显示它会先清零 `*param_4`，在有容量时清零输出首字节，调用内部 moments projection/serialization helper，成功时写回长度并复制投影字节。静态路径还观察到 `0x12`、`0x15`、`0x17` 等返回值，尚未能和公开 wire 错误枚举建立映射。REA 将五个类型都标为低置信度推断，且明确保留“需要 ABI probe 或导入元数据确认”的 residual unknowns。
+
+这比“只有一个导出名字”更接近可验证的 ABI 边界，但仍缺少 `param_1` 的结构、SQLite statement 绑定方式、projection JSON 的完整约束、内存所有权和线程生命周期。因此不能把这段函数直接接到 Go bridge，也不能把它当作 Alpha 朋友圈读取已经恢复；当前仍只把它作为后续取得授权 row fixture/头文件时的定位线索。
+
 ## 对当前缺口的影响
 
 - 朋友圈读取、作者列表和年度朋友圈统计仍保持 `UNIMPLEMENTED`；见 [朋友圈 schema 证据](moments-schema-evidence.md)。
