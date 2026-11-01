@@ -99,6 +99,7 @@ esbuild 会重新处理 11 个 JS 文件并生成调试 source map。这里的�
 
 ```sh
 npm run verify:protocol # 校验独立协议模块仍与恢复源一致
+npm run verify:independent-support # 校验128项独立后端支持矩阵未漂移
 npm run test:protocol   # 编解码、分帧边界与来源测试
 npm run verify:vendor   # 核对43个原包运行时文件的SHA256和权限
 npm run test:smoke      # 隔离检查、实际Electron界面、IPC与后端状态诊断

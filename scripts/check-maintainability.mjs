@@ -129,6 +129,7 @@ const recoveredProvenance = await readJson('provenance/recovered-files.json');
 const maintenanceChanges = await readJson('provenance/maintenance-changes.json');
 const projectMetadata = await readJson('provenance/project-metadata.json');
 const currentValidation = await readJson('docs/independent-validation-current.json');
+const supportMatrix = await readJson('docs/independent-support-matrix.json');
 try {
   const gitignore = await fs.readFile(path.join(root, '.gitignore'), 'utf8');
   if (!gitignore.split(/\r?\n/).some(line => line.trim() === '.alpha/')) errors.push('.gitignore: .alpha/ runtime state must remain ignored');
@@ -167,7 +168,7 @@ const requiredFiles = [
   'AGENTS.md', 'README.md', 'MAINTENANCE.md', '.gitignore', '.gitattributes',
   '.github/workflows/maintenance.yml',
   'scripts/build.mjs', 'scripts/build-packaged-resources.mjs', 'scripts/package-macos-app.mjs', 'scripts/environment.mjs', 'scripts/launch.mjs', 'scripts/verify-vendor.mjs', 'scripts/release-manifest.mjs',
-  'scripts/setup-go.mjs', 'scripts/recovery-bundle.mjs', 'scripts/check-maintainability.mjs',
+  'scripts/setup-go.mjs', 'scripts/recovery-bundle.mjs', 'scripts/check-maintainability.mjs', 'scripts/verify-independent-support.mjs',
   'src/main/index.js', 'src/agent-host/index.cjs', 'src/renderer/index.html',
   'src/renderer/assets/index-DPCwIOAb.js', 'src/renderer/assets/export-policy.mjs',
   'packages/alpha-protocol/index.cjs', 'packages/alpha-engine/README.md', 'packages/alpha-engine/index.cjs', 'packages/alpha-engine/http-server.cjs', 'packages/alpha-engine/media-decoder.cjs', 'packages/alpha-engine/media-index.cjs', 'packages/alpha-engine/generic-jobs.cjs',
@@ -177,7 +178,7 @@ const requiredFiles = [
   'provenance/go-toolchain.json', 'provenance/recovered-files.json', 'provenance/maintenance-changes.json', 'provenance/project-metadata.json',
   'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', 'docs/maintainer-playbook.md',
   'docs/local-build-and-run.md', 'docs/native-runtime-provenance.json', 'docs/http-readonly-adapter-recovery.md', 'docs/media-decoder-evidence.md', 'docs/media-index-foundation.md', 'docs/media-schema-evidence.md',
-  'docs/independent-validation-current.json'
+  'docs/independent-validation-current.json', 'docs/independent-support-matrix.json'
 ];
 for (const relativePath of requiredFiles) await exists(relativePath);
 await exists('vendor/runtime', 'directory');
@@ -222,6 +223,14 @@ if (currentValidation) {
     const recorded = currentValidation.protocol;
     if (recorded?.totalRequestBranches !== total || recorded?.implementedRequestBranches !== implemented || recorded?.unsupportedRequestBranches !== unsupported) {
       errors.push('docs/independent-validation-current.json: protocol counts do not match packages/alpha-engine/index.cjs');
+    }
+    const matrixCounts = supportMatrix?.counts;
+    if (matrixCounts?.totalRequestBranches !== total || matrixCounts?.implementedRequestBranches !== implemented || matrixCounts?.unsupportedRequestBranches !== unsupported) {
+      errors.push('docs/independent-support-matrix.json: protocol counts do not match packages/alpha-engine/index.cjs');
+    }
+    const recordedMatrix = currentValidation.validation?.supportMatrix;
+    if (recordedMatrix?.totalRequestBranches !== total || recordedMatrix?.implementedRequestBranches !== implemented || recordedMatrix?.unsupportedRequestBranches !== unsupported || recordedMatrix?.status !== 'passed') {
+      errors.push('docs/independent-validation-current.json: support matrix record is stale');
     }
     const audit = currentValidation.validation?.dependencyAudit;
     const electronVersion = packageJson?.devDependencies?.electron;

@@ -1,0 +1,530 @@
+{
+  "schema": "alpha-independent-support-matrix.v1",
+  "source": {
+    "engine": "packages/alpha-engine/index.cjs",
+    "supportedExport": "SUPPORTED",
+    "allMethodsExport": "ALL_METHODS",
+    "unsupportedBehavior": "Engine dispatch returns UNIMPLEMENTED; no empty success is synthesized"
+  },
+  "counts": {
+    "totalRequestBranches": 128,
+    "implementedRequestBranches": 62,
+    "unsupportedRequestBranches": 66
+  },
+  "supported": [
+    {
+      "name": "hello",
+      "fieldNumber": 10
+    },
+    {
+      "name": "getCapabilities",
+      "fieldNumber": 11
+    },
+    {
+      "name": "listAccounts",
+      "fieldNumber": 12
+    },
+    {
+      "name": "selectAccount",
+      "fieldNumber": 13
+    },
+    {
+      "name": "listConversations",
+      "fieldNumber": 14
+    },
+    {
+      "name": "listMessages",
+      "fieldNumber": 15
+    },
+    {
+      "name": "exportConversation",
+      "fieldNumber": 16
+    },
+    {
+      "name": "searchMessages",
+      "fieldNumber": 17
+    },
+    {
+      "name": "getTelemetryStatus",
+      "fieldNumber": 21
+    },
+    {
+      "name": "setTelemetryConsent",
+      "fieldNumber": 22
+    },
+    {
+      "name": "flushTelemetry",
+      "fieldNumber": 23
+    },
+    {
+      "name": "analyzeConversation",
+      "fieldNumber": 24
+    },
+    {
+      "name": "getJob",
+      "fieldNumber": 26
+    },
+    {
+      "name": "watchJob",
+      "fieldNumber": 27
+    },
+    {
+      "name": "cancelJob",
+      "fieldNumber": 28
+    },
+    {
+      "name": "discoverAccounts",
+      "fieldNumber": 29
+    },
+    {
+      "name": "importDatabaseKey",
+      "fieldNumber": 30
+    },
+    {
+      "name": "listContacts",
+      "fieldNumber": 42
+    },
+    {
+      "name": "listGeneral",
+      "fieldNumber": 45
+    },
+    {
+      "name": "manageMomentsAntiDelete",
+      "fieldNumber": 47
+    },
+    {
+      "name": "getApplicationLockStatus",
+      "fieldNumber": 48
+    },
+    {
+      "name": "unlockApplication",
+      "fieldNumber": 50
+    },
+    {
+      "name": "lockApplication",
+      "fieldNumber": 51
+    },
+    {
+      "name": "getImageMediaStatus",
+      "fieldNumber": 52
+    },
+    {
+      "name": "configureImageKey",
+      "fieldNumber": 53
+    },
+    {
+      "name": "clearImageKey",
+      "fieldNumber": 54
+    },
+    {
+      "name": "getAdvancedComponentStatus",
+      "fieldNumber": 65
+    },
+    {
+      "name": "listChatExportSchedules",
+      "fieldNumber": 89
+    },
+    {
+      "name": "getChatExportSchedule",
+      "fieldNumber": 90
+    },
+    {
+      "name": "saveChatExportSchedule",
+      "fieldNumber": 91
+    },
+    {
+      "name": "deleteChatExportSchedule",
+      "fieldNumber": 92
+    },
+    {
+      "name": "runChatExportScheduleNow",
+      "fieldNumber": 93
+    },
+    {
+      "name": "listChatExportRuns",
+      "fieldNumber": 94
+    },
+    {
+      "name": "getChatExportRun",
+      "fieldNumber": 95
+    },
+    {
+      "name": "listChatExportAttempts",
+      "fieldNumber": 96
+    },
+    {
+      "name": "getChatExportAttempt",
+      "fieldNumber": 97
+    },
+    {
+      "name": "retryChatExportAttempt",
+      "fieldNumber": 98
+    },
+    {
+      "name": "manageMessageAntiRecall",
+      "fieldNumber": 99
+    },
+    {
+      "name": "resolveMessageMedia",
+      "fieldNumber": 103
+    },
+    {
+      "name": "analyzeAnnual",
+      "fieldNumber": 104
+    },
+    {
+      "name": "getDataRevision",
+      "fieldNumber": 105
+    },
+    {
+      "name": "getDataWatchTargets",
+      "fieldNumber": 106
+    },
+    {
+      "name": "getMessageSource",
+      "fieldNumber": 107
+    },
+    {
+      "name": "startAggregateAnalysis",
+      "fieldNumber": 110
+    },
+    {
+      "name": "watchAggregateAnalysis",
+      "fieldNumber": 111
+    },
+    {
+      "name": "cancelAggregateAnalysis",
+      "fieldNumber": 112
+    },
+    {
+      "name": "getContactProfile",
+      "fieldNumber": 115
+    },
+    {
+      "name": "exportContacts",
+      "fieldNumber": 117
+    },
+    {
+      "name": "getMessageAntiRecallStatuses",
+      "fieldNumber": 119
+    },
+    {
+      "name": "getChatExportStats",
+      "fieldNumber": 120
+    },
+    {
+      "name": "getChatExportCapabilities",
+      "fieldNumber": 121
+    },
+    {
+      "name": "startChatExport",
+      "fieldNumber": 122
+    },
+    {
+      "name": "listChatExports",
+      "fieldNumber": 123
+    },
+    {
+      "name": "watchChatExport",
+      "fieldNumber": 124
+    },
+    {
+      "name": "cancelChatExport",
+      "fieldNumber": 125
+    },
+    {
+      "name": "locateMessage",
+      "fieldNumber": 126
+    },
+    {
+      "name": "getConversationDayCounts",
+      "fieldNumber": 127
+    },
+    {
+      "name": "configureApplicationLock",
+      "fieldNumber": 131
+    },
+    {
+      "name": "startRecordExport",
+      "fieldNumber": 136
+    },
+    {
+      "name": "browseConversationMessages",
+      "fieldNumber": 137
+    },
+    {
+      "name": "browseAccountMedia",
+      "fieldNumber": 138
+    },
+    {
+      "name": "exportGroupMembers",
+      "fieldNumber": 139
+    }
+  ],
+  "unsupported": [
+    {
+      "name": "acquireDatabaseKey",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "activateLicense",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "applyMessageMutation",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "archiveOfficialScheduleRecord",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "beginMaterialOfficialExport",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "cancelAdvancedComponent",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "cancelCdnMediaFetch",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "cancelMaterialCapture",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "cancelMaterialOfficialExport",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "cancelMessageCapture",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "cancelMessageSend",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "cancelOfficialScheduleRecord",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "cancelPersonaProfile",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "clearPendingOfficialPlanCreate",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "closeMessageSession",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "deactivateLicense",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "decodeVoicePlayback",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "deleteOfficialSchedulePlan",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "discoverPendingMessageResources",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "getCdnMediaFetch",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "getMaterialOfficialExport",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "getMomentDayCounts",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "getOfficialSchedulePlan",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "getOfficialScheduleRecord",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "getPendingOfficialPlanCreate",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "listFavoriteMediaSlots",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "listFavorites",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "listMaterialOfficialExports",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "listMessageRecallRecords",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "listMomentAuthors",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "listMoments",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "listOfficialSchedulePlans",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "listOfficialScheduleRecords",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "maintainMessageResource",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "openMessageSession",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "previewMaterialOfficialArticles",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "provisionApplicationLock",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "putPendingOfficialPlanCreate",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "readAccountDataKey",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "recoverMaterialTextSend",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "refreshLicense",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "removeAccount",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "reportMessageActivity",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "resetApplicationLock",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "resolveFavoriteMedia",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "resolveMomentEmoji",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "runOfficialSchedulePlanNow",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "saveOfficialSchedulePlan",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "sendMessage",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "startAdvancedComponent",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "startCdnMediaFetch",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "startMaterialCapture",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "startMaterialOfficialExport",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "startMaterialTextSend",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "startMessageCapture",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "startMomentExport",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "startOfficialExport",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "startPersonaProfile",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "transcribeVoice",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "transcribeVoiceBatch",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "watchAdvancedComponent",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "watchDatabaseKeyAcquisition",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "watchMaterialCapture",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "watchMessageCapture",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "watchMessageSend",
+      "status": "UNIMPLEMENTED"
+    },
+    {
+      "name": "watchPersonaProfile",
+      "status": "UNIMPLEMENTED"
+    }
+  ]
+}

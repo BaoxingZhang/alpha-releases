@@ -39,7 +39,8 @@
     "test": "node --test --test-concurrency=1 tests/*.test.mjs tests/*.test.cjs",
     "record:maintenance": "node scripts/record-maintenance.mjs",
     "check:project": "node scripts/check-project.mjs",
-    "check:maintainability": "node scripts/check-maintainability.mjs"
+    "check:maintainability": "node scripts/check-maintainability.mjs",
+    "verify:independent-support": "node scripts/verify-independent-support.mjs"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.14.0",

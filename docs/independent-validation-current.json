@@ -114,12 +114,12 @@
       "command": "npm run bundle:recovery",
       "status": "passed",
       "schema": "alpha-recovered.source-bundle.v1",
-      "fileCount": 671,
+      "fileCount": 673,
       "includesVendorRuntime": false,
       "nativeRecompiled": false,
       "projectSigned": false,
-      "archiveBytes": 3872886,
-      "archiveSha256": "5a1f5faa0566d0543982e5e5faa11c83436444ecd49705ef60bbd9357e90b33b",
+      "archiveBytes": 3876135,
+      "archiveSha256": "af2683fc5464b93dcc9a00915a4fa8b4f183d42e8306d2ce4e0961cd17cee340",
       "artifactManifestDigest": "0bc6b6d11296fd4bc2132caa677055fee91fc73a1a0c50b0a2929d1e7312b7d7"
     },
     "desktopIndependent": {
@@ -398,6 +398,15 @@
         "critical": 0,
         "total": 0
       }
+    },
+    "supportMatrix": {
+      "command": "npm run verify:independent-support",
+      "status": "passed",
+      "record": "docs/independent-support-matrix.json",
+      "totalRequestBranches": 128,
+      "implementedRequestBranches": 62,
+      "unsupportedRequestBranches": 66,
+      "unsupportedBehavior": "UNIMPLEMENTED"
     }
   },
   "featureBoundary": {

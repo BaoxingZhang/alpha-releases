@@ -1,4 +1,5 @@
 # 独立 Node 协议引擎
+支持矩阵由 `npm run verify:independent-support` 从 `SUPPORTED`/`ALL_METHODS` 生成并校验，见 [`docs/independent-support-matrix.json`](../../docs/independent-support-matrix.json)。
 
 这是自有后端的真实适配层。输入为恢复的 `EngineClientFrame`，输出为 `EngineServerFrame`，均使用 4 字节大端长度前缀。数据库读取委托同项目的 Go `alpha-data-bridge`，应用锁委托 `alpha-security`；不加载 Electron、恢复后的整份 main 或原闭源引擎。
 
