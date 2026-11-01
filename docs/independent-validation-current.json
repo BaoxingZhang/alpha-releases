@@ -118,8 +118,8 @@
       "includesVendorRuntime": false,
       "nativeRecompiled": false,
       "projectSigned": false,
-      "archiveBytes": 3876135,
-      "archiveSha256": "af2683fc5464b93dcc9a00915a4fa8b4f183d42e8306d2ce4e0961cd17cee340",
+      "archiveBytes": 3876567,
+      "archiveSha256": "521a27203d01f357c752410f5e361fd7c008e73d8592d69e3dc0955d42d55735",
       "artifactManifestDigest": "0bc6b6d11296fd4bc2132caa677055fee91fc73a1a0c50b0a2929d1e7312b7d7"
     },
     "desktopIndependent": {
@@ -407,6 +407,18 @@
       "implementedRequestBranches": 62,
       "unsupportedRequestBranches": 66,
       "unsupportedBehavior": "UNIMPLEMENTED"
+    },
+    "packagedApp": {
+      "command": "npm run package:macos-app",
+      "status": "passed",
+      "manifest": ".runtime/release-artifacts/Alpha Recovered.app.manifest.json",
+      "electronVersion": "44.10.1",
+      "fileCount": 598,
+      "totalBytes": 521546069,
+      "artifactDigest": "3d35aa469f863b1deb4e515f2aa3b69fd22b95842589381426c84c566e73a165",
+      "signed": false,
+      "notarized": false,
+      "independentResources": "Resources/independent"
     }
   },
   "featureBoundary": {

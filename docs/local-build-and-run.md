@@ -48,6 +48,7 @@ npm run build:packaged
 ```
 
 该命令会在 `build/packaged-resources/independent/` 生成 `alpha-engine`、`alpha-security`、`alpha-protocol` 和两个只读 Go 适配器。打包器应将这个目录复制为应用 `Resources/independent/`，并保留普通文件属性。安装后的应用只有在同时设置 `ALPHA_RECOVERY_BACKEND=independent` 与 `ALPHA_INDEPENDENT_PACKAGED=1` 时才会选择该后端；缺少任一标记时保持原生启动链路和许可/完整性检查。独立资源不完整时主进程会 fail-closed，不会回退到原生 engine。
+本机已用 Electron 44.10.1 实际生成 `.runtime/release-artifacts/Alpha Recovered.app`；manifest 记录 598 个文件、未签名且未公证，结果摘要见 [`independent-validation-current.json`](independent-validation-current.json)。
 
 在本机 macOS arm64 上可以生成未签名的 Electron app：
 

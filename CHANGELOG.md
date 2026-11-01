@@ -11,6 +11,7 @@
 - 明确记录 62/128 协议分支已实现，完整功能 parity 尚未达到；详见 [当前验证](docs/independent-validation-current.json) 和 [缺口清单](docs/source-gaps.md)。
 - 将 Electron 从 44.0.0 升级到 44.10.1，消除当前 npm audit 报告的 high 漏洞；升级后重新完成独立构建、197 项测试和桌面 smoke。
 - 增加独立后端 128 项请求分支的机器支持矩阵和漂移校验，明确 62 项实现与 66 项 `UNIMPLEMENTED`。
+- 用 Electron 44.10.1 生成未签名的 macOS arm64 `Alpha Recovered.app`，并记录 packaged 独立资源清单。
 
 ## 后续版本
 
