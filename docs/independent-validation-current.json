@@ -294,10 +294,10 @@
       "status": "passed",
       "appPath": ".runtime/release-artifacts/Alpha Recovered.app",
       "dmgPath": ".runtime/release-artifacts/Alpha Recovered.dmg",
-      "appArtifactDigest": "60b9bac64f71c2934a34c1cc368baf412fe56bf674a4f1ca15ca7fd6c2fccc8a",
+      "appArtifactDigest": "ad5e7a93a30e62028980e13d1d667f6ed3a1ad3ac6ca43861b17f48056def97e",
       "appFileCount": 1630,
-      "dmgBytes": 252969038,
-      "dmgSha256": "80145dc45327fe212ab2ed9f620ef4b24d0fc319e25d20b45699f3b869103537",
+      "dmgBytes": 252968429,
+      "dmgSha256": "3b596e811de015d08dcb35cafcb110411e4bcb569a16b3926d065be0280199ba",
       "projectSigned": false,
       "notarized": false,
       "nativeRecompiled": false
@@ -415,7 +415,7 @@
       "electronVersion": "44.10.1",
       "fileCount": 1630,
       "totalBytes": 527299976,
-      "artifactDigest": "60b9bac64f71c2934a34c1cc368baf412fe56bf674a4f1ca15ca7fd6c2fccc8a",
+      "artifactDigest": "ad5e7a93a30e62028980e13d1d667f6ed3a1ad3ac6ca43861b17f48056def97e",
       "signed": false,
       "notarized": false,
       "independentResources": "Resources/independent"

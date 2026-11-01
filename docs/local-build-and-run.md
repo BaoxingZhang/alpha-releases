@@ -50,7 +50,7 @@ npm run build:packaged
 该命令会在 `build/packaged-resources/independent/` 生成 `alpha-engine`、`alpha-security`、`alpha-protocol` 和两个只读 Go 适配器。打包器应将这个目录复制为应用 `Resources/independent/`，并保留普通文件属性。安装后的应用只有在同时设置 `ALPHA_RECOVERY_BACKEND=independent` 与 `ALPHA_INDEPENDENT_PACKAGED=1` 时才会选择该后端；缺少任一标记时保持原生启动链路和许可/完整性检查。独立资源不完整时主进程会 fail-closed，不会回退到原生 engine。
 本机已用 Electron 44.10.1 实际生成 `.runtime/release-artifacts/Alpha Recovered.app`；最新 manifest 记录 1630 个文件、527299976 bytes，未签名且未公证。打包资源包含自包含的 `@bufbuild/protobuf` wire 运行时依赖；结果摘要见 [`independent-validation-current.json`](independent-validation-current.json)。
 
-本轮还实际启动了打包 app，并在 `ALPHA_RECOVERY_BACKEND=independent`、`ALPHA_INDEPENDENT_PACKAGED=1` 和合成离线副本下完成首次设置：窗口显示“打开离线数据副本”，检测到 `synthetic-account`，进入 Alpha 后显示两个合成会话和消息。由于本项目的组装器保留 `Resources/app` 目录而未生成 app.asar，Electron 报告 `app.isPackaged=false`；显式 packaged 标记仍会选择 `Resources/independent`，没有回退到原生 engine。
+本轮还实际启动了打包 app，并在 `ALPHA_RECOVERY_BACKEND=independent`、`ALPHA_INDEPENDENT_PACKAGED=1` 和合成离线副本下完成首次设置：窗口显示“打开离线数据副本”，检测到 `synthetic-account`，进入 Alpha 后显示两个合成会话和消息。由于本项目的组装器保留 `Resources/app` 目录而未生成 app.asar，Electron 报告 `app.isPackaged=false`；显式 packaged 标记仍会选择 `Resources/independent`，没有回退到原生 engine。最新 app manifest 的 artifact digest 为 `ad5e7a93a30e62028980e13d1d667f6ed3a1ad3ac6ca43861b17f48056def97e`，对应提交 `0356e85871392a4bc72a637213d3a358abaa8919`。
 
 在本机 macOS arm64 上可以生成未签名的 Electron app：
 
