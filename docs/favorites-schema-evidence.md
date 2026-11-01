@@ -25,6 +25,10 @@
 
 `vendor/runtime/manifests/alpha-wcdb.component.json` 还声明 `native.list_favorites`、`format.favorites`、`format.favorites-json`、`semantic.favorites` 和 `semantic.favorite_xml`。这些是随包组件能力/格式声明，不能替代 reader 源码或数据库样本。
 
+## 关联公开项目的反查结果
+
+固定提交 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73` 的 WeFlow1 反查了 `electron/`、`src/`、`shared/`、`resources/` 和公开 HTTP API 文档，没有找到收藏读取服务、收藏表名或收藏 API。它的公开朋友圈/媒体 DTO 不能补齐 Alpha 收藏的 `fav_db_item`、标签绑定、XML projection 或媒体 token 语义；因此“没有在 WeFlow1 发现收藏实现”本身也是本轮证据边界的一部分，不能被解释为收藏数据库不存在。
+
 ## 当前缺失的关键证据
 
 仓库中没有可核对的授权 `favorite.db`/`favorites.db` 明文副本，也没有收藏表的 `sqlite_master`、索引定义或代表性行。因此目前无法可靠确定：

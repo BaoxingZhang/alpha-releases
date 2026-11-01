@@ -1,16 +1,18 @@
 # 相关公开项目与可复用边界
 
-2026-11-01 对公开仓库做了补充核查。结论是：目前没有找到 Alpha 的 `alpha`、`alpha-wcdb`、`alpha-xkey` 或 `alpha-wxproto` 原生源码；但发现了作者维护的 WeFlow fork 和其他公开实现，可以作为协议、数据字段和替代后端的研究材料。
+2026-11-01 至 2026-11-02 对公开仓库做了补充核查。结论是：目前没有找到 Alpha 的 `alpha`、`alpha-wcdb`、`alpha-xkey` 或 `alpha-wxproto` 原生源码；但发现了作者维护的 WeFlow fork 和其他公开实现，可以作为协议、数据字段和替代后端的研究材料。
 
 ## `xunchahaha/WeFlow1`
 
 [xunchahaha/WeFlow1](https://github.com/xunchahaha/WeFlow1) 是 Alpha 作者账号下的公开 WeFlow fork，页面显示它 fork 自 [hicccc77/WeFlow](https://github.com/hicccc77/WeFlow)，当前浅克隆包含 1,819 个提交和完整的 `electron/`、`src/`、`shared/`、`resources/` 目录。
 
-它提供了若干可用于交叉核对的接口名称和字段模型，例如：
+本次复核固定在提交 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73`，只读副本位于工作区外的 `/Users/baoxingzhang/Desktop/temp/research/WeFlow1`（同一提交的临时副本为 `/Users/baoxingzhang/Desktop/temp/WeFlow1-research`）。它提供了若干可用于交叉核对的接口名称和字段模型，例如：
 
 - `wcdb_get_sns_timeline`、`wcdb_get_sns_annual_stats`、`wcdb_get_sns_usernames`、`wcdb_get_sns_export_stats`；
 - `wcdb_get_messages_by_type`、媒体扫描、语音读取和图片/视频硬链接解析；
 - `SnsPost`、媒体、点赞、评论、位置和原始 XML 的应用层结构。
+
+进一步核对得到的文件级证据是：`electron/services/backupService.ts` 会把朋友圈库定位为 `sns/sns.db`（同时尝试数据目录下的同名相对路径）；`electron/services/wcdbCore.ts` 的朋友圈读取、统计和防删除操作全部通过 `wcdb_get_sns_*`/`wcdb_*_sns_*` native ABI 完成，没有公开的 `CREATE TABLE` 或可直接复用的 SQL。`src/types/sns.ts` 和 `electron/services/snsService.ts` 能确认帖子、媒体、评论、位置以及 XML 中的 token/key/md5/enc_idx 字段形状，但这些属于 WeFlow 自己的 native 输出契约。
 
 这些材料证明作者的另一个公开项目确实有朋友圈和媒体的应用层设计，但不能证明它与 Alpha 0.3.5 的 native ABI、数据库 schema、授权策略或协议字段相同。其仓库 LICENSE 是 **CC BY-NC-SA 4.0**，因此本工程没有复制源码、没有把它加入依赖，也没有把它作为可直接合并的后端。
 
@@ -28,5 +30,5 @@
 
 ## 对本工程的处理
 
-相关仓库已经放在工作区外的只读研究目录 `/Users/baoxingzhang/Desktop/temp/research/WeFlow1`，没有导入构建、没有修改许可证声明、没有替换 Alpha runtime。后续若要利用其中的代码，必须先单独确认许可证、署名、非商业和相同方式共享义务，并重新验证 ABI、微信版本、平台和数据安全边界。
+相关仓库已经放在工作区外的只读研究目录 `/Users/baoxingzhang/Desktop/temp/research/WeFlow1`，没有导入构建、没有修改许可证声明、没有替换 Alpha runtime。复核中没有找到收藏功能、收藏表名或收藏 API 的证据，因此收藏不能从 WeFlow1 推导实现。后续若要利用其中的代码，必须先单独确认许可证、署名、非商业和相同方式共享义务，并重新验证 ABI、微信版本、平台和数据安全边界。
 

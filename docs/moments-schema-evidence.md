@@ -38,6 +38,12 @@ type | local_type
 
 这段 SQL 只描述 `alpha_moments_deleted_v1` 保全表。它不是 `SnsTimeLine` 或 `snsmessage` 的原始表定义，不能作为原表主键、时间单位或内容编码的依据。
 
+## 关联公开项目的交叉证据
+
+固定提交 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73` 的 WeFlow1 也没有公开朋友圈 SQL。`electron/services/backupService.ts` 只提供 `sns/sns.db` 的路径定位，`electron/services/wcdbCore.ts` 通过 `wcdb_get_sns_timeline`、`wcdb_get_sns_annual_stats`、`wcdb_get_sns_usernames` 和 `wcdb_get_sns_export_stats` 调用 native；`src/types/sns.ts` 与 `electron/services/snsService.ts` 只给出应用层 DTO/XML 解析字段。
+
+这组材料可以帮助核对字段命名和媒体元数据，但不能证明 Alpha 的表名、列优先级、ABI、密钥或错误码兼容。WeFlow1 的 `CC BY-NC-SA 4.0` 许可证也不允许在未完成许可评估前复制实现。因此 Alpha 继续保持独立 schema 探测与 fail-closed 行为。
+
 ## 仍未得到的关键证据
 
 当前仓库没有可核对的 `moments.db` 样本、朋友圈表的 `CREATE TABLE`/索引定义或原始 native projection 头文件正文。静态证据不能确定：
