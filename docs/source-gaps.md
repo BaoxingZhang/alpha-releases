@@ -13,7 +13,7 @@
 | React 渲染层 | `out/renderer/` 中的 JS、HTML、CSS 与资源 | 编辑已编译的组件逻辑、界面文案和样式，再重新打包 | 原始 TSX/JSX、类型、组件文件边界、CSS 预处理源码和 source map |
 | AI Agent host | `vendor/runtime/bin/alpha-agent-host.cjs` | 可读、可编辑的 JavaScript bundle，含原始 `src/*.ts` 路径注释 | 分离的 TS 源文件、原始 protobuf 工程、构建配置与锁文件 |
 | Rust 后端与工具 | `alpha-server`、`alpha-engine`、`alpha-mcp-stdio` 等 13 个程序 | 按原文件与协议复用 macOS arm64 二进制 | Cargo 工作区、`Cargo.toml`、`Cargo.lock`、`src/*.rs`、`build.rs`、生成代码和精确工具链 |
-| C/C++ 数据及凭据组件 | WCDB/SQLCipher dylib、`alpha_xkey_helper`、`alpha_xkey.dylib` | 保留原二进制、权限、配置和哈希 | C/C++ 实现、ABI 头文件、CMake 工程、SQLCipher 集成源码和 guard 构建工具 |
+| C/C++ 数据及凭据组件 | WCDB/SQLCipher dylib、`alpha_xkey_helper`、`alpha_xkey.dylib`；REA 已观察到 `_alpha_moments_project_row_v1`、`_alpha_native_get_api` 和 `_alpha_sqlite_readonly_get_api` 的入口及部分参数检查 | 保留原二进制、权限、配置和哈希；可把已记录的函数边界作为后续授权 ABI 取证索引 | 当前 `vendor/runtime` 复制范围未包含 ABI 头文件正文；`alpha-wcdb.package-manifest.json` 只保留 `include/alpha_native.h`、`include/alpha_sqlite_readonly.h` 等路径/哈希记录。C/C++ 实现、CMake 工程、SQLCipher 集成源码和 guard 构建工具仍缺；API 表字段签名、row 结构、返回码和生命周期未闭合，不能直接调用未知函数表 |
 | FFmpeg | 原可执行文件及 README/LICENSE | 复用原媒体处理程序与随包许可文件 | 对应源码快照、精确编译参数和依赖构建材料 |
 | 授权及组件服务 | 客户端端点配置、信任配置、签名公钥和 manifest | 保留原有客户端交互与校验机制 | 远端服务实现、数据库配置、签发私钥和有效用户许可状态 |
 

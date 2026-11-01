@@ -35,6 +35,8 @@ npm run start:independent -- --data-dir /absolute/project/.runtime/your-snapshot
 
 原包模式仍使用 `npm start`，当前错误仍为 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`。独立模式使用自己的服务实现，没有修改原二进制 guard、签名、公钥或许可。
 
+原生 ABI 取证仍是单独的证据边界。当前文档记录了 `_alpha_moments_project_row_v1`、`_alpha_native_get_api` 和 `_alpha_sqlite_readonly_get_api` 的静态入口、部分参数检查及残余未知项（见 [`native-operation-source-evidence.md`](native-operation-source-evidence.md)）。这些观察没有执行未知函数表调用，也没有证明朋友圈、收藏或原生媒体能力已可用；独立后端继续使用自有协议和 SQLite 读取实现，并对缺少授权 schema/fixture 的分支 fail-closed。
+
 ## 已接通的内容
 
 | 部分 | 当前行为 | 仍有限制 |

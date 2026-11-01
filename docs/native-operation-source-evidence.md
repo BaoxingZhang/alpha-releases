@@ -50,6 +50,18 @@ Ghidra/REA 观察到的调用约定候选是四个参数：`param_1` 为内部 r
 
 这比“只有一个导出名字”更接近可验证的 ABI 边界，但仍缺少 `param_1` 的结构、SQLite statement 绑定方式、projection JSON 的完整约束、内存所有权和线程生命周期。因此不能把这段函数直接接到 Go bridge，也不能把它当作 Alpha 朋友圈读取已经恢复；当前仍只把它作为后续取得授权 row fixture/头文件时的定位线索。
 
+### 原生 API 表获取函数的 ABI 边界
+
+同一轮 REA/Ghidra 只读分析还检查了两个返回函数表的导出入口。它们提供了更具体的调用前置条件，但没有把未知函数指针暴露成可安全调用的 API。
+
+`vendor/runtime/native/wcdb/libalpha_sqlcipher_readonly.dylib` 中的 `_alpha_sqlite_readonly_get_api`（文件 SHA-256 同上）入口为 `0x2260`，函数体范围为 `0x2260..0x246f`，长度 `0x210` 字节。REA 观察到它接受 `version`、`size` 和 `out_api` 三个参数；静态路径要求 `version == 1` 且 `size == 0xf8`，随后初始化一组 SQLite 只读函数指针。Evidence：`ev_31fe2a7da954c43b41166886bb8851fa75d1cfb89c86ecd4fac4dd4e30d4e0ff`（入口和函数边界）与 `ev_ea287d1f01e63baf41508ac0e5dde2481ebc062b33f20e9e75f31a262933bc01`（伪代码和 API 边界）。这只能证明版本/结构大小检查和函数表填充路径；具体结构字段顺序、每个指针的签名、返回码语义及调用后的对象生命周期仍未知。
+
+`vendor/runtime/native/wcdb/libalpha_native.dylib`（SHA-256 `be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c`）中的 `_alpha_native_get_api` 入口为 `0x1cb0`，函数体范围为 `0x1cb0..0x1e17`，长度 360 字节。REA 推断其参数形状同样是 `(int version, uint32_t size, void *out_api)`：接受 `version == 1`，要求 `size >= 0x50`，最多按 `0x90` 初始化并写入多个内部函数指针；静态路径可见 `0`、`-2`、`-6` 等返回值候选。Evidence：`ev_2e912dcf0c66c750de4a23547dcc4629a68edcaf7e151950450008d0086fefe`（入口和函数边界）与 `ev_d1b8484debe650ce19d9d3b29186cbfabfc877afb4633d6cf3b6988e77bc2ed1`（伪代码和 API 边界）。参数类型、表字段语义、返回码映射和内部函数的线程/所有权约束仍是低置信度推断。
+
+`vendor/runtime/manifests/alpha-wcdb.component.json` 只声明这两个 API 入口的 version 1 能力；manifest 名称和版本字段不等于完整 C ABI 签名，也不能替代随包当前复制范围内缺失的头文件正文。
+
+这两个入口均未在本轮执行未知 ABI 调用，也没有向独立 bridge 注入返回的函数表。没有对应头文件、版本匹配的调用方或受控 fixture 前，不应仅凭 `size`/`version` 条件通过 `dlsym` 调用；否则无法判定崩溃、内存所有权或结果错误来自调用方还是原生组件。
+
 ## 对当前缺口的影响
 
 - 朋友圈读取、作者列表和年度朋友圈统计仍保持 `UNIMPLEMENTED`；见 [朋友圈 schema 证据](moments-schema-evidence.md)。
