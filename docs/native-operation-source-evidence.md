@@ -48,6 +48,10 @@ REA/Ghidra 对同一 `alpha-data-host` arm64 文件的只读检查又确认了�
 
 这比普通字符串搜索更接近原生实现的入口索引，但没有提供字段编号、完整 ABI、真实请求/响应、数据库 fixture 或授权状态。因此它只用于安排后续取证，不能据此调用这些入口或把独立实现标为已兼容。REA Evidence：`ev_ce99e3f342f8a8eb071b2ebcad8ac4d13ecc73ca2b169062c9fbefcc1468581a`；年度统计相关类型的补充字符串 Evidence：`ev_5a76bc93f036c83156a5011f4d37f2935529ce94847d817fed555ec6f75e0aed`。
 
+对三个入口做函数级静态分析又得到 wire 封装边界：`list_moments` 构造 ASCII envelope `ALPHA_WCDB_MOMENTS_V1`，带 account、cursor、两个 u64 参数以及分页/选项，调用内部 `request_bytes_with_limit(..., 0x1000000)`；响应要求前缀 `ALPHA_DB_JSON_RESPONSE_V1`，状态非零会进入 QueryFailure 映射，随后解析辅助数组和 moments closure。`list_favorites` 对应 envelope 为 `ALPHA_WCDB_FAVORITES_V1`，结果同样要求 `ALPHA_DB_JSON_RESPONSE_V1`、响应上限为 16 MiB，并有页大小/offset 边界和最多 10,000 行的反编译观察。`moments_year_stats` 已确认存在独立 stats handler，但其字段和查询仍未恢复。
+
+这些是 shipped-artifact 的静态伪代码观察，不是执行捕获；不能推导 JSON 字段编号、数据库 SQL、授权 token 或成功数据。REA Evidence：moments `ev_a9a5b7a572ce0af351e3e9bb9eeac594a104b9fde28186310833238b9bf7aab7` / pseudocode `ev_497f82356cb2385c7124e36cd366eb852fc6b31bdfcb9dfa2825166e25a38168`，favorites `ev_09e8d64d355b9aa4096d0a3a542a0ead0d4d8d27fdad4175f6e15fda60655044`，year stats `ev_a087cfafe21bc016e3dac37adb9880e45eccd4230d2ce9ae08b621cdfb06b635`。
+
 ## `libalpha_sqlcipher_readonly.dylib` 的符号线索
 
 Mach-O 导出符号检查可见：

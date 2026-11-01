@@ -33,6 +33,8 @@ REA/Ghidra 又确认了收藏/媒体相关 operation 字符串：`native.list_fa
 
 REA procedure 搜索还定位到 `NativeCore::list_favorites`、`parse_favorite`、`favorite_record_field`、`locate_favorite_media`、`lookup_favorite_source`、`resolve_image_media_with_preference`、`resolve_record_media`、`resolve_favorite_image_media` 和 `resolve_favorite_object_media`。原生 inventory 同时保留了 `ListFavoritesRequest/Response`、`NativeFavoriteRecord`、`FavoriteTypeCount`、`FavoriteTag`、`NativeFavoriteSourceMessage`、`NativeFavoriteMediaLocator/Object`、`ResolveImageMediaRequest/Response`、`PeekCachedMedia*` 和 `ReadImageMedia*` 等协议类型名称。它们确认原包存在收藏、来源查找和媒体定位的实现入口，但没有闭合字段编号、数据库选择、token 所有权或实际文件读取语义。REA Evidence：`ev_ce99e3f342f8a8eb071b2ebcad8ac4d13ecc73ca2b169062c9fbefcc1468581a`。
 
+函数级伪代码显示 `list_favorites` 使用 `ALPHA_WCDB_FAVORITES_V1` 请求 envelope，响应要求 `ALPHA_DB_JSON_RESPONSE_V1`，最大读取长度为 16 MiB；页大小和 offset 有界，结果限制观察到最多 10,000 行，之后由 `favorite_page::split` 分页并映射为 JSON。该结果只建立 wire 封装和容量边界，没有建立收藏表、XML 字段、标签连接或媒体 token 语义，独立后端继续 fail-closed。REA Evidence：summary `ev_09e8d64d355b9aa4096d0a3a542a0ead0d4d8d27fdad4175f6e15fda60655044`。
+
 ## 关联公开项目的反查结果
 
 固定提交 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73` 的 WeFlow1 反查了 `electron/`、`src/`、`shared/`、`resources/` 和公开 HTTP API 文档，没有找到收藏读取服务、收藏表名或收藏 API。它的公开朋友圈/媒体 DTO 不能补齐 Alpha 收藏的 `fav_db_item`、标签绑定、XML projection 或媒体 token 语义；因此“没有在 WeFlow1 发现收藏实现”本身也是本轮证据边界的一部分，不能被解释为收藏数据库不存在。

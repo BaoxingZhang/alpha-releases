@@ -52,6 +52,8 @@ REA 对 `_alpha_moments_project_row_v1` 还给出了一个低置信度的四参�
 
 针对 `alpha-data-host` 的 REA procedure 搜索还定位到 `NativeCore::list_moments`、`AccountDataPort::moments_year_stats`、`browse_account_media` 和 `manage_moments_anti_delete`，并观察到 `ListMomentsRequest/Response`、`MomentsYearStatsRequest/Response`、`MomentsDayCountsOptions`、`NativeMomentsDayCount`、`NativeMomentsDayCounts`、`NativeMomentsDayCountsTypeCount` 和 `NativeMomentsDayCountsUserCount` 等协议类型名称。年度统计类型还出现 `struct WireMomentsYearStats` 和 `struct MomentsYearStats`。这些是静态 procedure/type 索引，未提供字段编号或序列化值，不能替代授权 fixture 或原生 request/response 捕获。REA Evidence：`ev_ce99e3f342f8a8eb071b2ebcad8ac4d13ecc73ca2b169062c9fbefcc1468581a`、`ev_5a76bc93f036c83156a5011f4d37f2935529ce94847d817fed555ec6f75e0aed`。
 
+函数级伪代码进一步显示 `list_moments` 使用 `ALPHA_WCDB_MOMENTS_V1` 请求 envelope，携带 account、cursor、两个 u64 参数以及分页/选项；内部响应要求 `ALPHA_DB_JSON_RESPONSE_V1`，最大读取长度为 `0x1000000`（16 MiB），非零状态会映射为 QueryFailure。输入字符串有 NUL/长度检查。该边界可以用于未来授权 request/response 对照，但仍不能确定 projection JSON 字段、SQLite 查询或真实分页排序。REA Evidence：summary `ev_a9a5b7a572ce0af351e3e9bb9eeac594a104b9fde28186310833238b9bf7aab7`，pseudocode `ev_497f82356cb2385c7124e36cd366eb852fc6b31bdfcb9dfa2825166e25a38168`。
+
 ## 关联公开项目的交叉证据
 
 固定提交 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73` 的 WeFlow1 也没有公开朋友圈 SQL。`electron/services/backupService.ts` 只提供 `sns/sns.db` 的路径定位，`electron/services/wcdbCore.ts` 通过 `wcdb_get_sns_timeline`、`wcdb_get_sns_annual_stats`、`wcdb_get_sns_usernames` 和 `wcdb_get_sns_export_stats` 调用 native；`src/types/sns.ts` 与 `electron/services/snsService.ts` 只给出应用层 DTO/XML 解析字段。
