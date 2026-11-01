@@ -62,7 +62,7 @@
     "chatExportSchedules": {
       "command": "node --test tests/schedule-export.test.mjs",
       "status": "passed",
-      "tests": 6,
+      "tests": 7,
       "persistentPlanStore": true,
       "explicitRunNow": true,
       "backgroundAutomaticTimer": true,
