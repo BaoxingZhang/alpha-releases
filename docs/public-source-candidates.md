@@ -14,6 +14,8 @@
 
 当前没有找到可核验的公开 Alpha 原生源码、Cargo/CMake 工程或可直接重建的组件 release。随安装包提取的二进制、manifest、签名和公钥材料仍保留在 [`vendor/runtime`](../vendor/runtime/) 及 [`docs/native-runtime-provenance.json`](native-runtime-provenance.json)；它们只能支撑复用和来源核对，不能补回源码。
 
+2026-11-03 通过 GitHub 仓库搜索 `alpha user:xunchahaha` 复核作者账号的公开仓库清单，结果只有 `xunchahaha/alpha-releases` 与 `xunchahaha/alpha-build`。这次搜索结果只能说明当前公开索引中没有新增 Alpha 源码仓库，不能证明私有、删除或改名的仓库不存在；因此仍不能把 release 仓或打包仓当作原生源码来源。
+
 ## WeFlow 及其 fork
 
 公开的 [hicccc77/WeFlow](https://github.com/hicccc77/WeFlow) 当前主分支（2026-11-03 固定为 `91adcfdbb24e8e147d8332440b8c6ac899ad2abf`，package 版本 `5.0.0`）公开了完整的 Electron/TypeScript 应用层和 `docs/third-party-components.md`。当前树没有 `Cargo.toml`、Rust 源文件或 WCDB 实现源码；它把数据库、图片解密和批量导出拆成调用方显式配置的第三方组件。
