@@ -16,6 +16,14 @@
 
 这些材料证明作者的另一个公开项目确实有朋友圈和媒体的应用层设计，但不能证明它与 Alpha 0.3.5 的 native ABI、数据库 schema、授权策略或协议字段相同。其仓库 LICENSE 是 **CC BY-NC-SA 4.0**，因此本工程没有复制源码、没有把它加入依赖，也没有把它作为可直接合并的后端。
 
+## `hicccc77/WeFlow`（2026-11-03 复核）
+
+本次又固定检查了公开仓库 [hicccc77/WeFlow](https://github.com/hicccc77/WeFlow) 的提交 `91adcfdbb24e8e147d8332440b8c6ac899ad2abf`（package 版本 5.0.0）。仓库 LICENSE 为 **CC BY-NC-SA 4.0**，包含署名、非商业、相同方式共享和许可证传递条件；本工程没有复制其源码、没有加入依赖，也没有把该许可证默认为 Alpha 项目的整体授权。
+
+该仓库的朋友圈功能仍是应用层对自有 WCDB native DLL 的封装。`electron/services/wcdbCore.ts` 动态绑定 `wcdb_get_sns_timeline`、`wcdb_get_sns_annual_stats`、`wcdb_get_sns_usernames`、`wcdb_get_sns_export_stats` 以及防删除/删除函数；`electron/services/snsService.ts` 再把 native 返回的通用 JSON/XML 投影为帖子、媒体、点赞、评论、位置和 token/key/md5/enc_idx 字段。仓库没有公开 `SnsTimeLine`/`snsmessage` 的 SQL DDL、迁移、样本数据库或明确的微信版本证据，也没有暴露 Alpha `libalpha_native.dylib` 的 ABI。仓库本身也没有提交这些 WCDB native 二进制，只依赖外部运行时库。
+
+针对收藏的限定搜索没有发现实际收藏数据库、收藏表或独立收藏服务；聊天中的分享消息不能证明存在微信收藏库。因此该仓库只能作为字段和应用层行为的候选研究材料，不能闭合 Alpha 的真实朋友圈/收藏 schema、原生 ABI、媒体 key 或 macOS arm64 兼容性。本工程保持真实 moments/favorites 分支 fail-closed。
+
 ## `334456777/WeFlow`
 
 [334456777/WeFlow](https://github.com/334456777/WeFlow) 的公开分支包含 `crates/`、`weflow-native` 和 `weflow-wcdb-ffi` 等 Rust 后端材料，并描述了消息、联系人、朋友圈、媒体、分析和 HTTP/MCP 能力。它的 [native-cli 文档](https://github.com/334456777/WeFlow/blob/main/docs/native-cli.md) 和 [desktop Rust layer 文档](https://github.com/334456777/WeFlow/blob/main/docs/desktop-rust-layer.md) 可用于比较独立原生层的职责。
