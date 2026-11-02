@@ -11,7 +11,12 @@ const DEFAULT_OUTPUT = path.join(root, '.runtime', 'release-manifest.json');
 const ARTIFACTS = [
   ['app', 'dist/app'],
   ['runtime-bundle', 'build/runtime-bundle'],
-  ['agent', 'workers/agent/dist']
+  ['agent', 'workers/agent/dist'],
+  // The independent packaged flavor is assembled from this tree before it is
+  // copied into Resources/independent. Keep it in the top-level release
+  // manifest so a source archive records the exact backend inputs as well as
+  // the regular app and native runtime artifacts.
+  ['independent-resources', 'build/packaged-resources/independent']
 ];
 
 function fail(message) { throw new Error(message); }

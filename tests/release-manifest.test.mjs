@@ -19,6 +19,7 @@ test('release manifest records every publishable artifact and stable digest', as
   assert.equal(new Set(first.artifacts.map(item => item.path)).size, first.artifactCount);
   assert.ok(first.artifacts.some(item => item.artifact === 'app' && item.path.endsWith('/package.json')));
   assert.ok(first.artifacts.some(item => item.artifact === 'runtime-bundle'));
+  assert.ok(first.artifacts.some(item => item.artifact === 'independent-resources' && item.path.endsWith('/manifest.json')));
   const second = await buildReleaseManifest();
   assert.equal(second.artifactDigest, first.artifactDigest);
 });

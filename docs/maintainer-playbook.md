@@ -45,7 +45,7 @@ npm run release:manifest
 npm run bundle:recovery
 ```
 
-生成的 App 和 DMG 默认未签名、未公证，也不替代原生授权。发布前需要维护者自行完成代码签名、公证、更新服务和回滚验证；这些步骤当前没有被伪装成已完成。生成 `.runtime/release-manifest.json` 后运行 `npm run verify:release-manifest`，可在发布或归档前重新计算每个产物文件的大小、SHA-256、权限和总摘要。
+生成的 App 和 DMG 默认未签名、未公证，也不替代原生授权。发布前需要维护者自行完成代码签名、公证、更新服务和回滚验证；这些步骤当前没有被伪装成已完成。生成 `.runtime/release-manifest.json` 后运行 `npm run verify:release-manifest`，可在发布或归档前重新计算每个产物文件的大小、SHA-256、权限和总摘要。清单覆盖 `dist/app`、`build/runtime-bundle`、`workers/agent/dist` 以及独立 flavor 打包前的 `build/packaged-resources/independent`；后者记录复制进独立 App `Resources/independent` 的完整 backend 输入。
 
 独立 flavor 会根据 [`provenance/independent-update-mode.json`](../provenance/independent-update-mode.json) 生成 `Contents/Resources/alpha-update-mode.json`；默认 `mode=disabled`，不会继承原作者的更新公钥和地址。维护者建立自有更新服务、Ed25519 根公钥和策略后，才可以把 provenance 配置改为 `configured`；修改后必须重新生成 manifest，并验证下载、签名、安装和回滚。
 
