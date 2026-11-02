@@ -1,16 +1,16 @@
 {
   "recordedAt": "2026-11-03",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, opaque official plan intent storage, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch and explicit opt-in key-helper experiment, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, message-derived recall candidate pagination, moments anti-delete status boundary, offline SQLite schema diagnostics, native WCDB ABI artifact audit, and reproducible packaging; optional third-party WCDB compatibility probe boundary; not full Alpha parity; standalone Codex MCP stdio transport",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, opaque official plan intent storage, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch and explicit opt-in key-helper experiment, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, message-derived recall candidate pagination, moments anti-delete status boundary, offline SQLite schema diagnostics, native WCDB ABI artifact audit, and reproducible packaging; optional third-party WCDB compatibility probe boundary; not full Alpha parity; standalone Codex MCP stdio transport and independent official schedule plan metadata CRUD",
   "protocol": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 78,
-    "unsupportedRequestBranches": 50,
+    "implementedRequestBranches": 82,
+    "unsupportedRequestBranches": 46,
     "source": "packages/alpha-engine/index.cjs:SUPPORTED"
   },
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 259,
+      "passed": 264,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -678,8 +678,8 @@
       "status": "passed",
       "record": "docs/independent-support-matrix.json",
       "totalRequestBranches": 128,
-      "implementedRequestBranches": 78,
-      "unsupportedRequestBranches": 50,
+      "implementedRequestBranches": 82,
+      "unsupportedRequestBranches": 46,
       "unsupportedBehavior": "UNIMPLEMENTED"
     },
     "packagedApp": {

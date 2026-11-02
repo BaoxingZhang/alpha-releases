@@ -8,8 +8,8 @@
   },
   "counts": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 78,
-    "unsupportedRequestBranches": 50
+    "implementedRequestBranches": 82,
+    "unsupportedRequestBranches": 46
   },
   "supported": [
     {
@@ -135,6 +135,22 @@
     {
       "name": "removeAccount",
       "fieldNumber": 70
+    },
+    {
+      "name": "listOfficialSchedulePlans",
+      "fieldNumber": 81
+    },
+    {
+      "name": "getOfficialSchedulePlan",
+      "fieldNumber": 82
+    },
+    {
+      "name": "saveOfficialSchedulePlan",
+      "fieldNumber": 83
+    },
+    {
+      "name": "deleteOfficialSchedulePlan",
+      "fieldNumber": 84
     },
     {
       "name": "putPendingOfficialPlanCreate",
@@ -383,10 +399,6 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "deleteOfficialSchedulePlan",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "discoverPendingMessageResources",
       "status": "UNIMPLEMENTED"
     },
@@ -399,19 +411,11 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "getOfficialSchedulePlan",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "getOfficialScheduleRecord",
       "status": "UNIMPLEMENTED"
     },
     {
       "name": "listMaterialOfficialExports",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "listOfficialSchedulePlans",
       "status": "UNIMPLEMENTED"
     },
     {
@@ -456,10 +460,6 @@
     },
     {
       "name": "runOfficialSchedulePlanNow",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "saveOfficialSchedulePlan",
       "status": "UNIMPLEMENTED"
     },
     {

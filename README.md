@@ -33,7 +33,7 @@ npm run demo
 npm run build:wcdb-compat-probe
 ```
 
-探针只接受调用方明确传入的绝对 helper、WCDB 动态库、账号目录和密钥，当前只支持 `probe` 与 `wcdb_get_sns_timeline`。返回值固定标记 `sourceKind=explicit-third-party-wcdb`、`nativeSchemaSupported=false`、`complete=false`、`writer=false`；它不调用 Alpha 的 `_alpha_native_get_api`，不自动扫描用户目录，也不计入 Alpha 的 78/128 独立支持矩阵。WeFlow 的动态库还需要与其匹配的 `WCDB.framework`，本项目不复制第三方二进制。
+探针只接受调用方明确传入的绝对 helper、WCDB 动态库、账号目录和密钥，当前只支持 `probe` 与 `wcdb_get_sns_timeline`。返回值固定标记 `sourceKind=explicit-third-party-wcdb`、`nativeSchemaSupported=false`、`complete=false`、`writer=false`；它不调用 Alpha 的 `_alpha_native_get_api`，不自动扫描用户目录，也不计入 Alpha 的 82/128 独立支持矩阵。WeFlow 的动态库还需要与其匹配的 `WCDB.framework`，本项目不复制第三方二进制。
 
 独立模式默认保持 AI gateway 和外部 HTTP/MCP 关闭。需要测试本地 AI 对话链路时，明确传入 fixture 开关：
 
@@ -66,7 +66,7 @@ npm run bundle:recovery  # 生成排除用户数据和构建输出的源码恢�
 
 朋友圈表情的独立恢复边界是 synthetic-only：`resolveMomentEmoji` 只接受 `emoji-xml:__alpha_moment_emoji_v1:` source，并要求 `__alpha_moment_emoji_v1` 与自有 `media-index.v1.json` 唯一匹配 image、SHA-256、大小、MIME、相对路径、账号和 moment；它不解析真实评论 XML、`SnsTimeLine`/`snsmessage` 或原生媒体 token，能力边界固定为 `native_schema_supported=false`。
 
-项目的 `.github/workflows/maintenance.yml` 固定了同一套 macOS arm64 维护基线：递归获取参考子模块、按 `package-lock.json` 安装依赖、构建独立后端和 packaged 资源、组装普通与独立两个未签名 app、运行完整测试及独立/原包 smoke，并校验协议绑定、原包运行时哈希、独立 78/128 支持矩阵和维护边界。构建报告及两个 app manifest 会作为 Actions artifact 保留；Go 桥接和快照导入仍只接受项目内固定的 macOS arm64 工具链，不会在 CI 中改用系统 Go。
+项目的 `.github/workflows/maintenance.yml` 固定了同一套 macOS arm64 维护基线：递归获取参考子模块、按 `package-lock.json` 安装依赖、构建独立后端和 packaged 资源、组装普通与独立两个未签名 app、运行完整测试及独立/原包 smoke，并校验协议绑定、原包运行时哈希、独立 82/128 支持矩阵和维护边界。构建报告及两个 app manifest 会作为 Actions artifact 保留；Go 桥接和快照导入仍只接受项目内固定的 macOS arm64 工具链，不会在 CI 中改用系统 Go。
 
 `npm run release:manifest` 会对 `dist/app`、`build/runtime-bundle`、`workers/agent/dist` 和 `build/packaged-resources/independent` 的每个文件生成 SHA-256 清单与整体摘要，写入 `.runtime/release-manifest.json`。其中最后一项是独立 flavor 复制到 app `Resources/independent` 前的完整后端资源输入，确保发布清单能够追溯独立引擎、协议、运行时依赖和 Go 桥接产物。清单明确标记目标为 macOS arm64、原生代码未重新编译且项目未签名；它是发布审计材料，不是 DMG、代码签名或公证结果。原生运行时仍必须先通过 `npm run verify:vendor`。
 
@@ -131,7 +131,7 @@ esbuild 会重新处理 13 个 JS 文件并生成调试 source map。这里的�
 npm run verify:protocol # 校验独立协议模块仍与恢复源一致
 npm run audit:api       # 对照官方 HTTP/MCP 契约与当前独立适配器覆盖面
 npm run verify:packaged-markers # 校验普通/独立 App 的 backend marker、manifest 和 Bundle ID
-npm run verify:independent-support # 校验128项独立后端支持矩阵未漂移（当前78项已实现）
+npm run verify:independent-support # 校验128项独立后端支持矩阵未漂移（当前82项已实现）
 npm run test:protocol   # 编解码、分帧边界与来源测试
 npm run verify:vendor   # 核对43个原包运行时文件的SHA256和权限
 npm run audit:native-abi # 只读盘点原生 WCDB dylib 的架构、导出、依赖和签名

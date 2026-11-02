@@ -16,6 +16,7 @@ const { createChatExportJobs } = require('./chat-export-jobs.cjs');
 const { createRecordExportJobs } = require('./records-export-jobs.cjs');
 const { createMomentsExportJobs } = require('./moments-export-jobs.cjs');
 const { createChatExportSchedules } = require('./chat-export-schedules.cjs');
+const { createOfficialSchedulePlans } = require('./official-schedule-plans.cjs');
 const { createGenericJobs } = require('./generic-jobs.cjs');
 const { createAggregateAnalysisJobs } = require('./aggregate-analysis-jobs.cjs');
 const { contactsXlsx, conversationXlsx, groupMembersXlsx, recordsXlsx } = require('./xlsx-writer.cjs');
@@ -24,7 +25,7 @@ const { loadMediaIndex, readMediaEntry } = require('./media-index.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, acquireDatabaseKey: 69, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, listMessageRecallRecords: 100, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23, putPendingOfficialPlanCreate: 86, getPendingOfficialPlanCreate: 87, clearPendingOfficialPlanCreate: 88 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, acquireDatabaseKey: 69, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, listMessageRecallRecords: 100, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, listOfficialSchedulePlans: 81, getOfficialSchedulePlan: 82, saveOfficialSchedulePlan: 83, deleteOfficialSchedulePlan: 84, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23, putPendingOfficialPlanCreate: 86, getPendingOfficialPlanCreate: 87, clearPendingOfficialPlanCreate: 88 });
 // These enum values are recovered from the Alpha protocol. The independent
 // engine can report the local package boundary, but it cannot start or claim
 // a dynamically entitled native component. Keep this status explicit and
@@ -1767,6 +1768,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
   let recordExportJobs;
   let momentExportJobs;
   let chatExportSchedules;
+  let officialSchedulePlans;
   let aggregateAnalysisJobs;
   let genericJobs;
 
@@ -2356,6 +2358,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
         await chatExportJobs.removeAccount(accountId);
         await momentExportJobs.removeAccount(accountId);
         await recordExportJobs.removeAccount(accountId);
+        await officialSchedulePlans.removeAccount(accountId);
         await aggregateAnalysisJobs.removeAccount(accountId);
         await dropBridge();
         removeOfficialPlanIntent();
@@ -3133,6 +3136,22 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       await requireAccount(request.accountId);
       return chatExportSchedules.retry(request);
     },
+    async listOfficialSchedulePlans(request) {
+      await requireAccount(request.accountId);
+      return officialSchedulePlans.listPlans(request);
+    },
+    async getOfficialSchedulePlan(request) {
+      await requireAccount(request.accountId);
+      return officialSchedulePlans.getPlan(request);
+    },
+    async saveOfficialSchedulePlan(request) {
+      await requireAccount(request.plan?.accountId);
+      return officialSchedulePlans.save(request);
+    },
+    async deleteOfficialSchedulePlan(request) {
+      await requireAccount(request.accountId);
+      return officialSchedulePlans.deletePlan(request);
+    },
     async listMessages(request) {
       const value = await requireAccount(request.accountId); const limit = pageSize(request.page);
       if (!request.conversationId || request.conversationId.length > 1024) throw error('CONVERSATION_ID_INVALID');
@@ -3161,6 +3180,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
     startExport: request => chatExportJobs.start(request),
     watchExport: jobId => chatExportJobs.watch(jobId)
   });
+  officialSchedulePlans = createOfficialSchedulePlans({ stateDir, accountId });
   aggregateAnalysisJobs = createAggregateAnalysisJobs({ runAnalysis: runAggregateAnalysis });
   genericJobs = createGenericJobs({ chatExportJobs, momentExportJobs, recordExportJobs });
   return {
@@ -3207,7 +3227,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       return schemaDiagnosticResponse(await callData('schema.inspect', {}));
     },
     async cancelPending() { await cancelImport(); },
-    async close() { await aggregateAnalysisJobs.close(); await chatExportSchedules.close(); await chatExportJobs.close(); await momentExportJobs.close(); closed = true; await cancelImport(); await dropBridge(); }
+    async close() { await aggregateAnalysisJobs.close(); await officialSchedulePlans.close(); await chatExportSchedules.close(); await chatExportJobs.close(); await momentExportJobs.close(); closed = true; await cancelImport(); await dropBridge(); }
   };
 }
 

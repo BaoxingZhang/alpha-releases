@@ -209,6 +209,49 @@ test('removeAccount clears independent state, preserves the source, and requires
   assert.equal(await fs.stat(tombstone).then(() => true, () => false), false);
 });
 
+test('independent official schedule plans persist local metadata with CAS and account isolation', async t => {
+  const f = await fixture(t), c = f.start();
+  const hello = await handshake(c);
+  for (const method of ['listOfficialSchedulePlans', 'getOfficialSchedulePlan', 'saveOfficialSchedulePlan', 'deleteOfficialSchedulePlan']) assert.ok(hello.supportedMethodIds.includes(SUPPORTED[method]), method);
+  assert.deepEqual(ok(await c.send('listOfficialSchedulePlans', { accountId }), 'listOfficialSchedulePlans'), { plans: [], truncated: false });
+
+  const base = {
+    scheduleId: '11111111-1111-4111-8111-111111111111', accountId,
+    officialAccountId: 'gh_alpha', materialBundleId: 'bundle-1', scope: 1, selected: [], formats: ['json'],
+    downloadAssets: false, includeMedia: false, maxPages: 20, intervalSeconds: 3600n,
+    nextRunUnixMs: 0n, enabled: true, createdAtUnixMs: 0n, updatedAtUnixMs: 0n
+  };
+  const created = ok(await c.send('saveOfficialSchedulePlan', { plan: base, mode: 1, expectedUpdatedAtUnixMs: 0n }), 'saveOfficialSchedulePlan');
+  assert.equal(created.accountId, accountId); assert.equal(created.scheduleId, base.scheduleId);
+  assert.ok(created.updatedAtUnixMs > 0n); assert.equal(created.createdAtUnixMs, created.updatedAtUnixMs);
+  const stateFile = path.join(f.stateDir, 'official-schedule-plans.v1.json');
+  assert.equal((await fs.stat(stateFile)).mode & 0o077, 0);
+  const fetched = ok(await c.send('getOfficialSchedulePlan', { accountId, scheduleId: base.scheduleId }), 'getOfficialSchedulePlan');
+  assert.deepEqual(fetched.formats, ['json']); assert.equal(fetched.intervalSeconds, 3600n);
+  assert.equal((await c.send('getOfficialSchedulePlan', { accountId, scheduleId: '22222222-2222-4222-8222-222222222222' })).error.code, 'OFFICIAL_SCHEDULE_PLAN_NOT_FOUND');
+
+  const disabled = { ...base, scheduleId: '22222222-2222-4222-8222-222222222222', enabled: false };
+  const disabledCreated = ok(await c.send('saveOfficialSchedulePlan', { plan: disabled, mode: 1, expectedUpdatedAtUnixMs: 0n }), 'saveOfficialSchedulePlan');
+  assert.equal(ok(await c.send('listOfficialSchedulePlans', { accountId }), 'listOfficialSchedulePlans').plans.length, 1);
+  const limited = ok(await c.send('listOfficialSchedulePlans', { accountId, includeDisabled: true, limit: 1 }), 'listOfficialSchedulePlans');
+  assert.equal(limited.plans.length, 1); assert.equal(limited.truncated, true);
+
+  const changed = { ...fetched, enabled: false };
+  assert.equal((await c.send('saveOfficialSchedulePlan', { plan: changed, mode: 2, expectedUpdatedAtUnixMs: fetched.updatedAtUnixMs - 1n })).error.code, 'OFFICIAL_SCHEDULE_PLAN_CONFLICT');
+  const current = ok(await c.send('getOfficialSchedulePlan', { accountId, scheduleId: base.scheduleId }), 'getOfficialSchedulePlan');
+  const replaced = ok(await c.send('saveOfficialSchedulePlan', { plan: changed, mode: 2, expectedUpdatedAtUnixMs: current.updatedAtUnixMs }), 'saveOfficialSchedulePlan');
+  assert.equal(replaced.enabled, false); assert.equal(replaced.createdAtUnixMs, current.createdAtUnixMs); assert.ok(replaced.updatedAtUnixMs > current.updatedAtUnixMs);
+  assert.equal((await c.send('deleteOfficialSchedulePlan', { accountId, scheduleId: base.scheduleId, expectedUpdatedAtUnixMs: current.updatedAtUnixMs })).error.code, 'OFFICIAL_SCHEDULE_PLAN_CONFLICT');
+  assert.deepEqual(ok(await c.send('deleteOfficialSchedulePlan', { accountId, scheduleId: base.scheduleId, expectedUpdatedAtUnixMs: replaced.updatedAtUnixMs }), 'deleteOfficialSchedulePlan'), { accountId, scheduleId: base.scheduleId, deleted: true });
+  assert.equal((await c.send('saveOfficialSchedulePlan', { plan: { ...base, accountId: 'other-account' }, mode: 1, expectedUpdatedAtUnixMs: 0n })).error.code, 'ACCOUNT_NOT_FOUND');
+  assert.equal((await c.send('saveOfficialSchedulePlan', { plan: { ...base, scheduleId: '33333333-3333-4333-8333-333333333333', selected: [{ sourceArticleId: 'a', canonicalUrl: 'file:///secret' }] }, mode: 1, expectedUpdatedAtUnixMs: 0n })).error.code, 'OFFICIAL_SCHEDULE_PLAN_INVALID');
+
+  await c.close();
+  const reopened = f.start(); await handshake(reopened);
+  assert.deepEqual(ok(await reopened.send('listOfficialSchedulePlans', { accountId, includeDisabled: true }), 'listOfficialSchedulePlans').plans.map(item => item.scheduleId), [disabled.scheduleId]);
+  assert.deepEqual(ok(await reopened.send('deleteOfficialSchedulePlan', { accountId, scheduleId: disabled.scheduleId, expectedUpdatedAtUnixMs: disabledCreated.updatedAtUnixMs }), 'deleteOfficialSchedulePlan'), { accountId, scheduleId: disabled.scheduleId, deleted: true });
+});
+
 test('official plan creation intent stores opaque ciphertext with idempotent CAS semantics', async t => {
   const f = await fixture(t), c = f.start(); await handshake(c);
   const scheduleId = '11111111-1111-4111-8111-111111111111';
