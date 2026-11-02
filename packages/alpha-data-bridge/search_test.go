@@ -41,3 +41,23 @@ func TestSyntheticVoiceReferenceAcceptsContentAddressedIdentity(t *testing.T) {
 		t.Fatalf("legacy voice identity changed: %#v", legacy)
 	}
 }
+
+func TestSyntheticFileReferenceRequiresVerifiedFileDisplay(t *testing.T) {
+	const id = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+	content := `<msg sha256="` + id + `"><appmsg><type>6</type><title>archive.zip</title><appattach><totallen>26</totallen><fileext>zip</fileext></appattach></appmsg></msg>`
+	const fileLocalType = "25769803825" // (6 << 32) | 49, the bounded appmsg file envelope
+	if refs := mediaReferences(fileLocalType, "501", content); len(refs) != 0 {
+		t.Fatalf("file refs must require the verified display gate: %#v", refs)
+	}
+	display := parseMessageDisplay(fileLocalType, content, "wxid_peer", "wxid_sender")
+	if display == nil || display.Kind != "file" {
+		t.Fatalf("bounded file display was not recognized: %#v", display)
+	}
+	refs := mediaReferences(fileLocalType, "501", content, display != nil && display.Kind == "file")
+	if len(refs) != 1 || refs[0].Kind != "file" || refs[0].ID != id || refs[0].MimeType != "application/octet-stream" || refs[0].Rendition != "source" {
+		t.Fatalf("unexpected synthetic file refs: %#v", refs)
+	}
+	if refs := mediaReferences(fileLocalType, "501", `<msg sha256="`+id+`"><meta sha256="`+id+`"/><appmsg><type>6</type><title>archive.zip</title></appmsg></msg>`, true); len(refs) != 0 {
+		t.Fatalf("ambiguous synthetic file markers must fail closed: %#v", refs)
+	}
+}

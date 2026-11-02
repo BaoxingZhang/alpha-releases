@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-02T04:29:32.566Z",
+  "builtAt": "2026-11-02T04:58:53.322Z",
   "node": "v24.21.0",
   "electron": "44.10.1",
   "esbuild": "0.28.2",
@@ -28,7 +28,7 @@
         "source": "build/candidates/alpha-data-bridge",
         "path": "independent/bin/alpha-data-bridge",
         "bytes": 8566642,
-        "sha256": "69354d90a93a8a5fafd1a7b7d59bb3f28390494d2c68d9e7c1e817b46528d3c8",
+        "sha256": "328253396886e7c16ab4371881bd4938bf57a61b93e6f5d11ca5de858080195c",
         "mode": "755"
       },
       {
@@ -36,7 +36,7 @@
         "source": "build/candidates/alpha-snapshot-import",
         "path": "independent/bin/alpha-snapshot-import",
         "bytes": 7816610,
-        "sha256": "a676b3a1bb69ff5ea09bb791c5f4787fa13eb4ae49d5c822bc52ca64795c794e",
+        "sha256": "842e98b8aaf00fbf51f42ed8114c306db55ddf468e22aa5f0d7237a3709d025c",
         "mode": "755"
       }
     ],

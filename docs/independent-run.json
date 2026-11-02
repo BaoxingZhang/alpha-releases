@@ -1,12 +1,12 @@
 {
-  "testedAt": "2026-11-02T03:43:33.453Z",
-  "session": "independent-smoke-1793591013353",
+  "testedAt": "2026-11-02T04:59:07.433Z",
+  "session": "independent-smoke-1793595547317",
   "fixture": {
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793591013353/fixture",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793595547317/fixture",
     "accountId": "synthetic-account",
     "conversationId": "wxid_alpha",
     "selfUsername": "wxid_self",
-    "messageCount": 8,
+    "messageCount": 9,
     "table": "Msg_7bb4baf3ba51e2b4d2c4b53ebd645e40"
   },
   "realUserDataAccessed": false,
@@ -21,6 +21,7 @@
     "independentImageReadThroughRendererIpc": true,
     "independentImagePreviewRendered": true,
     "independentVoicePlaybackThroughRendererIpc": true,
+    "independentFileAttachmentThroughRendererIpc": true,
     "messageRendered": true,
     "syntheticMomentsRenderedReadOnly": true,
     "syntheticFavoritesRenderedReadOnly": true,
@@ -55,7 +56,7 @@
     {
       "id": "synthetic-account",
       "sourceProfile": "alpha-independent-offline-v4",
-      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793591013353/fixture",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793595547317/fixture",
       "subjectId": "",
       "displayName": "离线数据源 · synthetic-account",
       "schemaProfile": "wechat-v4-offline",
@@ -260,7 +261,7 @@
             "uri": "alpha-media://sha256/431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460",
             "mimeType": "image/png",
             "rendition": "source",
-            "displayUrl": "alpha-media://img/77d9602b20460dc6e2b19b1073be0508/431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460/f01610d9528ae271b9929caf9f8255d1d5787b8a25ff4ade19049ca33a5ce05e"
+            "displayUrl": "alpha-media://img/028204059704f7882418ce088163c8b1/431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460/46f72f5163396231cc50b2fec5ccd59dced24d275e9c16cfe85349f55af15fee"
           }
         ],
         "senderId": "wxid_alpha",
@@ -291,6 +292,36 @@
         "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzAuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiI3In0",
         "platformMessageId": "401",
         "sourceType": "34"
+      },
+      {
+        "id": "msg-d6eb79642689a5a5dd58254c243bad3a661adda30041f8b6eecb8ddaa22758b3",
+        "localId": 8,
+        "serverId": "402",
+        "conversationId": "wxid_alpha",
+        "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+        "sentAtUnixMs": "1700000007000",
+        "direction": 0,
+        "kind": "share",
+        "text": "<msg sha256=\"ee1939ca0f55437478a864621c179b40e6c366ee8c0672944f2b1c888a2f2e2d\"><appmsg><type>6</type><title>archive.zip</title><appattach><totallen>27</totallen><fileext>zip</fileext></appattach></appmsg></msg>",
+        "refs": [
+          {
+            "kind": "file",
+            "id": "ee1939ca0f55437478a864621c179b40e6c366ee8c0672944f2b1c888a2f2e2d",
+            "uri": "alpha-media://sha256/ee1939ca0f55437478a864621c179b40e6c366ee8c0672944f2b1c888a2f2e2d",
+            "mimeType": "application/zip",
+            "rendition": "source"
+          }
+        ],
+        "display": {
+          "kind": "file",
+          "fileName": "archive.zip",
+          "fileSize": "27",
+          "fileExtension": "zip"
+        },
+        "senderId": "wxid_alpha",
+        "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzAuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiI4In0",
+        "platformMessageId": "402",
+        "sourceType": "25769803825"
       }
     ],
     "sourceMessage": {
@@ -397,23 +428,23 @@
   },
   "ownedChildProcesses": [
     {
-      "pid": 42846,
+      "pid": 18016,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 42847,
+      "pid": 18017,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 42855,
+      "pid": 18020,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
     },
     {
-      "pid": 42856,
+      "pid": 18021,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge"
     },
     {
-      "pid": 42857,
+      "pid": 18022,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
     }
   ],
@@ -425,16 +456,19 @@
     "mimeType": "audio/wav",
     "dataBase64": "UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQIAAAAAAA=="
   },
+  "attachment": {
+    "fileName": "archive.zip"
+  },
   "recordExport": {
-    "jobId": "a71a223f-2942-43c7-ac5c-4a1c772bbc9a",
+    "jobId": "58f1662e-7b1a-4707-b5a9-1d1e2dcae0ba",
     "accountId": "synthetic-account",
     "kind": "records",
     "state": "completed",
     "format": "json",
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793591013353/records-export",
-    "createdAtUnixMs": "1793591015980",
-    "updatedAtUnixMs": "1793591015986",
-    "finishedAtUnixMs": "1793591015986",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793595547317/records-export",
+    "createdAtUnixMs": "1793595549990",
+    "updatedAtUnixMs": "1793595549997",
+    "finishedAtUnixMs": "1793595549997",
     "items": [
       {
         "conversationId": "payments",
@@ -445,7 +479,7 @@
         "messagesTotal": 0,
         "mediaSaved": 0,
         "mediaFailed": 0,
-        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793591013353/records-export/payments-71a312ebf4b8.json"
+        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793595547317/records-export/payments-71a312ebf4b8.json"
       }
     ]
   },
@@ -499,6 +533,6 @@
       "passwordRetryAfterMs": 0,
       "passwordFailedAttempts": 0
     },
-    "resumedCount": 8
+    "resumedCount": 9
   }
 }

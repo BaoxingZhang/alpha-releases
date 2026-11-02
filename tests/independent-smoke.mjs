@@ -43,6 +43,11 @@ const imageMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify(
 })).digest('hex')}`;
 fixture.messageCount += 1;
 const imageSha256 = crypto.createHash('sha256').update(imageBytes).digest('hex');
+const fileBytes = Buffer.from('synthetic attachment bytes\n', 'utf8');
+const fileId = crypto.createHash('sha256').update(fileBytes).digest('hex');
+const fileRelativePath = `media/files/${fileId}.zip`;
+fs.mkdirSync(path.dirname(path.join(fixture.directory, fileRelativePath)), { recursive: true, mode: 0o700 });
+fs.writeFileSync(path.join(fixture.directory, fileRelativePath), fileBytes, { mode: 0o600 });
 const voiceBytes = Buffer.alloc(46);
 voiceBytes.write('RIFF', 0, 'ascii');
 voiceBytes.writeUInt32LE(voiceBytes.length - 8, 4);
@@ -70,9 +75,18 @@ fs.writeFileSync(path.join(fixture.directory, voiceRelativePath), voiceBytes, { 
   db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
     7, 401, 401, 34, 1700000006, 1, 1, `<msg sha256="${voiceId}"/> voice source`, Buffer.alloc(0)
   );
+  db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+    8, 402, 402, 25769803825, 1700000007, 1, 1, `<msg sha256="${fileId}"><appmsg><type>6</type><title>archive.zip</title><appattach><totallen>${fileBytes.length}</totallen><fileext>zip</fileext></appattach></appmsg></msg>`, Buffer.alloc(0)
+  );
   db.close();
 }
-fixture.messageCount += 1;
+fixture.messageCount += 2;
+const fileMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({
+  accountId: fixture.accountId,
+  database: 'message/message_0.db',
+  table: messageTable,
+  localId: '8'
+})).digest('hex')}`;
 fs.writeFileSync(path.join(fixture.directory, 'media-index.v1.json'), JSON.stringify({
   version: 1,
   accountId: fixture.accountId,
@@ -88,6 +102,17 @@ fs.writeFileSync(path.join(fixture.directory, 'media-index.v1.json'), JSON.strin
     conversationId: fixture.conversationId,
     messageId: imageMessageId,
     sentAtUnixMs: '1700000005000'
+  }, {
+    kind: 'file',
+    id: fileId,
+    rendition: 'source',
+    relativePath: fileRelativePath,
+    sha256: fileId,
+    sizeBytes: fileBytes.length,
+    mimeType: 'application/zip',
+    accountId: fixture.accountId,
+    conversationId: fixture.conversationId,
+    messageId: fileMessageId
   }, {
     kind: 'voice',
     id: voiceId,
@@ -166,6 +191,11 @@ try {
   const voiceMessage = read.messages.find(message => message.text.includes('voice source'));
   assert.equal(voiceMessage?.refs?.[0]?.uri, `alpha-media://sha256/${voiceId}`);
   assert.equal(voiceMessage?.refs?.[0]?.rendition, 'wav');
+  const fileMessage = read.messages.find(message => message.display?.fileName === 'archive.zip');
+  assert.equal(fileMessage?.id, fileMessageId);
+  assert.equal(fileMessage?.display?.kind, 'file');
+  assert.equal(fileMessage?.refs?.[0]?.uri, `alpha-media://sha256/${fileId}`);
+  assert.equal(fileMessage?.refs?.[0]?.kind, 'file');
   report.checks.realSqliteThroughDesktopIpc = true;
   report.checks.independentMessageSourceThroughRendererIpc = true;
   // Exercise the real renderer -> preload -> main IPC path for the recovered
@@ -220,6 +250,18 @@ try {
   });
   assert.deepEqual(report.voice, { mimeType: 'audio/wav', dataBase64: voiceBytes.toString('base64') });
   report.checks.independentVoicePlaybackThroughRendererIpc = true;
+  report.attachment = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.openAttachment(accountId, opaqueId, 'reveal'), {
+    accountId: fixture.accountId,
+    opaqueId: fileId
+  });
+  assert.deepEqual(report.attachment, { fileName: 'archive.zip' });
+  const attachmentRoot = path.join(runtime, 'temp', 'alpha-attachment-open');
+  const attachmentFiles = fs.readdirSync(attachmentRoot, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile() && entry.name === 'archive.zip')
+    .map(entry => path.join(entry.parentPath, entry.name));
+  assert.equal(attachmentFiles.length, 1);
+  assert.deepEqual(fs.readFileSync(attachmentFiles[0]), fileBytes);
+  report.checks.independentFileAttachmentThroughRendererIpc = true;
   report.checks.messageRendered = true;
   await page.getByRole('button', { name: '朋友圈', exact: true }).click({ timeout: 15000 });
   await page.locator('section[aria-label="朋友圈浏览器"]').waitFor({ timeout: 15000 });

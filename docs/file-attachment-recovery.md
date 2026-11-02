@@ -8,6 +8,6 @@
 
 这条链路证明的是自有 SHA-256 索引和 synthetic/独立消息 DTO 的只读附件能力，不证明真实微信附件表、`media1_` token、DAT/AES 解码、远程补齐、写入或发送语义。测试见 [`tests/file-attachment-index.test.mjs`](../tests/file-attachment-index.test.mjs)。
 
-当前 Go bridge 的已验证 `refs` 解析仍只生成 image/video/voice 引用；本次主进程 fallback 接受的是上层已经明确声明的 `kind=file` ref，不会从任意文件 XML 或本地目录猜测附件。因而现有 4 个测试覆盖索引读取、哈希、路径、账号和 grant 边界，真实 file message XML 到 ref 的解析仍列为后续缺口。
+当前 Go bridge 只在 bounded `type=6` display envelope 已验证且正文带显式 `sha256` synthetic marker 时生成 `kind=file` ref；这条 marker 不是原生 `filemd5` 或路径语义。主进程 fallback 仍不会从任意文件 XML 或本地目录猜测附件。现有测试覆盖 bridge marker gate、索引读取、哈希、路径、账号和 grant 边界；真实 file message schema 和原生 token 仍列为后续缺口。
 
 打包验证还确认独立版 `.app` 的 packaged resources 含有该模块，直接启动 Electron 可观察到 `bootstrap → main-loaded → ready → renderer did-finish-load` 生命周期和独立引擎子进程。这个启动证据不等于通过 packaged UI 读取 file fixture；直接执行 Electron binary 时 `app.isPackaged=false`，因此仍保留该限制。

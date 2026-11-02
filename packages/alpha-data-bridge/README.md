@@ -68,9 +68,9 @@ Cursor 是 bridge 产生的不透明 base64url 字符串，绑定本次数据快
 
 ### 媒体引用（只读声明）
 
-`refs` 只在消息内容明确声明媒体标识或 URL 时出现，字段为 `kind`（`image`、`video` 或 `voice`）、可选 `id`、可选 `uri`、可选 `mimeType` 和 `rendition`。图片（`localType=3`）提取文本中的 `md5`/`rawmd5` 与 `cdnthumburl`/`cdnurl`/`url` 属性；视频（`localType=43`）使用相同规则；语音（`localType=34`）仅使用该行真实 `serverId` 作为引用 ID。每条消息最多返回两条引用，重复哈希去重，属性和长度均有上限。
+`refs` 只在消息内容明确声明媒体标识或 URL 时出现，字段为 `kind`（`image`、`video`、`voice` 或受独立 synthetic marker 限制的 `file`）、可选 `id`、可选 `uri`、可选 `mimeType` 和 `rendition`。图片（`localType=3`）提取文本中的 `md5`/`rawmd5` 与 `cdnthumburl`/`cdnurl`/`url` 属性；视频（`localType=43`）使用相同规则；语音（`localType=34`）仅使用该行真实 `serverId` 作为引用 ID；文件只在 bounded `type=6` display envelope 已验证且正文带显式 `sha256` synthetic marker 时返回 `application/octet-stream` 的 `source` ref。每条消息最多返回两条引用，重复哈希去重，属性和长度均有上限。
 
-这些是消息内容中的声明性引用，不是已经验证的文件。bridge 不推断本地路径、不读取或解密 `.dat`/语音/视频、不联网下载 CDN，也不生成 `media1_...` 解析令牌。图片/视频没有可解析声明、内容损坏或超限时返回空 `refs`；语音的 `serverId` 引用独立于正文编码状态。任何情况下都不会伪造路径或 token；上层若收到不支持的 URI scheme 会明确拒绝该消息 DTO。
+这些是消息内容中的声明性引用，不是已经验证的文件。bridge 不推断本地路径、不读取或解密 `.dat`/语音/视频/文件、不联网下载 CDN，也不生成 `media1_...` 解析令牌。图片/视频没有可解析声明、内容损坏或超限时返回空 `refs`；语音的 `serverId` 引用独立于正文编码状态；文件 marker 只用于显式 independent fixture。任何情况下都不会伪造路径或 token；上层若收到不支持的 URI scheme 会明确拒绝该消息 DTO。
 
 ## 读取边界
 

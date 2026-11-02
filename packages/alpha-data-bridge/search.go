@@ -297,7 +297,20 @@ var mediaURLPattern = regexp.MustCompile(`(?i)(cdnthumburl|cdnurl|url)=["']([^"'
 // message itself. It never turns an inferred path into a local file URI or a
 // mediaResolveToken; resolving bytes requires a separately verified media
 // index and is deliberately left unavailable in the independent backend.
-func mediaReferences(localType, serverID, content string) []mediaRef {
+//
+// explicitFile is only set after parseMessageDisplay has verified a bounded
+// type=6 file envelope. It accepts the independent synthetic sha256 marker,
+// matching the synthetic voice path above; it does not infer a native file
+// identifier from a filename, path or arbitrary appmsg XML.
+func mediaReferences(localType, serverID, content string, explicitFile ...bool) []mediaRef {
+	localTypeValue, localTypeErr := strconv.ParseUint(localType, 10, 64)
+	if localTypeErr == nil && localTypeValue&0xffffffff == 49 && len(explicitFile) > 0 && explicitFile[0] {
+		matches := mediaSHA256Pattern.FindAllStringSubmatch(content, -1)
+		if len(matches) == 1 && len(matches[0]) == 2 {
+			return []mediaRef{{Kind: "file", ID: strings.ToLower(matches[0][1]), MimeType: "application/octet-stream", Rendition: "source"}}
+		}
+		return nil
+	}
 	kind := ""
 	mime := ""
 	switch localType {
@@ -382,6 +395,13 @@ func scanMessage(rows messageScanner, d *database, table, conversation string) (
 	// verifiable even when the encoded audio payload is not UTF-8 text.
 	if item.ContentDecodeStatus == "decoded" || item.LocalType == "34" {
 		item.Refs = mediaReferences(item.LocalType, item.ServerID, item.Content)
+	}
+	// A file ref is accepted only after the bounded display parser proves that
+	// this is an appmsg type=6 envelope. The sha256 marker is an explicit
+	// independent fixture identity; no native filemd5/path semantics are
+	// inferred here.
+	if item.ContentDecodeStatus == "decoded" && item.Display != nil && item.Display.Kind == "file" {
+		item.Refs = mediaReferences(item.LocalType, item.ServerID, item.Content, true)
 	}
 	item.Source = sourceRef{Database: d.relative, Table: table, LocalID: item.LocalID}
 	return item, nil
