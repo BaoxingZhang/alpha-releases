@@ -12,6 +12,17 @@ Alpha 的“其他资料”页面和导出入口仍保留在恢复的界面中�
 - renderer 会调用 `window.alpha.data.generalRecords(accountId, category)`，并期待 `id`、`atUnixMs`、`tableName`、`actor`、`fields`、`truncated` 等字段；不同分类还要求支付、好友验证、撤回、通话、朋友圈互动和搜索的专用字段。
 - `startRecordExport` 只是把经过校验的请求转发到原生 frame 136。恢复出的 JavaScript 没有实现记录查询或字段组装。
 
+撤回相关的两个界面入口需要保持分层。`其他资料 → 撤回` 继续调用
+`window.alpha.data.generalRecords(accountId, "revokes")`，展示全账号范围的
+`listGeneral` 候选行，并支持筛选和记录导出；设置里的 retained-records 对话框则按
+会话调用 `window.alpha.messageRecall.list`，消费 `recordId`、`originalText`、
+`confirmation` 和独立分页 cursor。后者是保留记录 DTO，不是通用资料行。独立模式下
+两条路径都必须保留 `partial/candidate`、`unverified-candidate` 和
+`native_schema_supported=false` 的边界；不能把按会话的候选 DTO 合并到全账号资料页，
+也不能把候选原文显示成已确认的 native recall store 内容。相关 renderer 入口是
+`RecordsCategoryView`/`RevokeRow` 与 `RetainedRecordsDialog`，主进程入口分别是
+`listGeneralRecords` 与 `listMessageRecallRecords`。
+
 这些是可编辑的调用契约和页面语义，属于观察到的产品层事实；它们不是 SQLite schema 证据。
 
 ## 当前独立 bridge 能证明的范围
