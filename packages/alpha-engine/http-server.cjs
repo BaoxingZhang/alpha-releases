@@ -15,7 +15,7 @@ const PRINTABLE_TOKEN = /^[\x21-\x7e]{32,256}$/;
 // Conversation export only writes a new file through the engine's bounded,
 // non-overwriting exporter. It does not mutate the source database, but it is
 // kept separate from the ordinary DTO reads so the route remains explicit.
-const ALLOWED_METHODS = new Set(['listAccounts', 'listConversations', 'listMessages', 'searchMessages', 'listContacts', 'listMoments', 'listFavorites', 'listFavoriteMediaSlots', 'resolveFavoriteMedia', 'listMomentAuthors', 'getMomentDayCounts', 'getContactProfile', 'listGeneral', 'getConversationDayCounts', 'getChatExportStats', 'getChatExportCapabilities', 'exportConversation', 'startMomentExport', 'watchChatExport', 'cancelChatExport', 'startAggregateAnalysis', 'watchAggregateAnalysis', 'cancelAggregateAnalysis', 'locateMessage', 'getMessageSource', 'decodeVoicePlayback', 'analyzeAnnual', 'analyzeConversation', 'browseConversationMessages', 'browseAccountMedia']);
+const ALLOWED_METHODS = new Set(['listAccounts', 'listConversations', 'listMessages', 'searchMessages', 'listContacts', 'listMoments', 'listFavorites', 'listFavoriteMediaSlots', 'resolveFavoriteMedia', 'listMomentAuthors', 'getMomentDayCounts', 'getContactProfile', 'listGeneral', 'getConversationDayCounts', 'getChatExportStats', 'getChatExportCapabilities', 'exportConversation', 'startMomentExport', 'watchChatExport', 'cancelChatExport', 'startAggregateAnalysis', 'watchAggregateAnalysis', 'cancelAggregateAnalysis', 'locateMessage', 'getMessageSource', 'decodeVoicePlayback', 'analyzeAnnual', 'analyzeConversation', 'browseConversationMessages', 'browseAccountMedia', 'listChatExportSchedules', 'getChatExportSchedule', 'saveChatExportSchedule', 'deleteChatExportSchedule', 'runChatExportScheduleNow', 'listChatExportRuns', 'getChatExportRun', 'listChatExportAttempts', 'getChatExportAttempt', 'retryChatExportAttempt']);
 const MCP_SCAN_MAX_PAGES = 128;
 const MCP_SCAN_MAX_ITEMS = 10000;
 
@@ -167,6 +167,88 @@ function responseJson(frame, method) {
 }
 function accountId(params) { return oneAlias(params, ['account', 'account_id'], 'HTTP_API_ACCOUNT_AMBIGUOUS'); }
 function conversationId(params) { return oneAlias(params, ['username', 'talker', 'session_id', 'conversation_id'], 'HTTP_API_CONVERSATION_AMBIGUOUS'); }
+const SCHEDULE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+function scheduleUuid(value, code) {
+  const normalized = text(value, 64, code);
+  if (!normalized || !SCHEDULE_UUID.test(normalized) || normalized === '00000000-0000-0000-0000-000000000000') throw new HttpAdapterError(code, 400);
+  return normalized;
+}
+function scheduleUint(value, code, required = false) {
+  if (value === undefined || value === '') {
+    if (required) throw new HttpAdapterError(code, 400);
+    return undefined;
+  }
+  if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'bigint' || !/^(?:0|[1-9][0-9]{0,18})$/.test(String(value))) throw new HttpAdapterError(code, 400);
+  try {
+    const result = BigInt(String(value));
+    if (result > 9223372036854775807n) throw new Error('too large');
+    return result;
+  } catch { throw new HttpAdapterError(code, 400); }
+}
+function scheduleStringArray(value, max, code) {
+  if (!Array.isArray(value) || value.length > max || new Set(value).size !== value.length || value.some(item => typeof item !== 'string' || !item || item.length > 1024 || item.includes('\0'))) throw new HttpAdapterError(code, 400);
+  return [...value];
+}
+function scheduleOptions(raw, code = 'HTTP_API_SCHEDULE_OPTIONS_INVALID') {
+  if (raw === undefined || raw === null) return undefined;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new HttpAdapterError(code, 400);
+  const value = {
+    outputDirectory: text(raw.output_directory ?? raw.outputDirectory, 4096, code) || '',
+    outputLayout: text(raw.output_layout ?? raw.outputLayout, 64, code) || '',
+    conflictPolicy: text(raw.conflict_policy ?? raw.conflictPolicy, 64, code) || '',
+    displayNamePreference: text(raw.display_name_preference ?? raw.displayNamePreference, 64, code) || '',
+    xlsxColumns: raw.xlsx_columns ?? raw.xlsxColumns ?? [],
+    avatars: raw.avatars === undefined ? false : raw.avatars,
+    messageTypes: raw.message_types ?? raw.messageTypes ?? [],
+    mediaKinds: raw.media_kinds ?? raw.mediaKinds ?? [],
+    voiceTranscripts: raw.voice_transcripts ?? raw.voiceTranscripts ?? false,
+    rangeMode: text(raw.range_mode ?? raw.rangeMode, 64, code) || ''
+  };
+  for (const [field, max] of [['xlsxColumns', 128], ['messageTypes', 128], ['mediaKinds', 128]]) value[field] = scheduleStringArray(value[field], max === 128 ? 64 : 64, code);
+  for (const field of ['avatars', 'voiceTranscripts']) if (typeof value[field] !== 'boolean') throw new HttpAdapterError(code, 400);
+  if (Object.values(value).some(item => item === undefined)) throw new HttpAdapterError(code, 400);
+  return value;
+}
+function schedulePlan(raw, account, code = 'HTTP_API_SCHEDULE_INVALID') {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new HttpAdapterError(code, 400);
+  const accountValue = raw.account_id ?? raw.accountId ?? account;
+  if (accountValue !== account) throw new HttpAdapterError('HTTP_API_ACCOUNT_INVALID', 400);
+  const scheduleId = scheduleUuid(raw.schedule_id ?? raw.scheduleId, code);
+  const conversationIdValue = text(raw.conversation_id ?? raw.conversationId, 1024, code);
+  if (!conversationIdValue) throw new HttpAdapterError(code, 400);
+  const formats = scheduleStringArray(raw.formats, 1, code);
+  if (!formats.length) throw new HttpAdapterError(code, 400);
+  const conversationIds = raw.conversation_ids ?? raw.conversationIds;
+  const plan = {
+    accountId: account,
+    scheduleId,
+    conversationId: conversationIdValue,
+    formats,
+    includeMedia: raw.include_media ?? raw.includeMedia ?? false,
+    intervalSeconds: scheduleUint(raw.interval_seconds ?? raw.intervalSeconds, code, true),
+    lookbackSeconds: scheduleUint(raw.lookback_seconds ?? raw.lookbackSeconds, code, true),
+    nextRunUnixMs: scheduleUint(raw.next_run_unix_ms ?? raw.nextRunUnixMs, code, true),
+    enabled: raw.enabled,
+    conversationIds: conversationIds === undefined ? [] : scheduleStringArray(conversationIds, 500, code),
+    ...(raw.options === undefined ? {} : { options: scheduleOptions(raw.options, code) }),
+    ...(raw.stop_at_unix_ms ?? raw.stopAtUnixMs) === undefined ? {} : { stopAtUnixMs: scheduleUint(raw.stop_at_unix_ms ?? raw.stopAtUnixMs, code) },
+    ...(raw.max_runs ?? raw.maxRuns) === undefined ? {} : { maxRuns: integer(raw.max_runs ?? raw.maxRuns, 0, 100000, code) },
+    ...(raw.created_at_unix_ms ?? raw.createdAtUnixMs) === undefined ? {} : { createdAtUnixMs: scheduleUint(raw.created_at_unix_ms ?? raw.createdAtUnixMs, code) },
+    ...(raw.updated_at_unix_ms ?? raw.updatedAtUnixMs) === undefined ? {} : { updatedAtUnixMs: scheduleUint(raw.updated_at_unix_ms ?? raw.updatedAtUnixMs, code) },
+    ...(raw.success_count ?? raw.successCount) === undefined ? {} : { successCount: integer(raw.success_count ?? raw.successCount, 0, 0xffffffff, code) },
+    ...(raw.last_success_unix_ms ?? raw.lastSuccessUnixMs) === undefined ? {} : { lastSuccessUnixMs: scheduleUint(raw.last_success_unix_ms ?? raw.lastSuccessUnixMs, code) }
+  };
+  if (typeof plan.includeMedia !== 'boolean' || typeof plan.enabled !== 'boolean') throw new HttpAdapterError(code, 400);
+  return plan;
+}
+function scheduleScope(value) {
+  return { ...snakeKeys(value || {}), scope: 'alpha-independent-scheduled-export', complete: false, native_schema_supported: false };
+}
+function schedulePathId(pathValue, code) {
+  let decoded;
+  try { decoded = decodeURIComponent(pathValue); } catch { throw new HttpAdapterError(code, 400); }
+  return scheduleUuid(decoded, code);
+}
 
 function toolDefinitions() {
   const string = { type: 'string' };
@@ -199,6 +281,16 @@ function toolDefinitions() {
     { name: 'alpha-independent.favorites.resolve_media', description: '解析独立收藏媒体 token 并校验本地 media-index；只返回合成内容地址结果', inputSchema: { type: 'object', required: ['token'], properties: { account_id: string, token: { type: 'string', pattern: '^fav1_[0-9a-f]{32}$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha.chat.export_capabilities', description: '返回独立后端已验证的只读会话导出能力；不代表原 Alpha/native formatter 兼容', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha.chat.export_stats', description: '返回指定已验证会话的消息总数、类别计数及首末时间；统计来自独立 DTO', inputSchema: { type: 'object', required: ['conversation_ids'], properties: { account_id: string, conversation_ids: { type: 'array', minItems: 1, maxItems: 100, items: string, uniqueItems: true }, refresh: { type: 'boolean' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.schedules.list', description: '列出独立本地定时导出计划；不兼容官方 Alpha 计划服务', inputSchema: { type: 'object', properties: { account_id: string, include_disabled: { type: 'boolean' }, limit: { type: 'integer', minimum: 1, maximum: 100 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.schedules.get', description: '读取独立本地定时导出计划；不兼容官方 Alpha 计划服务', inputSchema: { type: 'object', required: ['schedule_id'], properties: { account_id: string, schedule_id: { type: 'string', pattern: '^[0-9a-f-]{36}$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.schedules.save', description: '创建或替换独立本地定时导出计划，使用更新版本 CAS；不兼容官方 Alpha 计划服务', inputSchema: { type: 'object', required: ['mode', 'plan'], properties: { account_id: string, mode: { type: 'string', enum: ['create', 'replace'] }, expected_updated_at_unix_ms: string, plan: { type: 'object' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.schedules.delete', description: '按更新版本删除独立本地定时导出计划；不兼容官方 Alpha 计划服务', inputSchema: { type: 'object', required: ['schedule_id', 'expected_updated_at_unix_ms'], properties: { account_id: string, schedule_id: { type: 'string', pattern: '^[0-9a-f-]{36}$' }, expected_updated_at_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.schedules.run_now', description: '立即运行独立本地定时导出计划；沿用本地引擎重入检查', inputSchema: { type: 'object', required: ['schedule_id', 'expected_updated_at_unix_ms'], properties: { account_id: string, schedule_id: { type: 'string', pattern: '^[0-9a-f-]{36}$' }, expected_updated_at_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.schedules.list_runs', description: '列出独立本地定时导出运行记录；不兼容官方 Alpha 历史语义', inputSchema: { type: 'object', properties: { account_id: string, schedule_id: { type: 'string', pattern: '^[0-9a-f-]{36}$' }, limit: { type: 'integer', minimum: 1, maximum: 100 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.schedules.get_run', description: '读取独立本地定时导出运行记录；不兼容官方 Alpha 历史语义', inputSchema: { type: 'object', required: ['run_id'], properties: { account_id: string, run_id: { type: 'string', pattern: '^[0-9a-f-]{36}$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.schedules.list_attempts', description: '列出独立本地定时导出尝试记录；不兼容官方 Alpha 历史语义', inputSchema: { type: 'object', properties: { account_id: string, schedule_id: { type: 'string', pattern: '^[0-9a-f-]{36}$' }, limit: { type: 'integer', minimum: 1, maximum: 100 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.schedules.get_attempt', description: '读取独立本地定时导出尝试记录；不兼容官方 Alpha 历史语义', inputSchema: { type: 'object', required: ['attempt_id'], properties: { account_id: string, attempt_id: { type: 'string', pattern: '^[0-9a-f-]{36}$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.schedules.retry_attempt', description: '按尝试版本重试独立本地定时导出；不兼容官方 Alpha 历史语义', inputSchema: { type: 'object', required: ['attempt_id', 'expected_revision'], properties: { account_id: string, attempt_id: { type: 'string', pattern: '^[0-9a-f-]{36}$' }, expected_revision: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.get_message_raw', description: '读取一条已验证消息的原始 DTO 字段（不含数据库密钥和未验证 XML）', inputSchema: { type: 'object', required: ['username'], properties: { account_id: string, username: string, message_id: string, server_id: string, local_id: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha.analysis.start', description: '启动已验证消息 DTO 的有界聚合分析任务；仅支持 scope 1–4，报告为独立算法结果', inputSchema: { type: 'object', required: ['scope'], properties: { account_id: string, scope: { type: 'integer', enum: [1, 2, 3, 4] }, conversation_id: string, excluded_conversation_ids: { type: 'array', items: string, maxItems: 500, uniqueItems: true }, from_unix_ms: string, to_unix_ms: string, utc_offset_minutes: { type: 'integer', minimum: -720, maximum: 840 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha.analysis.watch', description: '读取有界聚合分析任务状态；完成时返回已验证的独立报告 JSON', inputSchema: { type: 'object', required: ['analysis_id'], properties: { account_id: string, analysis_id: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -333,6 +425,77 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     if (pathname === '/api/v1/export-capabilities') {
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
       return exportCapabilitiesJson(await call('getChatExportCapabilities'));
+    }
+    // Scheduled exports are exposed only under the independent namespace.
+    // These routes operate on the local, bounded schedule store and retain
+    // the engine's CAS/retry checks; they are not aliases for Alpha's remote
+    // schedule service.
+    if (pathname === '/api/v1/independent/export-schedules') {
+      const account = await selectedAccount(params);
+      if (method === 'GET') {
+        const includeDisabled = boolean(params.include_disabled ?? params.includeDisabled, 'HTTP_API_SCHEDULE_INCLUDE_DISABLED_INVALID') ?? false;
+        const limit = integer(params.limit, 1, 100, 'HTTP_API_SCHEDULE_LIMIT_INVALID') ?? 100;
+        return scheduleScope(await call('listChatExportSchedules', { accountId: account, includeDisabled, limit }));
+      }
+      if (method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const source = params.plan && typeof params.plan === 'object' ? params.plan : params;
+      const modeValue = params.mode;
+      const mode = modeValue === 'create' || modeValue === 1 ? 1 : modeValue === 'replace' || modeValue === 2 ? 2 : 0;
+      if (!mode) throw new HttpAdapterError('HTTP_API_SCHEDULE_MODE_INVALID', 400);
+      const expected = scheduleUint(params.expected_updated_at_unix_ms ?? params.expectedUpdatedAtUnixMs ?? 0, 'HTTP_API_SCHEDULE_REVISION_INVALID');
+      return scheduleScope(await call('saveChatExportSchedule', { plan: schedulePlan(source, account), mode, expectedUpdatedAtUnixMs: expected ?? 0n }));
+    }
+    const scheduleMatch = /^\/api\/v1\/independent\/export-schedules\/([^/]+)$/.exec(pathname);
+    if (scheduleMatch) {
+      const scheduleId = schedulePathId(scheduleMatch[1], 'HTTP_API_SCHEDULE_ID_INVALID');
+      const account = await selectedAccount(params);
+      if (method === 'GET') return scheduleScope(await call('getChatExportSchedule', { accountId: account, scheduleId }));
+      if (method === 'DELETE') {
+        const expected = scheduleUint(params.expected_updated_at_unix_ms ?? params.expectedUpdatedAtUnixMs, 'HTTP_API_SCHEDULE_REVISION_INVALID', true);
+        return scheduleScope(await call('deleteChatExportSchedule', { accountId: account, scheduleId, expectedUpdatedAtUnixMs: expected }));
+      }
+      if (method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const action = text(params.action, 32, 'HTTP_API_SCHEDULE_ACTION_INVALID');
+      const expected = scheduleUint(params.expected_updated_at_unix_ms ?? params.expectedUpdatedAtUnixMs, 'HTTP_API_SCHEDULE_REVISION_INVALID', true);
+      if (action === 'delete') return scheduleScope(await call('deleteChatExportSchedule', { accountId: account, scheduleId, expectedUpdatedAtUnixMs: expected }));
+      if (action === 'run-now' || action === 'run_now') return scheduleScope(await call('runChatExportScheduleNow', { accountId: account, scheduleId, expectedUpdatedAtUnixMs: expected }));
+      throw new HttpAdapterError('HTTP_API_SCHEDULE_ACTION_INVALID', 400);
+    }
+    const scheduleRunsMatch = /^\/api\/v1\/independent\/export-schedules\/([^/]+)\/(runs|attempts)$/.exec(pathname);
+    if (pathname === '/api/v1/independent/export-runs' || pathname === '/api/v1/independent/export-attempts') {
+      const account = await selectedAccount(params);
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const scheduleId = params.schedule_id ?? params.scheduleId;
+      const limit = integer(params.limit, 1, 100, 'HTTP_API_HISTORY_LIMIT_INVALID') ?? 100;
+      const methodName = pathname.endsWith('export-runs') ? 'listChatExportRuns' : 'listChatExportAttempts';
+      return scheduleScope(await call(methodName, { accountId: account, ...(scheduleId === undefined || scheduleId === '' ? {} : { scheduleId: schedulePathId(scheduleId, 'HTTP_API_SCHEDULE_ID_INVALID') }), limit }));
+    }
+    if (scheduleRunsMatch) {
+      const scheduleId = schedulePathId(scheduleRunsMatch[1], 'HTTP_API_SCHEDULE_ID_INVALID');
+      const account = await selectedAccount(params);
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const limit = integer(params.limit, 1, 100, 'HTTP_API_HISTORY_LIMIT_INVALID') ?? 100;
+      const methodName = scheduleRunsMatch[2] === 'runs' ? 'listChatExportRuns' : 'listChatExportAttempts';
+      return scheduleScope(await call(methodName, { accountId: account, scheduleId, limit }));
+    }
+    const runMatch = /^\/api\/v1\/independent\/export-runs\/([^/]+)$/.exec(pathname);
+    if (runMatch) {
+      const runId = schedulePathId(runMatch[1], 'HTTP_API_RUN_ID_INVALID');
+      const account = await selectedAccount(params);
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      return scheduleScope(await call('getChatExportRun', { accountId: account, runId }));
+    }
+    const attemptMatch = /^\/api\/v1\/independent\/export-attempts\/([^/]+)(\/retry)?$/.exec(pathname);
+    if (attemptMatch) {
+      const attemptId = schedulePathId(attemptMatch[1], 'HTTP_API_ATTEMPT_ID_INVALID');
+      const account = await selectedAccount(params);
+      if (attemptMatch[2]) {
+        if (method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+        const expected = scheduleUint(params.expected_revision ?? params.expectedRevision, 'HTTP_API_ATTEMPT_REVISION_INVALID', true);
+        return scheduleScope(await call('retryChatExportAttempt', { accountId: account, attemptId, expectedRevision: expected }));
+      }
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      return scheduleScope(await call('getChatExportAttempt', { accountId: account, attemptId }));
     }
     const account = await selectedAccount(params);
     if (pathname === '/api/v1/export-stats') {
@@ -675,7 +838,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
       'alpha-independent.records.list_candidates': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
       'wechat.chat.list_search_senders': ['account_id', 'query', 'username', 'limit'], 'wechat.chat.get_message_around': ['account_id', 'username', 'anchor_id', 'before', 'after'],
-      'wechat.chat.get_message_anchor': ['account_id', 'username', 'kind', 'date'], 'wechat.chat.get_daily_message_counts': ['account_id', 'username', 'month', 'utc_offset_minutes'], 'alpha-independent.moments.list_timeline': ['account_id', 'username', 'keyword', 'limit', 'offset', 'ascending', 'from_unix_ms', 'to_unix_ms'], 'alpha-independent.moments.list_users': ['account_id', 'limit'], 'alpha-independent.moments.day_counts': ['account_id', 'username', 'from_date', 'to_date', 'utc_offset_minutes'], 'alpha-independent.moments.start_export': ['account_id', 'format', 'output_directory', 'usernames', 'keyword', 'start_time_unix_ms', 'end_time_unix_ms', 'media_kinds', 'utc_offset_minutes'], 'alpha-independent.moments.watch_export': ['account_id', 'job_id'], 'alpha-independent.moments.cancel_export': ['account_id', 'job_id'], 'alpha-independent.favorites.list_items': ['account_id', 'type', 'query', 'tag_id', 'limit', 'offset', 'ascending', 'include_type_counts', 'include_media', 'skip_source_context'], 'alpha-independent.favorites.list_media_slots': ['account_id', 'favorite_id'], 'alpha-independent.favorites.resolve_media': ['account_id', 'token'], 'alpha.chat.export_capabilities': [], 'alpha.chat.export_stats': ['account_id', 'conversation_ids', 'refresh'], 'wechat.chat.get_message_raw': ['account_id', 'username', 'message_id', 'server_id', 'local_id'], 'wechat.chat.export_conversation': ['account_id', 'username', 'format', 'destination_path', 'include_media', 'start_time_unix_ms', 'end_time_unix_ms'], 'wechat.chat.export_media_metadata': ['account_id', 'username', 'format', 'destination_path', 'start_time_unix_ms', 'end_time_unix_ms']
+      'wechat.chat.get_message_anchor': ['account_id', 'username', 'kind', 'date'], 'wechat.chat.get_daily_message_counts': ['account_id', 'username', 'month', 'utc_offset_minutes'], 'alpha-independent.moments.list_timeline': ['account_id', 'username', 'keyword', 'limit', 'offset', 'ascending', 'from_unix_ms', 'to_unix_ms'], 'alpha-independent.moments.list_users': ['account_id', 'limit'], 'alpha-independent.moments.day_counts': ['account_id', 'username', 'from_date', 'to_date', 'utc_offset_minutes'], 'alpha-independent.moments.start_export': ['account_id', 'format', 'output_directory', 'usernames', 'keyword', 'start_time_unix_ms', 'end_time_unix_ms', 'media_kinds', 'utc_offset_minutes'], 'alpha-independent.moments.watch_export': ['account_id', 'job_id'], 'alpha-independent.moments.cancel_export': ['account_id', 'job_id'], 'alpha-independent.favorites.list_items': ['account_id', 'type', 'query', 'tag_id', 'limit', 'offset', 'ascending', 'include_type_counts', 'include_media', 'skip_source_context'], 'alpha-independent.favorites.list_media_slots': ['account_id', 'favorite_id'], 'alpha-independent.favorites.resolve_media': ['account_id', 'token'], 'alpha-independent.schedules.list': ['account_id', 'include_disabled', 'limit'], 'alpha-independent.schedules.get': ['account_id', 'schedule_id'], 'alpha-independent.schedules.save': ['account_id', 'mode', 'expected_updated_at_unix_ms', 'plan'], 'alpha-independent.schedules.delete': ['account_id', 'schedule_id', 'expected_updated_at_unix_ms'], 'alpha-independent.schedules.run_now': ['account_id', 'schedule_id', 'expected_updated_at_unix_ms'], 'alpha-independent.schedules.list_runs': ['account_id', 'schedule_id', 'limit'], 'alpha-independent.schedules.get_run': ['account_id', 'run_id'], 'alpha-independent.schedules.list_attempts': ['account_id', 'schedule_id', 'limit'], 'alpha-independent.schedules.get_attempt': ['account_id', 'attempt_id'], 'alpha-independent.schedules.retry_attempt': ['account_id', 'attempt_id', 'expected_revision'], 'alpha.chat.export_capabilities': [], 'alpha.chat.export_stats': ['account_id', 'conversation_ids', 'refresh'], 'wechat.chat.get_message_raw': ['account_id', 'username', 'message_id', 'server_id', 'local_id'], 'wechat.chat.export_conversation': ['account_id', 'username', 'format', 'destination_path', 'include_media', 'start_time_unix_ms', 'end_time_unix_ms'], 'wechat.chat.export_media_metadata': ['account_id', 'username', 'format', 'destination_path', 'start_time_unix_ms', 'end_time_unix_ms']
     };
     if (Object.hasOwn(allowedArguments, name) && Object.keys(args).some(key => !allowedArguments[name].includes(key))) throw new HttpAdapterError('MCP_ARGUMENTS_INVALID', 400);
     let pathName, params = { ...args };
@@ -859,6 +1022,30 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     else if (name === 'alpha-independent.favorites.list_items') pathName = '/api/v1/favorites';
     else if (name === 'alpha-independent.favorites.list_media_slots') { const account = await selectedAccount(params); const favoriteId = text(args.favorite_id, 1024, 'MCP_FAVORITE_ID_INVALID'); const value = snakeKeys(await call('listFavoriteMediaSlots', { accountId: account, favoriteId })); return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: { ...value, synthetic_only: true, native_schema_supported: false, schema: '__alpha_favorite_media_v1' }, content: [{ type: 'text', text: JSON.stringify(value) }] } }; }
     else if (name === 'alpha-independent.favorites.resolve_media') { const account = await selectedAccount(params); const token = text(args.token, 37, 'MCP_FAVORITE_TOKEN_INVALID'); if (!/^fav1_[0-9a-f]{32}$/.test(token)) throw new HttpAdapterError('MCP_FAVORITE_TOKEN_INVALID', 400); const value = snakeKeys(await call('resolveFavoriteMedia', { accountId: account, token })); const result = { ...value, synthetic_only: true, native_schema_supported: false, schema: '__alpha_favorite_media_v1' }; return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } }; }
+    else if (name === 'alpha-independent.schedules.list') pathName = '/api/v1/independent/export-schedules';
+    else if (name === 'alpha-independent.schedules.get') pathName = `/api/v1/independent/export-schedules/${encodeURIComponent(schedulePathId(args.schedule_id, 'MCP_SCHEDULE_ID_INVALID'))}`;
+    else if (name === 'alpha-independent.schedules.save') {
+      pathName = '/api/v1/independent/export-schedules';
+      params.mode = args.mode;
+      params.plan = args.plan;
+      params.expected_updated_at_unix_ms = args.expected_updated_at_unix_ms;
+    }
+    else if (name === 'alpha-independent.schedules.delete' || name === 'alpha-independent.schedules.run_now') {
+      const scheduleId = schedulePathId(args.schedule_id, 'MCP_SCHEDULE_ID_INVALID');
+      pathName = `/api/v1/independent/export-schedules/${encodeURIComponent(scheduleId)}`;
+      params.action = name.endsWith('.delete') ? 'delete' : 'run-now';
+      params.expected_updated_at_unix_ms = args.expected_updated_at_unix_ms;
+    }
+    else if (name === 'alpha-independent.schedules.list_runs' || name === 'alpha-independent.schedules.list_attempts') {
+      const scheduleId = args.schedule_id === undefined ? undefined : schedulePathId(args.schedule_id, 'MCP_SCHEDULE_ID_INVALID');
+      pathName = scheduleId ? `/api/v1/independent/export-schedules/${encodeURIComponent(scheduleId)}/${name.endsWith('list_runs') ? 'runs' : 'attempts'}` : `/api/v1/independent/${name.endsWith('list_runs') ? 'export-runs' : 'export-attempts'}`;
+    }
+    else if (name === 'alpha-independent.schedules.get_run') pathName = `/api/v1/independent/export-runs/${encodeURIComponent(schedulePathId(args.run_id, 'MCP_RUN_ID_INVALID'))}`;
+    else if (name === 'alpha-independent.schedules.get_attempt') pathName = `/api/v1/independent/export-attempts/${encodeURIComponent(schedulePathId(args.attempt_id, 'MCP_ATTEMPT_ID_INVALID'))}`;
+    else if (name === 'alpha-independent.schedules.retry_attempt') {
+      pathName = `/api/v1/independent/export-attempts/${encodeURIComponent(schedulePathId(args.attempt_id, 'MCP_ATTEMPT_ID_INVALID'))}/retry`;
+      params.expected_revision = args.expected_revision;
+    }
     else if (name === 'alpha.analysis.start') { pathName = '/api/v1/analysis'; }
     else if (name === 'alpha.analysis.watch' || name === 'alpha.analysis.cancel') {
       const analysisId = text(args.analysis_id, 128, 'MCP_ANALYSIS_ID_INVALID');
@@ -957,7 +1144,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     }
     else return { jsonrpc: '2.0', id: rpc.id, result: { isError: true, structuredContent: { code: 'MCP_TOOL_NOT_FOUND', message: 'MCP_TOOL_NOT_FOUND' }, content: [{ type: 'text', text: JSON.stringify({ code: 'MCP_TOOL_NOT_FOUND', message: 'MCP_TOOL_NOT_FOUND' }) }] } };
     try {
-      let result = await route(pathName, params, ['wechat.chat.export_conversation', 'wechat.chat.export_media_metadata', 'alpha.analysis.start', 'alpha.analysis.cancel', 'alpha-independent.moments.start_export', 'alpha-independent.moments.cancel_export'].includes(name) ? 'POST' : 'GET');
+      let result = await route(pathName, params, ['wechat.chat.export_conversation', 'wechat.chat.export_media_metadata', 'alpha.analysis.start', 'alpha.analysis.cancel', 'alpha-independent.moments.start_export', 'alpha-independent.moments.cancel_export', 'alpha-independent.schedules.save', 'alpha-independent.schedules.delete', 'alpha-independent.schedules.run_now', 'alpha-independent.schedules.retry_attempt'].includes(name) ? 'POST' : 'GET');
       if (name === 'wechat.contacts.resolve_contact') {
         result = { items: (result.items || []).map(item => ({ username: item.username, display_name: item.remark || item.nickname || item.alias || item.username, kind: item.username?.endsWith('@chatroom') ? 'group' : 'contact' })) };
       } else if (name === 'wechat.chat.resolve_session') {
@@ -982,14 +1169,14 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const expectedHost = `${host === 'localhost' ? 'localhost' : '127.0.0.1'}:${actualPort}`;
       if (req.headers.host !== expectedHost && req.headers.host !== `localhost:${actualPort}` && req.headers.host !== `127.0.0.1:${actualPort}`) throw new HttpAdapterError('HTTP_API_HOST_DENIED', 403);
       if (url.pathname === '/health' || url.pathname === '/api/v1/health') { if (req.method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405); return json(res, 200, { status: 'ok', service: 'alpha-independent-readonly' }); }
-      if (!['GET', 'POST'].includes(req.method)) throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      if (!['GET', 'POST', 'DELETE'].includes(req.method)) throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
       if (!tokenMatches(bearer(req, url), token)) throw new HttpAdapterError('HTTP_API_UNAUTHORIZED', 401);
       await ensureHello();
       if (url.pathname === '/mcp') {
         if (req.method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
         const rpc = await readBody(req); const reply = await mcpCall(rpc); return reply === null ? empty(res, 202) : json(res, 200, reply);
       }
-      const body = req.method === 'POST' ? await readBody(req) : {};
+      const body = req.method === 'POST' || req.method === 'DELETE' ? await readBody(req) : {};
       const params = Object.fromEntries(url.searchParams.entries());
       for (const [key, value] of Object.entries(body)) { if (params[key] !== undefined) throw new HttpAdapterError('HTTP_API_BODY_INVALID', 400); params[key] = value; }
       const result = await route(url.pathname, params, req.method);
