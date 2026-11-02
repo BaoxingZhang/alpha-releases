@@ -8,7 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { spawnSync } from 'node:child_process';
 import { root, launchEnvironment, sandboxProfile } from '../scripts/environment.mjs';
 import { createFixture } from './data-bridge-fixture.mjs';
-import { installMomentsFixture } from './moments-fixture.mjs';
+import { installMomentsFixture, installMomentEmojiFixture } from './moments-fixture.mjs';
 import { installFavoritesFixture } from './favorites-fixture.mjs';
 const session = `independent-smoke-${Date.now()}`;
 const runtime = path.join(root, '.runtime', session);
@@ -124,6 +124,7 @@ fs.writeFileSync(path.join(fixture.directory, 'media-index.v1.json'), JSON.strin
     accountId: fixture.accountId
   }]
 }, null, 2) + '\n', { mode: 0o600 });
+await installMomentEmojiFixture(fixture.directory, fixture.accountId);
 const quote = x => "'" + x.replaceAll("'", "'\\''") + "'";
 const wrapper = path.join(runtime, 'electron-sandbox.sh');
 fs.writeFileSync(wrapper, `#!/bin/sh\nexec /usr/bin/sandbox-exec -f ${quote(sandboxProfile())} ${quote(electronPath)} "$@"\n`, { mode: 0o755 });
@@ -272,9 +273,14 @@ try {
   assert.deepEqual(await page.locator('.synthetic-moment-card').evaluateAll((cards) => cards.map((card) => card.getAttribute('data-source-table'))), ['__alpha_moments_v1', '__alpha_moments_v1', '__alpha_moments_v1']);
   assert.equal(await page.getByRole('button', { name: '导出朋友圈', exact: true }).count(), 0, 'Synthetic moments must not expose export');
   assert.equal(await page.getByRole('button', { name: '朋友圈防删除', exact: true }).count(), 0, 'Synthetic moments must not expose anti-delete writes');
-  assert.equal(await page.locator('.synthetic-moment-card button').count(), 0, 'Synthetic moments must not expose media/interaction controls');
-  assert.equal(await page.locator('.synthetic-moment-card img, .synthetic-moment-card video, .synthetic-moment-card audio').count(), 0, 'Synthetic moments must remain text-only');
+  assert.equal(await page.getByText('合成评论者', { exact: true }).count(), 1, 'Synthetic comment must remain visible');
+  const momentEmojiImage = page.locator('.synthetic-moment-card .moment-comment-sticker img').first();
+  await momentEmojiImage.waitFor({ timeout: 15000 });
+  assert.match(await momentEmojiImage.getAttribute('src'), /^alpha-media:\/\/moment\//);
+  assert.equal(await momentEmojiImage.evaluate((image) => image.complete && image.naturalWidth > 0), true, 'Synthetic moment emoji must decode through media IPC');
+  assert.equal(await page.locator('.synthetic-moment-card button[aria-label="查看表情"]').count(), 1);
   report.checks.syntheticMomentsRenderedReadOnly = true;
+  report.checks.syntheticMomentEmojiRenderedThroughMediaProtocol = true;
   await page.getByRole('button', { name: '收藏', exact: true }).click({ timeout: 15000 });
   await page.locator('section[aria-label="收藏"]').waitFor({ timeout: 15000 });
   await page.getByText('独立 synthetic-only 收藏：仅读取 favorite.db 或 favorites.db 的 __alpha_favorites_v1', { exact: false }).waitFor({ timeout: 15000 });

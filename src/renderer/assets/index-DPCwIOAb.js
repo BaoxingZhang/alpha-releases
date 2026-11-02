@@ -33563,9 +33563,13 @@ function MomentExportAction({ accountId, icon, seed, label }) {
     opened && opened.accountId === accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportDialog, { accountId, accountScope: `${accountId}:${accountEpoch}`, seed: opened.seed, onClose: () => setOpened(null) })
   ] });
 }
-function SyntheticMomentCard({ moment }) {
+function SyntheticMomentCard({ moment, accountId, mediaRevision = 0 }) {
   const name = moment.nickname?.trim() || moment.username || "未知账号";
   const initial = [...name][0] || "?";
+  const detail = moment.detail;
+  const likes = detail?.likes ?? [];
+  const comments = detail?.comments ?? [];
+  const viewerLabel2 = momentViewerLabel(name);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("article", { className: "moment-card synthetic-moment-card", "data-source-table": moment.sourceTable, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "moment-avatar", "aria-hidden": "true", children: initial }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moment-content", children: [
@@ -33574,7 +33578,14 @@ function SyntheticMomentCard({ moment }) {
         /* @__PURE__ */ jsxRuntimeExports.jsx("time", { children: formatMomentTime(moment.createdAtUnixMs) })
       ] }),
       moment.text ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: moment.text }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "empty", children: "（无正文）" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("small", { className: "moment-synthetic-meta", children: "synthetic-only · __alpha_moments_v1 · 只读文字" })
+      (!!likes.length || !!comments.length) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moment-interactions", children: [
+        !!likes.length && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "moment-likes", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Heart, { size: 14, "aria-label": "赞" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: likes.map((person) => person.nickname || person.username || "微信用户").join("、") })
+        ] }),
+        !!comments.length && /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "moment-comments", "aria-label": "评论", children: comments.map((comment2, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(MomentComment, { comment: comment2, accountId, viewerLabel: viewerLabel2, mediaRevision }, index)) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("small", { className: "moment-synthetic-meta", children: "synthetic-only · __alpha_moments_v1 · 只读文字、评论和媒体" })
     ] })
   ] });
 }
@@ -33601,7 +33612,7 @@ function MomentsBrowser({ accountId, independent = false, syntheticMoments = fal
   });
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "moments-workspace", "aria-label": "朋友圈浏览器", children: [
     independent && !syntheticMoments && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立离线模式暂未接入微信朋友圈数据库，因此不会把普通聊天消息冒充朋友圈动态。取得授权的朋友圈明文样本或原生组件后，可继续接入读取、媒体与导出。" }),
-    independent && syntheticMoments && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立 synthetic-only 朋友圈：仅读取 moments.db 的 __alpha_moments_v1，展示文字、作者和日期统计。真实微信 SnsTimeLine/snsmessage schema、媒体、点赞评论、导出和防删除写入均不可用。" }),
+    independent && syntheticMoments && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立 synthetic-only 朋友圈：仅读取 moments.db 的 __alpha_moments_v1，展示文字、作者、日期统计，以及同一数据源显式索引的只读评论媒体。真实微信 SnsTimeLine/snsmessage schema、原生媒体、导出和防删除写入均不可用。" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Masthead, { title: "朋友圈", actions: /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
       momentsEnabled && /* @__PURE__ */ jsxRuntimeExports.jsx(
         MomentsCalendarEntry,
@@ -33664,7 +33675,7 @@ function MomentsBrowser({ accountId, independent = false, syntheticMoments = fal
               action: filtered && !query.hasNextPage ? /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "moments-empty-action", onClick: data.resetFilters, children: "清除筛选" }) : void 0
             }
           ),
-          momentsEnabled && moments.map((moment, index) => syntheticMoments ? /* @__PURE__ */ jsxRuntimeExports.jsx(SyntheticMomentCard, { moment }, moment.id || `moment-${index}`) : /* @__PURE__ */ jsxRuntimeExports.jsx(MomentCard, { moment, accountId, mediaRevision, onSelectAuthor: data.selectAuthor }, moment.id || `moment-${index}`)),
+          momentsEnabled && moments.map((moment, index) => syntheticMoments ? /* @__PURE__ */ jsxRuntimeExports.jsx(SyntheticMomentCard, { moment, accountId, mediaRevision }, moment.id || `moment-${index}`) : /* @__PURE__ */ jsxRuntimeExports.jsx(MomentCard, { moment, accountId, mediaRevision, onSelectAuthor: data.selectAuthor }, moment.id || `moment-${index}`)),
           momentsEnabled && query.isFetchNextPageError && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsError, { error: momentQueryErrorDetails(query.error), onRetry: retry }),
           momentsEnabled && query.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-feed-status", role: "status", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "spin", size: 16 }),

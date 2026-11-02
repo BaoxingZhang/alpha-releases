@@ -29,7 +29,7 @@ fixture 只注册 `fixture` provider 和 `fixture` 模型，输入文本会原�
 npm run start:independent -- --data-dir /absolute/project/.runtime/your-snapshot --account-id your-dataset-label
 ```
 
-独立模式的朋友圈页面只有在账号能力同时包含 `moments`、`moment-authors`、`moment-day-counts` 时才读取上述 synthetic fixture。engine 的 `resolveMomentEmoji` 是单独的 synthetic-only 分支：只接受 `__alpha_moment_emoji_v1` 中显式 `emoji-xml:` source，且必须在自有 `media-index.v1.json` 找到唯一的 image、SHA-256、大小、MIME、相对路径、账号和 moment 绑定；它不解析真实评论 XML，也不兼容原生媒体 token。页面会明确标出 `moments.db`/`__alpha_moments_v1` 和 `synthetic-only`，仅显示文字、作者筛选与本地日计数；普通独立账号继续显示不可用状态。synthetic 页面不暴露媒体、点赞/评论、导出或朋友圈防删除写入入口，也不会把聊天消息转换成朋友圈。
+独立模式的朋友圈页面只有在账号能力同时包含 `moments`、`moment-authors`、`moment-day-counts` 时才读取上述 synthetic fixture。engine 的 `resolveMomentEmoji` 是单独的 synthetic-only 分支：只接受 `__alpha_moment_emoji_v1` 中显式 `emoji-xml:` source，且必须在自有 `media-index.v1.json` 找到唯一的 image、SHA-256、大小、MIME、相对路径、账号和 moment 绑定；它不解析真实评论 XML，也不兼容原生媒体 token。页面会明确标出 `moments.db`/`__alpha_moments_v1` 和 `synthetic-only`，显示文字、作者筛选、本地日计数，以及 projection 中由该 resolver 验证的只读合成评论表情；普通独立账号继续显示不可用状态。synthetic 页面不暴露导出或朋友圈防删除写入入口，未索引媒体仍保持不可用，也不会把聊天消息转换成朋友圈。
 独立引擎另仅在账号暴露 `favorites` capability 时读取显式 `favorite.db` 或 `favorites.db` 中的 `__alpha_favorites_v1` synthetic fixture，`listFavorites` 支持有界分页、类型/关键字/标签过滤和类型计数，并标记 `sourceTable`；不提供 source lookup、媒体对象或原生收藏 schema，`includeMedia` 返回 `FAVORITES_MEDIA_UNAVAILABLE`。若同一 fixture 显式提供 `__alpha_favorite_media_v1` 和自有 `media-index.v1.json`，`listFavoriteMediaSlots`/`resolveFavoriteMedia` 可读取并重新校验合成媒体；这不代表真实收藏媒体语义。原 UI 的收藏页、真实微信收藏库和真实收藏媒体语义仍保持不可用；独立适配器仅暴露同一 fixture 的只读收藏列表及合成媒体路由。
 
 当前启动器只接受项目 `.runtime/` 内无符号链接的目录，内容须为稳定、已解密的微信 v4 SQLite 副本。`account-id` 是数据集标签，不是经微信验证的登录身份。不会自动寻找个人微信目录。活动 WAL/SHM/journal、目录或数据库变化、加密文件、不兼容 schema 均明确失败。

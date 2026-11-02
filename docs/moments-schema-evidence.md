@@ -10,7 +10,7 @@
 
 如果 `moments.db` 缺少这个表，或者数据集只有 `SnsTimeLine`、`snsmessage` 等原生候选表，bridge 会返回 `SCHEMA_UNSUPPORTED`/`CAPABILITY_UNAVAILABLE`，不会扫描候选列、转换 XML 或返回空朋友圈页。对应 synthetic fixture 和拒绝测试见 `packages/alpha-data-bridge/moments_test.go`。
 
-独立桌面 renderer 也按账号 capability fail-closed：只有 `moments`、`moment-authors`、`moment-day-counts` 三项同时存在时，才在现有朋友圈页面显示这个 fixture。该页面只读取文字、作者和日期统计，并在每条卡片和顶部 banner 标注 `synthetic-only`/`__alpha_moments_v1`；媒体、点赞评论、导出和防删除写入入口保持关闭。没有这些 capability 的独立账号继续显示“独立模式暂不支持朋友圈”，不会把消息表内容当作动态。
+独立桌面 renderer 也按账号 capability fail-closed：只有 `moments`、`moment-authors`、`moment-day-counts` 三项同时存在时，才在现有朋友圈页面显示这个 fixture。页面读取文字、作者和日期统计；当 `__alpha_moment_details` projection 明确提供评论和 `emoji-xml:__alpha_moment_emoji_v1:` source 时，会通过同一账号的 media grant 显示只读合成评论表情。每条卡片和顶部 banner 都标注 `synthetic-only`/`__alpha_moments_v1`；导出和防删除写入入口保持关闭，未索引或不受支持的媒体继续显示不可用。没有这些 capability 的独立账号继续显示“独立模式暂不支持朋友圈”，不会把消息表内容当作动态。
 
 官方 `wechat.moments.*` 工具目前不会别名到这些自有工具。官方结果还要求媒体、地点、点赞和评论等字段，而 synthetic schema 没有足够证据提供这些语义；保持独立命名可以避免把 fixture 误报为官方兼容实现。
 

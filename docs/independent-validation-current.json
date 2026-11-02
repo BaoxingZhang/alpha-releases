@@ -144,6 +144,7 @@
         "originalOnboardingCompleted",
         "messageRendered",
         "syntheticMomentsRenderedReadOnly",
+        "syntheticMomentEmojiRenderedThroughMediaProtocol",
         "syntheticFavoritesRenderedReadOnly",
         "independentRecordExportThroughRendererIpc",
         "independentRecordCategoriesGated",
@@ -153,7 +154,7 @@
         "lockEnforcesReadAccess",
         "sourceUnchanged"
       ],
-      "checkCount": 16
+      "checkCount": 17
     },
     "encryptedImport": {
       "record": "encrypted-run.json",

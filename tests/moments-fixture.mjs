@@ -65,12 +65,15 @@ export async function installMomentEmojiFixture(directory, accountId = 'moment-a
   const mediaDirectory = path.join(directory, 'media');
   await fs.mkdir(mediaDirectory, { recursive: true, mode: 0o700 });
   const mediaPath = path.join(mediaDirectory, 'moment-emoji.png');
-  const bytes = Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0]);
+  // A small but valid PNG lets packaged renderer smoke verify the complete
+  // capability URL path with an actual image decode. The index and bridge
+  // still bind the bytes by SHA-256; this does not infer native WeChat media.
+  const bytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
   await fs.writeFile(mediaPath, bytes, { mode: 0o600 });
   const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
   const relativePath = 'media/moment-emoji.png';
   const source = 'emoji-xml:__alpha_moment_emoji_v1:smile';
-  const script = String.raw`import sqlite3,sys
+  const script = String.raw`import sqlite3,sys,os,json
 root,source,sha256,relative_path,account_id=sys.argv[1:]
 db=sqlite3.connect(root+'/moments.db')
 db.execute('''CREATE TABLE __alpha_moment_emoji_v1 (
@@ -82,9 +85,31 @@ relative_path TEXT NOT NULL,
 account_id TEXT NOT NULL DEFAULT '',
 moment_id TEXT NOT NULL DEFAULT ''
 )''')
-db.execute('INSERT INTO __alpha_moment_emoji_v1 VALUES (?,?,?,?,?,?,?)',(source,sha256,12,'image/png',relative_path,account_id,'m1'))
+size_bytes=os.path.getsize(root+'/'+relative_path)
+db.execute('INSERT INTO __alpha_moment_emoji_v1 VALUES (?,?,?,?,?,?,?)',(source,sha256,size_bytes,'image/png',relative_path,account_id,'m1'))
+details={
+  'schema':'alpha.moment.v1',
+  'parseStatus':'plain',
+  'comments':[{
+    'username':'wxid_commenter',
+    'nickname':'合成评论者',
+    'content':'[动画表情]',
+    'emojis':[{'source':source,'width':1,'height':1}],
+    'images':[]
+  }]
+}
+fields=[{'name':'__alpha_moment_details','value':json.dumps(details,ensure_ascii=False,separators=(',',':')),'valueKind':1,'truncated':False}]
+db.execute('UPDATE __alpha_moments_v1 SET fields_json=? WHERE id=?',(json.dumps(fields,ensure_ascii=False,separators=(',',':')),'m1'))
 db.commit();db.close()`;
   await execute('/usr/bin/python3', ['-c', script, directory, source, sha256, relativePath, accountId]);
-  await fs.writeFile(path.join(directory, 'media-index.v1.json'), JSON.stringify({ version: 1, accountId, entries: [{ kind: 'image', id: sha256, rendition: 'source', relativePath, sha256, sizeBytes: bytes.length, mimeType: 'image/png', accountId }] }) + '\n', { mode: 0o600 });
+  const indexPath = path.join(directory, 'media-index.v1.json');
+  let index = { version: 1, accountId, entries: [] };
+  try {
+    const existing = JSON.parse(await fs.readFile(indexPath, 'utf8'));
+    if (existing && existing.version === 1 && existing.accountId === accountId && Array.isArray(existing.entries)) index = existing;
+  } catch {}
+  index.entries = index.entries.filter((entry) => !(entry && entry.kind === 'image' && entry.id === sha256));
+  index.entries.push({ kind: 'image', id: sha256, rendition: 'source', relativePath, sha256, sizeBytes: bytes.length, mimeType: 'image/png', accountId });
+  await fs.writeFile(indexPath, JSON.stringify(index) + '\n', { mode: 0o600 });
   return { directory, accountId, source, sha256, relativePath, bytes };
 }

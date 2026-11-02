@@ -19,8 +19,10 @@ test('independent renderer exposes only explicit synthetic favorites and moments
   assert.match(source, /独立离线模式暂未接入微信朋友圈数据库/);
   assert.match(source, /独立模式暂不支持朋友圈/);
   assert.match(source, /独立 synthetic-only 朋友圈：仅读取 moments\.db 的 __alpha_moments_v1/);
-  assert.match(source, /function SyntheticMomentCard\(\{ moment \}\)/);
-  assert.match(source, /synthetic-only · __alpha_moments_v1 · 只读文字/);
+  assert.match(source, /function SyntheticMomentCard\(\{ moment, accountId, mediaRevision = 0 \}\)/);
+  assert.match(source, /synthetic-only · __alpha_moments_v1 · 只读文字、评论和媒体/);
+  assert.match(source, /const comments = detail\?\.comments \?\? \[\]/);
+  assert.match(source, /jsxRuntimeExports\.jsx\(MomentComment, \{ comment: comment2, accountId, viewerLabel: viewerLabel2, mediaRevision \}/);
   assert.match(source, /\["moments", "moment-authors", "moment-day-counts"\]\.every/);
   assert.match(source, /capabilities: Array\.isArray\(account\.capabilities\) \? \[\.\.\.account\.capabilities\] : \[\]/);
   assert.match(mainSource, /sourceTable === "__alpha_moments_v1" \? item\.text : ""/);
