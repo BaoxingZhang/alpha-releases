@@ -32,7 +32,7 @@
 
 主进程只在普通 content-addressed cache 没有同名文件时读取索引条目。读取时会再次校验显式根目录、manifest、父目录和媒体文件的符号链接、相对路径边界、大小和 SHA-256；图片还必须通过 PNG/JPEG/GIF/WebP/BMP magic 检查。文件变化、哈希不匹配、重复 key、未知媒体类型或索引损坏都会 fail-closed。
 
-当前仅验证了合成的图片索引链路和独立 field 103 解析分支。语音、视频、DAT/AES、缩略图/原图变体、朋友圈媒体和 Alpha 原生 `media1_` 解析仍不可用；索引接入不代表这些能力已经还原。
+当前已用合成的 1×1 PNG 验证图片索引、独立 field 103 解析、主进程 grant、`readImage` IPC 和 renderer 的 `alpha-media://img/...` 预览闭环；运行记录见 [`independent-run.json`](independent-run.json) 的 `independentImageReadThroughRendererIpc` 与 `independentImagePreviewRendered` 检查。语音、视频、DAT/AES、缩略图/原图变体、朋友圈媒体和 Alpha 原生 `media1_` 解析仍不可用；索引接入不代表这些能力已经还原。
 
 独立解析要求 manifest entry 同时带 `conversationId` 和 `messageId`，重新读取并校验文件大小/SHA-256，再扫描同一会话中的真实消息 DTO，确认图片 ref、消息身份和可选时间/大小断言一致。`preferLive`、远程补齐、pending、live video、非零 `recordOffset` 以及 MD5 断言均 fail-closed。返回的 `Message` 不携带原生 `media1_` token；调用方应继续使用 entry 产生的 `alpha-media://sha256/...` URI。
 

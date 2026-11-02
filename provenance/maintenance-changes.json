@@ -1,15 +1,15 @@
 {
-  "recordedAt": "2026-11-01T21:51:48.208Z",
+  "recordedAt": "2026-11-02T03:49:38.459Z",
   "sourceDmgSha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
   "originalManifest": "provenance/recovered-files.json",
   "originalFiles": 169,
-  "unchangedOriginalFiles": 166,
+  "unchangedOriginalFiles": 165,
   "changed": [
     {
       "path": "src/main/index.js",
       "originalSha256": "7e8fabf836059696bc00ecf9266b68cbed4b0cd690e3ffe6f80e1755a72c193a",
-      "currentSha256": "ff42348bb0eb397ad88d6da7b9873328985c1f17160c783f6843f72631505143",
-      "currentBytes": 3193249
+      "currentSha256": "f2a0ebd54f5a0ecc90a4d190f639c792df7c2ceb42417ca2ee0797792f54d7fe",
+      "currentBytes": 3194457
     },
     {
       "path": "src/preload/index.js",
@@ -18,13 +18,19 @@
       "currentBytes": 53037
     },
     {
+      "path": "src/renderer/assets/index-Bk459aoT.css",
+      "originalSha256": "9d034e76a6ea2fd0ef5027d14aed6447a560665322fc48959f0913eb0d17bf45",
+      "currentSha256": "0b6446671a3c95bc8d6981adcc8e6c48719920f5b698638a18ca1fec16a3b3fe",
+      "currentBytes": 604305
+    },
+    {
       "path": "src/renderer/assets/index-DPCwIOAb.js",
       "originalSha256": "8547e1338248bf174063cf7153c398a6d1a7d8c72ec0e6780e25ed01a954bde3",
-      "currentSha256": "2a2cd6389de93fbd5c417a58c7ae578f5af5f433a590cb6d95fac2a6413a4a83",
-      "currentBytes": 2880782
+      "currentSha256": "c5426fa6b1ecbce4465336be1b18d39cd93dc5602f2bf42480c99ee837afc727",
+      "currentBytes": 2882242
     }
   ],
-  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; bounded database-key acquisition watch with exact uint64 desktop cursors; search/navigation, contact/profile and group reads, group-member CSV/JSON/HTML/XLSX exports, media metadata, explicit data-watch targets, read-only exports and in-memory export jobs, annual and conversation base statistics, read-only local HTTP/MCP adapter, synthetic favorite media slots bound to an explicit media-index, UI capability-boundary maintenance, independent flavor update policy marker, and fail-closed update configuration.",
+  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; bounded database-key acquisition watch with exact uint64 desktop cursors; search/navigation, contact/profile and group reads, group-member CSV/JSON/HTML/XLSX exports, media metadata and synthetic WAV playback through an explicit media-index, explicit data-watch targets, read-only exports and in-memory export jobs, annual and conversation base statistics, read-only local HTTP/MCP adapter including verified account/session mobile overview, synthetic favorite media slots bound to an explicit media-index, UI capability-boundary maintenance, independent flavor update policy marker, and fail-closed update configuration.",
   "authoredModules": [
     "packages/alpha-engine",
     "packages/alpha-data-bridge",
