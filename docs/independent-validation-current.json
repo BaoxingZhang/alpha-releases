@@ -204,7 +204,7 @@
         "mediaResolvePath": "/api/v1/favorites/media/:token",
         "mediaSchema": "__alpha_favorite_media_v1"
       },
-      "tools": 70,
+      "tools": 72,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,
@@ -243,7 +243,9 @@
           "alpha-independent.media.read_indexed",
           "alpha-independent.media.decode_voice_playback",
           "alpha-independent.records.list_candidates",
-          "alpha-independent.records.list_recall_candidates"
+          "alpha-independent.records.list_recall_candidates",
+          "alpha-independent.media.inspect_asr",
+          "alpha-independent.media.transcribe_indexed_voice"
         ]
       },
       "analyticsTools": [
@@ -431,8 +433,18 @@
       "recallCandidatesPath": "/api/v1/independent/recall-records",
       "recallCandidatesNativeSchemaSupported": false,
       "independentDocumentedPaths": [
-        "/api/v1/independent/recall-records"
-      ]
+        "/api/v1/independent/recall-records",
+        "/api/v1/independent/media/asr/status",
+        "/api/v1/independent/media/asr/transcribe"
+      ],
+      "optionalAsr": {
+        "scope": "alpha-independent-optional-asr",
+        "complete": false,
+        "nativeSchemaSupported": false,
+        "explicitIndexOnly": true,
+        "modelDownload": false,
+        "nativeVoiceInfoSilk": false
+      }
     },
     "chatExportSchedules": {
       "command": "node --test tests/schedule-export.test.mjs",

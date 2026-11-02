@@ -89,7 +89,7 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | getDataRevision | 105 | 由真实已验证 snapshotId 导出的 16 位十六进制 revision |
 | getDataWatchTargets | 106 | 仅返回调用者显式选择的离线数据源根目录，供主进程通知 watcher 使用；不扫描用户目录，源改变或路径失效时失败关闭 |
 | getChatExportStats | 120 | 1–100 个会话的真实消息数量、类型计数和首末时间；不表示导出功能已实现 |
-| getChatExportCapabilities | 121 | 声明独立任务最多支持 500 个会话；独立导出策略允许无媒体 JSON/Markdown/HTML/TXT/XLSX 和四种消息 DTO 派生格式，XLSX 使用固定已验证消息列；消息类型筛选、附件、头像、自定义 XLSX 列和语音转写保持不可用 |
+| getChatExportCapabilities | 121 | 声明独立任务最多支持 500 个会话；独立导出策略允许无媒体 JSON/Markdown/HTML/TXT/XLSX 和四种消息 DTO 派生格式，XLSX 使用固定已验证消息列；消息类型筛选、附件、头像和自定义 XLSX 列保持不可用；原生语音转写分支仍未实现，独立适配器另提供显式 WAV media-index + caller-installed sherpa-onnx 模型的可选 ASR 工具，固定 `complete=false`、`native_schema_supported=false` |
 | startChatExport | 122 | 为已验证会话创建只读导出任务；任务逐会话调用 `exportConversation`，输出目录和文件发布仍受安全路径检查，终态任务与计数原子保存到独立 stateDir；重启将未完成任务标记为 `CHAT_EXPORT_PROCESS_RESTARTED` |
 | listChatExports | 123 | 列出指定账号的已持久化导出任务历史与当前任务快照；未完成任务在重启后显式标记失败，不伪造续跑 |
 | watchChatExport | 124 | 读取当前内存任务快照，包含会话状态、消息计数、输出路径和错误码 |

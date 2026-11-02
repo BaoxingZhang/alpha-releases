@@ -16,3 +16,5 @@ npm run asr:transcribe -- \
 ```
 
 输出固定标记 `scope=alpha-independent-optional-asr`、`complete=false`、`native_schema_supported=false` 和 `explicit_index_only=true`。它只能处理自有 WAV media-index；真实微信 VoiceInfo、SILK、`media1_` token 和原生媒体缓存仍未接入，不能据此宣称 Alpha 原生语音转写已经恢复。
+
+独立 HTTP/MCP 适配器也提供同一能力：`GET /api/v1/independent/media/asr/status`、`POST /api/v1/independent/media/asr/transcribe`，以及 `alpha-independent.media.inspect_asr`、`alpha-independent.media.transcribe_indexed_voice`。这些入口只接受调用方明确给出的绝对模型目录和 media-index 根目录，复用相同的文件哈希、路径和 WAV 校验；它们不会读取默认用户目录或把结果注册为原生 `transcribeVoice` 分支。

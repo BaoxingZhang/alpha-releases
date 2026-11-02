@@ -9,6 +9,7 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 const { URL } = require('node:url');
 const { EngineClientFrame, EngineServerFrame } = require('../alpha-protocol/index.cjs');
+const optionalAsr = require('./optional-asr.cjs');
 
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_ANALYSIS_REPORT_BYTES = 64 * 1024 * 1024;
@@ -416,6 +417,8 @@ function toolDefinitions() {
     { name: 'alpha-independent.media.probe', description: '读取显式 v4 hardlink.db/media_*.db 的有界媒体元数据；不读取媒体字节、不播放、不生成 Alpha media1 token，结果始终 metadata-only', inputSchema: { type: 'object', properties: { account_id: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.media.read_indexed', description: '读取自有 media-index.v1.json 中与账号、会话、消息和媒体引用全部绑定的 SHA-256 文件字节；不兼容原生 media1_、DAT/AES 或任意路径', inputSchema: { type: 'object', required: ['account_id', 'conversation_id', 'message_id', 'media_id', 'sha256', 'kind'], properties: { account_id: string, conversation_id: string, message_id: string, media_id: { type: 'string', pattern: '^[A-Za-z0-9._:-]{1,128}$' }, sha256: { type: 'string', pattern: '^[0-9a-f]{64}$' }, kind: { type: 'string', enum: ['image', 'video', 'file', 'voice'] }, rendition: { type: 'string', pattern: '^[A-Za-z0-9._:-]{1,64}$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.media.decode_voice_playback', description: '解析独立 __alpha_voice_playback_v1 synthetic 映射并校验自有 WAV media-index；不兼容真实 VoiceInfo/SILK/native media cache', inputSchema: { type: 'object', required: ['media_id'], properties: { account_id: string, media_id: { type: 'string', pattern: '^[0-9a-f]{64}$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.media.inspect_asr', description: '检查调用方显式提供的 sherpa-onnx ASR runtime/model；不下载模型、不兼容原生 VoiceInfo/SILK', inputSchema: { type: 'object', required: ['model_root'], properties: { model_root: string, model_id: { type: 'string', enum: ['zipformer-zh-small'] } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.media.transcribe_indexed_voice', description: '对调用方显式选择的 WAV media-index 语音运行可选 ASR；不兼容原生 transcribeVoice/VoiceInfo/SILK', inputSchema: { type: 'object', required: ['media_index_root', 'media_id', 'model_root'], properties: { account_id: string, media_index_root: string, media_id: string, model_root: string, model_id: { type: 'string', enum: ['zipformer-zh-small'] } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.mobile.get_overview', description: '组合返回已验证账号状态和会话摘要；不兼容官方 wechat.mobile.get_overview/native mobile snapshot schema', inputSchema: { type: 'object', properties: { account_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_conversation', description: '将已验证会话导出到本机新文件；ChatLab/SQL/WeClone 为独立后端的派生格式', inputSchema: { type: 'object', required: ['username', 'format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['json', 'markdown', 'html', 'txt', 'xlsx', 'chatlab-json', 'chatlab-jsonl', 'sql', 'weclone'] }, destination_path: string, include_media: { type: 'boolean', const: false }, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_media_metadata', description: '将已验证媒体消息的元数据导出到本机新文件；不读取、解密或播放媒体文件', inputSchema: { type: 'object', required: ['format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['media-json', 'media-csv'] }, destination_path: string, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -512,12 +515,48 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     if (typeof entry.mimeType !== 'string' || !entry.mimeType || entry.mimeType.length > 128 || /[\r\n]/.test(entry.mimeType)) throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_MIME_INVALID', 502);
     return { account, entry, bytes: Buffer.from(value.bytes) };
   }
+  function asrRoot(value, code) { return text(value, 4096, code); }
+  function asrModel(value, code) {
+    const modelId = text(value, 128, code) ?? 'zipformer-zh-small';
+    if (!Object.hasOwn(optionalAsr.MODEL_SPECS, modelId)) throw new HttpAdapterError('HTTP_API_ASR_MODEL_UNSUPPORTED', 400);
+    return modelId;
+  }
+  function asrFailure(failure, fallback = 'HTTP_API_ASR_FAILED') {
+    const code = failure?.message;
+    if (typeof code === 'string' && /^[A-Z][A-Z0-9_]{1,95}$/.test(code)) throw new HttpAdapterError(code, 400);
+    throw new HttpAdapterError(fallback, 502);
+  }
+  async function inspectAsr(params) {
+    const modelRoot = asrRoot(oneAlias(params, ['model_root', 'modelRoot'], 'HTTP_API_ASR_MODEL_ROOT_AMBIGUOUS'), 'HTTP_API_ASR_MODEL_ROOT_INVALID');
+    if (!modelRoot) throw new HttpAdapterError('HTTP_API_ASR_MODEL_ROOT_REQUIRED', 400);
+    const modelId = asrModel(oneAlias(params, ['model_id', 'modelId'], 'HTTP_API_ASR_MODEL_AMBIGUOUS'), 'HTTP_API_ASR_MODEL_INVALID');
+    try { return optionalAsr.inspectAsrRuntime({ modelRoot, modelId }); } catch (failure) { return asrFailure(failure); }
+  }
+  async function transcribeIndexedVoice(params) {
+    const mediaIndexRoot = asrRoot(oneAlias(params, ['media_index_root', 'mediaIndexRoot'], 'HTTP_API_ASR_MEDIA_INDEX_ROOT_AMBIGUOUS'), 'HTTP_API_ASR_MEDIA_INDEX_ROOT_INVALID');
+    const mediaId = text(oneAlias(params, ['media_id', 'mediaId'], 'HTTP_API_ASR_MEDIA_ID_AMBIGUOUS'), 1024, 'HTTP_API_ASR_MEDIA_ID_INVALID');
+    const modelRoot = asrRoot(oneAlias(params, ['model_root', 'modelRoot'], 'HTTP_API_ASR_MODEL_ROOT_AMBIGUOUS'), 'HTTP_API_ASR_MODEL_ROOT_INVALID');
+    if (!mediaIndexRoot || !mediaId || !modelRoot) throw new HttpAdapterError('HTTP_API_ASR_ARGUMENT_REQUIRED', 400);
+    const modelId = asrModel(oneAlias(params, ['model_id', 'modelId'], 'HTTP_API_ASR_MODEL_AMBIGUOUS'), 'HTTP_API_ASR_MODEL_INVALID');
+    const accountIdValue = text(oneAlias(params, ['account_id', 'accountId'], 'HTTP_API_ASR_ACCOUNT_AMBIGUOUS'), 256, 'HTTP_API_ASR_ACCOUNT_INVALID') ?? '';
+    try {
+      return await optionalAsr.transcribeIndexedVoice({ mediaIndexRoot, mediaId, accountId: accountIdValue, modelRoot, modelId });
+    } catch (failure) { return asrFailure(failure); }
+  }
   function page(params, maximum = 500) {
     const limit = integer(params.limit, 1, maximum, 'HTTP_API_LIMIT_INVALID') ?? 100;
     return { pageSize: limit, cursor: cursor(params.cursor, 'HTTP_API_CURSOR_INVALID') };
   }
   async function route(pathname, params, method = 'GET') {
     if (pathname === '/api/v1/accounts') return snakeKeys(await call('listAccounts'));
+    if (pathname === '/api/v1/independent/media/asr/status') {
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      return inspectAsr(params);
+    }
+    if (pathname === '/api/v1/independent/media/asr/transcribe') {
+      if (method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      return transcribeIndexedVoice(params);
+    }
     if (pathname === '/api/v1/exports/formats') return { formats: ['json', 'markdown', 'html', 'txt', 'xlsx', 'chatlab-json', 'chatlab-jsonl', 'sql', 'weclone', 'media-json', 'media-csv', 'group-members-csv', 'group-members-json', 'group-members-html', 'group-members-xlsx'] };
     if (pathname === '/api/v1/exports') {
       if (method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
@@ -1064,7 +1103,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'],
       'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'alpha-independent.groups.list_pinned_messages': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
       'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'],
-      'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.read_indexed': ['account_id', 'conversation_id', 'message_id', 'media_id', 'sha256', 'kind', 'rendition'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
+      'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.read_indexed': ['account_id', 'conversation_id', 'message_id', 'media_id', 'sha256', 'kind', 'rendition'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.media.inspect_asr': ['model_root', 'model_id'], 'alpha-independent.media.transcribe_indexed_voice': ['account_id', 'media_index_root', 'media_id', 'model_root', 'model_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
       'alpha-independent.records.list_candidates': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'], 'alpha-independent.records.list_recall_candidates': ['account_id', 'conversation_id', 'cursor', 'limit'],
       'wechat.chat.list_search_senders': ['account_id', 'query', 'username', 'limit'], 'wechat.chat.get_message_around': ['account_id', 'username', 'anchor_id', 'before', 'after'],
       'wechat.chat.get_message_anchor': ['account_id', 'username', 'kind', 'date'], 'wechat.chat.get_daily_message_counts': ['account_id', 'username', 'month', 'utc_offset_minutes'], 'alpha-independent.source.get_revision': ['account_id'], 'alpha-independent.source.get_watch_targets': ['account_id'], 'alpha-independent.source.get_schema': ['account_id'], 'alpha-independent.moments.list_timeline': ['account_id', 'username', 'keyword', 'limit', 'offset', 'ascending', 'from_unix_ms', 'to_unix_ms'], 'alpha-independent.moments.list_users': ['account_id', 'limit'], 'alpha-independent.moments.day_counts': ['account_id', 'username', 'from_date', 'to_date', 'utc_offset_minutes'], 'alpha-independent.moments.start_export': ['account_id', 'format', 'output_directory', 'usernames', 'keyword', 'start_time_unix_ms', 'end_time_unix_ms', 'media_kinds', 'utc_offset_minutes'], 'alpha-independent.moments.watch_export': ['account_id', 'job_id'], 'alpha-independent.moments.cancel_export': ['account_id', 'job_id'], 'alpha-independent.favorites.list_items': ['account_id', 'type', 'query', 'tag_id', 'limit', 'offset', 'ascending', 'include_type_counts', 'include_media', 'skip_source_context'], 'alpha-independent.favorites.list_media_slots': ['account_id', 'favorite_id'], 'alpha-independent.favorites.resolve_media': ['account_id', 'token'], 'alpha-independent.schedules.list': ['account_id', 'include_disabled', 'limit'], 'alpha-independent.schedules.get': ['account_id', 'schedule_id'], 'alpha-independent.schedules.save': ['account_id', 'mode', 'expected_updated_at_unix_ms', 'plan'], 'alpha-independent.schedules.delete': ['account_id', 'schedule_id', 'expected_updated_at_unix_ms'], 'alpha-independent.schedules.run_now': ['account_id', 'schedule_id', 'expected_updated_at_unix_ms'], 'alpha-independent.schedules.list_runs': ['account_id', 'schedule_id', 'limit'], 'alpha-independent.schedules.get_run': ['account_id', 'run_id'], 'alpha-independent.schedules.list_attempts': ['account_id', 'schedule_id', 'limit'], 'alpha-independent.schedules.get_attempt': ['account_id', 'attempt_id'], 'alpha-independent.schedules.retry_attempt': ['account_id', 'attempt_id', 'expected_revision'], 'alpha-independent.official_plans.list': ['account_id', 'include_disabled', 'limit'], 'alpha-independent.official_plans.get': ['account_id', 'schedule_id'], 'alpha-independent.official_plans.save': ['account_id', 'mode', 'expected_updated_at_unix_ms', 'plan'], 'alpha-independent.official_plans.delete': ['account_id', 'schedule_id', 'expected_updated_at_unix_ms'], 'alpha-independent.official_plans.list_attempts': ['account_id', 'schedule_id', 'include_archived', 'limit'], 'alpha-independent.official_plans.request_attempt': ['account_id', 'schedule_id', 'expected_plan_updated_at_unix_ms'], 'alpha-independent.official_plans.get_attempt': ['account_id', 'attempt_id'], 'alpha-independent.official_plans.archive_attempt': ['account_id', 'attempt_id', 'expected_revision', 'archived'], 'alpha.chat.export_capabilities': [], 'alpha.chat.export_stats': ['account_id', 'conversation_ids', 'refresh'], 'wechat.chat.get_message_raw': ['account_id', 'username', 'message_id', 'server_id', 'local_id'], 'wechat.chat.export_conversation': ['account_id', 'username', 'format', 'destination_path', 'include_media', 'start_time_unix_ms', 'end_time_unix_ms'], 'wechat.chat.export_media_metadata': ['account_id', 'username', 'format', 'destination_path', 'start_time_unix_ms', 'end_time_unix_ms']
@@ -1198,6 +1237,14 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const value = await engine.readIndexedMedia({ accountId: account, conversationId, messageId, mediaId, sha256, kind, rendition });
       if (!value?.entry || !value.bytes || value.entry.sha256 !== sha256 || value.entry.accountId !== account || value.entry.conversationId !== conversationId || value.entry.messageId !== messageId || value.entry.sizeBytes !== value.bytes.length || value.entry.sizeBytes > MAX_INDEXED_MEDIA_BYTES) throw new HttpAdapterError('MCP_INDEXED_MEDIA_RESPONSE_INVALID', 502);
       const result = { scope: 'alpha-independent-indexed-media', complete: false, native_schema_supported: false, media_ready: true, kind, rendition, media_id: mediaId, sha256, mime_type: value.entry.mimeType || 'application/octet-stream', size_bytes: value.entry.sizeBytes, bytes_base64: Buffer.from(value.bytes).toString('base64') };
+      return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
+    }
+    else if (name === 'alpha-independent.media.inspect_asr') {
+      const result = await inspectAsr(args);
+      return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
+    }
+    else if (name === 'alpha-independent.media.transcribe_indexed_voice') {
+      const result = await transcribeIndexedVoice(args);
       return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
     }
     else if (name === 'alpha-independent.mobile.get_overview') {

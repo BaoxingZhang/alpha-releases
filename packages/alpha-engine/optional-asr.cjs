@@ -108,7 +108,6 @@ function inspectAsrRuntime({ modelRoot, modelId = 'zipformer-zh-small' } = {}) {
   try {
     const model = verifyModelRoot(modelRoot, modelId);
     result.model_available = true;
-    result.model_root = model.root;
     result.model_files = Object.fromEntries(Object.entries(model.files).map(([key, value]) => [key, path.basename(value)]));
   } catch (failure) { result.model_error = failure.message; }
   result.ready = result.runtime_available && result.model_available;
