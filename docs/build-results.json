@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-02T07:10:51.580Z",
+  "builtAt": "2026-11-02T19:26:43.150Z",
   "node": "v24.21.0",
   "electron": "44.10.1",
   "esbuild": "0.28.2",
@@ -27,8 +27,8 @@
         "name": "alpha-data-bridge",
         "source": "build/candidates/alpha-data-bridge",
         "path": "independent/bin/alpha-data-bridge",
-        "bytes": 8566642,
-        "sha256": "e519183bdefdeadd007ad61519a570e896194596ea5a42f982a4f224426ee604",
+        "bytes": 8600274,
+        "sha256": "40a90b2a933b07b0419a1a03b2b448f411629422a8ff6502cc3889219f411177",
         "mode": "755"
       },
       {
@@ -36,7 +36,7 @@
         "source": "build/candidates/alpha-snapshot-import",
         "path": "independent/bin/alpha-snapshot-import",
         "bytes": 7816610,
-        "sha256": "1683cb3c1bee8dd43a583c0e96ac62e27e074cb1505a83bdca0f170d3df3c335",
+        "sha256": "3b9657218f09b209d02d7d92f5d126c39f68db875be476c010348f2f91e0c60f",
         "mode": "755"
       }
     ],
@@ -46,7 +46,7 @@
     {
       "inputs": {
         "src/main/index.js": {
-          "bytes": 3195722,
+          "bytes": 3197782,
           "imports": [],
           "format": "cjs"
         }
@@ -56,7 +56,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 5363020
+          "bytes": 5366193
         },
         "dist/app/out/main/index.js": {
           "imports": [
@@ -145,10 +145,10 @@
           "entryPoint": "src/main/index.js",
           "inputs": {
             "src/main/index.js": {
-              "bytesInOutput": 3214730
+              "bytesInOutput": 3216786
             }
           },
-          "bytes": 3214778
+          "bytes": 3216834
         }
       }
     },
@@ -257,7 +257,7 @@
           "format": "esm"
         },
         "src/renderer/assets/index-DPCwIOAb.js": {
-          "bytes": 2882242,
+          "bytes": 2885871,
           "imports": [],
           "format": "esm"
         },
@@ -358,7 +358,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 5010234
+          "bytes": 5016358
         },
         "dist/app/out/renderer/assets/index-DPCwIOAb.js": {
           "imports": [
@@ -387,10 +387,10 @@
           "entryPoint": "src/renderer/assets/index-DPCwIOAb.js",
           "inputs": {
             "src/renderer/assets/index-DPCwIOAb.js": {
-              "bytesInOutput": 3103787
+              "bytesInOutput": 3108154
             }
           },
-          "bytes": 3103830
+          "bytes": 3108197
         },
         "dist/app/out/renderer/assets/media-metadata-export.js.map": {
           "imports": [],

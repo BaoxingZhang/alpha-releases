@@ -14,6 +14,7 @@ export function launchEnvironment(session = 'manual', options = {}) {
   const independentHttpToken = env.ALPHA_INDEPENDENT_HTTP_TOKEN;
   const independentHttpPort = env.ALPHA_INDEPENDENT_HTTP_PORT;
   const independentAgent = env.ALPHA_INDEPENDENT_AGENT;
+  const independentKeyHelperPath = env.ALPHA_INDEPENDENT_KEY_HELPER_PATH;
   for (const k of Object.keys(env)) if (/^ALPHA_|^ELECTRON_|^NODE_OPTIONS$|^NODE_PATH$|^DYLD_|^(?:HTTP|HTTPS|ALL)_PROXY$/i.test(k)) delete env[k];
   const runtime = path.join(root, 'build/runtime-bundle');
   Object.assign(env, {
@@ -49,6 +50,10 @@ export function launchEnvironment(session = 'manual', options = {}) {
     else if (independentAgent !== undefined) {
       if (independentAgent !== 'fixture') throw new Error('INDEPENDENT_AGENT_INVALID');
       env.ALPHA_INDEPENDENT_AGENT = independentAgent;
+    }
+    if (independentKeyHelperPath !== undefined) {
+      if (typeof independentKeyHelperPath !== 'string' || !path.isAbsolute(independentKeyHelperPath)) throw new Error('KEY_HELPER_PATH_MUST_BE_ABSOLUTE');
+      env.ALPHA_INDEPENDENT_KEY_HELPER_PATH = path.resolve(independentKeyHelperPath);
     }
     const base = path.join(root, '.runtime');
     const validateDatasetDirectory = (value, optionName) => {

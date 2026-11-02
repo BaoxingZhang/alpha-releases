@@ -59,6 +59,7 @@ function independentRuntime({ workspace, appPath = undefined, userData, execPath
     ALPHA_INDEPENDENT_IMPORTER_PATH: environment.ALPHA_INDEPENDENT_IMPORTER_PATH || (packaged
       ? path.join(root, 'bin', process.platform === 'win32' ? 'alpha-snapshot-import.exe' : 'alpha-snapshot-import')
       : path.join(workspace, 'build/candidates/alpha-snapshot-import')),
+    ...(environment.ALPHA_INDEPENDENT_KEY_HELPER_PATH ? { ALPHA_INDEPENDENT_KEY_HELPER_PATH: environment.ALPHA_INDEPENDENT_KEY_HELPER_PATH } : {}),
     ALPHA_INDEPENDENT_ACCOUNT_ID: environment.ALPHA_INDEPENDENT_ACCOUNT_ID || '',
     // These values were explicitly validated by scripts/environment.mjs and
     // must survive the Electron-to-engine environment boundary for the

@@ -4,6 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const snapshot = require('./snapshot-store.cjs');
 const { runImporter } = require('./importer-client.cjs');
+const { runKeyHelper, validateExecutable } = require('./key-acquisition-client.cjs');
 const zlib = require('node:zlib');
 const protocol = require('../alpha-protocol/index.cjs');
 const { BridgeClient } = require('./bridge-client.cjs');
@@ -23,7 +24,7 @@ const { loadMediaIndex, readMediaEntry } = require('./media-index.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, listMessageRecallRecords: 100, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, acquireDatabaseKey: 69, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, listMessageRecallRecords: 100, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
 // These enum values are recovered from the Alpha protocol. The independent
 // engine can report the local package boundary, but it cannot start or claim
 // a dynamically entitled native component. Keep this status explicit and
@@ -816,7 +817,7 @@ async function writeRecordDestination(destinationPath, output, excluded, guard) 
   return destinationPath;
 }
 
-async function createEngine({ lock, stateDir, bridgePath, importerPath = '', encryptedDir = '', snapshotRoot = '', dataDir = '', accountId = '', selfUsername = '', importerTimeoutMs = 115000, bridgeFactory = options => new BridgeClient(options) }) {
+async function createEngine({ lock, stateDir, bridgePath, importerPath = '', keyHelperPath = '', encryptedDir = '', snapshotRoot = '', dataDir = '', accountId = '', selfUsername = '', importerTimeoutMs = 115000, bridgeFactory = options => new BridgeClient(options) }) {
   if (!lock || typeof lock.assertAccess !== 'function') throw error('SECURITY_PROVIDER_REQUIRED');
   safeStateDirectory(stateDir);
   if (dataDir && encryptedDir) throw error('DATA_SOURCE_CONFIGURATION_INVALID');
@@ -825,6 +826,9 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   if (encryptedDir && !path.isAbsolute(encryptedDir)) throw error('ENCRYPTED_SOURCE_PATH_INVALID');
   if ((dataDir || encryptedDir) && (!bridgePath || !path.isAbsolute(bridgePath))) throw error('BRIDGE_PATH_INVALID');
   if (encryptedDir && (!importerPath || !path.isAbsolute(importerPath))) throw error('IMPORTER_PATH_INVALID');
+  if (keyHelperPath) {
+    try { validateExecutable(keyHelperPath); } catch { throw error('KEY_HELPER_PATH_INVALID'); }
+  }
   if (!snapshotRoot) snapshotRoot = path.join(stateDir, 'snapshots');
   if (snapshotRoot !== path.join(stateDir, 'snapshots')) throw error('SNAPSHOT_ROOT_INVALID');
   if (!Number.isSafeInteger(importerTimeoutMs) || importerTimeoutMs < 1 || importerTimeoutMs > 115000) throw error('IMPORT_TIMEOUT_INVALID');
@@ -848,7 +852,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   // status journal, never a key/path/credential store, and is lost on restart.
   let acquisitionEventSeq = 0n;
   const acquisitionEvents = [];
-  let activeImport = null, snapshotLoaded = false, sourceInventory = null, outputInventory = null, sourceFailure = '', closed = false;
+  let activeImport = null, activeKeyAcquisition = null, snapshotLoaded = false, sourceInventory = null, outputInventory = null, sourceFailure = '', closed = false;
   const snapshotOptions = { snapshotRoot, accountId, encryptedDir };
   const names = new Map();
   const configuredSourcePath = encryptedDir || dataDir;
@@ -975,7 +979,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     if (closed) throw error('ENGINE_CLOSED');
     if (!request || request.accountId !== accountId || typeof request.afterEventSeq !== 'bigint' || request.afterEventSeq < 0n || request.afterEventSeq > 18446744073709551615n) throw error('DATABASE_KEY_ACQUISITION_REQUEST_INVALID');
     const events = acquisitionEvents.filter(event => event.eventSeq > request.afterEventSeq);
-    return { active: Boolean(activeImport && !activeImport.terminal), events, lastEventSeq: acquisitionEventSeq };
+    return { active: Boolean((activeImport && !activeImport.terminal) || (activeKeyAcquisition && !activeKeyAcquisition.terminal)), events, lastEventSeq: acquisitionEventSeq };
   }
   function independentMediaIndex() {
     if (mediaIndexState !== undefined) return mediaIndexState;
@@ -1289,6 +1293,8 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     }
   }
   async function cancelImport() {
+    const keyAcquisition = activeKeyAcquisition;
+    if (keyAcquisition) { keyAcquisition.controller.abort(error('KEY_ACQUISITION_CANCELED')); await keyAcquisition.done; }
     const operation = activeImport;
     if (operation) { operation.controller.abort(); await operation.done; }
   }
@@ -2112,6 +2118,47 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       return { status: imageMediaStatus() };
     },
     async importDatabaseKey(request) { return { account: await importKey(request) }; },
+    async acquireDatabaseKey(request) {
+      guard();
+      if (!encryptedDir) throw error('ENCRYPTED_SOURCE_NOT_CONFIGURED');
+      if (!keyHelperPath) throw error('KEY_ACQUISITION_UNAVAILABLE');
+      if (!request || request.accountId !== accountId || !Number.isSafeInteger(request.processId) || request.processId < 1 || request.processId > 0xffffffff || !Number.isSafeInteger(request.timeoutSeconds) || request.timeoutSeconds < 1 || request.timeoutSeconds > 900) throw error('DATABASE_KEY_ACQUISITION_REQUEST_INVALID');
+      const mode = request.mode === 1 ? 'auto' : request.mode === 2 ? 'memory-scan' : request.mode === 3 ? 'runtime-capture' : '';
+      if (!mode) throw error('DATABASE_KEY_ACQUISITION_REQUEST_INVALID');
+      if (activeKeyAcquisition || activeImport) throw error('IMPORT_BUSY');
+      let finish;
+      const operation = { controller: new AbortController(), done: new Promise(resolve => { finish = resolve; }), terminal: false };
+      activeKeyAcquisition = operation;
+      const progress = (phase, completedSteps, messageKey) => recordAcquisitionEvent(operation, phase, completedSteps, messageKey);
+      progress(IMPORT_EVENT_PHASES.discovering, 0, IMPORT_EVENT_MESSAGE_KEYS.discovering);
+      let candidate;
+      try {
+        candidate = await runKeyHelper({ executable: keyHelperPath, processId: request.processId, mode, timeoutMs: request.timeoutSeconds * 1000, signal: operation.controller.signal, onProgress: progress });
+        progress(IMPORT_EVENT_PHASES.verifying, 3, IMPORT_EVENT_MESSAGE_KEYS.verifying);
+        // Import performs the authenticated database probe and all snapshot
+        // integrity checks. The helper's extracted key never enters state,
+        // logs, manifests, environment variables, or the response.
+        const imported = await importKey({ accountId: request.accountId, databaseKey: candidate.key });
+        recordAcquisitionEvent(operation, IMPORT_EVENT_PHASES.completed, IMPORT_EVENT_TOTAL_STEPS, IMPORT_EVENT_MESSAGE_KEYS.completed, true);
+        return {
+          account: imported,
+          evidence: {
+            provider: candidate.provider,
+            locatorKind: candidate.locatorKind,
+            targetFingerprint: Buffer.alloc(0),
+            databaseProbeSucceeded: true
+          }
+        };
+      } catch (failure) {
+        const code = /^[A-Z][A-Z0-9_]{1,95}$/.test(failure?.message ?? '') ? failure.message : 'KEY_HELPER_FAILED';
+        if (!operation.terminal) recordAcquisitionEvent(operation, operation.phase || IMPORT_EVENT_PHASES.discovering, operation.completedSteps || 0, operation.messageKey || IMPORT_EVENT_MESSAGE_KEYS.discovering, true, code);
+        throw failure;
+      } finally {
+        if (candidate?.key instanceof Uint8Array) candidate.key.fill(0);
+        if (activeKeyAcquisition === operation) activeKeyAcquisition = null;
+        finish();
+      }
+    },
     async watchDatabaseKeyAcquisition(request) { return watchAcquisition(request); },
     async listAccounts() {
       guard(); if (activeImport) throw error('IMPORT_IN_PROGRESS');

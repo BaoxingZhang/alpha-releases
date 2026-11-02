@@ -1,16 +1,16 @@
 {
   "recordedAt": "2026-11-02",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, message-derived recall candidate pagination, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch and explicit opt-in key-helper experiment, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, message-derived recall candidate pagination, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 74,
-    "unsupportedRequestBranches": 54,
+    "implementedRequestBranches": 75,
+    "unsupportedRequestBranches": 53,
     "source": "packages/alpha-engine/index.cjs:SUPPORTED"
   },
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 245,
+      "passed": 251,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -159,6 +159,17 @@
     "encryptedImport": {
       "record": "encrypted-run.json",
       "status": "passed"
+    },
+    "keyAcquisition": {
+      "command": "node --test tests/engine-import.test.mjs",
+      "status": "passed",
+      "tests": 2,
+      "optIn": true,
+      "helper": "explicit absolute executable via ALPHA_INDEPENDENT_KEY_HELPER_PATH",
+      "temporaryChatlogDirectory": true,
+      "keyPersisted": false,
+      "realWechatProcessValidated": false,
+      "nativeParity": false
     },
     "search": {
       "record": "search-run.json",
@@ -656,8 +667,8 @@
       "status": "passed",
       "record": "docs/independent-support-matrix.json",
       "totalRequestBranches": 128,
-      "implementedRequestBranches": 74,
-      "unsupportedRequestBranches": 54,
+      "implementedRequestBranches": 75,
+      "unsupportedRequestBranches": 53,
       "unsupportedBehavior": "UNIMPLEMENTED"
     },
     "packagedApp": {

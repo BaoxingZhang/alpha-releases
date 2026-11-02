@@ -183,3 +183,60 @@ test('fault injection only: importer timeout, bounded output and malformed summa
     assert.equal(success(await call('listAccounts'), 'listAccounts').accounts[0].ready, false); await cleanWork(f.stateDir); await engine.close();
   }
 });
+
+test('opt-in key helper uses a private CHATLOG_DIR, imports the key, and exposes bounded progress only', async t => {
+  const f = await setup(t);
+  const helper = path.join(f.base, 'key-helper.cjs');
+  const marker = path.join(f.base, 'helper-config-dir.txt');
+  await fs.writeFile(helper, `#!${process.execPath}
+const fs = require('node:fs');
+const path = require('node:path');
+const key = ${JSON.stringify(f.keyHex)};
+fs.writeFileSync(process.env.MARKER, process.env.CHATLOG_DIR);
+fs.writeFileSync(path.join(process.env.CHATLOG_DIR, 'chatlog.json'), JSON.stringify({ dataKey: key }));
+process.stdout.write('Data Key: [' + key + ']\\nImage Key: [00]\\n');
+`, { mode: 0o700 });
+  const oldMarker = process.env.MARKER;
+  process.env.MARKER = marker;
+  t.after(() => { if (oldMarker === undefined) delete process.env.MARKER; else process.env.MARKER = oldMarker; });
+  const { call } = await f.open({ keyHelperPath: helper }); await call('hello', helloPayload);
+  const acquired = success(await call('acquireDatabaseKey', { accountId, processId: 123, mode: 1, timeoutSeconds: 5 }), 'acquireDatabaseKey');
+  assert.equal(acquired.account.ready, true);
+  assert.equal(acquired.evidence.provider, 'chatlog-candidate');
+  assert.equal(acquired.evidence.locatorKind, 'macos-process-pid');
+  assert.equal(acquired.evidence.databaseProbeSucceeded, true);
+  const helperDir = await fs.readFile(marker, 'utf8');
+  await assert.rejects(fs.stat(helperDir), { code: 'ENOENT' });
+  const watched = success(await call('watchDatabaseKeyAcquisition', { accountId }), 'watchDatabaseKeyAcquisition');
+  assert.equal(watched.active, false);
+  assert.ok(watched.events.some(event => event.phase === 3));
+  assert.ok(watched.events.some(event => event.phase === 4));
+  assert.equal(watched.events.at(-1).terminal, true);
+  assert.equal(watched.events.at(-1).errorCode, '');
+  await assertNoKey(f.stateDir, f.keyHex);
+});
+
+test('key helper errors are fail-closed and its temporary key-bearing directory is removed', async t => {
+  const f = await setup(t);
+  const helper = path.join(f.base, 'bad-key-helper.cjs');
+  const marker = path.join(f.base, 'bad-helper-config-dir.txt');
+  await fs.writeFile(helper, `#!${process.execPath}
+const fs = require('node:fs');
+const path = require('node:path');
+fs.writeFileSync(process.env.MARKER, process.env.CHATLOG_DIR);
+fs.writeFileSync(path.join(process.env.CHATLOG_DIR, 'chatlog.json'), JSON.stringify({ dataKey: ${JSON.stringify(f.keyHex)} }));
+process.stdout.write('no usable key\\n');
+`, { mode: 0o700 });
+  const oldMarker = process.env.MARKER;
+  process.env.MARKER = marker;
+  t.after(() => { if (oldMarker === undefined) delete process.env.MARKER; else process.env.MARKER = oldMarker; });
+  const { call } = await f.open({ keyHelperPath: helper }); await call('hello', helloPayload);
+  assert.equal((await call('acquireDatabaseKey', { accountId, processId: 123, mode: 1, timeoutSeconds: 5 })).error.code, 'KEY_HELPER_KEY_NOT_FOUND');
+  const helperDir = await fs.readFile(marker, 'utf8');
+  await assert.rejects(fs.stat(helperDir), { code: 'ENOENT' });
+  const watched = success(await call('watchDatabaseKeyAcquisition', { accountId }), 'watchDatabaseKeyAcquisition');
+  assert.equal(watched.active, false);
+  assert.equal(watched.events.at(-1).terminal, true);
+  assert.equal(watched.events.at(-1).errorCode, 'KEY_HELPER_KEY_NOT_FOUND');
+  await assertNoKey(f.stateDir, f.keyHex);
+});

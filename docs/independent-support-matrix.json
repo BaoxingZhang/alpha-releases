@@ -8,8 +8,8 @@
   },
   "counts": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 74,
-    "unsupportedRequestBranches": 54
+    "implementedRequestBranches": 75,
+    "unsupportedRequestBranches": 53
   },
   "supported": [
     {
@@ -127,6 +127,10 @@
     {
       "name": "getAdvancedComponentStatus",
       "fieldNumber": 65
+    },
+    {
+      "name": "acquireDatabaseKey",
+      "fieldNumber": 69
     },
     {
       "name": "removeAccount",
@@ -310,10 +314,6 @@
     }
   ],
   "unsupported": [
-    {
-      "name": "acquireDatabaseKey",
-      "status": "UNIMPLEMENTED"
-    },
     {
       "name": "activateLicense",
       "status": "UNIMPLEMENTED"
