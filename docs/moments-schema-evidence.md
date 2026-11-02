@@ -4,6 +4,8 @@
 
 ## 独立 fixture 的实现边界
 
+`resolveMomentEmoji` 使用独立的 `__alpha_moment_emoji_v1` 映射表，仅接受 `emoji-xml:` 前缀的 synthetic source。每行必须提供小写 SHA-256、非负大小、允许的图片 MIME、无路径穿越的相对路径，以及可选的账号和 moment 绑定；Node 引擎随后要求同一数据源的自有 `media-index.v1.json` 唯一匹配并重新校验文件大小和哈希。该能力边界固定为 `native_schema_supported=false`，不解析真实 `SnsTimeLine`/`snsmessage`、评论 XML 或原生媒体 token。
+
 为让恢复项目可以继续开发和测试，bridge 现在只接受一个自有、显式命名的合成 schema：`moments.db` 中必须存在 `__alpha_moments_v1`，列为 `id`、`username`、`nickname`、`created_at_unix_ms`、`type`、`text`、`raw_xml` 和 `fields_json`。该 schema 提供 `moments.list`、`moments.authors` 和 `moments.dayCounts` 三个只读操作，并在响应中保留 `sourceDatabase`/`sourceTable`。它用于独立引擎的 synthetic fixture 和后续字段映射开发，不宣称兼容真实微信 moments 数据库。
 
 如果 `moments.db` 缺少这个表，或者数据集只有 `SnsTimeLine`、`snsmessage` 等原生候选表，bridge 会返回 `SCHEMA_UNSUPPORTED`/`CAPABILITY_UNAVAILABLE`，不会扫描候选列、转换 XML 或返回空朋友圈页。对应 synthetic fixture 和拒绝测试见 `packages/alpha-data-bridge/moments_test.go`。

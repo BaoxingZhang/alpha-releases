@@ -1,4 +1,4 @@
-> 后续进展：新增独立后端已实现离线微信 v4 数据副本的核心读取、密码应用锁、已有密钥的加密快照导入、搜索/日期导航，以及显式 synthetic moments/favorites fixture 的只读列表、作者/日计数和收藏媒体索引边界。当前独立协议支持 72/128 个请求分支；下文原包缺口仍成立，真实 native schema 不因 synthetic fixture 而闭合。新的实现范围见 [independent-backend.md](independent-backend.md)、[encrypted-import.md](encrypted-import.md) 和 [search-navigation.md](search-navigation.md)。
+> 后续进展：新增独立后端已实现离线微信 v4 数据副本的核心读取、密码应用锁、已有密钥的加密快照导入、搜索/日期导航，以及显式 synthetic moments/favorites fixture 的只读列表、作者/日计数、合成表情解析和收藏媒体索引边界。当前独立协议支持 73/128 个请求分支；下文原包缺口仍成立，真实 native schema 不因 synthetic fixture 而闭合。新的实现范围见 [independent-backend.md](independent-backend.md)、[encrypted-import.md](encrypted-import.md) 和 [search-navigation.md](search-navigation.md)。
 
 补充：独立后端已按 [`telemetry-recovery.md`](telemetry-recovery.md) 接通 field 21/22/23 的本地同意状态管理；该实现明确停用发送并不补齐原包缺失的遥测服务端、事件队列或上传协议。
 

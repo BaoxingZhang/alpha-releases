@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 const execute = promisify(execFile);
@@ -54,4 +55,36 @@ db.executemany('INSERT INTO __alpha_moments_v1 VALUES (?,?,?,?,?,?,?,?)', [
 db.commit();db.close()`;
   await execute('/usr/bin/python3', ['-c', script, directory]);
   return { directory, sourceDatabase: 'moments.db', sourceTable: '__alpha_moments_v1' };
+}
+
+// Add a separately opt-in synthetic comment emoji mapping. The mapping is
+// deliberately independent from raw XML and must point at a caller-authored
+// SHA-256 media-index entry.
+export async function installMomentEmojiFixture(directory, accountId = 'moment-account') {
+  if (!path.isAbsolute(directory) || path.normalize(directory) !== directory) throw new Error('fixture path invalid');
+  const mediaDirectory = path.join(directory, 'media');
+  await fs.mkdir(mediaDirectory, { recursive: true, mode: 0o700 });
+  const mediaPath = path.join(mediaDirectory, 'moment-emoji.png');
+  const bytes = Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0]);
+  await fs.writeFile(mediaPath, bytes, { mode: 0o600 });
+  const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+  const relativePath = 'media/moment-emoji.png';
+  const source = 'emoji-xml:__alpha_moment_emoji_v1:smile';
+  const script = String.raw`import sqlite3,sys
+root,source,sha256,relative_path,account_id=sys.argv[1:]
+db=sqlite3.connect(root+'/moments.db')
+db.execute('''CREATE TABLE __alpha_moment_emoji_v1 (
+source TEXT NOT NULL,
+sha256 TEXT NOT NULL,
+size_bytes INTEGER NOT NULL,
+mime_type TEXT NOT NULL,
+relative_path TEXT NOT NULL,
+account_id TEXT NOT NULL DEFAULT '',
+moment_id TEXT NOT NULL DEFAULT ''
+)''')
+db.execute('INSERT INTO __alpha_moment_emoji_v1 VALUES (?,?,?,?,?,?,?)',(source,sha256,12,'image/png',relative_path,account_id,'m1'))
+db.commit();db.close()`;
+  await execute('/usr/bin/python3', ['-c', script, directory, source, sha256, relativePath, accountId]);
+  await fs.writeFile(path.join(directory, 'media-index.v1.json'), JSON.stringify({ version: 1, accountId, entries: [{ kind: 'image', id: sha256, rendition: 'source', relativePath, sha256, sizeBytes: bytes.length, mimeType: 'image/png', accountId }] }) + '\n', { mode: 0o600 });
+  return { directory, accountId, source, sha256, relativePath, bytes };
 }

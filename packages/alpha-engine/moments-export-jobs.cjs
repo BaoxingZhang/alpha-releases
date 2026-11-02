@@ -105,6 +105,7 @@ function createMomentsExportJobs({ runExport, now = () => BigInt(Date.now()), ma
   }
   function load() {
     if (!stateDir) return;
+    let rewrite = false;
     try {
       const fd = fs.openSync(path.join(stateDir, STATE_FILE), fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
       try {
@@ -112,10 +113,18 @@ function createMomentsExportJobs({ runExport, now = () => BigInt(Date.now()), ma
         if (!stat.isFile() || stat.size > MAX_STATE_BYTES || (stat.mode & 0o077)) fail('MOMENT_EXPORT_STATE_INVALID');
         const parsed = JSON.parse(fs.readFileSync(fd, 'utf8'));
         if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.jobs) || parsed.jobs.length > maxJobs) fail('MOMENT_EXPORT_STATE_INVALID');
-        for (const raw of parsed.jobs) { const job = restoreJob(raw); jobs.set(job.jobId, { job, request: null }); }
+        for (const raw of parsed.jobs) {
+          // Restore rewrites in-flight jobs as failed after a process
+          // restart.  Persist that explicit transition, but avoid creating a
+          // state file for a fresh engine; teardown may remove stateDir before
+          // close() and an unnecessary queued write would race cleanup.
+          if (['queued', 'running', 'canceling'].includes(raw?.state)) rewrite = true;
+          const job = restoreJob(raw);
+          jobs.set(job.jobId, { job, request: null });
+        }
       } finally { fs.closeSync(fd); }
     } catch (failure) { if (failure.code !== 'ENOENT') throw failure.message === 'MOMENT_EXPORT_STATE_INVALID' ? failure : new Error('MOMENT_EXPORT_STATE_INVALID'); }
-    void persist().catch(() => {});
+    if (rewrite) void persist().catch(() => {});
   }
   load();
   function stamp(job) { job.updatedAtUnixMs = now(); }

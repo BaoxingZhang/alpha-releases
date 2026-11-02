@@ -65,9 +65,15 @@ func TestMomentsExplicitSchemaReader(t *testing.T) {
 		t.Fatal(err)
 	}
 	encodedAuthors, err := json.Marshal(authors)
-	if err != nil { t.Fatal(err) }
-	var authorPage struct { Items []json.RawMessage `json:"items"` }
-	if err := json.Unmarshal(encodedAuthors, &authorPage); err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
+	var authorPage struct {
+		Items []json.RawMessage `json:"items"`
+	}
+	if err := json.Unmarshal(encodedAuthors, &authorPage); err != nil {
+		t.Fatal(err)
+	}
 	if len(authorPage.Items) != 2 {
 		t.Fatal("expected two authors")
 	}
@@ -81,13 +87,17 @@ func TestMomentsExplicitSchemaReader(t *testing.T) {
 	// Moment ranges are half-open: the row exactly at `toUnixMs` belongs to
 	// the following range and must not be returned/counts here.
 	bounded, err := b.dispatch(context.Background(), request{ID: "bounded", Op: "moments.list", Params: json.RawMessage(`{"limit":10,"ascending":true,"fromUnixMs":"1700000000000","toUnixMs":"1700086400000"}`)})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	boundedItems := bounded.(map[string]any)["items"].([]momentRecord)
 	if len(boundedItems) != 1 || boundedItems[0].ID != "m1" {
 		t.Fatalf("expected half-open moments list, got %#v", bounded)
 	}
 	boundedDays, err := b.dispatch(context.Background(), request{ID: "bounded-days", Op: "moments.dayCounts", Params: json.RawMessage(`{"fromUnixMs":"1700000000000","toUnixMs":"1700086400000","utcOffsetMinutes":0}`)})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if got := boundedDays.(map[string]any)["days"].([]map[string]string); len(got) != 1 || got[0]["count"] != "1" {
 		t.Fatalf("expected half-open moments day counts, got %#v", boundedDays)
 	}
@@ -102,4 +112,38 @@ func TestMomentsRejectsUnmarkedDatabase(t *testing.T) {
 	}
 	_, err := openBridge(root, "fixture")
 	expectCode(t, err, "SCHEMA_UNSUPPORTED")
+}
+
+func TestMomentsEmojiUsesExplicitSyntheticMapping(t *testing.T) {
+	root := momentsFixture(t)
+	db, err := sql.Open("sqlite3", filepath.Join(root, "moments.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`CREATE TABLE __alpha_moment_emoji_v1 (source TEXT NOT NULL,sha256 TEXT NOT NULL,size_bytes INTEGER NOT NULL,mime_type TEXT NOT NULL,relative_path TEXT NOT NULL,account_id TEXT NOT NULL DEFAULT '',moment_id TEXT NOT NULL DEFAULT '')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`INSERT INTO __alpha_moment_emoji_v1 VALUES (?,?,?,?,?,?,?)`, "emoji-xml:__alpha_moment_emoji_v1:smile", "0000000000000000000000000000000000000000000000000000000000000000", 12, "image/png", "media/moment.png", "fixture", "m1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	b, err := openBridge(root, "fixture")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.close()
+	value, err := b.dispatch(context.Background(), request{ID: "emoji", Op: "moments.emoji", Params: json.RawMessage(`{"source":"emoji-xml:__alpha_moment_emoji_v1:smile","limit":100}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := value.(map[string]any)
+	if result["status"] != "ready" || result["sha256"] != "0000000000000000000000000000000000000000000000000000000000000000" {
+		t.Fatalf("unexpected emoji result: %#v", result)
+	}
+	_, err = b.dispatch(context.Background(), request{ID: "ambiguous", Op: "moments.emoji", Params: json.RawMessage(`{"source":"emoji-xml:__alpha_moment_emoji_v1:missing","limit":100}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
 }

@@ -10,18 +10,44 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 )
 
 const momentsTable = "__alpha_moments_v1"
+const momentsEmojiTable = "__alpha_moment_emoji_v1"
 
 var momentsColumns = []string{"id", "username", "nickname", "created_at_unix_ms", "type", "text", "raw_xml", "fields_json"}
+var momentsEmojiColumns = []string{"source", "sha256", "size_bytes", "mime_type", "relative_path", "account_id", "moment_id"}
 
 const (
-	maxMomentsRows  = 100000
-	maxMomentFields = 32
+	maxMomentsRows     = 100000
+	maxMomentFields    = 32
+	maxMomentEmojiRows = 10000
 )
+
+var momentEmojiHash = regexp.MustCompile(`^[a-f0-9]{64}$`)
+
+func validateMomentEmojiPath(value string) error {
+	if value == "" || len(value) > 4096 || strings.ContainsRune(value, '\x00') || strings.ContainsRune(value, '\\') || strings.HasPrefix(value, "/") {
+		return fail("MOMENT_EMOJI_SCHEMA_INVALID", "Moment emoji path is invalid")
+	}
+	parts := strings.Split(value, "/")
+	for _, part := range parts {
+		if part == "" || part == "." || part == ".." {
+			return fail("MOMENT_EMOJI_SCHEMA_INVALID", "Moment emoji path is invalid")
+		}
+	}
+	return nil
+}
+
+func validateMomentEmojiSource(value string) error {
+	if !strings.HasPrefix(value, "emoji-xml:") || len(value) > 4096 || strings.ContainsRune(value, '\x00') || !utf8.ValidString(value) {
+		return fail("MOMENT_EMOJI_REQUEST_INVALID", "Moment emoji source is invalid")
+	}
+	return nil
+}
 
 type momentField struct {
 	Name      string `json:"name"`
@@ -31,15 +57,15 @@ type momentField struct {
 }
 
 type momentRecord struct {
-	ID             string        `json:"id"`
-	Username       string        `json:"username"`
-	Nickname       string        `json:"nickname"`
-	CreatedAtUnixMs string       `json:"createdAtUnixMs"`
-	Type           uint32        `json:"type"`
-	Text           string        `json:"text"`
-	RawXML         string        `json:"rawXml"`
-	SourceTable    string        `json:"sourceTable"`
-	Fields         []momentField `json:"fields"`
+	ID              string        `json:"id"`
+	Username        string        `json:"username"`
+	Nickname        string        `json:"nickname"`
+	CreatedAtUnixMs string        `json:"createdAtUnixMs"`
+	Type            uint32        `json:"type"`
+	Text            string        `json:"text"`
+	RawXML          string        `json:"rawXml"`
+	SourceTable     string        `json:"sourceTable"`
+	Fields          []momentField `json:"fields"`
 }
 
 func validateMomentString(value string, max int, required bool) error {
@@ -88,7 +114,11 @@ func scanMomentRows(rows *sql.Rows, sourceTable string, limit int) ([]momentReco
 		if kind < 0 || kind > int64(^uint32(0)) {
 			return nil, fail("MOMENTS_SCHEMA_INVALID", "Moment type is outside uint32 range")
 		}
-		for _, value := range []struct{ value string; max int; required bool }{
+		for _, value := range []struct {
+			value    string
+			max      int
+			required bool
+		}{
 			{id, 1024, true}, {username, 1024, true}, {nickname, 4096, false}, {text, 4 << 20, false}, {rawXML, 4 << 20, false},
 		} {
 			if err := validateMomentString(value.value, value.max, value.required); err != nil {
@@ -195,17 +225,17 @@ func (b *bridge) momentsAuthors(ctx context.Context, p params) (any, error) {
 	}
 	defer rows.Close()
 	type author struct {
-		Username string `json:"username"`
-		Nickname string `json:"nickname"`
-		PostCount uint32 `json:"postCount"`
-		LatestAtUnixMs string `json:"latestAtUnixMs"`
-		IsContact bool `json:"isContact"`
-		Remark string `json:"remark"`
+		Username        string `json:"username"`
+		Nickname        string `json:"nickname"`
+		PostCount       uint32 `json:"postCount"`
+		LatestAtUnixMs  string `json:"latestAtUnixMs"`
+		IsContact       bool   `json:"isContact"`
+		Remark          string `json:"remark"`
 		ContactNickname string `json:"contactNickname"`
-		Alias string `json:"alias"`
-		AvatarRef string `json:"avatarRef"`
-		QuanPin string `json:"quanPin"`
-		RemarkQuanPin string `json:"remarkQuanPin"`
+		Alias           string `json:"alias"`
+		AvatarRef       string `json:"avatarRef"`
+		QuanPin         string `json:"quanPin"`
+		RemarkQuanPin   string `json:"remarkQuanPin"`
 	}
 	items := make([]author, 0, p.Limit)
 	var total uint64
@@ -215,47 +245,142 @@ func (b *bridge) momentsAuthors(ctx context.Context, p params) (any, error) {
 		if err := rows.Scan(&username, &nickname, &count, &latest); err != nil || count < 0 || count > int64(^uint32(0)) {
 			return nil, fail("MOMENTS_SCHEMA_INVALID", "Moment author aggregate is invalid")
 		}
-		if err := validateMomentString(username, 1024, true); err != nil { return nil, err }
-		if err := validateMomentString(nickname, 4096, false); err != nil { return nil, err }
+		if err := validateMomentString(username, 1024, true); err != nil {
+			return nil, err
+		}
+		if err := validateMomentString(nickname, 4096, false); err != nil {
+			return nil, err
+		}
 		items = append(items, author{Username: username, Nickname: nickname, PostCount: uint32(count), LatestAtUnixMs: number(latest)})
 		total += uint64(count)
 	}
-	if err := rows.Err(); err != nil { return nil, fail("MOMENTS_READ_FAILED", "Unable to read moment authors") }
+	if err := rows.Err(); err != nil {
+		return nil, fail("MOMENTS_READ_FAILED", "Unable to read moment authors")
+	}
 	return map[string]any{"items": items, "totalPosts": number(int64(total)), "truncated": false, "sourceDatabase": "moments.db", "sourceTable": momentsTable}, nil
 }
 
 func localMomentDay(unixMs int64, offsetMinutes int) int64 {
 	shifted := unixMs + int64(offsetMinutes)*60000
-	if shifted >= 0 { return shifted / 86400000 }
+	if shifted >= 0 {
+		return shifted / 86400000
+	}
 	return -((-shifted + 86400000 - 1) / 86400000)
 }
 
 func (b *bridge) momentsDayCounts(ctx context.Context, p params) (any, error) {
-	if b.momentsDB == nil { return map[string]any{"available": false, "days": []any{}}, nil }
+	if b.momentsDB == nil {
+		return map[string]any{"available": false, "days": []any{}}, nil
+	}
 	from, to, err := parseMomentRange(p)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	query := `SELECT created_at_unix_ms FROM "` + momentsTable + `" WHERE 1=1`
 	args := []any{}
-	if p.Username != "" { query += ` AND username COLLATE BINARY=?`; args = append(args, p.Username) }
-	if from != nil { query += ` AND created_at_unix_ms>=?`; args = append(args, *from) }
-	if to != nil { query += ` AND created_at_unix_ms<?`; args = append(args, *to) }
+	if p.Username != "" {
+		query += ` AND username COLLATE BINARY=?`
+		args = append(args, p.Username)
+	}
+	if from != nil {
+		query += ` AND created_at_unix_ms>=?`
+		args = append(args, *from)
+	}
+	if to != nil {
+		query += ` AND created_at_unix_ms<?`
+		args = append(args, *to)
+	}
 	rows, err := b.momentsDB.db.QueryContext(ctx, query, args...)
-	if err != nil { return nil, fail("MOMENTS_READ_FAILED", "Unable to query moment day counts") }
+	if err != nil {
+		return nil, fail("MOMENTS_READ_FAILED", "Unable to query moment day counts")
+	}
 	defer rows.Close()
 	counts := map[int64]int64{}
 	for rows.Next() {
 		var value int64
-		if err := rows.Scan(&value); err != nil { return nil, fail("MOMENTS_SCHEMA_INVALID", "Moment timestamp is invalid") }
+		if err := rows.Scan(&value); err != nil {
+			return nil, fail("MOMENTS_SCHEMA_INVALID", "Moment timestamp is invalid")
+		}
 		day := localMomentDay(value, dereferenceInt(p.UTCOffsetMinutes))
 		counts[day]++
 	}
-	if err := rows.Err(); err != nil { return nil, fail("MOMENTS_READ_FAILED", "Unable to read moment day counts") }
+	if err := rows.Err(); err != nil {
+		return nil, fail("MOMENTS_READ_FAILED", "Unable to read moment day counts")
+	}
 	keys := make([]int64, 0, len(counts))
-	for key := range counts { keys = append(keys, key) }
-	for i := 1; i < len(keys); i++ { for j := i; j > 0 && keys[j] < keys[j-1]; j-- { keys[j], keys[j-1] = keys[j-1], keys[j] } }
+	for key := range counts {
+		keys = append(keys, key)
+	}
+	for i := 1; i < len(keys); i++ {
+		for j := i; j > 0 && keys[j] < keys[j-1]; j-- {
+			keys[j], keys[j-1] = keys[j-1], keys[j]
+		}
+	}
 	days := make([]map[string]string, 0, len(keys))
-	for _, key := range keys { days = append(days, map[string]string{"localDay": number(key), "count": number(counts[key])}) }
+	for _, key := range keys {
+		days = append(days, map[string]string{"localDay": number(key), "count": number(counts[key])})
+	}
 	return map[string]any{"available": true, "days": days}, nil
 }
 
-func dereferenceInt(value *int) int { if value == nil { return 0 }; return *value }
+// momentsEmoji resolves only the explicitly maintained synthetic mapping table.
+// It does not parse native SnsTimeLine/snsmessage XML or derive paths from a
+// source string. The returned SHA-256 is revalidated by the Node media-index
+// reader before any bytes are exposed.
+func (b *bridge) momentsEmoji(ctx context.Context, p params) (any, error) {
+	if b.momentsDB == nil || !b.momentsDB.tables[momentsEmojiTable] {
+		return map[string]any{"status": "missing", "sourceTable": momentsEmojiTable}, nil
+	}
+	if err := validateMomentEmojiSource(p.Source); err != nil {
+		return nil, err
+	}
+	rows, err := b.momentsDB.db.QueryContext(ctx, `SELECT source,sha256,size_bytes,mime_type,relative_path,COALESCE(account_id,''),COALESCE(moment_id,'') FROM "`+momentsEmojiTable+`" WHERE source=? LIMIT 2`, p.Source)
+	if err != nil {
+		return nil, fail("MOMENT_EMOJI_READ_FAILED", "Unable to query the synthetic moment emoji table")
+	}
+	defer rows.Close()
+	type mapping struct {
+		Source       string `json:"source"`
+		Sha256       string `json:"sha256"`
+		SizeBytes    int64  `json:"sizeBytes"`
+		MimeType     string `json:"mimeType"`
+		RelativePath string `json:"relativePath"`
+		AccountID    string `json:"accountId"`
+		MomentID     string `json:"momentId"`
+	}
+	items := make([]mapping, 0, 2)
+	for rows.Next() {
+		var item mapping
+		if err := rows.Scan(&item.Source, &item.Sha256, &item.SizeBytes, &item.MimeType, &item.RelativePath, &item.AccountID, &item.MomentID); err != nil {
+			return nil, fail("MOMENT_EMOJI_SCHEMA_INVALID", "Moment emoji row is invalid")
+		}
+		if err := validateMomentEmojiSource(item.Source); err != nil {
+			return nil, err
+		}
+		if !momentEmojiHash.MatchString(item.Sha256) || item.SizeBytes < 0 || item.SizeBytes > 512<<20 || item.MimeType != "image/gif" && item.MimeType != "image/png" && item.MimeType != "image/jpeg" && item.MimeType != "image/webp" || item.AccountID != "" && item.AccountID != b.accountID || item.MomentID != "" && (len(item.MomentID) > 1024 || strings.ContainsRune(item.MomentID, '\x00')) {
+			return nil, fail("MOMENT_EMOJI_SCHEMA_INVALID", "Moment emoji row is outside the independent bounds")
+		}
+		if err := validateMomentEmojiPath(item.RelativePath); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fail("MOMENT_EMOJI_READ_FAILED", "Unable to read the synthetic moment emoji table")
+	}
+	if len(items) == 0 {
+		return map[string]any{"status": "missing", "source": p.Source, "sourceTable": momentsEmojiTable}, nil
+	}
+	if len(items) != 1 {
+		return nil, fail("MOMENT_EMOJI_AMBIGUOUS", "Moment emoji source has multiple mappings")
+	}
+	item := items[0]
+	return map[string]any{"status": "ready", "source": item.Source, "sha256": item.Sha256, "sizeBytes": item.SizeBytes, "mimeType": item.MimeType, "relativePath": item.RelativePath, "accountId": item.AccountID, "momentId": item.MomentID, "sourceTable": momentsEmojiTable}, nil
+}
+
+func dereferenceInt(value *int) int {
+	if value == nil {
+		return 0
+	}
+	return *value
+}

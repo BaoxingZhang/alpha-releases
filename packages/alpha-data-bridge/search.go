@@ -66,7 +66,7 @@ func conversationTable(name string) string {
 func boolPointer(v bool) *bool { return &v }
 func validateOperationParams(op string, p *params) error {
 	switch op {
-	case "general.list", "contacts.list", "sessions.list", "messages.list", "messages.search", "messages.locate", "messages.dayCounts", "messages.stats", "moments.list", "moments.authors", "moments.dayCounts", "favorites.list", "favorites.mediaSlots", "favorites.media", "voice.playback":
+	case "general.list", "contacts.list", "sessions.list", "messages.list", "messages.search", "messages.locate", "messages.dayCounts", "messages.stats", "moments.list", "moments.authors", "moments.dayCounts", "moments.emoji", "favorites.list", "favorites.mediaSlots", "favorites.media", "voice.playback":
 	default:
 		return fail("UNSUPPORTED_OPERATION", "This read-only operation is not implemented")
 	}
@@ -82,6 +82,12 @@ func validateOperationParams(op string, p *params) error {
 		}
 		if p.Offset < 0 || p.Offset > maxMomentsRows {
 			return fail("MOMENTS_REQUEST_INVALID", "Moment offset is outside the bounded range")
+		}
+		if op == "moments.emoji" {
+			if p.Limit != 100 || p.Offset != 0 || p.Cursor != "" || p.Username != "" || p.Keyword != "" || p.FromUnixMs != "" || p.ToUnixMs != "" || p.UTCOffsetMinutes != nil || p.Ascending != nil || p.Source == "" {
+				return fail("MOMENT_EMOJI_REQUEST_INVALID", "Moment emoji lookup accepts only a source")
+			}
+			return nil
 		}
 		if op == "moments.authors" && (p.Offset != 0 || p.Keyword != "" || p.FromUnixMs != "" || p.ToUnixMs != "" || p.UTCOffsetMinutes != nil || p.Ascending != nil) {
 			return fail("MOMENTS_REQUEST_INVALID", "Moment author lookup accepts only account and limit")

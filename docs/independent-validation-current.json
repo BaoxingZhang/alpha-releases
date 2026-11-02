@@ -1,16 +1,16 @@
 {
   "recordedAt": "2026-11-02",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch, moments fixture reader, metadata-only export task and favorites fixture reader, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 72,
-    "unsupportedRequestBranches": 56,
+    "implementedRequestBranches": 73,
+    "unsupportedRequestBranches": 55,
     "source": "packages/alpha-engine/index.cjs:SUPPORTED"
   },
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 239,
+      "passed": 240,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -618,8 +618,8 @@
       "status": "passed",
       "record": "docs/independent-support-matrix.json",
       "totalRequestBranches": 128,
-      "implementedRequestBranches": 72,
-      "unsupportedRequestBranches": 56,
+      "implementedRequestBranches": 73,
+      "unsupportedRequestBranches": 55,
       "unsupportedBehavior": "UNIMPLEMENTED"
     },
     "packagedApp": {
@@ -757,11 +757,25 @@
       "mediaPlayback": false,
       "alphaMedia1Tokens": false,
       "sidecarAndSymlinkRejected": true
+    },
+    "momentsEmoji": {
+      "command": "node --test tests/engine-moments.test.mjs",
+      "status": "passed",
+      "tests": 2,
+      "sourceTable": "__alpha_moment_emoji_v1",
+      "sourcePrefix": "emoji-xml:__alpha_moment_emoji_v1:",
+      "syntheticOnly": true,
+      "nativeSchemaSupported": false,
+      "mediaIndex": "media-index.v1.json",
+      "rechecksFileHashAndSize": true,
+      "tamperRejected": "MEDIA_INDEX_HASH_MISMATCH",
+      "lockRejected": "APP_LOCK_LOCKED",
+      "nativeCommentXml": false
     }
   },
   "featureBoundary": {
     "mediaFilesAndVoicePlayback": "synthetic-voice-playback-mapping-and-indexed-image-only; native media, DAT/AES integration, real SILK/VoiceInfo decoding and video playback unimplemented",
-    "momentsAndFavorites": "synthetic-moments-and-favorites-only; real SnsTimeLine/snsmessage and real favorites database/source lookup/media semantics remain unimplemented; synthetic favorite media requires explicit __alpha_favorite_media_v1 plus media-index.v1.json",
+    "momentsAndFavorites": "synthetic-moments-and-favorites-only; synthetic moment emoji requires explicit __alpha_moment_emoji_v1 plus media-index.v1.json; real SnsTimeLine/snsmessage, comment XML and real favorites database/source lookup/media semantics remain unimplemented; synthetic favorite media requires explicit __alpha_favorite_media_v1 plus media-index.v1.json",
     "generalRecordListing": {
       "payments": "partial-candidate-from-message-xml",
       "revokes": "partial-candidate-from-message-xml",

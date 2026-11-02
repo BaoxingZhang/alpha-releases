@@ -23,7 +23,7 @@ const { loadMediaIndex, readMediaEntry } = require('./media-index.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
 // These enum values are recovered from the Alpha protocol. The independent
 // engine can report the local package boundary, but it cannot start or claim
 // a dynamically entitled native component. Keep this status explicit and
@@ -37,6 +37,11 @@ function decimal(value, signed = false) {
   const n = BigInt(value);
   if (n < (signed ? -(1n << 63n) : 0n) || n > (signed ? (1n << 63n) - 1n : (1n << 64n) - 1n)) throw error('BRIDGE_VALUE_OUT_OF_RANGE');
   return n;
+}
+const MOMENT_EMOJI_SOURCE = 'emoji-xml:__alpha_moment_emoji_v1:';
+const MOMENT_EMOJI_MIMES = new Set(['image/gif', 'image/png', 'image/jpeg', 'image/webp']);
+function syntheticMomentEmojiSource(value) {
+  return typeof value === 'string' && value.startsWith(MOMENT_EMOJI_SOURCE) && value.length > MOMENT_EMOJI_SOURCE.length && value.length <= 4096 && !value.includes('\0');
 }
 function text(value, maximum = 4096) {
   if (typeof value !== 'string' || value.length > maximum || value.includes('\0')) throw error('BRIDGE_VALUE_INVALID');
@@ -961,7 +966,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   function account(value) {
     const selected = selectedId === accountId && selectedPath === configuredSourcePath;
     if (!value) return { id: accountId, sourceProfile: 'alpha-independent-encrypted-v4', subjectId: selfUsername, displayName: `加密数据源 · ${accountId}`, dataSourcePath: encryptedDir, schemaProfile: 'wechat-v4-encrypted', state: 1, handleState: 3, handleGeneration: 0n, activeHandleGeneration: 0n, selected, capabilities: ['offline-encrypted'], detected: true, usable: false, enabled: false, verified: false, ready: false };
-    const capabilities = ['offline-readonly', ...Object.entries({ 'contacts.list': 'contacts', 'groups.members': 'group-members', 'sessions.list': 'conversations', 'messages.list': 'messages', 'messages.voicePlayback': 'voice-playback', 'moments.list': 'moments', 'moments.authors': 'moment-authors', 'moments.dayCounts': 'moment-day-counts', 'favorites.list': 'favorites', 'favorites.media': 'favorite-media' }).filter(([operation]) => value.capabilities.includes(operation)).map(([, capability]) => capability)];
+    const capabilities = ['offline-readonly', ...Object.entries({ 'contacts.list': 'contacts', 'groups.members': 'group-members', 'sessions.list': 'conversations', 'messages.list': 'messages', 'messages.voicePlayback': 'voice-playback', 'moments.list': 'moments', 'moments.authors': 'moment-authors', 'moments.dayCounts': 'moment-day-counts', 'moments.emoji': 'moment-emoji', 'favorites.list': 'favorites', 'favorites.media': 'favorite-media' }).filter(([operation]) => value.capabilities.includes(operation)).map(([, capability]) => capability)];
     return { id: accountId, sourceProfile: 'alpha-independent-offline-v4', subjectId: selfUsername, displayName: `离线数据源 · ${accountId}`, dataSourcePath: configuredSourcePath, schemaProfile: 'wechat-v4-offline', state: 2, handleState: 4, handleGeneration: 1n, activeHandleGeneration: 1n, selected, capabilities, detected: true, usable: true, enabled: true, verified: true, ready: true };
   }
   async function contactName(username) {
@@ -2270,6 +2275,21 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       const value = await callData('moments.authors', { limit });
       if (!value || !Array.isArray(value.items) || value.items.length > limit || typeof value.totalPosts !== 'string' || typeof value.sourceDatabase !== 'string' || typeof value.sourceTable !== 'string') throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
       return { response: { items: value.items.map(momentAuthorFromRow), totalPosts: safeCount(value.totalPosts), truncated: value.truncated === true, sourceDatabase: text(value.sourceDatabase, 1024), sourceTable: text(value.sourceTable, 1024) } };
+    },
+    async resolveMomentEmoji(request) {
+      const accountInfo = await requireAccount(request.accountId);
+      if (!accountInfo.capabilities?.includes('moments.emoji')) throw error('CAPABILITY_UNAVAILABLE');
+      if (!request || typeof request.source !== 'string' || !syntheticMomentEmojiSource(request.source)) throw error('MOMENT_EMOJI_REQUEST_INVALID');
+      const value = await callData('moments.emoji', { source: request.source });
+      if (!value || typeof value.status !== 'string' || !['ready', 'missing'].includes(value.status)) throw error('MOMENT_EMOJI_RESPONSE_INVALID');
+      if (value.status === 'missing') return { status: 'missing' };
+      if (value.source !== request.source || typeof value.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.sha256) || !Number.isSafeInteger(value.sizeBytes) || value.sizeBytes < 1 || value.sizeBytes > 64 * 1024 * 1024 || !MOMENT_EMOJI_MIMES.has(value.mimeType) || typeof value.relativePath !== 'string' || value.relativePath.length > 4096 || value.relativePath.startsWith('/') || value.relativePath.includes('\\') || value.relativePath.split('/').some(part => !part || part === '.' || part === '..') || (value.accountId && value.accountId !== request.accountId)) throw error('MOMENT_EMOJI_RESPONSE_INVALID');
+      const index = independentMediaIndex();
+      if (!index || !Array.isArray(index.entries)) return { status: 'missing' };
+      const candidates = index.entries.filter(entry => entry.kind === 'image' && entry.sha256 === value.sha256 && entry.relativePath === value.relativePath && entry.sizeBytes === value.sizeBytes && entry.mimeType === value.mimeType && (!entry.accountId || entry.accountId === request.accountId));
+      if (candidates.length !== 1) return { status: candidates.length > 1 ? 'missing' : 'missing' };
+      await readMediaEntry(index, candidates[0], { maxBytes: 64 * 1024 * 1024 });
+      return { status: 'ready', opaqueId: value.sha256, mimeType: value.mimeType };
     },
     async getMomentDayCounts(request) {
       const accountInfo = await requireAccount(request.accountId);

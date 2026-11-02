@@ -56,7 +56,9 @@ npm run verify:release-manifest # 重新计算并核对清单中的每个文件
 npm run bundle:recovery  # 生成排除用户数据和构建输出的源码恢复包
 ```
 
-项目的 `.github/workflows/maintenance.yml` 固定了同一套 macOS arm64 维护基线：递归获取参考子模块、按 `package-lock.json` 安装依赖、构建独立后端和 packaged 资源、组装普通与独立两个未签名 app、运行完整测试及独立/原包 smoke，并校验协议绑定、原包运行时哈希、独立 72/128 支持矩阵和维护边界。构建报告及两个 app manifest 会作为 Actions artifact 保留；Go 桥接和快照导入仍只接受项目内固定的 macOS arm64 工具链，不会在 CI 中改用系统 Go。
+朋友圈表情的独立恢复边界是 synthetic-only：`resolveMomentEmoji` 只接受 `emoji-xml:__alpha_moment_emoji_v1:` source，并要求 `__alpha_moment_emoji_v1` 与自有 `media-index.v1.json` 唯一匹配 image、SHA-256、大小、MIME、相对路径、账号和 moment；它不解析真实评论 XML、`SnsTimeLine`/`snsmessage` 或原生媒体 token，能力边界固定为 `native_schema_supported=false`。
+
+项目的 `.github/workflows/maintenance.yml` 固定了同一套 macOS arm64 维护基线：递归获取参考子模块、按 `package-lock.json` 安装依赖、构建独立后端和 packaged 资源、组装普通与独立两个未签名 app、运行完整测试及独立/原包 smoke，并校验协议绑定、原包运行时哈希、独立 73/128 支持矩阵和维护边界。构建报告及两个 app manifest 会作为 Actions artifact 保留；Go 桥接和快照导入仍只接受项目内固定的 macOS arm64 工具链，不会在 CI 中改用系统 Go。
 
 `npm run release:manifest` 会对 `dist/app`、`build/runtime-bundle` 和 `workers/agent/dist` 的每个文件生成 SHA-256 清单与整体摘要，写入 `.runtime/release-manifest.json`。清单明确标记目标为 macOS arm64、原生代码未重新编译且项目未签名；它是发布审计材料，不是 DMG、代码签名或公证结果。原生运行时仍必须先通过 `npm run verify:vendor`。
 
@@ -121,7 +123,7 @@ esbuild 会重新处理 11 个 JS 文件并生成调试 source map。这里的�
 npm run verify:protocol # 校验独立协议模块仍与恢复源一致
 npm run audit:api       # 对照官方 HTTP/MCP 契约与当前独立适配器覆盖面
 npm run verify:packaged-markers # 校验普通/独立 App 的 backend marker、manifest 和 Bundle ID
-npm run verify:independent-support # 校验128项独立后端支持矩阵未漂移（当前72项已实现）
+npm run verify:independent-support # 校验128项独立后端支持矩阵未漂移（当前73项已实现）
 npm run test:protocol   # 编解码、分帧边界与来源测试
 npm run verify:vendor   # 核对43个原包运行时文件的SHA256和权限
 npm run verify:dependencies # 对当前锁定依赖实时运行 npm audit（不含 optional）

@@ -73,6 +73,7 @@ type params struct {
 	FavoriteID          string `json:"favoriteId"`
 	MediaToken          string `json:"token"`
 	MediaID             string `json:"mediaId"`
+	Source              string `json:"source"`
 }
 type sourceRef struct {
 	Database string `json:"database"`
@@ -265,6 +266,11 @@ func openBridge(root, accountID string) (_ *bridge, err error) {
 			}
 			if !d.tables[momentsTable] {
 				return fail("SCHEMA_UNSUPPORTED", "The explicit independent moments schema marker is missing")
+			}
+			if d.tables[momentsEmojiTable] {
+				if err := validateColumns(d.db, momentsEmojiTable, momentsEmojiColumns); err != nil {
+					return err
+				}
 			}
 			b.momentsDB = d
 		case "favorite.db", "favorites.db":
@@ -510,6 +516,9 @@ func (b *bridge) info() any {
 	}
 	if b.momentsDB != nil {
 		capabilities = append(capabilities, "moments.list", "moments.authors", "moments.dayCounts")
+		if b.momentsDB.tables[momentsEmojiTable] {
+			capabilities = append(capabilities, "moments.emoji")
+		}
 	}
 	if b.favoritesDB != nil {
 		capabilities = append(capabilities, "favorites.list")
@@ -913,6 +922,8 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 		value, err = b.momentsAuthors(ctx, p)
 	case "moments.dayCounts":
 		value, err = b.momentsDayCounts(ctx, p)
+	case "moments.emoji":
+		value, err = b.momentsEmoji(ctx, p)
 	case "favorites.list":
 		value, err = b.favoritesList(ctx, p)
 	case "favorites.mediaSlots":

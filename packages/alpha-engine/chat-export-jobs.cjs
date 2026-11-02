@@ -136,6 +136,7 @@ function createChatExportJobs({ runExport, now = () => BigInt(Date.now()), maxJo
 
   function load() {
     if (!stateDir) return;
+    let rewrite = false;
     const fs = require('node:fs');
     try {
       const fd = fs.openSync(path.join(stateDir, STATE_FILE), fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
@@ -145,6 +146,12 @@ function createChatExportJobs({ runExport, now = () => BigInt(Date.now()), maxJo
         const parsed = JSON.parse(fs.readFileSync(fd, 'utf8'));
         if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.jobs) || parsed.jobs.length > maxJobs) fail('CHAT_EXPORT_STATE_INVALID');
         for (const raw of parsed.jobs) {
+          // Only rewrite durable state when restoreJob has to mark an
+          // in-flight job as interrupted.  A fresh engine with no state file
+          // must not enqueue an unnecessary write: callers commonly remove
+          // their temporary state directory during teardown before close()
+          // runs, and that write would race recursive cleanup.
+          if (['queued', 'running', 'canceling'].includes(raw?.state)) rewrite = true;
           const job = restoreJob(raw);
           if (job.accountId === '') fail('CHAT_EXPORT_STATE_INVALID');
           jobs.set(job.jobId, { job, request: null });
@@ -153,7 +160,7 @@ function createChatExportJobs({ runExport, now = () => BigInt(Date.now()), maxJo
     } catch (failure) {
       if (failure.code !== 'ENOENT') throw failure.message === 'CHAT_EXPORT_STATE_INVALID' ? failure : new Error('CHAT_EXPORT_STATE_INVALID');
     }
-    void persist().catch(() => {});
+    if (rewrite) void persist().catch(() => {});
   }
   load();
 

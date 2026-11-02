@@ -8,8 +8,8 @@
   },
   "counts": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 72,
-    "unsupportedRequestBranches": 56
+    "implementedRequestBranches": 73,
+    "unsupportedRequestBranches": 55
   },
   "supported": [
     {
@@ -227,6 +227,10 @@
     {
       "name": "exportContacts",
       "fieldNumber": 117
+    },
+    {
+      "name": "resolveMomentEmoji",
+      "fieldNumber": 118
     },
     {
       "name": "getMessageAntiRecallStatuses",
@@ -448,10 +452,6 @@
     },
     {
       "name": "resetApplicationLock",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "resolveMomentEmoji",
       "status": "UNIMPLEMENTED"
     },
     {

@@ -21,6 +21,10 @@ build/candidates/alpha-data-bridge --data-dir /absolute/offline-copy --account-i
 
 `account-id` 是调用者指定的数据源标签，不是自动发现或验证的微信登录身份。`account.info` 返回 `idProvenance=caller-supplied-dataset-label`、`sourceKind=offline-wechat-v4`、`readOnly=true`、`live=false`、snapshotId、相对数据库路径和实际可用操作。目录没有兼容数据库、schema 缺列、路径含符号链接、存在 WAL/SHM/journal 时启动失败，错误在 stderr，退出码为 2；不能将该状态映射成成功的空账号。
 
+## 合成朋友圈表情
+
+`moments.emoji` 只读取 `moments.db` 中显式的 `__alpha_moment_emoji_v1` 表，并只接受 `emoji-xml:` source。表中的 source、SHA-256、大小、图片 MIME、相对路径、账号和 moment 字段都经过边界检查；重复 source 会失败关闭，真实 `SnsTimeLine`/`snsmessage`、评论 XML 和原生媒体 token 不会被猜测。Go bridge 只返回映射元数据，Node 引擎还必须使用同一数据源的自有 `media-index.v1.json` 重新校验文件；因此该能力固定为 synthetic-only，能力边界为 `native_schema_supported=false`。
+
 ## JSON-lines 协议
 
 每行一个请求/响应，stdout 只输出 JSON。错误不会终止后续有效请求；超大或损坏的传输导致进程失败。每条请求最多 1 MiB，查询超时 15 秒，分页 limit 为 1 至 500，默认 100。
