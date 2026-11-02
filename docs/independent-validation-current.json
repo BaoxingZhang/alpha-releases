@@ -702,7 +702,7 @@
     "momentsExport": {
       "command": "node --test tests/engine-moments-export.test.mjs",
       "status": "passed",
-      "tests": 2,
+      "tests": 3,
       "formats": [
         "json",
         "markdown",
@@ -713,6 +713,7 @@
       "sourceTable": "__alpha_moments_v1",
       "syntheticOnly": true,
       "metadataOnly": true,
+      "projection": "bounded alpha.moment.v1 metadata; verified emoji source/hash/size/mime only; raw XML/native tokens/download URLs omitted",
       "mediaRequestError": "MOMENT_EXPORT_MEDIA_UNAVAILABLE"
     },
     "favorites": {

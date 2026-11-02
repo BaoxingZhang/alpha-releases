@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { createEngine } from '../packages/alpha-engine/index.cjs';
 import { createSecurity } from '../packages/alpha-security/index.cjs';
-import { createMomentsFixture } from './moments-fixture.mjs';
+import { createMomentsFixture, installMomentEmojiFixture } from './moments-fixture.mjs';
 
 const require = createRequire(import.meta.url);
 const { EngineClientFrame, EngineServerFrame } = require('../packages/alpha-protocol/index.cjs');
@@ -100,4 +100,57 @@ test('synthetic moments export rejects unsafe ranges and paths before a job star
     await new Promise(resolve => setTimeout(resolve, 10));
   }
   assert.equal(unsafeSnapshot.watchChatExport.items[0].errorCode, 'EXPORT_DESTINATION_INVALID');
+});
+
+test('synthetic moments export includes only bounded projection metadata and verified emoji metadata', async t => {
+  const outer = await fs.mkdtemp(path.join(root, '.runtime/engine-moments-export-projection-'));
+  const dataDir = path.join(outer, 'data');
+  const fixture = await createMomentsFixture(dataDir);
+  await installMomentEmojiFixture(dataDir, fixture.accountId);
+  const stateDir = path.join(outer, 'state');
+  const outputDirectory = path.join(outer, 'exports');
+  await fs.mkdir(stateDir, { mode: 0o700 });
+  await fs.mkdir(outputDirectory, { mode: 0o700 });
+  const lock = await createSecurity({ stateDir });
+  const engine = await createEngine({ lock, stateDir, bridgePath, dataDir, accountId: fixture.accountId });
+  t.after(async () => { await engine.close(); await fs.rm(outer, { recursive: true, force: true }); });
+  let requestId = 0n;
+  async function call(method, payload = {}) {
+    const request = EngineClientFrame.fromPartial({ requestId: ++requestId, [method]: { accountId: fixture.accountId, ...payload } });
+    const result = await engine.dispatch(EngineClientFrame.decode(EngineClientFrame.encode(request).finish()));
+    return EngineServerFrame.decode(EngineServerFrame.encode(result).finish());
+  }
+  const hello = await call('hello', { protocol: { major: 1, minor: 0 } });
+  assert.equal(hello.error, undefined);
+  for (const format of ['json', 'markdown', 'txt', 'html']) {
+    const destinationPath = path.join(outputDirectory, `projection.${format === 'markdown' ? 'md' : format}`);
+    const started = await call('startMomentExport', { format, destinationPath, outputDirectory, usernames: ['wxid_a'], keyword: '', mediaKinds: [], utcOffsetMinutes: 0 });
+    assert.equal(started.error, undefined, started.error?.code);
+    let snapshot;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      snapshot = (await call('watchChatExport', { jobId: started.startMomentExport.jobId })).watchChatExport;
+      if (['completed', 'completed_with_errors', 'failed', 'canceled'].includes(snapshot.state)) break;
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    assert.equal(snapshot.state, 'completed');
+    const output = await fs.readFile(snapshot.items[0].path, 'utf8');
+    assert.doesNotMatch(output, /<msg>|rawXml|__alpha_moment_details/);
+    if (format === 'json') {
+      const parsed = JSON.parse(output);
+      assert.equal(parsed.projectionAvailable, true);
+      const item = parsed.moments.find(moment => moment.id === 'm1');
+      assert.equal(item.projectionAvailable, true);
+      assert.equal(item.projection.schema, 'alpha.moment.v1');
+      assert.equal(item.projection.comments[0].content, '[动画表情]');
+      assert.equal(item.projection.comments[0].emojis[0].verified, true);
+      assert.match(item.projection.comments[0].emojis[0].sha256, /^[a-f0-9]{64}$/);
+      assert.equal(item.projection.comments[0].emojis[0].mimeType, 'image/png');
+      assert.equal(item.projection.comments[0].emojis[0].sizeBytes > 0, true);
+      assert.equal(Object.hasOwn(item, 'rawXml'), false);
+      assert.equal(Object.hasOwn(item, 'fields'), false);
+    } else {
+      assert.match(output, /projectionAvailable: true|projection available|projection.*plain/);
+      assert.match(output, /verified emoji/);
+    }
+  }
 });

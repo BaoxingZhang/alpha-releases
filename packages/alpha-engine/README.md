@@ -88,7 +88,7 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | listChatExports | 123 | 列出指定账号的已持久化导出任务历史与当前任务快照；未完成任务在重启后显式标记失败，不伪造续跑 |
 | watchChatExport | 124 | 读取当前内存任务快照，包含会话状态、消息计数、输出路径和错误码 |
 | cancelChatExport | 125 | 请求取消尚未完成的任务；当前导出调用完成后停止后续会话，任务状态明确为 `canceled` |
-| startMomentExport | 135 | 仅为 `moments.db`/`__alpha_moments_v1` synthetic fixture 创建 metadata-only JSON/Markdown/HTML/TXT 导出任务；媒体类型明确返回 `MOMENT_EXPORT_MEDIA_UNAVAILABLE`，不兼容真实微信朋友圈 schema 或原生 formatter |
+| startMomentExport | 135 | 仅为 `moments.db`/`__alpha_moments_v1` synthetic fixture 创建 metadata-only JSON/Markdown/HTML/TXT 导出任务；显式 `alpha.moment.v1` projection 只输出有界只读字段，表情需经 resolver + 自有 media-index 核验后才输出 verified SHA-256/大小/MIME；raw XML、原生 token 和可下载 URL 会被省略；媒体类型明确返回 `MOMENT_EXPORT_MEDIA_UNAVAILABLE`，不兼容真实微信朋友圈 schema 或原生 formatter |
 | startRecordExport | 136 | 为 payments/friend_requests/revokes/calls 候选记录创建内存导出任务；每类一个 xlsx/csv/json 文件，其他分类和格式明确拒绝 |
 | locateMessage | 126 | uint64 serverId 精确定位及无时间筛选的双向游标；重复 ID 明确报歧义 |
 | getConversationDayCounts | 127 | 按 UTC offset 汇总最多 62 天半开时间区间内的消息数 |

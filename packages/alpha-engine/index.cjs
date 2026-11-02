@@ -483,6 +483,92 @@ const MOMENT_EXPORT_PAGE_SIZE = 100;
 const MOMENT_EXPORT_MAX_ITEMS = 100000;
 const MOMENT_EXPORT_MAX_BYTES = 64 * 1024 * 1024;
 const MOMENT_EXPORT_MAX_RUNTIME_MS = 30000;
+const MOMENT_EXPORT_MAX_DETAIL_BYTES = 1024 * 1024;
+const MOMENT_EXPORT_MAX_MEDIA = 100;
+const MOMENT_EXPORT_MAX_LIKES = 10000;
+const MOMENT_EXPORT_MAX_COMMENTS = 10000;
+const MOMENT_EXPORT_MAX_COMMENT_EMOJIS = 16;
+const MOMENT_EXPORT_MAX_COMMENT_IMAGES = 9;
+
+function momentExportText(value, maximum = 16384) {
+  if (typeof value !== 'string' || value.length > maximum || value.includes('\0')) return '';
+  return value;
+}
+
+function momentExportProjection(fields) {
+  const candidates = fields.filter(field => field.name === '__alpha_moment_details');
+  if (candidates.length === 0) return null;
+  if (candidates.length !== 1) return { invalid: true };
+  const field = candidates[0];
+  if (field.truncated || Buffer.byteLength(field.value, 'utf8') > MOMENT_EXPORT_MAX_DETAIL_BYTES) return { invalid: true };
+  let detail;
+  try { detail = JSON.parse(field.value); } catch { return { invalid: true }; }
+  if (!detail || typeof detail !== 'object' || Array.isArray(detail) || detail.schema !== 'alpha.moment.v1') return { invalid: true };
+  if (detail.parseStatus !== 'plain' && detail.parseStatus !== 'parsed') return { invalid: true };
+  const projection = {
+    schema: 'alpha.moment.v1',
+    parseStatus: detail.parseStatus,
+    media: [],
+    linkTitle: momentExportText(detail.linkTitle),
+    location: momentExportText(detail.location),
+    likes: [],
+    comments: []
+  };
+  if (Array.isArray(detail.media)) {
+    if (detail.media.length > MOMENT_EXPORT_MAX_MEDIA) return { invalid: true };
+    projection.media = detail.media.flatMap(item => {
+      if (!item || typeof item !== 'object' || (item.kind !== 'image' && item.kind !== 'video')) return [];
+      const result = { kind: item.kind, type: Number.isSafeInteger(item.type) && item.type >= 0 ? item.type : 0, width: Number.isFinite(item.width) && item.width >= 0 ? Math.min(item.width, 100000) : 0, height: Number.isFinite(item.height) && item.height >= 0 ? Math.min(item.height, 100000) : 0 };
+      if (item.livePhoto && typeof item.livePhoto === 'object' && !Array.isArray(item.livePhoto)) result.livePhoto = { durationMs: Number.isSafeInteger(item.livePhoto.durationMs) && item.livePhoto.durationMs >= 0 ? Math.min(item.livePhoto.durationMs, 86400000) : 0 };
+      return [result];
+    });
+  }
+  if (Array.isArray(detail.likes)) {
+    if (detail.likes.length > MOMENT_EXPORT_MAX_LIKES) return { invalid: true };
+    projection.likes = detail.likes.flatMap(item => {
+      if (!item || typeof item !== 'object') return [];
+      const username = momentExportText(item.username, 512), nickname = momentExportText(item.nickname, 512);
+      return username || nickname ? [{ username, nickname }] : [];
+    });
+  }
+  if (Array.isArray(detail.comments)) {
+    if (detail.comments.length > MOMENT_EXPORT_MAX_COMMENTS) return { invalid: true };
+    projection.comments = detail.comments.flatMap(item => {
+      if (!item || typeof item !== 'object') return [];
+      const result = {
+        username: momentExportText(item.username, 512),
+        nickname: momentExportText(item.nickname, 512),
+        replyUsername: momentExportText(item.replyUsername, 512),
+        replyNickname: momentExportText(item.replyNickname, 512),
+        content: momentExportText(item.content),
+        emojis: [],
+        images: []
+      };
+      if (Array.isArray(item.emojis)) {
+        if (item.emojis.length > MOMENT_EXPORT_MAX_COMMENT_EMOJIS) return [];
+        result.emojis = item.emojis.flatMap(emoji => {
+          if (!emoji || typeof emoji !== 'object' || !syntheticMomentEmojiSource(emoji.source)) return [];
+          return [{ source: emoji.source, width: Number.isFinite(emoji.width) && emoji.width >= 0 ? Math.min(emoji.width, 100000) : 0, height: Number.isFinite(emoji.height) && emoji.height >= 0 ? Math.min(emoji.height, 100000) : 0 }];
+        });
+      }
+      if (Array.isArray(item.images)) {
+        if (item.images.length > MOMENT_EXPORT_MAX_COMMENT_IMAGES) return [];
+        result.images = item.images.flatMap(image => {
+          if (!image || typeof image !== 'object' || (image.kind !== 'image' && image.kind !== 'video')) return [];
+          return [{ kind: image.kind, type: Number.isSafeInteger(image.type) && image.type >= 0 ? image.type : 0, width: Number.isFinite(image.width) && image.width >= 0 ? Math.min(image.width, 100000) : 0, height: Number.isFinite(image.height) && image.height >= 0 ? Math.min(image.height, 100000) : 0 }];
+        });
+      }
+      return [result];
+    });
+  }
+  if (detail.finder && typeof detail.finder === 'object' && !Array.isArray(detail.finder) && (detail.finder.kind === 'feed' || detail.finder.kind === 'live')) {
+    projection.finder = { kind: detail.finder.kind, nickname: momentExportText(detail.finder.nickname, 512), desc: momentExportText(detail.finder.desc, 4096), mediaCount: Number.isFinite(detail.finder.mediaCount) && detail.finder.mediaCount >= 0 ? Math.min(detail.finder.mediaCount, 100000) : 0 };
+  }
+  if (detail.music && typeof detail.music === 'object' && !Array.isArray(detail.music) && momentExportText(detail.music.title, 1024)) {
+    projection.music = { title: momentExportText(detail.music.title, 1024), singer: momentExportText(detail.music.singer, 1024), album: momentExportText(detail.music.album, 1024), durationMs: Number.isSafeInteger(detail.music.durationMs) && detail.music.durationMs >= 0 ? Math.min(detail.music.durationMs, 86400000) : 0 };
+  }
+  return projection;
+}
 
 function recordExportPlainRecord(record) {
   if (!record || typeof record !== 'object' || typeof record.id !== 'string' || typeof record.tableName !== 'string' || typeof record.actor !== 'string' || typeof record.content !== 'string' || !Array.isArray(record.fields)) throw error('BRIDGE_GENERAL_RECORD_INVALID');
@@ -516,25 +602,74 @@ function momentExportRow(moment) {
     if (!field || typeof field.name !== 'string' || !field.name || typeof field.value !== 'string' || !Number.isInteger(field.valueKind) || field.valueKind < 0 || field.valueKind > 16 || typeof field.truncated !== 'boolean' || field.name.length > 256 || field.value.length > 4096 || field.name.includes('\0') || field.value.includes('\0')) throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
     return { name: field.name, value: field.value, valueKind: field.valueKind, truncated: field.truncated };
   });
-  return { id: moment.id, username: moment.username, nickname: moment.nickname, createdAtUnixMs: moment.createdAtUnixMs.toString(), type: moment.type, text: moment.text, rawXml: moment.rawXml, sourceTable: moment.sourceTable, fields };
+  const projection = momentExportProjection(fields);
+  return { id: moment.id, username: moment.username, nickname: moment.nickname, createdAtUnixMs: moment.createdAtUnixMs.toString(), type: moment.type, text: moment.text, sourceTable: moment.sourceTable, projection: projection && !projection.invalid ? projection : undefined, projectionAvailable: Boolean(projection && !projection.invalid) };
+}
+function momentExportValue(item) {
+  return { id: item.id, username: item.username, nickname: item.nickname, createdAtUnixMs: item.createdAtUnixMs, type: item.type, text: item.text, sourceTable: item.sourceTable, projectionAvailable: item.projectionAvailable === true, ...(item.projectionAvailable === true ? { projection: item.projection } : {}) };
+}
+function momentExportProjectionLines(item) {
+  const projection = item.projectionAvailable === true ? item.projection : null;
+  if (!projection) return [];
+  const lines = [`- projectionSchema: ${projection.schema}`, `- parseStatus: ${projection.parseStatus}`];
+  if (projection.location) lines.push(`- location: ${projection.location}`);
+  if (projection.linkTitle) lines.push(`- linkTitle: ${projection.linkTitle}`);
+  if (projection.media.length) lines.push(`- mediaMetadata: ${projection.media.map(media => `${media.kind} ${media.width}x${media.height}`).join(', ')}`);
+  if (projection.likes.length) lines.push(`- likes: ${projection.likes.map(person => person.nickname || person.username).join('、')}`);
+  for (const comment of projection.comments) {
+    const who = comment.nickname || comment.username || '微信用户';
+    const reply = comment.replyNickname || comment.replyUsername;
+    const text = comment.content || '';
+    const media = [...comment.emojis.map(emoji => emoji.verified === true ? `verified emoji ${emoji.source} sha256=${emoji.sha256} sizeBytes=${emoji.sizeBytes} mimeType=${emoji.mimeType}` : `emoji ${emoji.source} (unverified metadata omitted)`), ...comment.images.map(image => `${image.kind} ${image.width}x${image.height}`)];
+    lines.push(`- comment${reply ? ` to ${reply}` : ''}: ${who}: ${text}${media.length ? ` [${media.join('; ')}]` : ''}`);
+  }
+  return lines;
 }
 function momentExportOutput(format, meta, moments) {
-  if (format === 'json') return Buffer.from(JSON.stringify({ version: 1, kind: 'moments', format, syntheticOnly: true, metadataOnly: true, ...meta, itemCount: moments.length, moments }) + '\n', 'utf8');
+  const values = moments.map(momentExportValue);
+  if (format === 'json') return Buffer.from(JSON.stringify({ version: 1, kind: 'moments', format, syntheticOnly: true, metadataOnly: true, ...meta, projectionAvailable: values.some(item => item.projectionAvailable), itemCount: values.length, moments: values }) + '\n', 'utf8');
   if (format === 'markdown') {
-    const lines = ['# Alpha synthetic moments export', '', '- syntheticOnly: true', '- metadataOnly: true', `- accountId: ${meta.accountId}`, `- itemCount: ${moments.length}`, ''];
-    for (const item of moments) lines.push(`## ${item.createdAtUnixMs} · ${item.nickname || item.username}`, '', `- username: ${item.username}`, `- id: ${item.id}`, `- type: ${item.type}`, '', item.text, '');
+    const lines = ['# Alpha synthetic moments export', '', '- syntheticOnly: true', '- metadataOnly: true', `- accountId: ${meta.accountId}`, `- projectionAvailable: ${values.some(item => item.projectionAvailable)}`, `- itemCount: ${values.length}`, ''];
+    for (const item of values) lines.push(`## ${item.createdAtUnixMs} · ${item.nickname || item.username}`, '', `- username: ${item.username}`, `- id: ${item.id}`, `- type: ${item.type}`, `- projectionAvailable: ${item.projectionAvailable}`, ...momentExportProjectionLines(item), '', item.text, '');
     return Buffer.from(lines.join('\n'), 'utf8');
   }
   if (format === 'txt') {
-    const lines = ['Alpha synthetic moments export', 'syntheticOnly: true', 'metadataOnly: true', `accountId: ${meta.accountId}`, `itemCount: ${moments.length}`, ''];
-    for (const item of moments) lines.push(`[${item.createdAtUnixMs}] ${item.nickname || item.username} <${item.type}> ${item.text}`, '');
+    const lines = ['Alpha synthetic moments export', 'syntheticOnly: true', 'metadataOnly: true', `accountId: ${meta.accountId}`, `projectionAvailable: ${values.some(item => item.projectionAvailable)}`, `itemCount: ${values.length}`, ''];
+    for (const item of values) lines.push(`[${item.createdAtUnixMs}] ${item.nickname || item.username} <${item.type}> projectionAvailable=${item.projectionAvailable} ${item.text}`, ...momentExportProjectionLines(item), '');
     return Buffer.from(lines.join('\n'), 'utf8');
   }
   if (format === 'html') {
-    const cards = moments.map(item => `<article><header><time>${htmlEscape(item.createdAtUnixMs)}</time><strong>${htmlEscape(item.nickname || item.username)}</strong><span>${htmlEscape(item.username)}</span></header><dl><dt>id</dt><dd>${htmlEscape(item.id)}</dd><dt>type</dt><dd>${htmlEscape(item.type)}</dd></dl><p>${htmlEscape(item.text)}</p></article>`).join('\n');
-    return Buffer.from(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="alpha-synthetic-only" content="true"><meta name="alpha-media" content="metadata-only"><title>Alpha synthetic moments export</title><style>body{margin:2rem auto;max-width:64rem;font:14px/1.55 system-ui,"Microsoft YaHei",sans-serif;color:#202124;background:#fff}article{border:1px solid #dadce0;border-radius:8px;padding:1rem;margin:1rem 0}header{display:flex;gap:.75rem;align-items:baseline;flex-wrap:wrap}header span{color:#5f6368;font-size:.85em}dl{display:grid;grid-template-columns:max-content 1fr;gap:.2rem 1rem;color:#5f6368}dt{font-weight:600}dd{margin:0}p{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body><h1>Alpha synthetic moments export</h1><p>仅包含 __alpha_moments_v1 合成朋友圈；媒体、点赞、评论和原生微信 schema 未恢复。</p>${cards}</body></html>\n`, 'utf8');
+    const cards = values.map(item => {
+      const projection = item.projectionAvailable ? item.projection : null;
+      const interactions = projection ? `<p class="projection">projection ${htmlEscape(projection.parseStatus)}${projection.likes.length ? ` · 赞：${htmlEscape(projection.likes.map(person => person.nickname || person.username).join('、'))}` : ''}</p>${projection.comments.map(comment => `<p class="comment">${htmlEscape(comment.nickname || comment.username || '微信用户')}${comment.replyNickname || comment.replyUsername ? ` → ${htmlEscape(comment.replyNickname || comment.replyUsername)}` : ''}：${htmlEscape(comment.content)}${comment.emojis.length ? ` [${htmlEscape(comment.emojis.map(emoji => emoji.verified === true ? `verified emoji ${emoji.source} sha256=${emoji.sha256} sizeBytes=${emoji.sizeBytes} mimeType=${emoji.mimeType}` : `emoji ${emoji.source} (unverified metadata omitted)`).join('; '))}]` : ''}</p>`).join('')}` : '';
+      return `<article><header><time>${htmlEscape(item.createdAtUnixMs)}</time><strong>${htmlEscape(item.nickname || item.username)}</strong><span>${htmlEscape(item.username)}</span></header><dl><dt>id</dt><dd>${htmlEscape(item.id)}</dd><dt>type</dt><dd>${htmlEscape(item.type)}</dd><dt>projection</dt><dd>${item.projectionAvailable ? 'available' : 'unavailable'}</dd></dl><p>${htmlEscape(item.text)}</p>${interactions}</article>`;
+    }).join('\n');
+    return Buffer.from(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="alpha-synthetic-only" content="true"><meta name="alpha-media" content="metadata-only"><title>Alpha synthetic moments export</title><style>body{margin:2rem auto;max-width:64rem;font:14px/1.55 system-ui,"Microsoft YaHei",sans-serif;color:#202124;background:#fff}article{border:1px solid #dadce0;border-radius:8px;padding:1rem;margin:1rem 0}header{display:flex;gap:.75rem;align-items:baseline;flex-wrap:wrap}header span{color:#5f6368;font-size:.85em}dl{display:grid;grid-template-columns:max-content 1fr;gap:.2rem 1rem;color:#5f6368}dt{font-weight:600}dd{margin:0}p{white-space:pre-wrap;overflow-wrap:anywhere}.projection,.comment{color:#3c4043;font-size:.92em}</style></head><body><h1>Alpha synthetic moments export</h1><p>仅包含 __alpha_moments_v1 合成朋友圈；显式 alpha.moment.v1 projection 只输出已验证的只读元数据，不输出原始 XML、原生 token 或可下载 URL。</p>${cards}</body></html>\n`, 'utf8');
   }
   throw error('MOMENT_EXPORT_FORMAT_UNSUPPORTED');
+}
+
+async function verifyMomentExportEmojis(row, accountId, resolveEmoji, mediaIndex) {
+  if (!row.projectionAvailable || !row.projection || typeof resolveEmoji !== 'function' || !mediaIndex || !Array.isArray(mediaIndex.entries)) return row;
+  const sources = new Set();
+  for (const comment of row.projection.comments) for (const emoji of comment.emojis) sources.add(emoji.source);
+  if (!sources.size) return row;
+  const verified = new Map();
+  for (const source of sources) {
+    try {
+      const resolved = await resolveEmoji({ accountId, source });
+      if (!resolved || resolved.status !== 'ready' || typeof resolved.opaqueId !== 'string' || !MOMENT_EMOJI_MIMES.has(resolved.mimeType)) continue;
+      const candidates = mediaIndex.entries.filter(entry => entry.kind === 'image' && entry.sha256 === resolved.opaqueId && entry.mimeType === resolved.mimeType && (!entry.accountId || entry.accountId === accountId));
+      if (candidates.length !== 1) continue;
+      const entry = candidates[0];
+      verified.set(source, { source, verified: true, sha256: entry.sha256, sizeBytes: entry.sizeBytes, mimeType: entry.mimeType });
+    } catch {}
+  }
+  row.projection = { ...row.projection, comments: row.projection.comments.map(comment => ({ ...comment, emojis: comment.emojis.flatMap(emoji => {
+    const metadata = verified.get(emoji.source);
+    return metadata ? [{ ...metadata, width: emoji.width, height: emoji.height }] : [];
+  }) })) };
+  return row;
 }
 
 async function writeRecordDestination(destinationPath, output, excluded, guard) {
@@ -1299,6 +1434,9 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       }
     }
     rows.sort((left, right) => left.createdAtUnixMs === right.createdAtUnixMs ? left.id.localeCompare(right.id) : BigInt(left.createdAtUnixMs) < BigInt(right.createdAtUnixMs) ? -1 : 1);
+    const emojiResolver = handlers?.resolveMomentEmoji;
+    const mediaIndex = independentMediaIndex();
+    for (const row of rows) await verifyMomentExportEmojis(row, request.accountId, emojiResolver, mediaIndex);
     const meta = { accountId: request.accountId, sourceDatabase: 'moments.db', sourceTable: '__alpha_moments_v1', syntheticOnly: true, metadataOnly: true, ...(request.startTimeUnixMs === undefined ? {} : { startTimeUnixMs: request.startTimeUnixMs.toString() }), ...(request.endTimeUnixMs === undefined ? {} : { endTimeUnixMs: request.endTimeUnixMs.toString() }), ...(request.keyword ? { keyword: request.keyword } : {}), usernames: [...request.usernames] };
     const output = momentExportOutput(request.format, meta, rows);
     if (output.byteLength > MOMENT_EXPORT_MAX_BYTES) throw error('MOMENT_EXPORT_TOO_LARGE');
