@@ -33,6 +33,9 @@ test('independent renderer exposes only explicit synthetic favorites and moments
   assert.match(source, /useMomentExportDraft\(accountId, accountScope, seed, syntheticOnly\)/);
   assert.match(source, /syntheticOnly \? \[\] : \["image", "video", "live_photo"\]/);
   assert.match(source, /\(!independent \|\| syntheticMoments\).*MomentExportAction/);
+  assert.match(mainSource, /capabilitySummary/);
+  assert.match(source, /独立后端已实现 \$\{capabilitySummary\.implementedRequestBranches\}\/\$\{capabilitySummary\.totalRequestBranches\}/);
+  assert.match(source, /另有 \$\{capabilitySummary\.unsupportedRequestBranches\} 个请求明确返回 \$\{capabilitySummary\.unsupportedBehavior\}/);
 });
 
 test('independent media browser remains metadata-only', () => {
@@ -48,4 +51,11 @@ test('independent media browser remains metadata-only', () => {
   assert.match(source, /metadataOnly=true，mediaReady=false/);
   assert.match(source, /metadataOnly=true，mediaReady=false.*不会读取或播放/);
   assert.match(styleSource, /\.type-browse-tile-metadata \{/);
+});
+
+test('independent settings do not advertise the native desktop MCP gateway', () => {
+  assert.match(source, /function McpConnectionGuide\(\{ status, independent = false \}\)/);
+  assert.match(source, /独立模式的桌面 HTTP API\/MCP 入口保持关闭/);
+  assert.match(source, /当前独立后端不提供桌面 HTTP API\/MCP 入口，也不支持发送、推送或原生完整目录/);
+  assert.match(source, /McpConnectionGuide, \{ status: httpApiStatus, independent: isIndependentEngineStatus\(status\) \}/);
 });

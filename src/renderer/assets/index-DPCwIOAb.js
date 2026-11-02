@@ -48649,6 +48649,8 @@ function ComponentStatusSettings() {
   const { status, loading, onRefresh } = useWorkspace();
   const ready = status?.state === "ready";
   const components = status?.components ?? [];
+  const independent = components.some((component) => component.component === "alpha-independent-engine");
+  const capabilitySummary = status?.capabilitySummary;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     SettingsGroup,
     {
@@ -48665,6 +48667,7 @@ function ComponentStatusSettings() {
             control: /* @__PURE__ */ jsxRuntimeExports.jsx(StatusChip, { tone: ready ? "success" : "warning", children: ready ? "已就绪" : "未连接" })
           }
         ),
+        independent && capabilitySummary && /* @__PURE__ */ jsxRuntimeExports.jsx(SettingsNotice, { tone: "info", children: `独立后端已实现 ${capabilitySummary.implementedRequestBranches}/${capabilitySummary.totalRequestBranches} 个协议分支；另有 ${capabilitySummary.unsupportedRequestBranches} 个请求明确返回 ${capabilitySummary.unsupportedBehavior}。这不代表原生 schema、真实微信数据、写入或完整 Alpha 功能已经恢复。` }),
         components.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "st-card-section", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SettingsDisclosure, { label: "组件版本", children: () => /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "about-components", "aria-label": "已连接组件", children: components.map((component) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: component.component }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("code", { className: "st-code", children: component.buildId }),
@@ -49760,7 +49763,7 @@ function mcpStdioConfig(port, executable) {
     env: { ALPHA_MCP_DESKTOP_URL: mcpUrl(port), ALPHA_HTTP_TOKEN: MCP_TOKEN_PLACEHOLDER }
   } } }, null, 2);
 }
-function McpConnectionGuide({ status }) {
+function McpConnectionGuide({ status, independent = false }) {
   const [shown, setShown] = reactExports.useState(null);
   const [copyStatus, setCopyStatus] = reactExports.useState(null);
   const port = status?.port ?? 5031;
@@ -49795,6 +49798,9 @@ function McpConnectionGuide({ status }) {
       children: shown === template && /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "mcp-template", children: templates[template] })
     }
   );
+  if (independent) return /* @__PURE__ */ jsxRuntimeExports.jsxs(SettingsGroup, { title: "独立模式的 MCP 入口", anchor: "mcp", actions: /* @__PURE__ */ jsxRuntimeExports.jsx(StatusChip, { tone: "neutral", children: "桌面入口关闭" }), hint: "独立模式的桌面 HTTP API/MCP 入口保持关闭。standalone 只读适配器需单独启动，且仅覆盖已验证 DTO 与 synthetic fixture。", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(SettingsNotice, { tone: "info", children: "当前独立后端不提供桌面 HTTP API/MCP 入口，也不支持发送、推送或原生完整目录；请使用独立适配器文档中的只读入口。" })
+  ] });
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     SettingsGroup,
     {
@@ -52089,7 +52095,8 @@ function SettingsPage({ active: active2 }) {
   const {
     activeAccountId,
     activeAccount,
-    hasRemoteAccount
+    hasRemoteAccount,
+    status
   } = useWorkspace();
   const { back, settingsSection } = useNavigation();
   const [agentSettingsRevision, setAgentSettingsRevision] = reactExports.useState("");
@@ -52115,7 +52122,7 @@ function SettingsPage({ active: active2 }) {
     network: /* @__PURE__ */ jsxRuntimeExports.jsx(NetworkProxySettings, {}),
     integrations: /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(HttpApiSettings, { onStatus: setHttpApiStatus }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(McpConnectionGuide, { status: httpApiStatus }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(McpConnectionGuide, { status: httpApiStatus, independent: isIndependentEngineStatus(status) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalMcpSettingsPanel, {})
     ] }),
     security: /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [

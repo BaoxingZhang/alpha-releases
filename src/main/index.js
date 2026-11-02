@@ -63210,6 +63210,9 @@ class EngineClient {
       this.datasetExportsSupported = this.chatExportJobsSupported && DATASET_EXPORT_METHOD_IDS.every((id2) => response.hello.supportedMethodIds.includes(id2));
       this.recordExportsSupported = this.chatExportJobsSupported && response.hello.supportedMethodIds.includes(136);
       this.typeBrowseSupported = TYPE_BROWSE_METHOD_IDS.every((id2) => response.hello.supportedMethodIds.includes(id2));
+      const totalRequestBranches = Object.keys(EngineClientFrame.fromPartial({})).filter((key) => key !== "requestId").length;
+      const advertisedMethodIds = [...new Set(response.hello.supportedMethodIds.filter((id2) => Number.isSafeInteger(id2) && id2 > 0))];
+      const implementedRequestBranches = Math.min(advertisedMethodIds.length, totalRequestBranches);
       this.status = {
         state: "ready",
         components: response.hello.components.map((component) => ({
@@ -63217,7 +63220,16 @@ class EngineClient {
           version: component.version,
           buildId: component.buildId,
           protocol: `${component.protocolMajor}.${component.protocolMinor}`
-        }))
+        })),
+        ...(independentMode ? {
+          capabilitySummary: {
+            scope: "alpha-independent-protocol",
+            totalRequestBranches,
+            implementedRequestBranches,
+            unsupportedRequestBranches: totalRequestBranches - implementedRequestBranches,
+            unsupportedBehavior: "UNIMPLEMENTED"
+          }
+        } : {})
       };
     } catch (error) {
       const ended = this.child !== child;
