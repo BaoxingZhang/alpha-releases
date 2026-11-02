@@ -165,9 +165,9 @@
       "status": "passed"
     },
     "httpAdapter": {
-      "command": "node --test tests/http-server.test.mjs tests/http-voice-playback.test.mjs tests/http-media-probe.test.mjs",
+      "command": "node --test tests/http-server.test.mjs tests/http-favorites.test.mjs tests/http-voice-playback.test.mjs tests/http-media-probe.test.mjs",
       "status": "passed",
-      "tests": 6,
+      "tests": 8,
       "favoritesRoute": {
         "command": "node --test tests/http-favorites.test.mjs",
         "status": "passed",
@@ -178,7 +178,7 @@
         "mediaResolvePath": "/api/v1/favorites/media/:token",
         "mediaSchema": "__alpha_favorite_media_v1"
       },
-      "tools": 58,
+      "tools": 59,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,
@@ -214,7 +214,8 @@
           "alpha-independent.media.browse_account",
           "alpha-independent.media.probe",
           "alpha-independent.media.decode_voice_playback",
-          "alpha-independent.records.list_candidates"
+          "alpha-independent.records.list_candidates",
+          "alpha-independent.records.list_recall_candidates"
         ]
       },
       "analyticsTools": [
@@ -386,7 +387,24 @@
       "independentRecordsNativeSchemaSupported": false,
       "messageSourcePath": "/api/v1/independent/message-source",
       "messageSourceScope": "verified-message-text",
-      "messageSourceNativeSchemaSupported": false
+      "messageSourceNativeSchemaSupported": false,
+      "recallCandidates": {
+        "httpPath": "/api/v1/independent/recall-records",
+        "mcpTool": "alpha-independent.records.list_recall_candidates",
+        "status": "passed",
+        "sourceTable": "__alpha_general_revokes",
+        "partial": true,
+        "candidate": true,
+        "nativeSchemaSupported": false,
+        "writer": false,
+        "nativeRecallStore": false,
+        "cursor": "opaque scoped base64url"
+      },
+      "recallCandidatesPath": "/api/v1/independent/recall-records",
+      "recallCandidatesNativeSchemaSupported": false,
+      "independentDocumentedPaths": [
+        "/api/v1/independent/recall-records"
+      ]
     },
     "chatExportSchedules": {
       "command": "node --test tests/schedule-export.test.mjs",

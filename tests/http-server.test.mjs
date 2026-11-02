@@ -49,6 +49,7 @@ function fakeEngine() {
       if (request.listContacts?.directory) return EngineServerFrame.fromPartial({ requestId: request.requestId, listContacts: { response: { directory: { items: [{ contact: { username: 'wxid_peer', alias: 'peer', remark: '联系人', nickname: '联系人', localType: 1 }, category: 'friend', officialAccountKind: '' }], counts: [{ category: 'friend', count: 1 }, { category: 'group', count: 0 }], total: 1, hasMore: false } } } });
       if (request.listContacts) return EngineServerFrame.fromPartial({ requestId: request.requestId, listContacts: { response: { items: [{ username: 'wxid_peer', alias: 'peer', remark: '联系人', nickname: '联系人', localType: 1 }], nextCursor: '', totalCount: 1 } } });
       if (request.listGeneral) return EngineServerFrame.fromPartial({ requestId: request.requestId, listGeneral: { response: { items: [{ actor: 'wxid_peer', fields: [{ name: 'groupNickname', value: '群昵称' }, { name: 'isOwner', value: 'true' }] }], sourceDatabase: 'contact/contact.db', sourceTable: 'chat_room' } } });
+      if (request.listMessageRecallRecords) return EngineServerFrame.fromPartial({ requestId: request.requestId, listMessageRecallRecords: { records: [{ recordId: `rcl_${'a'.repeat(64)}`, conversationId: request.listMessageRecallRecords.conversationId, originalLocalId: 7n, originalServerId: '8', originalSentAtUnixMs: 1700000000000n, originalSourceType: 10000n, originalSender: 'wxid_peer', originalText: '候选撤回', capturedAtUnixMs: 0n, confirmedAtUnixMs: 0n, confirmation: 'unverified-candidate', provenance: 'alpha-independent-message-derived-candidate', compressedContentRetained: false, packedInfoRetained: false, decodeErrorCode: 'NATIVE_RECALL_SCHEMA_UNSUPPORTED' }], nextCursor: 'next-recall' } });
       if (request.startAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, startAggregateAnalysis: { analysisId, conversationsTotal: 1, expiresAtUnixMs: BigInt(Date.now() + 600000) } });
       if (request.watchAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, watchAggregateAnalysis: { analysisId, state: 2, conversationsDone: 1, conversationsTotal: 1, conversationsFailed: 0, reportJson: new Uint8Array(Buffer.from(JSON.stringify({ algorithm_version: 'alpha-aggregate-v1', scope: 'group_chat', total_messages: 1 }), 'utf8')) } });
       if (request.cancelAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, cancelAggregateAnalysis: { canceled: false } });
@@ -90,6 +91,7 @@ function richMcpEngine() {
         { id: 'msg-2', conversationId: 'wxid_peer', sentAtUnixMs: 1700000001000n, senderId: 'wxid_self', direction: 2, kind: 'text', text: '第二条', localId: 2, serverId: 2n },
         { id: 'msg-3', conversationId: 'wxid_peer', sentAtUnixMs: 1700000002000n, senderId: 'wxid_peer', direction: 1, kind: 'text', text: '第三条', localId: 3, serverId: 3n }
       ], nextCursor: new Uint8Array(0) } });
+      if (request.listMessageRecallRecords) return EngineServerFrame.fromPartial({ requestId: request.requestId, listMessageRecallRecords: { records: [{ recordId: `rcl_${'b'.repeat(64)}`, conversationId: request.listMessageRecallRecords.conversationId, originalLocalId: 7n, originalServerId: '8', originalSentAtUnixMs: 1700000000000n, originalSourceType: 10000n, originalSender: 'wxid_peer', originalText: '候选撤回', capturedAtUnixMs: 0n, confirmedAtUnixMs: 0n, confirmation: 'unverified-candidate', provenance: 'alpha-independent-message-derived-candidate', compressedContentRetained: false, packedInfoRetained: false, decodeErrorCode: 'NATIVE_RECALL_SCHEMA_UNSUPPORTED' }], nextCursor: '' } });
       if (request.searchMessages) return EngineServerFrame.fromPartial({ requestId: request.requestId, searchMessages: { items: [
         { id: 'msg-1', conversationId: 'wxid_peer', sentAtUnixMs: 1700000000000n, senderId: 'wxid_peer', direction: 1, kind: 'text', text: '第一条', sourceType: 1n },
         { id: 'msg-2', conversationId: 'wxid_peer', sentAtUnixMs: 1700000001000n, senderId: 'wxid_self', direction: 2, kind: 'text', text: '第二条', sourceType: 1n }
@@ -172,6 +174,22 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   assert.equal(result.body.native_schema_supported, false);
   assert.equal(result.body.partial, true);
   assert.equal(result.body.candidate, true);
+  result = await request(base, '/api/v1/independent/recall-records?account_id=acct-1&conversation_id=wxid_peer&limit=1', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-message-derived-candidates');
+  assert.equal(result.body.partial, true);
+  assert.equal(result.body.candidate, true);
+  assert.equal(result.body.native_schema_supported, false);
+  assert.equal(result.body.writer, false);
+  assert.equal(result.body.source_table, '__alpha_general_revokes');
+  assert.equal(result.body.records[0].conversation_id, 'wxid_peer');
+  assert.equal(result.body.records[0].confirmation, 'unverified-candidate');
+  assert.equal(result.body.records[0].provenance, 'alpha-independent-message-derived-candidate');
+  assert.equal(result.body.records[0].decode_error_code, 'NATIVE_RECALL_SCHEMA_UNSUPPORTED');
+  assert.equal(result.body.next_cursor, 'next-recall');
+  result = await request(base, '/api/v1/independent/recall-records?account_id=acct-1&conversation_id=wxid_peer&cursor=bad%2Bcursor', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.body.error.code, 'HTTP_API_MESSAGE_RECALL_CURSOR_INVALID');
   result = await request(base, '/api/v1/independent/records', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: '{}' });
   assert.equal(result.response.status, 405);
   result = await request(base, '/api/v1/records?category=friend_requests&query=needle&ascending=true', { headers: { Authorization: `Bearer ${token}` } });
@@ -327,7 +345,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   const headers = { Authorization: `Bearer ${token}`, 'content-type': 'application/json' };
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 58);
+  assert.equal(result.body.result.tools.length, 59);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.resolve_search_hit'));
@@ -357,6 +375,8 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.deepEqual(recordsTool.inputSchema.properties.category.enum, ['payments', 'friend_requests', 'revokes', 'calls']);
   const independentRecordsTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.records.list_candidates');
   assert.deepEqual(independentRecordsTool.inputSchema.properties.category.enum, ['payments', 'friend_requests', 'revokes', 'calls']);
+  const recallCandidatesTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.records.list_recall_candidates');
+  assert.deepEqual(recallCandidatesTool.inputSchema.required, ['conversation_id']);
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 12, method: 'tools/call', params: { name: 'wechat.core.list_tools', arguments: {} } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.package, '');
@@ -590,6 +610,14 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(result.body.result.structuredContent.native_schema_supported, false);
   assert.equal(result.body.result.structuredContent.partial, true);
   assert.equal(result.body.result.structuredContent.candidate, true);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 912, method: 'tools/call', params: { name: 'alpha-independent.records.list_recall_candidates', arguments: { conversation_id: 'wxid_peer', limit: 1 } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-message-derived-candidates');
+  assert.equal(result.body.result.structuredContent.native_schema_supported, false);
+  assert.equal(result.body.result.structuredContent.partial, true);
+  assert.equal(result.body.result.structuredContent.candidate, true);
+  assert.equal(result.body.result.structuredContent.writer, false);
+  assert.equal(result.body.result.structuredContent.records[0].confirmation, 'unverified-candidate');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 92, method: 'tools/call', params: { name: 'alpha.analysis.start', arguments: { scope: 2, conversation_id: 'wxid_peer' } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.conversations_total, 1);
