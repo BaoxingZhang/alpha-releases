@@ -4726,7 +4726,9 @@ function object$9(value, keys) {
   return value;
 }
 function scope$1(value) {
-  if (typeof value.accountId !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value.accountId) || value.accountId === "00000000-0000-0000-0000-000000000000" || typeof value.conversationId !== "string" || !value.conversationId || value.conversationId.trim() !== value.conversationId || value.conversationId.includes("\0") || new TextEncoder().encode(value.conversationId).length > 1024) throw new Error("MESSAGE_RECALL_REQUEST_INVALID");
+  const independent = independentBackendEnabled();
+  const accountValid = typeof value.accountId === "string" && (independent ? value.accountId.length > 0 && value.accountId.length <= 256 && value.accountId.trim() === value.accountId && !/[\u0000-\u001f\u007f]/.test(value.accountId) : /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value.accountId) && value.accountId !== "00000000-0000-0000-0000-000000000000");
+  if (!accountValid || typeof value.conversationId !== "string" || !value.conversationId || value.conversationId.trim() !== value.conversationId || value.conversationId.includes("\0") || new TextEncoder().encode(value.conversationId).length > 1024) throw new Error("MESSAGE_RECALL_REQUEST_INVALID");
   return { accountId: value.accountId, conversationId: value.conversationId };
 }
 function messageRecallManageRequest(raw) {
@@ -4744,7 +4746,9 @@ function messageRecallListRequest(raw) {
   const value = object$9(raw, ["accountId", "conversationId", "cursor", "limit"]);
   const cursor = value.cursor ?? "";
   const limit = value.limit ?? 20;
-  if (typeof cursor !== "string" || cursor !== "" && (!/^(?:0|[1-9][0-9]{0,6})$/.test(cursor) || Number(cursor) > 257e4) || typeof limit !== "number" || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new Error("MESSAGE_RECALL_REQUEST_INVALID");
+  const independent = independentBackendEnabled();
+  const cursorValid = typeof cursor === "string" && (independent ? cursor.length <= 1024 && /^[A-Za-z0-9_-]*$/.test(cursor) : cursor === "" || /^(?:0|[1-9][0-9]{0,6})$/.test(cursor) && Number(cursor) <= 257e4);
+  if (!cursorValid || typeof limit !== "number" || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new Error("MESSAGE_RECALL_REQUEST_INVALID");
   return { ...scope$1(value), cursor, limit };
 }
 const object$8 = (v) => v && typeof v === "object" && !Array.isArray(v) ? v : {};
@@ -62554,11 +62558,15 @@ function messageRecallStatuses(raw, conversationIds) {
 function messageRecallPage(raw, conversationId, limit, cursor) {
   const value = obj(raw);
   if (!Array.isArray(value.records) || value.records.length > limit) throw new Error("MESSAGE_RECALL_RESULT_INVALID");
+  const independent = independentBackendEnabled();
   const ids = /* @__PURE__ */ new Set();
   const records2 = value.records.map((raw2) => {
     const v = obj(raw2);
-    const recordId = text$1(v.recordId, 68);
-    if (!/^rcl_[a-f0-9]{64}$/.test(recordId) || ids.has(recordId) || v.conversationId !== conversationId || typeof v.confirmation !== "string" || !["delete_observed", "replacement_observed", "revoke_confirmed"].includes(v.confirmation) || v.provenance !== "alpha-native-trigger") throw new Error("MESSAGE_RECALL_RESULT_INVALID");
+    const recordId = text$1(v.recordId, independent ? 256 : 68);
+    const validConfirmation = independent ? v.confirmation === "unverified-candidate" : ["delete_observed", "replacement_observed", "revoke_confirmed"].includes(v.confirmation);
+    const validProvenance = independent ? v.provenance === "alpha-independent-message-derived-candidate" : v.provenance === "alpha-native-trigger";
+    const validRecordId = independent ? /^[A-Za-z0-9._:-]{1,256}$/.test(recordId) : /^rcl_[a-f0-9]{64}$/.test(recordId);
+    if (!validRecordId || ids.has(recordId) || v.conversationId !== conversationId || typeof v.confirmation !== "string" || !validConfirmation || !validProvenance) throw new Error("MESSAGE_RECALL_RESULT_INVALID");
     ids.add(recordId);
     const result = {
       recordId,
@@ -62568,20 +62576,26 @@ function messageRecallPage(raw, conversationId, limit, cursor) {
       originalSentAtUnixMs: decimal(v.originalSentAtUnixMs, true),
       originalSourceType: decimal(v.originalSourceType, true),
       originalSender: text$1(v.originalSender, 4096),
-      originalText: text$1(v.originalText, 1024 * 1024),
+      originalText: text$1(v.originalText, independent ? 4 * 1024 * 1024 : 1024 * 1024),
       capturedAtUnixMs: decimal(v.capturedAtUnixMs),
       confirmedAtUnixMs: decimal(v.confirmedAtUnixMs),
       confirmation: v.confirmation,
-      provenance: "alpha-native-trigger",
+      provenance: independent ? "alpha-independent-message-derived-candidate" : "alpha-native-trigger",
       compressedContentRetained: bool(v.compressedContentRetained),
       packedInfoRetained: bool(v.packedInfoRetained),
       decodeErrorCode: text$1(v.decodeErrorCode, 128)
     };
-    if (result.originalLocalId === "0" || result.capturedAtUnixMs === "0" || result.confirmation === "revoke_confirmed" !== (result.confirmedAtUnixMs !== "0") || !/^[A-Z0-9_]*$/.test(result.decodeErrorCode)) throw new Error("MESSAGE_RECALL_RESULT_INVALID");
+    if (result.originalLocalId === "0" || !independent && result.capturedAtUnixMs === "0" || !independent && (result.confirmation === "revoke_confirmed") !== (result.confirmedAtUnixMs !== "0") || !independent && !/^[A-Z0-9_]*$/.test(result.decodeErrorCode) || independent && result.confirmedAtUnixMs !== "0" || independent && result.compressedContentRetained || independent && result.packedInfoRetained) throw new Error("MESSAGE_RECALL_RESULT_INVALID");
     return result;
   });
-  const nextCursor = text$1(value.nextCursor, 16);
-  if (nextCursor && (!/^(?:0|[1-9][0-9]{0,6})$/.test(nextCursor) || Number(nextCursor) > 257e4 || Number(nextCursor) !== Number(cursor || "0") + records2.length || records2.length === 0)) throw new Error("MESSAGE_RECALL_CURSOR_INVALID");
+  const nextCursor = text$1(value.nextCursor, independent ? 1024 : 16);
+  if (nextCursor) {
+    if (independent) {
+      if (!/^[A-Za-z0-9_-]+$/.test(nextCursor) || nextCursor.length > 1024 || records2.length === 0) throw new Error("MESSAGE_RECALL_CURSOR_INVALID");
+    } else if (!/^(?:0|[1-9][0-9]{0,6})$/.test(nextCursor) || Number(nextCursor) > 257e4 || Number(nextCursor) !== Number(cursor || "0") + records2.length || records2.length === 0) {
+      throw new Error("MESSAGE_RECALL_CURSOR_INVALID");
+    }
+  }
   return { records: records2, nextCursor };
 }
 const UINT64_MAX$1 = 18446744073709551615n;

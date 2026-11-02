@@ -1,16 +1,16 @@
 {
   "recordedAt": "2026-11-02",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, message-derived recall candidate pagination, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 73,
-    "unsupportedRequestBranches": 55,
+    "implementedRequestBranches": 74,
+    "unsupportedRequestBranches": 54,
     "source": "packages/alpha-engine/index.cjs:SUPPORTED"
   },
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 243,
+      "passed": 244,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -491,13 +491,13 @@
       "nativeRecompiled": false,
       "projectSigned": false,
       "artifactCount": 991,
-      "artifactDigest": "3dda92160deec6102b057eedca7484c54a9665046c57ee79ffa727aca28181ad"
+      "artifactDigest": "c079b0a5f62a6c0829d7f0bd1519e522754b066316e06a0639039875fe1f1e53"
     },
     "releaseManifestVerification": {
       "command": "npm run verify:release-manifest",
       "status": "passed",
       "artifactCount": 991,
-      "artifactDigest": "3dda92160deec6102b057eedca7484c54a9665046c57ee79ffa727aca28181ad",
+      "artifactDigest": "c079b0a5f62a6c0829d7f0bd1519e522754b066316e06a0639039875fe1f1e53",
       "checks": [
         "path",
         "symlink",
@@ -520,11 +520,11 @@
       "status": "passed",
       "appPath": ".runtime/release-artifacts/Alpha Recovered Independent.app",
       "dmgPath": ".runtime/release-artifacts/Alpha Recovered Independent.dmg",
-      "appArtifactDigest": "b9e71f8d5f14bf3e255e681eaa309335963c7c3cfe72220b347a2754e1499b6e",
+      "appArtifactDigest": "3202931f822938a2cd022dc1962990b6415cc7c7da5debe280ba1662bbdebd56",
       "appFileCount": 1640,
-      "appTotalBytes": 528068464,
-      "dmgBytes": 253242028,
-      "dmgSha256": "88021d02b794ebc0995582c3881ef625f868afd3108cb828baff3f3a347edaf2",
+      "appTotalBytes": 528089208,
+      "dmgBytes": 253274760,
+      "dmgSha256": "fcfddd5faaceb4469875b0e62754d273082a15e6aeff61353d9ae377dcb645d6",
       "projectSigned": false,
       "notarized": false,
       "nativeRecompiled": false,
@@ -637,8 +637,8 @@
       "status": "passed",
       "record": "docs/independent-support-matrix.json",
       "totalRequestBranches": 128,
-      "implementedRequestBranches": 73,
-      "unsupportedRequestBranches": 55,
+      "implementedRequestBranches": 74,
+      "unsupportedRequestBranches": 54,
       "unsupportedBehavior": "UNIMPLEMENTED"
     },
     "packagedApp": {
@@ -811,6 +811,23 @@
         "downloadUrl",
         "sourceLookup"
       ]
+    },
+    "messageRecallCandidates": {
+      "command": "node --test tests/engine-message-recall.test.mjs",
+      "status": "passed",
+      "tests": 1,
+      "fieldNumber": 100,
+      "sourceTable": "__alpha_general_revokes",
+      "partial": true,
+      "candidate": true,
+      "confirmation": "unverified-candidate",
+      "provenance": "alpha-independent-message-derived-candidate",
+      "nativeSchemaSupported": false,
+      "writer": false,
+      "cursor": "opaque scoped base64url",
+      "capturedAtUnixMs": "0",
+      "confirmedAtUnixMs": "0",
+      "decodeErrorCode": "NATIVE_RECALL_SCHEMA_UNSUPPORTED"
     }
   },
   "featureBoundary": {
@@ -818,7 +835,7 @@
     "momentsAndFavorites": "synthetic-moments-and-favorites-only; synthetic moment emoji requires explicit __alpha_moment_emoji_v1 plus media-index.v1.json; real SnsTimeLine/snsmessage, comment XML and real favorites database/source lookup/media semantics remain unimplemented; synthetic favorite media requires explicit __alpha_favorite_media_v1 plus media-index.v1.json",
     "generalRecordListing": {
       "payments": "partial-candidate-from-message-xml",
-      "revokes": "partial-candidate-from-message-xml",
+      "revokes": "partial-candidate-from-message-xml; listMessageRecallRecords exposes the same bounded candidates with independent cursor and no native recall-store claim",
       "friend_requests": "partial-candidate-from-message-xml",
       "calls": "partial-candidate-from-message-xml",
       "moment_interactions": "unimplemented",
@@ -829,7 +846,8 @@
     "aiAndModelServices": "unimplemented",
     "messageWritingAndSending": "unimplemented",
     "realWeChatData": "untested",
-    "fullFeatureParity": false
+    "fullFeatureParity": false,
+    "messageRecall": "message-derived-candidate-only; native recall store, captured/confirmed retention evidence, and writers remain unimplemented"
   },
   "buildArtifact": {
     "artifactDigest": "ba7ad3ec2bd455345883804ca3e392ff282825f0a5ed9325a68a00f3ef851e1f",

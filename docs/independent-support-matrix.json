@@ -8,8 +8,8 @@
   },
   "counts": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 73,
-    "unsupportedRequestBranches": 55
+    "implementedRequestBranches": 74,
+    "unsupportedRequestBranches": 54
   },
   "supported": [
     {
@@ -175,6 +175,10 @@
     {
       "name": "manageMessageAntiRecall",
       "fieldNumber": 99
+    },
+    {
+      "name": "listMessageRecallRecords",
+      "fieldNumber": 100
     },
     {
       "name": "resolveMessageMedia",
@@ -400,10 +404,6 @@
     },
     {
       "name": "listMaterialOfficialExports",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "listMessageRecallRecords",
       "status": "UNIMPLEMENTED"
     },
     {

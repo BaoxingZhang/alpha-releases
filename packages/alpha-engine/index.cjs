@@ -23,7 +23,7 @@ const { loadMediaIndex, readMediaEntry } = require('./media-index.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, listMessageRecallRecords: 100, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
 // These enum values are recovered from the Alpha protocol. The independent
 // engine can report the local package boundary, but it cannot start or claim
 // a dynamically entitled native component. Keep this status explicit and
@@ -82,6 +82,68 @@ function readCursor(value) {
   const cursor = new TextDecoder('utf-8', { fatal: true }).decode(value);
   if (!/^[A-Za-z0-9_-]+$/.test(cursor)) throw error('CURSOR_INVALID');
   return cursor;
+}
+const RECALL_RECORD_PAGE_MAX = 100;
+const RECALL_RECORD_SCAN_PAGE = 500;
+const RECALL_RECORD_SCAN_MAX = 20000;
+const RECALL_RECORD_TABLE = '__alpha_general_revokes';
+const RECALL_RECORD_PROVENANCE = 'alpha-independent-message-derived-candidate';
+const RECALL_RECORD_CONFIRMATION = 'unverified-candidate';
+function recallCursorScope(accountId, conversationId) {
+  return `recall-v1:${sha(JSON.stringify({ accountId, conversationId }))}`;
+}
+function encodeRecallCursor(scope, offset) {
+  const raw = Buffer.from(JSON.stringify({ v: 1, scope, offset }), 'utf8');
+  if (raw.length > 512) throw error('MESSAGE_RECALL_CURSOR_TOO_LARGE');
+  return raw.toString('base64url');
+}
+function decodeRecallCursor(value, scope) {
+  if (value === undefined || value === '') return 0;
+  if (typeof value !== 'string' || value.length > 1024 || !/^[A-Za-z0-9_-]+$/.test(value)) throw error('MESSAGE_RECALL_CURSOR_INVALID');
+  let decoded;
+  try {
+    const raw = Buffer.from(value, 'base64url');
+    if (!raw.length || raw.toString('base64url') !== value) throw new Error('cursor encoding');
+    decoded = JSON.parse(raw.toString('utf8'));
+  } catch { throw error('MESSAGE_RECALL_CURSOR_INVALID'); }
+  if (!decoded || decoded.v !== 1 || decoded.scope !== scope || !Number.isSafeInteger(decoded.offset) || decoded.offset < 0 || decoded.offset > RECALL_RECORD_SCAN_MAX) throw error('MESSAGE_RECALL_CURSOR_INVALID');
+  return decoded.offset;
+}
+function recallField(fields, name) {
+  const values = fields.filter(field => field?.name === name);
+  return values.length === 1 ? values[0].value : '';
+}
+function recallCandidateFromGeneral(row) {
+  if (!row || typeof row !== 'object' || row.tableName !== RECALL_RECORD_TABLE || typeof row.id !== 'string' || typeof row.eventAtUnixMs !== 'bigint' || typeof row.actor !== 'string' || typeof row.content !== 'string' || !Array.isArray(row.fields)) throw error('MESSAGE_RECALL_RECORD_INVALID');
+  const conversationId = recallField(row.fields, 'conversation');
+  const sourceLocalId = recallField(row.fields, 'source_local_id');
+  const sourceServerId = recallField(row.fields, 'source_server_id');
+  const messageSentAt = recallField(row.fields, 'message_sent_at_unix_ms');
+  if (!conversationId || conversationId.length > 1024 || conversationId.includes('\0') || !sourceLocalId || !/^(?:0|[1-9][0-9]*)$/.test(sourceLocalId) || !sourceServerId || !/^(?:0|[1-9][0-9]*)$/.test(sourceServerId)) throw error('MESSAGE_RECALL_RECORD_INVALID');
+  const originalLocalId = decimal(sourceLocalId);
+  const originalSentAtUnixMs = messageSentAt ? decimal(messageSentAt, true) : row.eventAtUnixMs;
+  const originalText = recallField(row.fields, 'revoke_content') || row.content;
+  if (originalText.length > 4 * 1024 * 1024 || originalText.includes('\0') || row.actor.length > 1024 || row.actor.includes('\0')) throw error('MESSAGE_RECALL_RECORD_INVALID');
+  return {
+    // Keep the wire-shaped identifier stable and opaque. The digest is over
+    // the bridge's source identity; it does not claim the native recall-store
+    // record ID or expose a database path.
+    recordId: `rcl_${sha(row.id)}`,
+    conversationId,
+    originalLocalId,
+    originalServerId: sourceServerId,
+    originalSentAtUnixMs,
+    originalSourceType: 10000n,
+    originalSender: row.actor,
+    originalText,
+    capturedAtUnixMs: 0n,
+    confirmedAtUnixMs: 0n,
+    confirmation: RECALL_RECORD_CONFIRMATION,
+    provenance: RECALL_RECORD_PROVENANCE,
+    compressedContentRetained: false,
+    packedInfoRetained: false,
+    decodeErrorCode: 'NATIVE_RECALL_SCHEMA_UNSUPPORTED'
+  };
 }
 function checkedPage(result, limit) {
   if (!result || !Array.isArray(result.items) || result.items.length > limit || typeof result.nextCursor !== 'string' || result.nextCursor.length > 1024 || typeof result.hasMore !== 'boolean' || result.hasMore !== Boolean(result.nextCursor)) throw error('BRIDGE_PAGE_INVALID');
@@ -2608,6 +2670,33 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       const value = await callData('general.list', { tableName: request.tableName, query: request.query, limit, offset, ascending: request.ascending });
       if (!value || !Array.isArray(value.items) || value.items.length > limit || typeof value.sourceDatabase !== 'string' || value.sourceDatabase.length > 1024) throw error('BRIDGE_GENERAL_RESPONSE_INVALID');
       return { response: { items: value.items.map(generalRecordFromRow), sourceDatabase: text(value.sourceDatabase, 1024) } };
+    },
+    async listMessageRecallRecords(request) {
+      await requireAccount(request.accountId);
+      const conversationId = request.conversationId === undefined || request.conversationId === '' ? '' : requestName(request.conversationId, 'MESSAGE_RECALL_REQUEST_INVALID');
+      const limit = request.limit === undefined || request.limit === 0 ? 20 : request.limit;
+      if (!Number.isInteger(limit) || limit < 1 || limit > RECALL_RECORD_PAGE_MAX) throw error('MESSAGE_RECALL_REQUEST_INVALID');
+      const scope = recallCursorScope(request.accountId, conversationId);
+      let offset = decodeRecallCursor(request.cursor, scope);
+      const records = [];
+      let finished = false;
+      while (!finished && records.length < limit && offset < RECALL_RECORD_SCAN_MAX) {
+        const page = await handlers.listGeneral({ accountId: request.accountId, tableName: RECALL_RECORD_TABLE, query: '', limit: RECALL_RECORD_SCAN_PAGE, offset, ascending: false });
+        const rows = page.response.items;
+        let consumed = 0;
+        let stoppedForLimit = false;
+        for (const row of rows) {
+          consumed += 1;
+          const candidate = recallCandidateFromGeneral(row);
+          if (!conversationId || candidate.conversationId === conversationId) records.push(candidate);
+          if (records.length >= limit) { stoppedForLimit = consumed < rows.length; break; }
+        }
+        offset += consumed;
+        finished = !stoppedForLimit && rows.length < RECALL_RECORD_SCAN_PAGE;
+        if (rows.length === 0) finished = true;
+      }
+      if (offset >= RECALL_RECORD_SCAN_MAX && !finished) throw error('MESSAGE_RECALL_SCAN_TOO_LARGE');
+      return { records, nextCursor: !finished && offset < RECALL_RECORD_SCAN_MAX ? encodeRecallCursor(scope, offset) : '' };
     },
     async listConversations(request) {
       const accountInfo = await requireAccount(request.accountId); const limit = pageSize(request.page);
