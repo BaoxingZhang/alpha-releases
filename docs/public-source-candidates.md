@@ -20,6 +20,8 @@
 
 该组件文档提供了可复核的接口契约：`wcdb_init`/`wcdb_open_account`/`wcdb_close_account`/`wcdb_free_string` 生命周期，消息/联系人/媒体/语音/朋友圈查询以及写入和防删除函数；图片插件通过 `decryptDatNative`，批量导出组件通过 stdin/stdout NDJSON。它们是 WeFlow 自有组件接口，不是 Alpha 的 `_alpha_native_get_api` API 表，也没有给出 Alpha 的数据库 schema、授权或 macOS arm64 行为。
 
+作者账号下的 [xunchahaha/WeFlow](https://github.com/xunchahaha/WeFlow) 当前由 GitHub 按 DMCA 请求限制访问，匿名页面返回 HTTP 451；对应的 [GitHub DMCA 记录](https://github.com/github/dmca/blob/master/2026/07/2026-07-07-wechat.md) 将该仓库列为被处理的 WeFlow 网络的一部分。它不能作为本工程的可复用源码、二进制或依赖来源。该事实不改变对仍公开的 `hicccc77/WeFlow` 的许可证和 ABI 分析，也不证明任何 Alpha 原生组件已经公开。
+
 作者账号的 [xunchahaha/WeFlow1](https://github.com/xunchahaha/WeFlow1) fork 当前固定为 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73`，随仓库带有一个预编译的 `resources/wcdb/macos/universal/libwcdb_api.dylib`。该文件实际是 arm64 Mach-O，SHA-256 为 `e6b52eb896f0fa4eb337b338a5a2ad477880832d7fbb60a7175ee5e2a5042429`，导出 `wcdb_*` 符号并依赖 `WCDB.framework`；它没有 Alpha 导出的 `_alpha_native_get_api`，不能直接替换 Alpha runtime。该二进制也不包含可重建的源代码或头文件。
 
 两个仓库的 [`LICENSE`](https://github.com/hicccc77/WeFlow/blob/main/LICENSE) 是 CC BY-NC-SA 4.0。该许可允许非商业复制和改编，但要求署名、相同方式共享，并限制商业用途。当前 Alpha 恢复工程没有把 WeFlow 代码、二进制或依赖引入，也没有把它当作 Alpha 后端替代品。若将来考虑做可选适配，必须单独完成许可证兼容性评估、来源锁定、ABI/数据语义对照和 macOS arm64 验证，并保持显式路径配置和 fail-closed 错误边界。

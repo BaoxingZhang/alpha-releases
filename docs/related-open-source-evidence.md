@@ -26,6 +26,8 @@
 
 针对收藏的限定搜索没有发现实际收藏数据库、收藏表或独立收藏服务；聊天中的分享消息不能证明存在微信收藏库。因此该仓库只能作为字段和应用层行为的候选研究材料，不能闭合 Alpha 的真实朋友圈/收藏 schema、原生 ABI、媒体 key 或 macOS arm64 兼容性。本工程保持真实 moments/favorites 分支 fail-closed。
 
+作者账号下的 [xunchahaha/WeFlow](https://github.com/xunchahaha/WeFlow) 当前由 GitHub 按 DMCA 请求限制访问，匿名页面返回 HTTP 451；GitHub 的 [DMCA 记录](https://github.com/github/dmca/blob/master/2026/07/2026-07-07-wechat.md) 将其列为被处理的 WeFlow 网络的一部分。因此本工程不把该仓库、其 fork、release 或附件作为可复用来源，也不尝试绕过访问限制。仍公开的 `hicccc77/WeFlow` 只作为许可证和接口边界参考。
+
 ## `334456777/WeFlow`
 
 [334456777/WeFlow](https://github.com/334456777/WeFlow) 的公开分支包含 `crates/`、`weflow-native` 和 `weflow-wcdb-ffi` 等 Rust 后端材料，并描述了消息、联系人、朋友圈、媒体、分析和 HTTP/MCP 能力。它的 [native-cli 文档](https://github.com/334456777/WeFlow/blob/main/docs/native-cli.md) 和 [desktop Rust layer 文档](https://github.com/334456777/WeFlow/blob/main/docs/desktop-rust-layer.md) 可用于比较独立原生层的职责。
