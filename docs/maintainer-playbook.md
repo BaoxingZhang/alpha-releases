@@ -10,6 +10,12 @@
 4. 对离线数据功能只使用 `npm run demo`、`npm run demo:encrypted` 或经授权的副本。默认启动器不会自动寻找个人微信目录。
 5. 提交前执行 [CONTRIBUTING.md](../CONTRIBUTING.md) 的检查清单。
 
+需要核对上游是否出现新的发行材料时运行 `npm run audit:upstream`。它默认只打印当前公开仓库、release、更新策略和文件树的审计结果；只有确认结果后才使用 `--write` 更新 [`docs/upstream-alpha-releases-current.json`](upstream-alpha-releases-current.json)。如果本地保留原始 DMG，可额外传入 `--artifact` 做大小和 SHA-256 比对。该流程不会把新的发行包自动接入构建，也不会替换原生 runtime、签名、公钥或授权配置。
+
+公开源码或发行材料前，使用 `npm run audit:public-release -- --root /path/to/sanitized-tree --report /tmp/alpha-public-release-audit.json --strict`。它扫描 `docs/` 和 `provenance/` 中的用户目录、临时目录、私钥块和常见访问令牌；取证材料需要显式 `--exclude`，不会自动认为它们安全，也不会改写原文件。
+
+准备公开源码候选目录时，运行 `npm run prepare:public-source -- --output /tmp/alpha-public-source-candidate --report /tmp/alpha-public-source-audit.json --manifest /tmp/alpha-public-source-manifest.json`。流程会在源仓库外创建一个不存在的新目录，复制时保留完整相对路径并排除生成目录和默认私有证据，再用严格模式审计；可用重复的 `--exclude relative/path` 加入额外排除。报告和 manifest 只写入调用方指定的外部路径，输出、报告或 manifest 已存在，以及发现 symlink、用户路径或凭据时均失败关闭。`blocked-by-public-audit` 的候选目录可以用于修复和复核，但不修改原始证据；`ready-for-license-and-review` 也不等于许可证已选择或发布已获授权。
+
 ## 功能接手顺序
 
 维护优先级按 [MAINTENANCE.md](../MAINTENANCE.md) 的领域表和验收标准确定。一个请求分支的协议绑定、界面入口或静态字符串都不足以证明功能已恢复。新增读取功能必须有：
@@ -27,14 +33,21 @@
 
 ```sh
 npm run check:project
+npm run verify:dependencies
 npm run build:packaged
 npm run package:macos-app:from-build
 npm run package:macos-dmg
+# 自有独立 flavor（双击启动时由包内 marker 选择独立后端）
+npm run package:macos-app:independent:from-build
+npm run package:macos-dmg:independent
+npm run verify:packaged-markers
 npm run release:manifest
 npm run bundle:recovery
 ```
 
-生成的 App 和 DMG 默认未签名、未公证，也不替代原生授权。发布前需要维护者自行完成代码签名、公证、更新服务和回滚验证；这些步骤当前没有被伪装成已完成。
+生成的 App 和 DMG 默认未签名、未公证，也不替代原生授权。发布前需要维护者自行完成代码签名、公证、更新服务和回滚验证；这些步骤当前没有被伪装成已完成。生成 `.runtime/release-manifest.json` 后运行 `npm run verify:release-manifest`，可在发布或归档前重新计算每个产物文件的大小、SHA-256、权限和总摘要。
+
+独立 flavor 会根据 [`provenance/independent-update-mode.json`](../provenance/independent-update-mode.json) 生成 `Contents/Resources/alpha-update-mode.json`；默认 `mode=disabled`，不会继承原作者的更新公钥和地址。维护者建立自有更新服务、Ed25519 根公钥和策略后，才可以把 provenance 配置改为 `configured`；修改后必须重新生成 manifest，并验证下载、签名、安装和回滚。
 
 ## 证据与回滚
 

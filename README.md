@@ -2,7 +2,9 @@
 
 这是从 `Alpha-0.3.5-arm64.dmg` 整理出的可编辑工程：重建 Electron 主进程、预加载、React 界面和 AI worker 的 JavaScript，复用原包 macOS arm64 原生二进制。
 
-**已能本地编译，并使用自有后端在原界面中读取、搜索、定位和导出离线微信 v4 聊天数据。** 已接通手动密钥导入与加密快照、联系人/会话/消息读取、联系人查询与有限档案存在性读取、联系人和群成员 CSV/JSON/VCF/HTML/XLSX 导出、跨分库分页、全账号和会话搜索、日期导航、会话/账号媒体元数据浏览及 metadata-only JSON/CSV 导出、显式媒体索引绑定的合成图片读取、部分消息结构化展示、JSON/Markdown/HTML/TXT/XLSX 会话导出，以及基于已验证消息 DTO 的 `chatlab-json`/`chatlab-jsonl`/`sql`/`weclone` 派生导出、payments/friend_requests/revokes/calls 候选资料的 xlsx/csv/json 导出、年度基础统计、会话关系基础统计、应用锁，以及有界后台定时导出计划和重启恢复。独立后端还接通了消息防撤回和朋友圈防删除的状态控制面，但在没有 verified writer/schema 时明确报告 writer disabled，不声称已启用保全。另有一个只接受调用方字节的独立 DAT 图片解码模块（v4 要求显式 AES/XOR key，旧式 DAT 按 magic 推断 XOR key），尚未接入媒体定位、Alpha token 或界面。派生格式不声称与原 Alpha/native formatter 或第三方工具完全兼容。独立引擎还提供可选的本机受控 HTTP/MCP 适配器（包含已验证 DTO 查询、会话文件导出和媒体 JSON/CSV 元数据导出）。完整 Alpha 功能仍未恢复；真实微信数据、自动取钥、媒体定位与播放、真实云模型和其他导出格式等尚待接手。独立模式另有一个显式 opt-in 的本地 fixture AI worker，仅用于回归演示，不代表模型服务或云端 AI。朋友圈、收藏和“其他资料”记录的证据边界分别见 [朋友圈 schema 证据](docs/moments-schema-evidence.md)、[收藏 schema 证据](docs/favorites-schema-evidence.md) 和 [其他资料记录证据](docs/general-records-schema-evidence.md)；随包原生 operation 和 ABI 线索见 [原生 operation 证据](docs/native-operation-source-evidence.md)。完整接手范围详见 [独立后端与实测](docs/independent-backend.md)、[独立 HTTP/MCP 适配器](docs/http-readonly-adapter-recovery.md)、[加密导入](docs/encrypted-import.md) 和 [搜索导航](docs/search-navigation.md)。
+**已能本地编译，并使用自有后端在原界面中读取、搜索、定位和导出离线微信 v4 聊天数据。** 已接通手动密钥导入与加密快照、联系人/会话/消息读取、联系人查询与有限档案存在性读取、联系人和群成员 CSV/JSON/VCF/HTML/XLSX 导出、跨分库分页、全账号和会话搜索、日期导航、会话/账号媒体元数据浏览及 metadata-only JSON/CSV 导出、显式媒体索引绑定的合成图片读取、部分消息结构化展示、JSON/Markdown/HTML/TXT/XLSX 会话导出，以及基于已验证消息 DTO 的 `chatlab-json`/`chatlab-jsonl`/`sql`/`weclone` 派生导出、payments/friend_requests/revokes/calls 候选资料的 xlsx/csv/json 导出、年度基础统计、会话关系基础统计、应用锁，以及有界后台定时导出计划和重启恢复。独立后端还接通了消息防撤回和朋友圈防删除的状态控制面，但在没有 verified writer/schema 时明确报告 writer disabled，不声称已启用保全。朋友圈只读目前增加了一个显式 `moments.db`/`__alpha_moments_v1` synthetic fixture 的列表、作者聚合和本地日计数分支；它不兼容真实微信的 `SnsTimeLine`/`snsmessage` schema，真实朋友圈数据仍保持 fail-closed。 独立模式的原朋友圈页面仅在账号同时暴露 `moments`、`moment-authors`、`moment-day-counts` capability 时展示该 fixture，并明确标注 synthetic-only；页面只读文字、作者和日计数，不开放媒体、互动、导出或防删除写入。独立引擎另支持仅显式 `favorite.db` 或 `favorites.db` 中的 `__alpha_favorites_v1` synthetic fixture 的 `listFavorites`，提供有界分页、类型/关键字/标签过滤和类型计数；不提供收藏 source lookup、原生媒体对象或真实收藏库 schema，`includeMedia` 仍返回 `FAVORITES_MEDIA_UNAVAILABLE`；若同一 fixture 另有 `__alpha_favorite_media_v1` 和自有 `media-index.v1.json`，独立 `listFavoriteMediaSlots`/`resolveFavoriteMedia` 可读取并校验合成媒体；独立适配器仅提供同一 synthetic fixture 的只读 `/api/v1/favorites` 与 `alpha-independent.favorites.list_items`。独立适配器另提供 `GET /api/v1/independent/records` 与 `alpha-independent.records.list_candidates`，读取带 `partial/candidate` 标志的消息派生记录并标明不支持原生 schema。另有一个只接受调用方字节的独立 DAT 图片解码模块（v4 要求显式 AES/XOR key，旧式 DAT 按 magic 推断 XOR key），尚未接入媒体定位、Alpha token 或界面。派生格式不声称与原 Alpha/native formatter 或第三方工具完全兼容。独立引擎还提供可选的本机受控 HTTP/MCP 适配器（包含已验证 DTO 查询、导出能力/统计、会话文件导出、媒体 JSON/CSV 元数据导出，以及仅面向 `moments.db`/`__alpha_moments_v1` synthetic fixture 的朋友圈时间线/作者/日计数路由和独立 metadata-only 导出任务路由、以及仅面向 `favorite.db` 或 `favorites.db` 中 `__alpha_favorites_v1` synthetic fixture 的收藏列表路由；真实 `SnsTimeLine`/`snsmessage` 和收藏库 schema 仍 fail-closed）。完整 Alpha 功能仍未恢复；真实微信数据、自动取钥、媒体定位与播放、真实云模型和其他导出格式等尚待接手。独立模式另有一个显式 opt-in 的本地 fixture AI worker，仅用于回归演示，不代表模型服务或云端 AI。朋友圈、收藏和“其他资料”记录的证据边界分别见 [朋友圈 schema 证据](docs/moments-schema-evidence.md)、[收藏 schema 证据](docs/favorites-schema-evidence.md) 和 [其他资料记录证据](docs/general-records-schema-evidence.md)；随包原生 operation 和 ABI 线索见 [原生 operation 证据](docs/native-operation-source-evidence.md)。完整接手范围详见 [独立后端与实测](docs/independent-backend.md)、[独立 HTTP/MCP 适配器](docs/http-readonly-adapter-recovery.md)、[加密导入](docs/encrypted-import.md) 和 [搜索导航](docs/search-navigation.md)。
+
+独立 MCP 适配器当前声明 44 个工具；其中 `alpha-independent.analytics.analyze_annual` 仅覆盖可发现会话，`alpha-independent.analytics.analyze_conversation` 仅覆盖指定会话的已验证消息。两者返回独立基础报告并标记 `complete=false`、`native_schema_supported=false`，不复用官方 `wechat.analytics.*` wrapped schema。媒体浏览工具 `alpha-independent.media.browse_conversation` 与 `alpha-independent.media.browse_account` 只返回消息元数据、refs、display 和来源标识，标记 `media_ready=false`，不读取或播放媒体。`alpha-independent.media.decode_voice_playback` 与 `GET /api/v1/independent/media/voice-playback` 只解析 `__alpha_voice_playback_v1` synthetic 映射和自有 WAV media-index，标记 `synthetic_only=true`、`native_schema_supported=false`，不兼容真实 VoiceInfo/SILK/native media cache。独立消息来源工具 `alpha-independent.messages.get_source` 与 `GET /api/v1/independent/message-source` 只接受 `independent1_...` canonical base64url source token，返回已解码文本并标记 `raw_available=false`、`native_schema_supported=false`，不读取原始 XML、媒体文件或数据库密钥。
 
 原包模式仍保留，启动仍返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，记录见 [local-run.json](docs/local-run.json)。这是恢复后的 JavaScript 工程与新增维护模块，并非作者原始 TypeScript/Rust/C++ 源码仓库。
 
@@ -50,16 +52,34 @@ npm run build
 npm run check:maintainability
 npm run test:smoke
 npm run release:manifest # 生成未签名的本地构建清单
+npm run verify:release-manifest # 重新计算并核对清单中的每个文件
 npm run bundle:recovery  # 生成排除用户数据和构建输出的源码恢复包
 ```
 
-项目的 `.github/workflows/maintenance.yml` 固定了同一套 macOS arm64 维护基线：递归获取参考子模块、按 `package-lock.json` 安装依赖、构建独立后端和 packaged 资源、组装未签名 app、运行完整测试及独立/原包 smoke，并校验协议绑定、原包运行时哈希和维护边界。构建报告和 app manifest 会作为 Actions artifact 保留；Go 桥接和快照导入仍只接受项目内固定的 macOS arm64 工具链，不会在 CI 中改用系统 Go。
+项目的 `.github/workflows/maintenance.yml` 固定了同一套 macOS arm64 维护基线：递归获取参考子模块、按 `package-lock.json` 安装依赖、构建独立后端和 packaged 资源、组装普通与独立两个未签名 app、运行完整测试及独立/原包 smoke，并校验协议绑定、原包运行时哈希、独立 72/128 支持矩阵和维护边界。构建报告及两个 app manifest 会作为 Actions artifact 保留；Go 桥接和快照导入仍只接受项目内固定的 macOS arm64 工具链，不会在 CI 中改用系统 Go。
 
 `npm run release:manifest` 会对 `dist/app`、`build/runtime-bundle` 和 `workers/agent/dist` 的每个文件生成 SHA-256 清单与整体摘要，写入 `.runtime/release-manifest.json`。清单明确标记目标为 macOS arm64、原生代码未重新编译且项目未签名；它是发布审计材料，不是 DMG、代码签名或公证结果。原生运行时仍必须先通过 `npm run verify:vendor`。
 
-`npm run build:packaged` 在 `build/packaged-resources/independent/` 生成可复制到 Electron `Resources/independent/` 的独立后端资源。packaged 应用默认仍使用原包 native runtime；只有同时设置 `ALPHA_RECOVERY_BACKEND=independent` 和 `ALPHA_INDEPENDENT_PACKAGED=1` 才会选择独立资源。资源缺失时会明确失败，不回退到原生 engine，也不把 UI 启动成功当作后端就绪。
+`npm run audit:upstream` 会只读刷新上游 `alpha-releases` 的仓库 HEAD、release 资产、公开文件树、README/stable policy 哈希和可选的本地 DMG 校验。默认只输出报告；加 `--write` 才会原子更新 `docs/upstream-alpha-releases-current.json`，加 `--artifact /absolute/path/Alpha-0.3.5-arm64.dmg` 才会读取并核对本地安装包。该工具不下载发行二进制，也不把上游发行仓库当作源码或许可证来源。
 
-`npm run package:macos-app` 会基于本机 Electron 44 生成未签名的 `Alpha Recovered.app`，并写出逐文件清单；已有 `build:packaged` 产物时可直接运行 `npm run package:macos-app:from-build`，避免重复构建；`npm run package:macos-dmg` 进一步使用 macOS `hdiutil` 生成未签名、未公证的 DMG。清单始终标记 `projectSigned=false`、`notarized=false`，这些产物用于本地验证和自有发布流程，不能替代代码签名、公证或原生授权。
+公开源码或发行材料前，可运行 `npm run audit:public-release -- --root /path/to/sanitized-tree --report /tmp/alpha-public-release-audit.json --strict`。它只读扫描 `docs/` 和 `provenance/` 中的本机绝对路径、私钥块和明显访问令牌；默认只报告，私有 REA/Ghidra 证据目录需要显式使用 `--exclude`，报告只保留相对路径和 `[redacted]` 标记。
+
+如需准备一份待维护者复核的公开源码候选目录，可运行：
+
+```sh
+npm run prepare:public-source -- \
+  --output /tmp/alpha-public-source-candidate \
+  --report /tmp/alpha-public-source-audit.json \
+  --manifest /tmp/alpha-public-source-manifest.json
+```
+
+该命令把筛选后的文件复制到调用方指定的新目录，保留嵌套路径，默认排除生成目录和私有 REA/Ghidra 证据，然后执行严格公开审计。`--exclude` 可重复传入源仓库相对路径。输出目录必须在源仓库外且不存在；报告和 manifest 也必须写到源仓库及候选目录之外的指定路径。发现路径或凭据时返回 `blocked-by-public-audit`，保留候选目录与脱敏报告供修复，不修改原始 evidence。`ready-for-license-and-review` 只表示该次审计通过，仍需维护者完成许可证、来源、签名和发布审核，不能据此宣称整个项目已经安全公开。
+
+`npm run build:packaged` 在 `build/packaged-resources/independent/` 生成可复制到 Electron `Resources/independent/` 的独立后端资源。普通 packaged flavor 默认仍使用原包 native runtime；独立 flavor 通过应用包内 marker 选择独立资源，开发启动时只需显式设置 `ALPHA_RECOVERY_BACKEND=independent`（手工模拟已打包进程时再加 `ALPHA_INDEPENDENT_PACKAGED=1`）。资源缺失时会明确失败，不回退到原生 engine，也不把 UI 启动成功当作后端就绪。
+
+`npm run package:macos-app` 会基于本机 Electron 44 生成未签名的 `Alpha Recovered.app`，并写出逐文件清单；已有 `build:packaged` 产物时可直接运行 `npm run package:macos-app:from-build`，避免重复构建；`npm run package:macos-dmg` 进一步使用 macOS `hdiutil` 生成未签名、未公证的 DMG。默认 flavor 写入 `original` backend marker，保留原生启动链路。要生成双击即可选择自有独立后端的明确 flavor，运行 `npm run package:macos-app:independent` 或 `npm run package:macos-dmg:independent`，产物名称为 `Alpha Recovered Independent.app/.dmg`；它只设置本项目自己的 backend 选择，不绕过原生完整性、签名或许可校验。已有 packaged 资源时可使用 `npm run package:macos-app:independent:from-build`。清单始终标记 `projectSigned=false`、`notarized=false`，这些产物用于本地验证和自有发布流程，不能替代代码签名、公证或原生授权。
+
+独立 flavor 另外写入 `alpha-update-mode.json`，内容来自 [`provenance/independent-update-mode.json`](provenance/independent-update-mode.json)，当前默认 `mode=disabled`，因此不会沿用原作者的更新公钥、策略地址或镜像。未来由维护者建立自己的签名更新策略后，应先修改这个 provenance 配置再重新打包和验证；普通 `Alpha Recovered.app` 仍保留原包更新配置。
 
 `npm run bundle:recovery` 会生成 `.runtime/recovery-bundles/alpha-recovered-source.tar.gz` 及同名 manifest。源码包默认包含可编辑源码、测试、脚本、文档、协议材料和原生 provenance，但排除 `node_modules/`、`dist/`、`build/`、`.runtime/`、`.alpha/`、运行日志和截图，也不包含原生 runtime 二进制。需要在受控归档中携带原包二进制时可显式传入 `--include-vendor-runtime`；manifest 会记录 `includesVendorRuntime`、每个源文件的 SHA-256、原始 DMG 摘要，并始终标记 `nativeRecompiled=false`、`projectSigned=false`。这是一份未签名的维护源包，不是可直接安装的 DMG。
 
@@ -99,9 +119,12 @@ esbuild 会重新处理 11 个 JS 文件并生成调试 source map。这里的�
 
 ```sh
 npm run verify:protocol # 校验独立协议模块仍与恢复源一致
-npm run verify:independent-support # 校验128项独立后端支持矩阵未漂移
+npm run audit:api       # 对照官方 HTTP/MCP 契约与当前独立适配器覆盖面
+npm run verify:packaged-markers # 校验普通/独立 App 的 backend marker、manifest 和 Bundle ID
+npm run verify:independent-support # 校验128项独立后端支持矩阵未漂移（当前72项已实现）
 npm run test:protocol   # 编解码、分帧边界与来源测试
 npm run verify:vendor   # 核对43个原包运行时文件的SHA256和权限
+npm run verify:dependencies # 对当前锁定依赖实时运行 npm audit（不含 optional）
 npm run test:smoke      # 隔离检查、实际Electron界面、IPC与后端状态诊断
 npm run check:maintainability # 检查Node/锁文件、源码入口、工具链记录和构建复制边界
 npm run test:encrypted  # 原UI手动密钥、错误密钥拒绝、消息读取与重启复用

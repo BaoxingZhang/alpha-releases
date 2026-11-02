@@ -23,12 +23,22 @@ npm run check:maintainability
 npm test
 npm run test:independent
 npm run test:smoke
+npm run audit:api
+npm run audit:public-release -- --root /path/to/sanitized-tree --report /tmp/alpha-public-release-audit.json --strict
 npm run verify:protocol
 npm run verify:vendor
+npm run verify:release-manifest
+npm run verify:dependencies
 git diff --check
 ```
 
+如果变更涉及上游版本、原始安装包或更新策略，先运行 `npm run audit:upstream`；确认公开材料和本地 DMG 一致后，才使用 `npm run audit:upstream -- --write` 更新 provenance。该命令不会自动下载或替换运行时。
+
 如果只修改某一层，也要运行该层的针对性测试，并在提交说明中记录未运行的检查及原因。原包 smoke 的 UI 成功不等于原生 backend ready；请同时记录 `docs/local-run.json` 中的实际 backend 状态。
+
+对外发布前，把待发布的脱敏树作为 `--root` 运行 `npm run audit:public-release`。默认模式只报告问题；加 `--strict` 时发现本机绝对路径、私钥块或明显访问令牌会返回非零状态。REA/Ghidra 取证目录等私有材料只能通过显式重复的 `--exclude relative/path` 排除，并应保留在受控私有归档中。报告只保存相对路径和 `[redacted]` 标记，不会改写源文件。
+
+需要从当前维护树建立可复核的公开源码候选目录时，使用 `npm run prepare:public-source -- --output /tmp/alpha-public-source-candidate --report /tmp/alpha-public-source-audit.json --manifest /tmp/alpha-public-source-manifest.json`。它复制并筛选到源仓库外的新目录后运行严格审计；候选目录、报告和 manifest 都不能覆盖已有路径，也不能位于源仓库内。审计失败会返回非零状态并保留脱敏报告，不修改原始 evidence。通过只代表可以进入许可证和人工审核阶段，不代表已经取得许可证或可以直接发布。
 
 ## 提交说明
 
