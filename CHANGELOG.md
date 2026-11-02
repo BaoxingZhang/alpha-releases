@@ -17,13 +17,19 @@
 
 ## 0.3.5-recovery 维护增补 — 2026-11-02
 
-- 历史 checkpoint 曾记录独立引擎 69/128、71/128 和 72/128 个请求分支；这些数字保留为历史记录，当前支持矩阵为 73/128，剩余 55 个明确返回 `UNIMPLEMENTED`。
+- 历史 checkpoint 曾记录独立引擎 69/128、71/128 和 72/128 个请求分支；这些数字保留为历史记录。该 2026-11-02 checkpoint 当时的支持矩阵为 73/128，剩余 55 个明确返回 `UNIMPLEMENTED`。
 - 增加仅面向显式 `favorite.db`/`favorites.db`/`__alpha_favorites_v1` synthetic fixture 的 `listFavorites` 只读能力，支持分页、类型/关键字/标签过滤和类型计数；同时接入只读 HTTP `/api/v1/favorites` 与 MCP `alpha-independent.favorites.list_items`。在同一 fixture 提供 `__alpha_favorite_media_v1` 和自有 `media-index.v1.json` 时，另支持 synthetic 媒体槽位/解析；真实收藏库 schema、原生媒体语义和 UI 仍不可用。
 - 增加 `audit:upstream` 可重复审计命令，按需核对上游仓库 HEAD、release 资产、公开文件树、更新策略/README 哈希和本地 DMG；默认只读，写回 provenance 需要显式 `--write`。
 - 独立 packaged flavor 新增 `alpha-update-mode.json`，默认关闭原作者更新源；只有维护者配置自有签名策略后才允许启用更新。
 - 增加合成 `__alpha_voice_playback_v1` 到自有 WAV media-index 的语音播放解析，并通过独立 HTTP/MCP 适配器暴露；真实 VoiceInfo/SILK/native media cache 仍未恢复。
-- 历史 checkpoint 的独立 MCP 适配器为 45 个工具、协议支持矩阵为 72/128、完整回归为 233/233；当前适配器声明 58 个工具、支持矩阵为 73/128、完整回归为 241/241。新增 `alpha-independent.media.probe`，只读取显式 v4 媒体库元数据并保持 metadata-only/native-schema 边界；消息显示新增 App.Type=57 的引用消息浅层投影；独立媒体墙对未绑定媒体保持 metadata-only，并保留已验证本地图片索引的预览；新增 `verify:release-manifest`，发布前会重算产物文件哈希、大小、权限和 artifactDigest。
+- 该 2026-11-02 checkpoint 的独立 MCP 适配器为 45 个工具、协议支持矩阵为 72/128、完整回归为 233/233；随后 checkpoint 的适配器声明 58 个工具、支持矩阵为 73/128、完整回归为 241/241。新增 `alpha-independent.media.probe`，只读取显式 v4 媒体库元数据并保持 metadata-only/native-schema 边界；消息显示新增 App.Type=57 的引用消息浅层投影；独立媒体墙对未绑定媒体保持 metadata-only，并保留已验证本地图片索引的预览；新增 `verify:release-manifest`，发布前会重算产物文件哈希、大小、权限和 artifactDigest。
 - 增加 `prepare:public-source` 候选流程：复制到调用方指定的源仓库外新目录，默认筛选生成目录和私有 REA/Ghidra 证据，并以严格公开审计生成脱敏 report/manifest；审计失败关闭且不改写原始 evidence。通过仅表示进入许可证与人工审核阶段，不代表当前树已经可以公开发布。
+
+## 0.3.5-recovery 维护增补 — 2026-11-03
+
+- 当前独立协议支持矩阵为 74/128，剩余 54 个请求分支明确返回 `UNIMPLEMENTED`；校验来源为 `npm run verify:independent-support` 生成的 `docs/independent-support-matrix.json`。
+- 当前本机 HTTP/MCP 适配器由 `toolDefinitions()` 声明 60 个工具，`docs/api-reference-index.json` 的独立适配器索引同步为 60 个；工具存在不代表原生 schema、真实数据或写入能力已恢复。
+- CI 维护基线继续要求普通与独立 packaged app、独立 Electron smoke、原生 smoke、依赖/API/public-release 审计、发布清单和恢复源码包检查；原生 smoke 仍单独记录完整性错误，不能改写为 ready。
 
 ## 后续版本
 
