@@ -6,11 +6,13 @@
 // dependency-free so it can be embedded by the independent CLI later.
 const http = require('node:http');
 const crypto = require('node:crypto');
+const path = require('node:path');
 const { URL } = require('node:url');
 const { EngineClientFrame, EngineServerFrame } = require('../alpha-protocol/index.cjs');
 
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_ANALYSIS_REPORT_BYTES = 64 * 1024 * 1024;
+const MAX_INDEXED_MEDIA_BYTES = 64 * 1024 * 1024;
 const PRINTABLE_TOKEN = /^[\x21-\x7e]{32,256}$/;
 // Conversation export only writes a new file through the engine's bounded,
 // non-overwriting exporter. It does not mutate the source database, but it is
@@ -31,6 +33,11 @@ function json(res, status, value, headers = {}) {
   res.end(body);
 }
 function empty(res, status, headers = {}) { res.writeHead(status, headers); res.end(); }
+function binary(res, status, value, headers = {}) {
+  const body = Buffer.isBuffer(value) ? value : Buffer.from(value);
+  res.writeHead(status, { 'cache-control': 'no-store', 'content-length': body.length, ...headers });
+  res.end(body);
+}
 function fail(res, error) {
   const e = error instanceof HttpAdapterError ? error : new HttpAdapterError('HTTP_API_UPSTREAM_FAILED', 502);
   json(res, e.status, { error: { code: e.code, message: e.message } });
@@ -312,6 +319,7 @@ function toolDefinitions() {
     { name: 'alpha-independent.media.browse_conversation', description: '浏览指定会话的媒体/文件/链接消息元数据；不读取、解密、下载或播放媒体，不生成原生 media1 token', inputSchema: { type: 'object', required: ['conversation_id', 'category'], properties: { account_id: string, conversation_id: string, category: { type: 'string', enum: ['media', 'file', 'link'] }, sender_id: string, from_unix_ms: string, to_unix_ms: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.media.browse_account', description: '按账号可发现会话浏览媒体/图片/视频消息元数据；不读取、解密、下载或播放媒体，不生成原生 media1 token', inputSchema: { type: 'object', required: ['category'], properties: { account_id: string, category: { type: 'string', enum: ['media', 'image', 'video'] }, conversation_id: string, from_unix_ms: string, to_unix_ms: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.media.probe', description: '读取显式 v4 hardlink.db/media_*.db 的有界媒体元数据；不读取媒体字节、不播放、不生成 Alpha media1 token，结果始终 metadata-only', inputSchema: { type: 'object', properties: { account_id: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.media.read_indexed', description: '读取自有 media-index.v1.json 中与账号、会话、消息和媒体引用全部绑定的 SHA-256 文件字节；不兼容原生 media1_、DAT/AES 或任意路径', inputSchema: { type: 'object', required: ['account_id', 'conversation_id', 'message_id', 'media_id', 'sha256', 'kind'], properties: { account_id: string, conversation_id: string, message_id: string, media_id: { type: 'string', pattern: '^[A-Za-z0-9._:-]{1,128}$' }, sha256: { type: 'string', pattern: '^[0-9a-f]{64}$' }, kind: { type: 'string', enum: ['image', 'video', 'file', 'voice'] }, rendition: { type: 'string', pattern: '^[A-Za-z0-9._:-]{1,64}$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.media.decode_voice_playback', description: '解析独立 __alpha_voice_playback_v1 synthetic 映射并校验自有 WAV media-index；不兼容真实 VoiceInfo/SILK/native media cache', inputSchema: { type: 'object', required: ['media_id'], properties: { account_id: string, media_id: { type: 'string', pattern: '^[0-9a-f]{64}$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.mobile.get_overview', description: '组合返回已验证账号状态和会话摘要；不兼容官方 wechat.mobile.get_overview/native mobile snapshot schema', inputSchema: { type: 'object', properties: { account_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_conversation', description: '将已验证会话导出到本机新文件；ChatLab/SQL/WeClone 为独立后端的派生格式', inputSchema: { type: 'object', required: ['username', 'format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['json', 'markdown', 'html', 'txt', 'xlsx', 'chatlab-json', 'chatlab-jsonl', 'sql', 'weclone'] }, destination_path: string, include_media: { type: 'boolean', const: false }, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -382,6 +390,28 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     const accounts = listed.accounts || [];
     if (accounts.length !== 1) throw new HttpAdapterError(accounts.length ? 'HTTP_API_ACCOUNT_REQUIRED' : 'ENGINE_NOT_READY', accounts.length ? 400 : 503);
     return accounts[0].accountId || accounts[0].id || '';
+  }
+  async function readIndexedMedia(params, sha256) {
+    if (typeof engine.readIndexedMedia !== 'function') throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_UNSUPPORTED', 501);
+    if (!/^[0-9a-f]{64}$/.test(sha256)) throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_HASH_INVALID', 400);
+    if (!accountId(params)) throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_ACCOUNT_REQUIRED', 400);
+    const account = await selectedAccount(params);
+    const conversationId = text(oneAlias(params, ['conversation_id', 'conversationId'], 'HTTP_API_INDEXED_MEDIA_CONVERSATION_AMBIGUOUS'), 1024, 'HTTP_API_INDEXED_MEDIA_CONVERSATION_INVALID');
+    const messageId = text(oneAlias(params, ['message_id', 'messageId'], 'HTTP_API_INDEXED_MEDIA_MESSAGE_AMBIGUOUS'), 2048, 'HTTP_API_INDEXED_MEDIA_MESSAGE_INVALID');
+    const mediaId = text(oneAlias(params, ['media_id', 'mediaId'], 'HTTP_API_INDEXED_MEDIA_ID_AMBIGUOUS'), 128, 'HTTP_API_INDEXED_MEDIA_ID_INVALID');
+    const kind = text(params.kind, 32, 'HTTP_API_INDEXED_MEDIA_KIND_INVALID');
+    const rendition = text(params.rendition, 64, 'HTTP_API_INDEXED_MEDIA_RENDITION_INVALID') ?? 'source';
+    if (!conversationId) throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_CONVERSATION_REQUIRED', 400);
+    if (!messageId) throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_MESSAGE_REQUIRED', 400);
+    if (!mediaId || !/^[A-Za-z0-9._:-]{1,128}$/.test(mediaId)) throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_ID_INVALID', 400);
+    if (!kind || !['image', 'video', 'file', 'voice'].includes(kind)) throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_KIND_INVALID', 400);
+    if (!/^[A-Za-z0-9._:-]{1,64}$/.test(rendition)) throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_RENDITION_INVALID', 400);
+    const value = await engine.readIndexedMedia({ accountId: account, conversationId, messageId, mediaId, sha256, kind, rendition });
+    if (!value || !value.entry || !value.bytes || !(Buffer.isBuffer(value.bytes) || value.bytes instanceof Uint8Array)) throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_RESPONSE_INVALID', 502);
+    const entry = value.entry;
+    if (entry.sha256 !== sha256 || entry.kind !== kind || entry.id !== mediaId || entry.rendition !== rendition || entry.accountId !== account || entry.conversationId !== conversationId || entry.messageId !== messageId || !Number.isSafeInteger(entry.sizeBytes) || entry.sizeBytes !== value.bytes.length || entry.sizeBytes > MAX_INDEXED_MEDIA_BYTES) throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_RESPONSE_INVALID', 502);
+    if (typeof entry.mimeType !== 'string' || !entry.mimeType || entry.mimeType.length > 128 || /[\r\n]/.test(entry.mimeType)) throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_MIME_INVALID', 502);
+    return { account, entry, bytes: Buffer.from(value.bytes) };
   }
   function page(params, maximum = 500) {
     const limit = integer(params.limit, 1, maximum, 'HTTP_API_LIMIT_INVALID') ?? 100;
@@ -897,7 +927,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'],
       'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'alpha-independent.groups.list_pinned_messages': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
       'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'],
-      'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
+      'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.read_indexed': ['account_id', 'conversation_id', 'message_id', 'media_id', 'sha256', 'kind', 'rendition'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
       'alpha-independent.records.list_candidates': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'], 'alpha-independent.records.list_recall_candidates': ['account_id', 'conversation_id', 'cursor', 'limit'],
       'wechat.chat.list_search_senders': ['account_id', 'query', 'username', 'limit'], 'wechat.chat.get_message_around': ['account_id', 'username', 'anchor_id', 'before', 'after'],
       'wechat.chat.get_message_anchor': ['account_id', 'username', 'kind', 'date'], 'wechat.chat.get_daily_message_counts': ['account_id', 'username', 'month', 'utc_offset_minutes'], 'alpha-independent.source.get_revision': ['account_id'], 'alpha-independent.source.get_watch_targets': ['account_id'], 'alpha-independent.moments.list_timeline': ['account_id', 'username', 'keyword', 'limit', 'offset', 'ascending', 'from_unix_ms', 'to_unix_ms'], 'alpha-independent.moments.list_users': ['account_id', 'limit'], 'alpha-independent.moments.day_counts': ['account_id', 'username', 'from_date', 'to_date', 'utc_offset_minutes'], 'alpha-independent.moments.start_export': ['account_id', 'format', 'output_directory', 'usernames', 'keyword', 'start_time_unix_ms', 'end_time_unix_ms', 'media_kinds', 'utc_offset_minutes'], 'alpha-independent.moments.watch_export': ['account_id', 'job_id'], 'alpha-independent.moments.cancel_export': ['account_id', 'job_id'], 'alpha-independent.favorites.list_items': ['account_id', 'type', 'query', 'tag_id', 'limit', 'offset', 'ascending', 'include_type_counts', 'include_media', 'skip_source_context'], 'alpha-independent.favorites.list_media_slots': ['account_id', 'favorite_id'], 'alpha-independent.favorites.resolve_media': ['account_id', 'token'], 'alpha-independent.schedules.list': ['account_id', 'include_disabled', 'limit'], 'alpha-independent.schedules.get': ['account_id', 'schedule_id'], 'alpha-independent.schedules.save': ['account_id', 'mode', 'expected_updated_at_unix_ms', 'plan'], 'alpha-independent.schedules.delete': ['account_id', 'schedule_id', 'expected_updated_at_unix_ms'], 'alpha-independent.schedules.run_now': ['account_id', 'schedule_id', 'expected_updated_at_unix_ms'], 'alpha-independent.schedules.list_runs': ['account_id', 'schedule_id', 'limit'], 'alpha-independent.schedules.get_run': ['account_id', 'run_id'], 'alpha-independent.schedules.list_attempts': ['account_id', 'schedule_id', 'limit'], 'alpha-independent.schedules.get_attempt': ['account_id', 'attempt_id'], 'alpha-independent.schedules.retry_attempt': ['account_id', 'attempt_id', 'expected_revision'], 'alpha.chat.export_capabilities': [], 'alpha.chat.export_stats': ['account_id', 'conversation_ids', 'refresh'], 'wechat.chat.get_message_raw': ['account_id', 'username', 'message_id', 'server_id', 'local_id'], 'wechat.chat.export_conversation': ['account_id', 'username', 'format', 'destination_path', 'include_media', 'start_time_unix_ms', 'end_time_unix_ms'], 'wechat.chat.export_media_metadata': ['account_id', 'username', 'format', 'destination_path', 'start_time_unix_ms', 'end_time_unix_ms']
@@ -1016,6 +1046,21 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       if (typeof engine.probeMedia !== 'function') throw new HttpAdapterError('HTTP_API_MEDIA_PROBE_UNSUPPORTED', 501);
       const value = snakeKeys(await engine.probeMedia(account));
       const result = { ...value, scope: 'explicit-v4-media-database-probe', complete: value.status === 'ready', media_ready: false, metadata_only: true, native_schema_supported: false };
+      return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
+    }
+    else if (name === 'alpha-independent.media.read_indexed') {
+      const account = await selectedAccount(params);
+      const conversationId = text(args.conversation_id, 1024, 'MCP_INDEXED_MEDIA_CONVERSATION_INVALID');
+      const messageId = text(args.message_id, 2048, 'MCP_INDEXED_MEDIA_MESSAGE_INVALID');
+      const mediaId = text(args.media_id, 128, 'MCP_INDEXED_MEDIA_ID_INVALID');
+      const sha256 = text(args.sha256, 64, 'MCP_INDEXED_MEDIA_HASH_INVALID');
+      const kind = text(args.kind, 32, 'MCP_INDEXED_MEDIA_KIND_INVALID');
+      const rendition = text(args.rendition, 64, 'MCP_INDEXED_MEDIA_RENDITION_INVALID') || 'source';
+      if (!conversationId || !messageId || !mediaId || !/^[A-Za-z0-9._:-]{1,128}$/.test(mediaId) || !/^[0-9a-f]{64}$/.test(sha256) || !['image', 'video', 'file', 'voice'].includes(kind) || !/^[A-Za-z0-9._:-]{1,64}$/.test(rendition)) throw new HttpAdapterError('MCP_INDEXED_MEDIA_REQUEST_INVALID', 400);
+      if (typeof engine.readIndexedMedia !== 'function') throw new HttpAdapterError('HTTP_API_INDEXED_MEDIA_UNSUPPORTED', 501);
+      const value = await engine.readIndexedMedia({ accountId: account, conversationId, messageId, mediaId, sha256, kind, rendition });
+      if (!value?.entry || !value.bytes || value.entry.sha256 !== sha256 || value.entry.accountId !== account || value.entry.conversationId !== conversationId || value.entry.messageId !== messageId || value.entry.sizeBytes !== value.bytes.length || value.entry.sizeBytes > MAX_INDEXED_MEDIA_BYTES) throw new HttpAdapterError('MCP_INDEXED_MEDIA_RESPONSE_INVALID', 502);
+      const result = { scope: 'alpha-independent-indexed-media', complete: false, native_schema_supported: false, media_ready: true, kind, rendition, media_id: mediaId, sha256, mime_type: value.entry.mimeType || 'application/octet-stream', size_bytes: value.entry.sizeBytes, bytes_base64: Buffer.from(value.bytes).toString('base64') };
       return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
     }
     else if (name === 'alpha-independent.mobile.get_overview') {
@@ -1250,6 +1295,22 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const body = req.method === 'POST' || req.method === 'DELETE' ? await readBody(req) : {};
       const params = Object.fromEntries(url.searchParams.entries());
       for (const [key, value] of Object.entries(body)) { if (params[key] !== undefined) throw new HttpAdapterError('HTTP_API_BODY_INVALID', 400); params[key] = value; }
+      const indexedMediaMatch = /^\/api\/v1\/independent\/media\/indexed\/([0-9a-f]{64})$/.exec(url.pathname);
+      if (indexedMediaMatch) {
+        if (req.method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+        const value = await readIndexedMedia(params, indexedMediaMatch[1]);
+        const rawName = path.posix.basename(value.entry.relativePath || '') || `${indexedMediaMatch[1]}.bin`;
+        const fallbackName = (rawName.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_').slice(0, 255) || `${indexedMediaMatch[1]}.bin`);
+        const encodedName = encodeURIComponent(rawName).replace(/['()]/g, character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
+        return binary(res, 200, value.bytes, {
+          'content-type': value.entry.mimeType,
+          'content-disposition': `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodedName}`,
+          'x-alpha-media-scope': 'independent-indexed-media',
+          'x-alpha-media-sha256': value.entry.sha256,
+          'x-alpha-media-kind': value.entry.kind,
+          'x-alpha-media-rendition': value.entry.rendition
+        });
+      }
       const result = await route(url.pathname, params, req.method);
       return json(res, 200, result);
     } catch (error) { return fail(res, error); }

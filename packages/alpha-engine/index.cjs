@@ -231,6 +231,8 @@ const MESSAGE_SOURCE_PAGE_SIZE = 100;
 const MESSAGE_SOURCE_MAX_SCAN_PAGES = 128;
 const MEDIA_RESOLVE_MAX_SCAN_PAGES = 128;
 const INDEPENDENT_MEDIA_TOKEN = /^alpha-media:\/\/sha256\/([0-9a-f]{64})$/;
+const INDEXED_MEDIA_KINDS = new Set(['image', 'video', 'file', 'voice']);
+const INDEXED_MEDIA_ID = /^[A-Za-z0-9._:-]{1,128}$/;
 const TELEMETRY_STATE_VERSION = 1;
 const TELEMETRY_STATE_MAX_BYTES = 16 * 1024;
 const TELEMETRY_DEFAULT_CONSENT_VERSION = 'telemetry-v1';
@@ -1171,6 +1173,43 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     }
     throw error('MESSAGE_MEDIA_NOT_FOUND');
   }
+  async function readIndexedMessageMedia(request) {
+    const account = requestName(request?.accountId, 'INDEXED_MEDIA_REQUEST_INVALID');
+    const conversationId = requestName(request?.conversationId, 'INDEXED_MEDIA_REQUEST_INVALID');
+    const messageId = requestName(request?.messageId, 'INDEXED_MEDIA_REQUEST_INVALID');
+    const mediaId = requestName(request?.mediaId, 'INDEXED_MEDIA_REQUEST_INVALID');
+    const kind = requestName(request?.kind, 'INDEXED_MEDIA_REQUEST_INVALID');
+    const rendition = request.rendition === undefined ? 'source' : requestName(request.rendition, 'INDEXED_MEDIA_REQUEST_INVALID');
+    const sha256 = requestName(request?.sha256, 'INDEXED_MEDIA_REQUEST_INVALID');
+    if (!INDEXED_MEDIA_ID.test(mediaId) || !INDEXED_MEDIA_KINDS.has(kind) || !/^[A-Za-z0-9._:-]{1,64}$/.test(rendition) || !/^[0-9a-f]{64}$/.test(sha256)) throw error('INDEXED_MEDIA_REQUEST_INVALID');
+    await requireAccount(account);
+    const index = independentMediaIndex();
+    if (!index || !Array.isArray(index.entries)) throw error(index?.error || 'MEDIA_INDEX_UNAVAILABLE');
+    // Byte reads require every binding to be explicit. Entries with optional
+    // account/conversation/message fields remain usable for metadata and
+    // renderer previews, but can never be fetched through this API.
+    const candidates = index.entries.filter(entry => entry.kind === kind && entry.rendition === rendition && entry.id === mediaId && entry.sha256 === sha256 && entry.accountId === account && entry.conversationId === conversationId && entry.messageId === messageId);
+    if (candidates.length !== 1) throw error(candidates.length ? 'INDEXED_MEDIA_AMBIGUOUS' : 'INDEXED_MEDIA_NOT_FOUND');
+    const entry = candidates[0];
+    let cursor = '';
+    const visited = new Set();
+    for (let pageNumber = 0; pageNumber < MEDIA_RESOLVE_MAX_SCAN_PAGES; pageNumber += 1) {
+      const page = checkedPage(await callData('messages.list', { conversationId, limit: MESSAGE_SOURCE_PAGE_SIZE, cursor, ascending: true }), MESSAGE_SOURCE_PAGE_SIZE);
+      for (const row of page.items) {
+        const message = messageFromRow(row, conversationId);
+        if (message.id !== messageId) continue;
+        const matchingRefs = message.refs.filter(ref => ref.kind === kind && ref.id === mediaId && ref.uri === `alpha-media://sha256/${sha256}` && (ref.rendition || 'source') === rendition);
+        if (matchingRefs.length !== 1) throw error('INDEXED_MEDIA_REF_MISMATCH');
+        const verified = await readMediaEntry(index, entry, { maxBytes: 64 * 1024 * 1024 });
+        return { entry: verified.entry, bytes: verified.bytes };
+      }
+      if (!page.nextCursor) break;
+      if (visited.has(page.nextCursor)) throw error('INDEXED_MEDIA_UNAVAILABLE');
+      visited.add(page.nextCursor);
+      cursor = page.nextCursor;
+    }
+    throw error('INDEXED_MEDIA_NOT_FOUND');
+  }
   function generalRecordFromRow(row) {
     if (!row || !GENERAL_RECORD_TABLES.has(row.tableName) || typeof row.id !== 'string' || row.id.length > 2048 || row.id.includes('\0') || typeof row.eventAtUnixMs !== 'string' || typeof row.actor !== 'string' || typeof row.content !== 'string' || !Array.isArray(row.fields) || row.fields.length > 32) throw error('BRIDGE_GENERAL_RECORD_INVALID');
     const eventAtUnixMs = decimal(row.eventAtUnixMs, true);
@@ -2027,6 +2066,9 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     },
     async resolveMessageMedia(request) {
       return resolveIndexedMessageMedia(request);
+    },
+    async readIndexedMedia(request) {
+      return readIndexedMessageMedia(request);
     },
     async decodeVoicePlayback(request) {
       const accountInfo = await requireAccount(request.accountId);
@@ -2938,6 +2980,9 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
           if (payload?.newPassword instanceof Uint8Array) payload.newPassword.fill(0);
         }
       }
+    },
+    async readIndexedMedia(request) {
+      return handlers.readIndexedMedia(request);
     },
     async probeMedia(accountId2) {
       const normalizedAccountId = typeof accountId2 === 'string' ? accountId2.trim() : '';

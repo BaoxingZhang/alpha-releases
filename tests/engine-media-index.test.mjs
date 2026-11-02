@@ -120,3 +120,16 @@ test('resolveMessageMedia rejects native media1 tokens and unverified expectatio
   const independent = await engine.dispatch({ requestId: 3n, resolveMessageMedia: { accountId, mediaResolveToken: `alpha-media://sha256/${f.entry.sha256}`, expectedMediaMd5: '0'.repeat(32) } });
   assert.equal(independent.error.code, 'MESSAGE_MEDIA_MD5_UNVERIFIED');
 });
+
+test('direct indexed media reader requires complete bindings and rechecks bytes', async t => {
+  const f = await fixture(t);
+  const messageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({ accountId, database: 'message_0.db', table: 'Msg_test', localId: '1' })).digest('hex')}`;
+  const entry = { ...f.entry, messageId };
+  await fs.writeFile(path.join(f.dataDir, 'media-index.v1.json'), JSON.stringify({ version: 1, accountId, entries: [entry] }) + '\n', { mode: 0o600 });
+  const engine = await createEngine({ lock: lock(), stateDir: f.stateDir, dataDir: f.dataDir, accountId, bridgePath: '/absolute/synthetic-bridge', bridgeFactory });
+  t.after(() => engine.close());
+  const value = await engine.readIndexedMedia({ accountId, conversationId: 'wxid_peer', messageId, mediaId: 'image-id', sha256: entry.sha256, kind: 'image', rendition: 'source' });
+  assert.deepEqual(value.bytes, Buffer.from('synthetic png payload\n', 'utf8'));
+  assert.equal(value.entry.sha256, entry.sha256);
+  await assert.rejects(() => engine.readIndexedMedia({ accountId, conversationId: 'wxid_peer', messageId, mediaId: 'image-id', sha256: 'b'.repeat(64), kind: 'image', rendition: 'source' }), /INDEXED_MEDIA_NOT_FOUND/);
+});

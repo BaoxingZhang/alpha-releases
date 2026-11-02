@@ -34,6 +34,8 @@
 
 当前已用合成的 1×1 PNG 验证图片索引、独立 field 103 解析、主进程 grant、`readImage` IPC 和 renderer 的 `alpha-media://img/...` 预览闭环；运行记录见 [`independent-run.json`](independent-run.json) 的 `independentImageReadThroughRendererIpc` 与 `independentImagePreviewRendered` 检查。语音、视频、DAT/AES、缩略图/原图变体、朋友圈媒体和 Alpha 原生 `media1_` 解析仍不可用；索引接入不代表这些能力已经还原。
 
+独立 HTTP/MCP 适配器现在另提供显式 indexed-media 读取：`GET /api/v1/independent/media/indexed/<sha256>` 和 `alpha-independent.media.read_indexed`。调用方必须提供明确的账号、会话、消息、媒体 ID、kind、rendition 和小写 SHA-256；引擎会重新定位同一会话中的真实消息 ref，并使用 `readMediaEntry` 再次校验相对路径、父目录 symlink、文件大小和 SHA-256。HTTP 返回已索引字节及 manifest MIME/文件名，MCP 返回有界 Base64；响应固定标记 `scope=alpha-independent-indexed-media`、`complete=false`、`native_schema_supported=false`。这两个入口只读取调用方明确写入 `media-index.v1.json` 的文件，拒绝 `media1_`、任意路径、native media cache、DAT/AES 解密和远程补齐。
+
 独立解析要求 manifest entry 同时带 `conversationId` 和 `messageId`，重新读取并校验文件大小/SHA-256，再扫描同一会话中的真实消息 DTO，确认图片 ref、消息身份和可选时间/大小断言一致。`preferLive`、远程补齐、pending、live video、非零 `recordOffset` 以及 MD5 断言均 fail-closed。返回的 `Message` 不携带原生 `media1_` token；调用方应继续使用 entry 产生的 `alpha-media://sha256/...` URI。
 
 `writeMediaIndex` 的输入是用户或上层适配器已经确认的文件清单，因此它可以用于脱敏 fixture、受控导入或未来经过验证的媒体扫描结果；它不是 Chatlog `hardlink.db`/`VoiceInfo` 的自动读取器，也不证明 Alpha 原生媒体 schema 或 token 已恢复。
