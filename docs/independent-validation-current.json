@@ -177,7 +177,7 @@
         "mediaResolvePath": "/api/v1/favorites/media/:token",
         "mediaSchema": "__alpha_favorite_media_v1"
       },
-      "tools": 45,
+      "tools": 58,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,
@@ -191,6 +191,19 @@
           "alpha-independent.moments.watch_export",
           "alpha-independent.moments.cancel_export"
         ],
+        "sourceDiagnostics": {
+          "httpPaths": [
+            "/api/v1/independent/source/revision",
+            "/api/v1/independent/source/watch-targets"
+          ],
+          "mcpTools": [
+            "alpha-independent.source.get_revision",
+            "alpha-independent.source.get_watch_targets"
+          ],
+          "scope": "alpha-independent-source-diagnostics",
+          "complete": false,
+          "nativeSchemaSupported": false
+        },
         "independentExtensions": [
           "alpha-independent.messages.resolve_search_hit",
           "alpha-independent.messages.get_source",
