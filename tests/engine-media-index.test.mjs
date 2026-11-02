@@ -7,6 +7,27 @@ import { createEngine } from '../packages/alpha-engine/index.cjs';
 
 const accountId = 'synthetic-account';
 
+function aesEcbEncrypt(bytes, key) {
+  const cipher = crypto.createCipheriv(`aes-${key.length * 8}-ecb`, key, null);
+  cipher.setAutoPadding(false);
+  return Buffer.concat([cipher.update(bytes), cipher.final()]);
+}
+
+function datFixture() {
+  const key = Buffer.from('0123456789abcdef', 'ascii');
+  const head = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc]);
+  const middle = Buffer.from('middle', 'ascii');
+  const tailPlain = Buffer.from([0xff, 0xd9, 0x01, 0x02]);
+  const xorKey = 0x37;
+  const header = Buffer.alloc(15);
+  Buffer.from('07085631', 'hex').copy(header, 0);
+  header.writeUInt32LE(head.length, 6);
+  header.writeUInt32LE(tailPlain.length, 10);
+  header[14] = 1;
+  const tail = Buffer.from(tailPlain.map(value => value ^ xorKey));
+  return { key, xorKey, input: Buffer.concat([header, aesEcbEncrypt(Buffer.concat([head, Buffer.alloc(16, 16)]), key), middle, tail]) };
+}
+
 function lock() {
   return {
     assertAccess() {},
@@ -132,4 +153,26 @@ test('direct indexed media reader requires complete bindings and rechecks bytes'
   assert.deepEqual(value.bytes, Buffer.from('synthetic png payload\n', 'utf8'));
   assert.equal(value.entry.sha256, entry.sha256);
   await assert.rejects(() => engine.readIndexedMedia({ accountId, conversationId: 'wxid_peer', messageId, mediaId: 'image-id', sha256: 'b'.repeat(64), kind: 'image', rendition: 'source' }), /INDEXED_MEDIA_NOT_FOUND/);
+});
+
+test('independent image status verifies an explicit DAT sample before reporting usable', async t => {
+  const f = await fixture(t);
+  const dat = datFixture();
+  await fs.writeFile(path.join(f.dataDir, 'media', 'image.bin'), dat.input, { mode: 0o600 });
+  const entry = { ...f.entry, encoding: 'dat', sha256: crypto.createHash('sha256').update(dat.input).digest('hex'), sizeBytes: dat.input.length, mimeType: 'image/jpeg' };
+  await fs.writeFile(path.join(f.dataDir, 'media-index.v1.json'), JSON.stringify({ version: 1, accountId, entries: [entry] }) + '\n', { mode: 0o600 });
+  const engine = await createEngine({ lock: lock(), stateDir: f.stateDir, dataDir: f.dataDir, accountId, bridgePath: '/absolute/synthetic-bridge', bridgeFactory });
+  t.after(() => engine.close());
+  assert.equal((await engine.dispatch({ requestId: 1n, hello: { protocol: { major: 1, minor: 0 } } })).error, undefined);
+  const before = await engine.dispatch({ requestId: 2n, getImageMediaStatus: { accountId, verifySample: true } });
+  assert.equal(before.getImageMediaStatus.status.usable, false);
+  const configured = await engine.dispatch({ requestId: 3n, configureImageKey: { accountId, mode: 2, xorKey: dat.xorKey, aesKey: dat.key } });
+  assert.equal(configured.error, undefined, configured.error?.code);
+  assert.equal(configured.configureImageKey.status.usable, true);
+  assert.equal(configured.configureImageKey.status.provider, 'independent-dat-index');
+  assert.equal(configured.configureImageKey.status.verified, true);
+  const wrong = await engine.dispatch({ requestId: 4n, configureImageKey: { accountId, mode: 2, xorKey: dat.xorKey, aesKey: Buffer.alloc(16) } });
+  assert.equal(wrong.error, undefined, wrong.error?.code);
+  assert.equal(wrong.configureImageKey.status.usable, false);
+  assert.equal(wrong.configureImageKey.status.detected, true);
 });

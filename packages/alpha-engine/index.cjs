@@ -23,6 +23,7 @@ const { createAggregateAnalysisJobs } = require('./aggregate-analysis-jobs.cjs')
 const { contactsXlsx, conversationXlsx, groupMembersXlsx, recordsXlsx } = require('./xlsx-writer.cjs');
 const { CHAT_DERIVED_FORMATS, CHAT_FORMAT_EXTENSIONS, derivedConversationOutput } = require('./export-formats.cjs');
 const { loadMediaIndex, readMediaEntry } = require('./media-index.cjs');
+const { readIndexedImage } = require('./indexed-image.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
@@ -1132,9 +1133,9 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
     if (imageKeyState?.aesKey instanceof Uint8Array) imageKeyState.aesKey.fill(0);
     imageKeyState = null;
   }
-  function imageMediaStatus() {
+  async function imageMediaStatus(verifySample = true) {
     const configured = imageKeyState !== null;
-    return {
+    const unavailable = {
       detected: false,
       usable: false,
       enabled: configured,
@@ -1145,13 +1146,38 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       errorCode: configured ? 'INDEPENDENT_MEDIA_DECODER_UNAVAILABLE' : 'INDEPENDENT_IMAGE_KEY_UNCONFIGURED',
       memoryScanSupported: false
     };
+    if (!configured) return unavailable;
+    const index = independentMediaIndex();
+    if (!index || !Array.isArray(index.entries)) return unavailable;
+    const candidates = index.entries.filter(entry => entry.kind === 'image' && entry.encoding === 'dat' && (!entry.accountId || entry.accountId === accountId));
+    if (!candidates.length) return unavailable;
+    // A configured key is not enough to advertise readiness. Decode one
+    // explicitly indexed sample and validate its image magic before exposing
+    // `usable=true`; verification remains bounded and read-only.
+    if (verifySample !== false) {
+      try {
+        const sample = await readIndexedImage(index, candidates[0], { datKey: imageKeyState, maxBytes: 64 * 1024 * 1024 });
+        return {
+          ...unavailable,
+          detected: true,
+          usable: true,
+          verified: true,
+          provider: 'independent-dat-index',
+          sampleUri: `alpha-media://sha256/${sample.entry.sha256}`,
+          errorCode: ''
+        };
+      } catch {
+        return { ...unavailable, detected: true, provider: 'independent-dat-index' };
+      }
+    }
+    return { ...unavailable, detected: true, provider: 'independent-dat-index' };
   }
-  function imageKeyEvidence() {
+  function imageKeyEvidence(status = {}) {
     const digest = Buffer.from(sha('alpha-independent-image-key-v1:memory-only'), 'hex');
     return {
-      provider: 'independent-memory-key',
-      datMagicVerified: false,
-      verification: 'memory-only-key-stored; media-decoder-unavailable',
+      provider: status.provider || 'independent-memory-key',
+      datMagicVerified: status.verified === true,
+      verification: status.verified === true ? 'explicit-media-index-sample-decoded' : 'memory-only-key-stored; media-decoder-unavailable',
       templatesChecked: 0,
       matchingTemplates: 0,
       evidenceDigest: new Uint8Array(digest)
@@ -2257,7 +2283,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
     async getImageMediaStatus(request) {
       await requireAccount(request.accountId);
       if (request.verifySample !== undefined && typeof request.verifySample !== 'boolean') throw error('IMAGE_MEDIA_REQUEST_INVALID');
-      return { status: imageMediaStatus() };
+      return { status: await imageMediaStatus(request.verifySample !== false) };
     },
     async configureImageKey(request) {
       await requireAccount(request.accountId);
@@ -2270,12 +2296,13 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       const aesKey = Buffer.from(request.aesKey);
       clearImageKeyState();
       imageKeyState = { xorKey: request.xorKey, aesKey };
-      return { status: imageMediaStatus(), evidence: imageKeyEvidence() };
+      const status = await imageMediaStatus(true);
+      return { status, evidence: imageKeyEvidence(status) };
     },
     async clearImageKey(request) {
       await requireAccount(request.accountId);
       clearImageKeyState();
-      return { status: imageMediaStatus() };
+      return { status: await imageMediaStatus() };
     },
     async importDatabaseKey(request) { return { account: await importKey(request) }; },
     async acquireDatabaseKey(request) {

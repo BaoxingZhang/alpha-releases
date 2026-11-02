@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 264,
+      "passed": 275,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -73,8 +73,8 @@
       ],
       "manualMode": true,
       "memoryOnly": true,
-      "mediaDecoderAvailable": false,
-      "datVerified": false,
+      "mediaDecoderAvailable": "explicit-index-dat-only",
+      "datVerified": true,
       "automaticModes": "unsupported"
     },
     "mediaDecoder": {
@@ -99,10 +99,11 @@
       "filesystemAccess": false,
       "processAccess": false,
       "networkAccess": false,
-      "engineIntegrated": false,
-      "uiIntegrated": false,
+      "engineIntegrated": true,
+      "uiIntegrated": true,
       "realMediaCompatibility": "unverified",
-      "mediaReady": false
+      "mediaReady": "explicit-index-dat-only",
+      "integrationBoundary": "explicit media-index.v1.json image entries with encoding=dat plus manually configured in-process AES/XOR key"
     },
     "aggregateAnalysis": {
       "command": "node --test tests/engine-aggregate-analysis.test.mjs",
@@ -162,9 +163,13 @@
         "independentContactExportCapabilities",
         "contactDirectoryAndProfileRendered",
         "lockEnforcesReadAccess",
-        "sourceUnchanged"
+        "sourceUnchanged",
+        "independentImageReadThroughRendererIpc",
+        "independentImagePreviewRendered",
+        "independentVoicePlaybackThroughRendererIpc",
+        "independentFileAttachmentThroughRendererIpc"
       ],
-      "checkCount": 17
+      "checkCount": 21
     },
     "encryptedImport": {
       "record": "encrypted-run.json",
@@ -713,8 +718,8 @@
           "backendMode": "independent",
           "bundleIdentifier": "local.alpha.recovered.independent",
           "executable": "Contents/MacOS/AlphaRecoveredIndependent",
-          "fileCount": 1640,
-          "artifactDigest": "b9e71f8d5f14bf3e255e681eaa309335963c7c3cfe72220b347a2754e1499b6e",
+          "fileCount": 1658,
+          "artifactDigest": "3e67fe0bc04a302ac34caf88f77eead2b1953f39f3f09852b2feecc7d6891b99",
           "updateMode": {
             "path": "Contents/Resources/alpha-update-mode.json",
             "mode": "disabled",

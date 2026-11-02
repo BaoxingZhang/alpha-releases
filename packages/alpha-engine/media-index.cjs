@@ -11,6 +11,10 @@ const DEFAULT_MAX_ENTRIES = 10000;
 const DEFAULT_MAX_MANIFEST_BYTES = 8 * 1024 * 1024;
 const DEFAULT_MAX_FILE_BYTES = 512 * 1024 * 1024;
 const MEDIA_KINDS = new Set(['image', 'video', 'file', 'voice']);
+// `raw` is the default content-addressed representation. `dat` is an
+// explicitly declared caller-owned WeChat DAT container; decoding remains a
+// separate operation which requires an in-process key supplied by the caller.
+const MEDIA_ENCODINGS = new Set(['raw', 'dat']);
 const SHA256 = /^[0-9a-f]{64}$/;
 
 function boundedText(value, maximum, code = 'MEDIA_INDEX_ENTRY_INVALID') {
@@ -66,10 +70,13 @@ function normalizeEntry(raw, root, maxFileBytes) {
   const rendition = raw.rendition === undefined ? 'source' : boundedText(raw.rendition, 64);
   const relativePath = boundedText(raw.relativePath, 4096);
   const filePath = pathWithin(root, relativePath);
+  const encoding = raw.encoding === undefined ? 'raw' : boundedText(raw.encoding, 16);
+  if (!MEDIA_ENCODINGS.has(encoding)) throw error('MEDIA_INDEX_ENCODING_UNSUPPORTED');
+  if (encoding === 'dat' && kind !== 'image') throw error('MEDIA_INDEX_ENCODING_KIND_UNSUPPORTED');
   const sha256 = boundedText(raw.sha256, 64).toLowerCase();
   if (!SHA256.test(sha256)) throw error('MEDIA_INDEX_HASH_INVALID');
   if (!Number.isSafeInteger(raw.sizeBytes) || raw.sizeBytes < 0 || raw.sizeBytes > maxFileBytes) throw error('MEDIA_INDEX_SIZE_INVALID');
-  const result = { kind, id, rendition, relativePath, filePath, sha256, sizeBytes: raw.sizeBytes };
+  const result = { kind, id, rendition, relativePath, filePath, encoding, sha256, sizeBytes: raw.sizeBytes };
   if (raw.accountId !== undefined) result.accountId = boundedText(raw.accountId, 256);
   if (raw.mimeType !== undefined) result.mimeType = boundedText(raw.mimeType, 128);
   if (raw.conversationId !== undefined) result.conversationId = boundedText(raw.conversationId, 1024);
@@ -281,6 +288,7 @@ module.exports = {
   DEFAULT_MAX_ENTRIES,
   DEFAULT_MAX_MANIFEST_BYTES,
   DEFAULT_MAX_FILE_BYTES,
+  MEDIA_ENCODINGS,
   loadMediaIndex,
   writeMediaIndex,
   findMediaEntry,

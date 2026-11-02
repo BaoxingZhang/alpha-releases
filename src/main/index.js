@@ -15,6 +15,7 @@ function independentBackendEnabled() {
 }
 const { loadMediaIndex, readMediaEntry } = require("../../packages/alpha-engine/media-index.cjs");
 const { locateIndexedAttachment } = require("../../packages/alpha-engine/file-attachment.cjs");
+const { readIndexedImage } = require("../../packages/alpha-engine/indexed-image.cjs");
 const wire = require("@bufbuild/protobuf/wire");
 const node_util = require("node:util");
 const LIMIT = 64 * 1024 * 1024;
@@ -24,17 +25,12 @@ const VERIFIED_LIMIT = 4096;
 const fail$e = (code2) => {
   throw new Error(code2);
 };
-function indexedImageMime(entry, bytes2) {
-  const mimeType = typeof entry?.mimeType === "string" ? entry.mimeType : "";
-  if (mimeType === "image/jpeg") return imageMime(bytes2, "jpg");
-  if (mimeType === "image/png") return imageMime(bytes2, "png");
-  if (mimeType === "image/gif") return imageMime(bytes2, "gif");
-  if (mimeType === "image/webp") return imageMime(bytes2, "webp");
-  if (mimeType === "image/bmp") return imageMime(bytes2, "bmp");
-  fail$e("IMAGE_CACHE_FORMAT_INVALID");
-}
 class ImageCacheAccess {
   grants = /* @__PURE__ */ new Map();
+  // DAT keys are process-memory only. They are populated only after an
+  // explicit manual key configuration succeeds and are wiped with the same
+  // account/revision boundaries as image grants.
+  datKeys = /* @__PURE__ */ new Map();
   /** Paths whose SHA-256 this process checked, with the exact file identity and times seen then. */
   verified = /* @__PURE__ */ new Map();
   revision = 0;
@@ -50,11 +46,13 @@ class ImageCacheAccess {
   revokeAll() {
     this.revision++;
     this.grants.clear();
+    this.clearDatKeys();
     this.revoked();
   }
   revokeAccount(account2) {
     this.revision++;
     this.revoked(account2);
+    this.clearDatKey(account2);
     const prefix = `[${JSON.stringify(account2.trim())},`;
     for (const [sender, entries] of this.grants) {
       for (const key of entries.keys()) if (key.startsWith(prefix)) entries.delete(key);
@@ -63,6 +61,22 @@ class ImageCacheAccess {
   }
   clear(sender) {
     this.grants.delete(sender);
+  }
+  configureDatKey(account2, xorKey, aesKey) {
+    const account = typeof account2 === "string" ? account2.trim() : "";
+    if (!account || !Number.isInteger(xorKey) || xorKey < 0 || xorKey > 255 || !(Buffer.isBuffer(aesKey) || aesKey instanceof Uint8Array) || ![16, 24, 32].includes(aesKey.byteLength)) fail$e("IMAGE_KEY_REQUEST_INVALID");
+    this.clearDatKey(account);
+    this.datKeys.set(account, { xorKey, aesKey: Buffer.from(aesKey) });
+  }
+  clearDatKey(account2) {
+    const account = typeof account2 === "string" ? account2.trim() : "";
+    const existing = this.datKeys.get(account);
+    if (existing?.aesKey) existing.aesKey.fill(0);
+    this.datKeys.delete(account);
+  }
+  clearDatKeys() {
+    for (const existing of this.datKeys.values()) existing.aesKey?.fill(0);
+    this.datKeys.clear();
   }
   isGranted(sender, account2, opaqueId) {
     return HASH$3.test(opaqueId) && this.grants.get(sender)?.has(JSON.stringify([account2.trim(), opaqueId])) === true;
@@ -89,12 +103,12 @@ class ImageCacheAccess {
   async readBytes(sender, account2, opaqueId, root) {
     const generation = this.revision;
     if (!this.isGranted(sender, account2, opaqueId)) fail$e("IMAGE_CACHE_NOT_AUTHORIZED");
-    const result = await this.readVerified(root, opaqueId);
+    const result = await this.readVerified(root, opaqueId, account2);
     if (generation !== this.revision || !this.isGranted(sender, account2, opaqueId)) fail$e("IMAGE_CACHE_NOT_AUTHORIZED");
     return result;
   }
   /** Reads only the content-addressed cache; callers must enforce their own current grant. */
-  async readVerified(root, opaqueId) {
+  async readVerified(root, opaqueId, account2 = "") {
     if (!HASH$3.test(opaqueId)) fail$e("IMAGE_CACHE_NOT_AUTHORIZED");
     if (!root || !node_path.isAbsolute(root)) fail$e("IMAGE_CACHE_ROOT_INVALID");
     const directory2 = node_path.resolve(root);
@@ -126,20 +140,20 @@ class ImageCacheAccess {
     if (candidates.length === 0) {
       let index;
       try {
-        index = loadMediaIndex({ root: directory2 });
+        index = loadMediaIndex({ root: directory2, expectedAccountId: typeof account2 === "string" ? account2.trim() : "" });
       } catch (reason) {
         if (reason?.message === "MEDIA_INDEX_MANIFEST_MISSING") fail$e("IMAGE_CACHE_NOT_FOUND");
         fail$e("IMAGE_CACHE_INDEX_INVALID");
       }
-      const entry = index.entries.find((item) => item.kind === "image" && item.sha256 === opaqueId);
+      const entry = index.entries.find((item) => item.kind === "image" && item.sha256 === opaqueId && (!account2 || !item.accountId || item.accountId === account2.trim()));
       if (!entry) fail$e("IMAGE_CACHE_NOT_FOUND");
       try {
-        const media = await readMediaEntry(index, entry, { maxBytes: LIMIT });
-        return { mimeType: indexedImageMime(entry, media.bytes), bytes: media.bytes };
+        const media = await readIndexedImage(index, entry, { maxBytes: LIMIT, datKey: this.datKeys.get(typeof account2 === "string" ? account2.trim() : "") });
+        return { mimeType: media.mimeType, bytes: media.bytes };
       } catch (reason) {
         const code2 = reason instanceof Error ? reason.message : "";
-        if (/^MEDIA_INDEX_(?:FILE_NOT_FOUND|ENTRY_NOT_FOUND)$/.test(code2)) fail$e("IMAGE_CACHE_NOT_FOUND");
-        if (/^MEDIA_INDEX_(?:FILE_TOO_LARGE|SIZE_MISMATCH|HASH_MISMATCH|FILE_SYMLINK|PATH_INVALID|FILE_INVALID)$/.test(code2)) fail$e("IMAGE_CACHE_INDEX_INVALID");
+        if (/^(?:MEDIA_INDEX_(?:FILE_NOT_FOUND|ENTRY_NOT_FOUND)|IMAGE_CACHE_DAT_KEY_UNAVAILABLE)$/.test(code2)) fail$e(code2 === "IMAGE_CACHE_DAT_KEY_UNAVAILABLE" ? code2 : "IMAGE_CACHE_NOT_FOUND");
+        if (/^(?:MEDIA_INDEX_(?:FILE_TOO_LARGE|SIZE_MISMATCH|HASH_MISMATCH|FILE_SYMLINK|PATH_INVALID|FILE_INVALID)|IMAGE_CACHE_DAT_TOO_LARGE|IMAGE_CACHE_DAT_DECODE_FAILED|IMAGE_CACHE_FORMAT_INVALID)$/.test(code2)) fail$e(code2.startsWith("IMAGE_CACHE_") ? code2 : "IMAGE_CACHE_INDEX_INVALID");
         fail$e("IMAGE_CACHE_READ_FAILED");
       }
     }
@@ -75567,9 +75581,16 @@ if (primaryInstance) electron.app.whenReady().then(async () => {
     if (typeof accountId2 !== "string" || !accountId2.trim() || typeof xorKey !== "number" || !Number.isInteger(xorKey) || xorKey < 0 || xorKey > 255 || typeof aesKeyHex !== "string" || !/^[0-9a-fA-F]{32}$/.test(aesKeyHex.trim())) {
       throw new Error("IMAGE_KEY_REQUEST_INVALID");
     }
+    const normalizedAccount = accountId2.trim();
+    const localKey = Buffer.from(aesKeyHex.trim(), "hex");
+    const independent = independentBackendEnabled();
+    if (independent) imageCache.revokeAccount(normalizedAccount);
     try {
-      return await engine.configureImageKeyManual(accountId2, xorKey, aesKeyHex);
+      const result = await engine.configureImageKeyManual(normalizedAccount, xorKey, aesKeyHex);
+      if (independent) imageCache.configureDatKey(normalizedAccount, xorKey, localKey);
+      return result;
     } finally {
+      localKey.fill(0);
       aesKeyHex = "";
     }
   });
