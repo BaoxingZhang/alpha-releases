@@ -1,12 +1,12 @@
 {
-  "testedAt": "2026-11-02T02:56:16.738Z",
-  "session": "independent-smoke-1793588176634",
+  "testedAt": "2026-11-02T03:43:33.453Z",
+  "session": "independent-smoke-1793591013353",
   "fixture": {
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793588176634/fixture",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793591013353/fixture",
     "accountId": "synthetic-account",
     "conversationId": "wxid_alpha",
     "selfUsername": "wxid_self",
-    "messageCount": 6,
+    "messageCount": 8,
     "table": "Msg_7bb4baf3ba51e2b4d2c4b53ebd645e40"
   },
   "realUserDataAccessed": false,
@@ -16,7 +16,11 @@
     "independentMessageSourceThroughRendererIpc": true,
     "contactDirectoryAndProfileThroughRendererIpc": true,
     "noOriginalAlphaChildObserved": true,
+    "independentOnboardingMediaBoundaryShown": true,
     "originalOnboardingCompleted": true,
+    "independentImageReadThroughRendererIpc": true,
+    "independentImagePreviewRendered": true,
+    "independentVoicePlaybackThroughRendererIpc": true,
     "messageRendered": true,
     "syntheticMomentsRenderedReadOnly": true,
     "syntheticFavoritesRenderedReadOnly": true,
@@ -51,7 +55,7 @@
     {
       "id": "synthetic-account",
       "sourceProfile": "alpha-independent-offline-v4",
-      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793588176634/fixture",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793591013353/fixture",
       "subjectId": "",
       "displayName": "离线数据源 · synthetic-account",
       "schemaProfile": "wechat-v4-offline",
@@ -67,6 +71,7 @@
         "contacts",
         "conversations",
         "messages",
+        "voice-playback",
         "moments",
         "moment-authors",
         "moment-day-counts",
@@ -237,6 +242,55 @@
         "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzEuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiI1In0",
         "platformMessageId": "9007199254741001",
         "sourceType": "49"
+      },
+      {
+        "id": "msg-90962544828a562bb6cc9f787bf4cbe45b79ef36ee3508b930578b58c3677c4e",
+        "localId": 6,
+        "serverId": "400",
+        "conversationId": "wxid_alpha",
+        "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+        "sentAtUnixMs": "1700000005000",
+        "direction": 0,
+        "kind": "image",
+        "text": "<msg md5=\"0123456789abcdef0123456789abcdef\"/> image source",
+        "refs": [
+          {
+            "kind": "image",
+            "id": "0123456789abcdef0123456789abcdef",
+            "uri": "alpha-media://sha256/431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460",
+            "mimeType": "image/png",
+            "rendition": "source",
+            "displayUrl": "alpha-media://img/77d9602b20460dc6e2b19b1073be0508/431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460/f01610d9528ae271b9929caf9f8255d1d5787b8a25ff4ade19049ca33a5ce05e"
+          }
+        ],
+        "senderId": "wxid_alpha",
+        "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzAuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiI2In0",
+        "platformMessageId": "400",
+        "sourceType": "3"
+      },
+      {
+        "id": "msg-be4e218a4f9c6615e1badc98c1197d034ddb0a1f168d7aa0e9bf7c2ea9ee589c",
+        "localId": 7,
+        "serverId": "401",
+        "conversationId": "wxid_alpha",
+        "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+        "sentAtUnixMs": "1700000006000",
+        "direction": 0,
+        "kind": "voice",
+        "text": "<msg sha256=\"4aebda3a657a0d8f532d11ceacb1679081d7bdf7d7d301a53f1096af3580be91\"/> voice source",
+        "refs": [
+          {
+            "kind": "voice",
+            "id": "4aebda3a657a0d8f532d11ceacb1679081d7bdf7d7d301a53f1096af3580be91",
+            "uri": "alpha-media://sha256/4aebda3a657a0d8f532d11ceacb1679081d7bdf7d7d301a53f1096af3580be91",
+            "mimeType": "audio/wav",
+            "rendition": "wav"
+          }
+        ],
+        "senderId": "wxid_alpha",
+        "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzAuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiI3In0",
+        "platformMessageId": "401",
+        "sourceType": "34"
       }
     ],
     "sourceMessage": {
@@ -343,36 +397,44 @@
   },
   "ownedChildProcesses": [
     {
-      "pid": 79666,
+      "pid": 42846,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 79667,
+      "pid": 42847,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 79670,
+      "pid": 42855,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
     },
     {
-      "pid": 79673,
+      "pid": 42856,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge"
     },
     {
-      "pid": 79674,
+      "pid": 42857,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
     }
   ],
+  "image": {
+    "mimeType": "image/png",
+    "dataBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+  },
+  "voice": {
+    "mimeType": "audio/wav",
+    "dataBase64": "UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQIAAAAAAA=="
+  },
   "recordExport": {
-    "jobId": "8ebe1a37-e2b0-4423-82ee-f5227b8afe5b",
+    "jobId": "a71a223f-2942-43c7-ac5c-4a1c772bbc9a",
     "accountId": "synthetic-account",
     "kind": "records",
     "state": "completed",
     "format": "json",
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793588176634/records-export",
-    "createdAtUnixMs": "1793588179044",
-    "updatedAtUnixMs": "1793588179050",
-    "finishedAtUnixMs": "1793588179050",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793591013353/records-export",
+    "createdAtUnixMs": "1793591015980",
+    "updatedAtUnixMs": "1793591015986",
+    "finishedAtUnixMs": "1793591015986",
     "items": [
       {
         "conversationId": "payments",
@@ -383,7 +445,7 @@
         "messagesTotal": 0,
         "mediaSaved": 0,
         "mediaFailed": 0,
-        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793588176634/records-export/payments-71a312ebf4b8.json"
+        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793591013353/records-export/payments-71a312ebf4b8.json"
       }
     ]
   },
@@ -437,6 +499,6 @@
       "passwordRetryAfterMs": 0,
       "passwordFailedAttempts": 0
     },
-    "resumedCount": 6
+    "resumedCount": 8
   }
 }
