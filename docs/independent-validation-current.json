@@ -1,6 +1,6 @@
 {
-  "recordedAt": "2026-11-02",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch and explicit opt-in key-helper experiment, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, message-derived recall candidate pagination, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
+  "recordedAt": "2026-11-03",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch and explicit opt-in key-helper experiment, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, message-derived recall candidate pagination, moments anti-delete status boundary and reproducible packaging; optional third-party WCDB compatibility probe boundary; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
     "implementedRequestBranches": 75,
@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 252,
+      "passed": 255,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -858,6 +858,23 @@
       "capturedAtUnixMs": "0",
       "confirmedAtUnixMs": "0",
       "decodeErrorCode": "NATIVE_RECALL_SCHEMA_UNSUPPORTED"
+    },
+    "wcdbCompatProbe": {
+      "command": "npm run build:wcdb-compat-probe",
+      "status": "passed",
+      "architecture": "macos-arm64",
+      "abi": "explicit third-party wcdb_* C ABI",
+      "operations": [
+        "probe",
+        "wcdb_get_sns_timeline"
+      ],
+      "explicitAbsolutePaths": true,
+      "nativeSchemaSupported": false,
+      "complete": false,
+      "writer": false,
+      "alphaNativeReplacement": false,
+      "realThirdPartyLibrary": "not validated; WeFlow1 library requires its matching WCDB.framework",
+      "stubEndToEnd": "passed outside repository with arm64 stub dylib; no third-party binary committed"
     }
   },
   "featureBoundary": {

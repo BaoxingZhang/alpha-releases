@@ -16,9 +16,13 @@
 
 ## WeFlow 及其 fork
 
-公开的 [hicccc77/WeFlow](https://github.com/hicccc77/WeFlow) 和 [334456777/WeFlow](https://github.com/334456777/WeFlow) 包含完整 Rust workspace。其文档描述了 `weflow-native` 纯 Rust 只读数据库层、`weflow-wcdb-ffi` C ABI、媒体/语音处理、朋友圈、统计、报告和 HTTP/MCP 等能力；334456777 fork 的 README 还说明其 CLI/数据库层只在 Windows 真实账号上验证过，macOS/Linux 真实数据尚未验证。
+公开的 [hicccc77/WeFlow](https://github.com/hicccc77/WeFlow) 当前主分支（2026-11-03 固定为 `91adcfdbb24e8e147d8332440b8c6ac899ad2abf`，package 版本 `5.0.0`）公开了完整的 Electron/TypeScript 应用层和 `docs/third-party-components.md`。当前树没有 `Cargo.toml`、Rust 源文件或 WCDB 实现源码；它把数据库、图片解密和批量导出拆成调用方显式配置的第三方组件。
 
-两个仓库的 [`LICENSE`](https://github.com/334456777/WeFlow/blob/main/LICENSE) 是 CC BY-NC-SA 4.0。该许可允许非商业复制和改编，但要求署名、相同方式共享，并限制商业用途。当前 Alpha 恢复工程没有把 WeFlow 代码、二进制或依赖引入，也没有把它当作 Alpha 后端替代品。若将来考虑使用，必须先单独完成许可证兼容性评估、来源锁定、ABI/数据语义对照和 macOS arm64 验证。
+该组件文档提供了可复核的接口契约：`wcdb_init`/`wcdb_open_account`/`wcdb_close_account`/`wcdb_free_string` 生命周期，消息/联系人/媒体/语音/朋友圈查询以及写入和防删除函数；图片插件通过 `decryptDatNative`，批量导出组件通过 stdin/stdout NDJSON。它们是 WeFlow 自有组件接口，不是 Alpha 的 `_alpha_native_get_api` API 表，也没有给出 Alpha 的数据库 schema、授权或 macOS arm64 行为。
+
+作者账号的 [xunchahaha/WeFlow1](https://github.com/xunchahaha/WeFlow1) fork 当前固定为 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73`，随仓库带有一个预编译的 `resources/wcdb/macos/universal/libwcdb_api.dylib`。该文件实际是 arm64 Mach-O，SHA-256 为 `e6b52eb896f0fa4eb337b338a5a2ad477880832d7fbb60a7175ee5e2a5042429`，导出 `wcdb_*` 符号并依赖 `WCDB.framework`；它没有 Alpha 导出的 `_alpha_native_get_api`，不能直接替换 Alpha runtime。该二进制也不包含可重建的源代码或头文件。
+
+两个仓库的 [`LICENSE`](https://github.com/hicccc77/WeFlow/blob/main/LICENSE) 是 CC BY-NC-SA 4.0。该许可允许非商业复制和改编，但要求署名、相同方式共享，并限制商业用途。当前 Alpha 恢复工程没有把 WeFlow 代码、二进制或依赖引入，也没有把它当作 Alpha 后端替代品。若将来考虑做可选适配，必须单独完成许可证兼容性评估、来源锁定、ABI/数据语义对照和 macOS arm64 验证，并保持显式路径配置和 fail-closed 错误边界。
 
 ## 对原包问题的公开交叉证据
 

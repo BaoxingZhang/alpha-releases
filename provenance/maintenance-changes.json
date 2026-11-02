@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-02T04:39:03.394Z",
+  "recordedAt": "2026-11-02T19:56:23.943Z",
   "sourceDmgSha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
   "originalManifest": "provenance/recovered-files.json",
   "originalFiles": 169,
@@ -8,8 +8,8 @@
     {
       "path": "src/main/index.js",
       "originalSha256": "7e8fabf836059696bc00ecf9266b68cbed4b0cd690e3ffe6f80e1755a72c193a",
-      "currentSha256": "cf65229c3daa2ae65ee0b4599839c7904988b98048ec14857da52e6fd7c77607",
-      "currentBytes": 3195722
+      "currentSha256": "f2dc9fae2adb4ae16126162eba651bf0fea7fa559c42463bd450e3c11f37c3bb",
+      "currentBytes": 3197782
     },
     {
       "path": "src/preload/index.js",
@@ -26,17 +26,18 @@
     {
       "path": "src/renderer/assets/index-DPCwIOAb.js",
       "originalSha256": "8547e1338248bf174063cf7153c398a6d1a7d8c72ec0e6780e25ed01a954bde3",
-      "currentSha256": "c5426fa6b1ecbce4465336be1b18d39cd93dc5602f2bf42480c99ee837afc727",
-      "currentBytes": 2882242
+      "currentSha256": "b1803165225af746e4dd1d69d0ad6d016e71688091e02018728fcea07df0c349",
+      "currentBytes": 2885871
     }
   ],
-  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; bounded database-key acquisition watch with exact uint64 desktop cursors; search/navigation, contact/profile and group reads, group-member CSV/JSON/HTML/XLSX exports, media metadata and synthetic WAV playback through an explicit media-index, explicit kind=file media-index attachment save/open fallback with renderer grants and SHA-256 verification, explicit data-watch targets, read-only exports and in-memory export jobs, annual and conversation base statistics, read-only local HTTP/MCP adapter including verified account/session mobile overview, synthetic favorite media slots bound to an explicit media-index, UI capability-boundary maintenance, independent flavor update policy marker, and fail-closed update configuration.",
+  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; search/navigation, contact/profile and group reads, group-member CSV/JSON/HTML/XLSX exports, media metadata, explicit data-watch targets, read-only exports and in-memory export jobs, annual and conversation base statistics, read-only local HTTP/MCP adapter, and UI capability-boundary maintenance.",
   "authoredModules": [
     "packages/alpha-engine",
     "packages/alpha-data-bridge",
     "packages/alpha-snapshot-import",
     "packages/alpha-security",
-    "packages/alpha-desktop"
+    "packages/alpha-desktop",
+    "packages/alpha-wcdb-compat"
   ],
   "originalNativeArtifactsModified": false,
   "note": "Recovered declarations in alpha-protocol remain generated from main. The current source hash is recorded separately from original provenance. Native hashes must also pass verify:vendor."

@@ -84,6 +84,12 @@ Ghidra/REA 观察到的调用约定候选是四个参数：`param_1` 为内部 r
 
 这两个入口均未在本轮执行未知 ABI 调用，也没有向独立 bridge 注入返回的函数表。没有对应头文件、版本匹配的调用方或受控 fixture 前，不应仅凭 `size`/`version` 条件通过 `dlsym` 调用；否则无法判定崩溃、内存所有权或结果错误来自调用方还是原生组件。
 
+### 当前 REA 会话对 `alpha_native_get_api` 的复核（2026-11-03）
+
+本轮重新打开 `vendor/runtime/native/wcdb/libalpha_native.dylib`（SHA-256 `be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c`），REA/Ghidra 观察到 `_alpha_native_get_api` 入口 `0x1cb0`，函数体范围 `0x1cb0..0x1e17`，长度 360 字节。调用边界的静态形状为 `(int version, uint32_t size, uint32_t *out_api)`：`version` 必须为 `1`，`out_api` 不能为空，`size` 小于 `0x50` 时直接返回；初始化长度最多按 `0x90` 处理，并在输出表中写入版本/能力值以及多组内部函数指针。静态伪代码可见返回 `0`、`-2` 和 `-6` 候选，但没有可验证的公开错误枚举。
+
+本次函数搜索、函数 dossier 和 API 边界 Evidence 分别为 `ev_ac54fcfbfeaf5caf9b85a4c0406a1a2303a74fa02b98d3191b2545461d548b0d`、`ev_714e463cf89c58b2c1036e091e4e78170d0033b97892a3dfd992edb75402877a` 和 `ev_27eaacf848d58315aff23416e9386febda81a14602369960fc1bd2c383a46bf3`。REA 还报告没有来自已解析代码函数的直接调用，只有位于 `0x1f98aa` 的数据引用；这与函数表由其他组件动态装载的可能性一致，但不能证明具体调用方或字段语义。上述类型和函数指针仍是低置信度反编译推断，不能作为可编译头文件，也没有执行未知 ABI 调用。
+
 ### 群置顶静态线索（2026-11-03）
 
 REA 对 `vendor/runtime/native/wcdb/libalpha_native.dylib`（SHA-256 `be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c`）的只读字符串和引用检查确认了 `wcdb.group_pins` 错误族：`table_missing`、`columns_missing`、`room_ambiguous`、`buffer_not_blob`、`buffer_unreadable`、`decode_failed` 和 `limit_exceeded`。同时观察到 `ext_buffer_` 字符串位于 `0x1d9f65`，唯一静态引用位于 `0x878c4`。REA Evidence：`ev_79d7198833c7dfb1c56cfbbb98214639d9dc09efbd0d4c59d858bf137f20cb69`、`ev_d3ea968de11c1e2220388ee2331251b4c10883a66d3f7da89aedf57ec2a37a5d` 和 `ev_3c4d2c179c71f5efdc1afce2f72fdf3097892b9bde7ddc01a1186d16378410d9`。

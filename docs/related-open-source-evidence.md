@@ -1,6 +1,6 @@
 # 相关公开项目与可复用边界
 
-2026-11-01 至 2026-11-02 对公开仓库做了补充核查。结论是：目前没有找到 Alpha 的 `alpha`、`alpha-wcdb`、`alpha-xkey` 或 `alpha-wxproto` 原生源码；但发现了作者维护的 WeFlow fork 和其他公开实现，可以作为协议、数据字段和替代后端的研究材料。
+2026-11-01 至 2026-11-03 对公开仓库做了补充核查。结论是：目前没有找到 Alpha 的 `alpha`、`alpha-wcdb`、`alpha-xkey` 或 `alpha-wxproto` 原生源码；但发现了作者维护的 WeFlow fork 和其他公开实现，可以作为协议、数据字段和替代后端的研究材料。
 
 ## `xunchahaha/WeFlow1`
 
@@ -15,6 +15,8 @@
 进一步核对得到的文件级证据是：`electron/services/backupService.ts` 会把朋友圈库定位为 `sns/sns.db`（同时尝试数据目录下的同名相对路径）；`electron/services/wcdbCore.ts` 的朋友圈读取、统计和防删除操作全部通过 `wcdb_get_sns_*`/`wcdb_*_sns_*` native ABI 完成，没有公开的 `CREATE TABLE` 或可直接复用的 SQL。`src/types/sns.ts` 和 `electron/services/snsService.ts` 能确认帖子、媒体、评论、位置以及 XML 中的 token/key/md5/enc_idx 字段形状，但这些属于 WeFlow 自己的 native 输出契约。
 
 这些材料证明作者的另一个公开项目确实有朋友圈和媒体的应用层设计，但不能证明它与 Alpha 0.3.5 的 native ABI、数据库 schema、授权策略或协议字段相同。其仓库 LICENSE 是 **CC BY-NC-SA 4.0**，因此本工程没有复制源码、没有把它加入依赖，也没有把它作为可直接合并的后端。
+
+本轮又对该 fork 的预编译资源做了 ABI 对照。固定提交 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73` 中的 `resources/wcdb/macos/universal/libwcdb_api.dylib` SHA-256 为 `e6b52eb896f0fa4eb337b338a5a2ad477880832d7fbb60a7175ee5e2a5042429`，实际是 arm64 Mach-O；它直接导出 `wcdb_get_sns_timeline`、`wcdb_get_voice_data`、`wcdb_resolve_image_hardlink`、`wcdb_scan_media_stream`、`wcdb_update_message` 等 `wcdb_*` 符号，并依赖 `WCDB.framework`。Alpha 的 `vendor/runtime/native/wcdb/libalpha_native.dylib`（SHA-256 `be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c`）只导出 `_alpha_native_get_api`，由 `version`/`size`/`out_api` 参数获取函数表；没有同名导出或已验证的 ABI 兼容关系。该二进制对照支持后续研究隔离适配器，但不支持替换 Alpha runtime 或宣称真实 moments/media 已恢复。
 
 ## `hicccc77/WeFlow`（2026-11-03 复核）
 

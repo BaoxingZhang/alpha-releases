@@ -18,6 +18,7 @@
     "verify:packaged-markers": "node scripts/verify-packaged-markers.mjs",
     "test:protocol": "node --test tests/protocol.test.mjs",
     "build:bridge": "node scripts/build-data-bridge.mjs",
+    "build:wcdb-compat-probe": "node scripts/build-wcdb-compat-probe.mjs",
     "build:snapshot-import": "node scripts/build-snapshot-import.mjs",
     "build:independent": "npm run build:bridge && npm run build:snapshot-import && node scripts/build.mjs --independent",
     "build:packaged": "npm run build:independent && node scripts/build-packaged-resources.mjs",
