@@ -1,0 +1,49 @@
+{
+  "schema": "alpha.native-capability-blockers.v1",
+  "scope": "independent-recovery",
+  "complete": false,
+  "native_schema_supported": false,
+  "items": [
+    {
+      "methods": [
+        "provisionApplicationLock",
+        "resetApplicationLock",
+        "readAccountDataKey"
+      ],
+      "status": "blocked-by-native-vault",
+      "evidence": [
+        "packages/alpha-security/README.md",
+        "packages/alpha-engine/index.cjs",
+        "src/main/index.js",
+        "docs/backend-compatibility-map.json",
+        "docs/native-diagnosis-evidence/guard-state-lock-pseudocode.c"
+      ],
+      "reason": "The independent backend has a password lock, but no native vault, Windows Hello provider, account-generation key store, or verified image/database key lifetime. Returning a synthetic key or treating password-lock configuration as native provisioning would misrepresent the security boundary.",
+      "required_inputs": [
+        "合法的 native vault/ABI 说明或源码",
+        "账号 generation 与 keyKind 的可验证存储语义",
+        "授权的系统安全 provider 测试证据"
+      ]
+    },
+    {
+      "methods": [
+        "transcribeVoice",
+        "transcribeVoiceBatch"
+      ],
+      "status": "blocked-by-missing-runtime",
+      "evidence": [
+        "vendor/runtime/component-manifest.json",
+        "vendor/runtime/manifests/alpha-wxproto.component.json",
+        "vendor/runtime/resources/local-transcription-model-catalog-v1.json",
+        "vendor/runtime/voice-models/local-transcription-model-catalog-v1.json",
+        "src/main/index.js"
+      ],
+      "reason": "The package contains only a model catalog. The transcription worker, ASR runtime, and model weights are absent; the component manifest marks local_transcription and alpha_wxproto unavailable. The recovered UI and protocol cannot produce a transcript without those runtime inputs.",
+      "required_inputs": [
+        "合法的 transcription worker/runtime",
+        "可验证来源和许可证的模型权重",
+        "音频解码与取消/缓存的集成测试"
+      ]
+    }
+  ]
+}
