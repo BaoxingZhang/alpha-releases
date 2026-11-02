@@ -271,7 +271,43 @@ try {
   await page.getByText('合成朋友圈第二条', { exact: true }).waitFor({ timeout: 15000 });
   assert.equal(await page.locator('.synthetic-moment-card').count(), 3);
   assert.deepEqual(await page.locator('.synthetic-moment-card').evaluateAll((cards) => cards.map((card) => card.getAttribute('data-source-table'))), ['__alpha_moments_v1', '__alpha_moments_v1', '__alpha_moments_v1']);
-  assert.equal(await page.getByRole('button', { name: '导出朋友圈', exact: true }).count(), 0, 'Synthetic moments must not expose export');
+  assert.equal(await page.getByRole('button', { name: '导出朋友圈', exact: true }).count(), 1, 'Synthetic moments must expose metadata-only export');
+  const momentExportPopupPromise = page.waitForEvent('popup', { timeout: 15000 });
+  await page.getByRole('button', { name: '导出朋友圈', exact: true }).click();
+  const momentExportPopup = await momentExportPopupPromise;
+  await momentExportPopup.locator('.dataset-export-dialog').waitFor({ timeout: 15000 });
+  await momentExportPopup.getByText('仅输出 synthetic-only、metadata-only 字段', { exact: false }).waitFor({ timeout: 15000 });
+  await momentExportPopup.locator('.dataset-export-dialog').getByRole('button', { name: '取消', exact: true }).click();
+  const momentExportDirectory = path.join(runtime, 'moments-export');
+  report.momentExport = await page.evaluate(async ({ accountId, outputDirectory }) => {
+    const started = await window.alpha.chatExport.startMoments({
+      accountId,
+      format: 'json',
+      outputDirectory,
+      usernames: [],
+      keyword: '',
+      range: {},
+      media: []
+    });
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const job = (await window.alpha.chatExport.list(accountId)).find((item) => item.jobId === started.jobId);
+      if (job && ['canceled', 'completed', 'completed_with_errors', 'failed'].includes(job.state)) return job;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    throw new Error('moment export did not finish');
+  }, { accountId: fixture.accountId, outputDirectory: momentExportDirectory });
+  assert.equal(report.momentExport.kind, 'moments');
+  assert.equal(report.momentExport.state, 'completed');
+  assert.equal(report.momentExport.items.length, 1);
+  assert.equal(report.momentExport.items[0].state, 'completed');
+  const momentExportPath = report.momentExport.items[0].path;
+  assert.ok(momentExportPath && fs.existsSync(momentExportPath));
+  const momentExportBody = JSON.parse(fs.readFileSync(momentExportPath, 'utf8'));
+  assert.equal(momentExportBody.syntheticOnly, true);
+  assert.equal(momentExportBody.metadataOnly, true);
+  assert.equal(momentExportBody.itemCount, 3);
+  assert.equal(momentExportBody.moments[0].sourceTable, '__alpha_moments_v1');
+  report.checks.syntheticMomentExportThroughRendererIpc = true;
   assert.equal(await page.getByRole('button', { name: '朋友圈防删除', exact: true }).count(), 0, 'Synthetic moments must not expose anti-delete writes');
   assert.equal(await page.getByText('合成评论者', { exact: true }).count(), 1, 'Synthetic comment must remain visible');
   const momentEmojiImage = page.locator('.synthetic-moment-card .moment-comment-sticker img').first();

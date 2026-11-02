@@ -33090,19 +33090,22 @@ function DatasetOutputField({ output, privacy }) {
   ] });
 }
 const EMPTY_MOMENT_EXPORT_SEED = { authors: [], keyword: "", startDate: "", endDate: "" };
-function useMomentExportDraft(accountId, accountScope, seed) {
+function useMomentExportDraft(accountId, accountScope, seed, syntheticOnly = false) {
   const [authors, setAuthors] = reactExports.useState(seed.authors);
   const [allAuthors, setAllAuthors] = reactExports.useState(seed.authors.length === 0);
   const [keyword, setKeyword] = reactExports.useState(seed.keyword);
   const [startDate, setStartDate] = reactExports.useState(seed.startDate);
   const [endDate, setEndDate] = reactExports.useState(seed.endDate);
   const [format, setFormat] = reactExports.useState("html");
-  const [media, setMedia] = reactExports.useState(["image", "video", "live_photo"]);
+  const [media, setMedia] = reactExports.useState(syntheticOnly ? [] : ["image", "video", "live_photo"]);
   const output = useExportDirectory();
   const [error, setError] = reactExports.useState("");
   const [taskId, setTaskId] = reactExports.useState(null);
   const toggleAuthor = (author) => setAuthors((current2) => current2.some((item) => item.username === author.username) ? current2.filter((item) => item.username !== author.username) : current2.length >= MOMENT_EXPORT_MAX_AUTHORS ? current2 : [...current2, author]);
-  const toggleMedia = (kind) => setMedia((current2) => current2.includes(kind) ? current2.filter((item) => item !== kind) : [...current2, kind]);
+  const toggleMedia = (kind) => {
+    if (syntheticOnly) return;
+    setMedia((current2) => current2.includes(kind) ? current2.filter((item) => item !== kind) : [...current2, kind]);
+  };
   const scopeLabel = allAuthors ? "全部好友" : authors.length === 1 ? authors[0].name : `${authors.length} 位作者`;
   const rangeLabel = startDate || endDate ? `${startDate || "最早"} 至 ${endDate || "现在"}` : "全部时间";
   const formatName2 = MOMENT_EXPORT_FORMATS.find((item) => item.id === format)?.name ?? format;
@@ -33119,7 +33122,7 @@ function useMomentExportDraft(accountId, accountScope, seed) {
         scope: accountScope,
         kind: "moments",
         rangeLabel,
-        content: momentMediaLabel(media),
+        content: syntheticOnly ? "仅元数据" : momentMediaLabel(media),
         request: {
           accountId,
           format,
@@ -33156,7 +33159,7 @@ function useMomentExportDraft(accountId, accountScope, seed) {
     taskId,
     start,
     ready,
-    summary: `${scopeLabel} · ${formatName2} · ${rangeLabel}${keyword.trim() ? ` · 含“${keyword.trim()}”` : ""} · ${momentMediaLabel(media)}`
+    summary: `${scopeLabel} · ${formatName2} · ${rangeLabel}${keyword.trim() ? ` · 含“${keyword.trim()}”` : ""} · ${syntheticOnly ? "仅元数据" : momentMediaLabel(media)}`
   };
 }
 function chatExportError(error) {
@@ -33494,14 +33497,14 @@ function MomentAuthorPicker({ accountId, draft }) {
   ] });
 }
 const MEDIA_ICONS$1 = { image: /* @__PURE__ */ jsxRuntimeExports.jsx(Image, { size: 20 }), video: /* @__PURE__ */ jsxRuntimeExports.jsx(Clapperboard, { size: 20 }), live_photo: /* @__PURE__ */ jsxRuntimeExports.jsx(Images, { size: 20 }) };
-function MomentExportDialog({ accountId, accountScope, seed, onClose }) {
-  const draft = useMomentExportDraft(accountId, accountScope, seed);
+function MomentExportDialog({ accountId, accountScope, seed, onClose, syntheticOnly = false }) {
+  const draft = useMomentExportDraft(accountId, accountScope, seed, syntheticOnly);
   const keywordId = reactExports.useId();
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     DatasetExportShell,
     {
-      title: "导出朋友圈",
-      subtitle: "把本机保存的朋友圈导出为文件，可同时下载图片、视频和实况图。",
+      title: syntheticOnly ? "导出朋友圈（synthetic 元数据）" : "导出朋友圈",
+      subtitle: syntheticOnly ? "导出显式 __alpha_moments_v1 合成朋友圈的只读元数据；不读取或下载原生微信媒体。" : "把本机保存的朋友圈导出为文件，可同时下载图片、视频和实况图。",
       side: /* @__PURE__ */ jsxRuntimeExports.jsx(MomentAuthorPicker, { accountId, draft }),
       summary: draft.summary,
       error: draft.error || draft.output.error,
@@ -33527,7 +33530,7 @@ function MomentExportDialog({ accountId, accountScope, seed, onClose }) {
           ) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "dataset-export-search", htmlFor: keywordId, children: /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: keywordId, value: draft.keyword, onChange: (event) => draft.setKeyword(event.target.value), placeholder: "只导出包含这些文字的朋友圈（可不填）", "aria-label": "关键词" }) })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "export-dialog-field", children: [
+        !syntheticOnly && /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "export-dialog-field", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("legend", { children: "图片与视频" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "export-choice-grid dataset-export-media", children: MOMENT_EXPORT_MEDIA_KINDS.map((kind) => /* @__PURE__ */ jsxRuntimeExports.jsx(
             ExportChoice,
@@ -33543,12 +33546,13 @@ function MomentExportDialog({ accountId, accountScope, seed, onClose }) {
           )) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "export-dialog-hint", children: "从微信服务器下载并还原，保存在导出文件夹的 media 里；已失效的链接会记为未保存，导出完成后可查看明细。" })
         ] }),
+        syntheticOnly && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "export-dialog-hint", role: "note", children: "仅输出 synthetic-only、metadata-only 字段；不会写入原生 token、原始 XML、媒体 URL 或下载文件。" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(DatasetOutputField, { output: draft.output, privacy: "朋友圈内容含个人信息，请妥善保存。" })
       ]
     }
   );
 }
-function MomentExportAction({ accountId, icon, seed, label }) {
+function MomentExportAction({ accountId, icon, seed, label, syntheticOnly = false }) {
   const { accountEpoch } = useWorkspace();
   const [opened, setOpened] = reactExports.useState(null);
   reactExports.useEffect(() => {
@@ -33560,7 +33564,7 @@ function MomentExportAction({ accountId, icon, seed, label }) {
       icon,
       label
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(IconButton, { label: "导出朋友圈", icon, disabled: !accountId, "aria-haspopup": "dialog", onClick: open2 }),
-    opened && opened.accountId === accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportDialog, { accountId, accountScope: `${accountId}:${accountEpoch}`, seed: opened.seed, onClose: () => setOpened(null) })
+    opened && opened.accountId === accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportDialog, { accountId, accountScope: `${accountId}:${accountEpoch}`, seed: opened.seed, onClose: () => setOpened(null), syntheticOnly })
   ] });
 }
 function SyntheticMomentCard({ moment, accountId, mediaRevision = 0 }) {
@@ -33636,12 +33640,12 @@ function MomentsBrowser({ accountId, independent = false, syntheticMoments = fal
         }
       ),
       momentsEnabled && /* @__PURE__ */ jsxRuntimeExports.jsx(IconButton, { label: "刷新朋友圈", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCcw, { size: 17, className: query.isRefetching && !query.isFetchingNextPage ? "spin" : void 0 }), disabled, onClick: refresh }),
-      !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportAction, { accountId, icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { size: 17 }), seed: () => ({
+      momentsEnabled && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportAction, { accountId, icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { size: 17 }), seed: () => ({
         authors: author && applied.username === author.username ? [{ username: author.username, name: author.name }] : [],
         keyword: applied.keyword,
         startDate: applied.startDate,
         endDate: applied.endDate
-      }) })
+      }), syntheticOnly: syntheticMoments })
     ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-body", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-main", children: [
@@ -46408,8 +46412,10 @@ const TABS$1 = [
   { id: "schedules", label: "定时导出", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CalendarClock, { size: 16, "aria-hidden": "true" }) }
 ];
 function ExportCenter() {
-  const { activeAccountId, hasRemoteAccount, remoteConversations, status } = useWorkspace();
+  const { activeAccountId, hasRemoteAccount, activeAccount, remoteConversations, status } = useWorkspace();
   const independent = status?.components?.some((component) => component.component === "alpha-independent-engine") === true;
+  const capabilities = new Set(Array.isArray(activeAccount?.capabilities) ? activeAccount.capabilities : []);
+  const syntheticMoments = independent && String(activeAccount?.sourceProfile ?? "").startsWith("alpha-independent-") && ["moments", "moment-authors", "moment-day-counts"].every((name) => capabilities.has(name));
   const { exportRequest, consumeExportRequest, navigate } = useNavigation();
   const [tab, setTab] = reactExports.useState("sessions");
   const [preselection, setPreselection] = reactExports.useState(null);
@@ -46448,7 +46454,7 @@ function ExportCenter() {
             running2 > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "export-task-badge", "aria-label": `${running2} 个进行中`, children: running2 })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(ContactExportAction, { accountId, label: "导出通讯录", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(BookUser, { size: 16, "aria-hidden": "true" }), seed: () => ({}), independent }),
-          !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportAction, { accountId, label: "导出朋友圈", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Aperture, { size: 16, "aria-hidden": "true" }), seed: () => EMPTY_MOMENT_EXPORT_SEED }),
+          (!independent || syntheticMoments) && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportAction, { accountId, label: "导出朋友圈", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Aperture, { size: 16, "aria-hidden": "true" }), seed: () => EMPTY_MOMENT_EXPORT_SEED, syntheticOnly: syntheticMoments }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(RecordExportAction, { accountId, label: "导出其他资料", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(FileStack, { size: 16, "aria-hidden": "true" }), seed: () => ({}), independent })
         ] })
       }

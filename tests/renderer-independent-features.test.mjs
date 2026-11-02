@@ -28,7 +28,11 @@ test('independent renderer exposes only explicit synthetic favorites and moments
   assert.match(mainSource, /sourceTable === "__alpha_moments_v1" \? item\.text : ""/);
   assert.match(mainSource, /includeMedia: !independentBackendEnabled\(\)/);
   assert.match(source, /!independent && .*MomentsProtectionEntry/);
-  assert.match(source, /!independent && .*MomentExportAction/);
+  assert.match(source, /momentsEnabled && .*MomentExportAction/);
+  assert.match(source, /syntheticOnly \? "导出朋友圈（synthetic 元数据）"/);
+  assert.match(source, /useMomentExportDraft\(accountId, accountScope, seed, syntheticOnly\)/);
+  assert.match(source, /syntheticOnly \? \[\] : \["image", "video", "live_photo"\]/);
+  assert.match(source, /\(!independent \|\| syntheticMoments\).*MomentExportAction/);
 });
 
 test('independent media browser remains metadata-only', () => {
