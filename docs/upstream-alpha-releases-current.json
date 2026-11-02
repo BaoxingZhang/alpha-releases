@@ -178,10 +178,5 @@
     "The audit does not download release binaries; a local artifact is checked only when --artifact is supplied.",
     "No source code, private repositories, credentials, real WeChat data, or unredacted native secrets are accessed by this audit."
   ],
-  "artifact_verification": {
-    "path": "/Users/baoxingzhang/Downloads/Alpha-0.3.5-arm64.dmg",
-    "bytes": 183712520,
-    "sha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
-    "matchesRelease": true
-  }
+  "artifact_verification": null
 }
