@@ -50,6 +50,11 @@ jobs:
       - name: Verify packaged backend markers and identities
         run: npm run verify:packaged-markers
 
+      - name: Run packaged independent Electron smoke
+        run: |
+          set -o pipefail
+          npm run test:packaged-independent 2>&1 | tee .runtime/packaged-independent-smoke.log
+
       - name: Run complete test suite
         run: npm test
 
@@ -99,6 +104,7 @@ jobs:
             packages/alpha-snapshot-import/build-validation.json
             .runtime/release-manifest.json
             .runtime/public-release-audit.json
+            .runtime/packaged-independent-smoke.log
             .runtime/release-artifacts/Alpha Recovered.app.manifest.json
             .runtime/release-artifacts/Alpha Recovered Independent.app.manifest.json
             .runtime/recovery-bundles/alpha-recovered-source.tar.gz
