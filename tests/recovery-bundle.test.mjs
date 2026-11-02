@@ -27,3 +27,16 @@ test('recovery source bundle excludes generated outputs and user runtime state',
   assert.match(archive.stdout, /(^|\n)README\.md\n/);
   assert.doesNotMatch(archive.stdout, /(^|\n)vendor\/runtime\/bin\/alpha-server\n/);
 });
+
+test('recovery source archive bytes are reproducible across invocations', { timeout: 30_000 }, async t => {
+  const directory = await fs.mkdtemp(path.join(root, '.runtime/recovery-bundle-repro-'));
+  const firstOutput = path.join(directory, 'first.tar.gz');
+  const secondOutput = path.join(directory, 'second.tar.gz');
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const first = await buildRecoveryBundle({ output: firstOutput });
+  const second = await buildRecoveryBundle({ output: secondOutput });
+  assert.notEqual(first.manifest.createdAt, second.manifest.createdAt);
+  assert.equal(first.manifest.archive.bytes, second.manifest.archive.bytes);
+  assert.equal(first.manifest.archive.sha256, second.manifest.archive.sha256);
+  assert.equal(await fs.readFile(firstOutput, 'hex'), await fs.readFile(secondOutput, 'hex'));
+});

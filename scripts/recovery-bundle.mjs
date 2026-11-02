@@ -75,6 +75,22 @@ async function artifactManifestDigest() {
   } catch { return ''; }
 }
 
+async function stageReproducibleFiles(files, directory) {
+  const epoch = new Date(0);
+  for (const relative of files) {
+    const source = path.join(root, relative);
+    const destination = path.join(directory, relative);
+    await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
+    await fs.copyFile(source, destination);
+    const stat = await fs.stat(source);
+    await fs.chmod(destination, stat.mode & 0o777);
+    // Git checkout times, user ownership, and filesystem metadata vary across
+    // machines. Normalize the regular-file timestamp before archiving; tar
+    // ownership and compression metadata are normalized in the command below.
+    await fs.utimes(destination, epoch, epoch);
+  }
+}
+
 export async function buildRecoveryBundle({ output = DEFAULT_OUTPUT, includeVendorRuntime = false } = {}) {
   if (process.platform !== 'darwin' || process.arch !== 'arm64') fail('RECOVERY_BUNDLE_TARGET_UNSUPPORTED');
   const destination = path.resolve(output);
@@ -84,7 +100,23 @@ export async function buildRecoveryBundle({ output = DEFAULT_OUTPUT, includeVend
   const files = await collectFiles({ includeVendorRuntime });
   await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
   await fs.rm(destination, { force: true });
-  await execFileAsync('/usr/bin/tar', ['-czf', destination, '-C', root, '--', ...files], { cwd: root, maxBuffer: 4096 });
+  const staging = await fs.mkdtemp(path.join(root, '.runtime', 'recovery-bundle-stage-'));
+  try {
+    await stageReproducibleFiles(files, staging);
+    await execFileAsync('/usr/bin/tar', [
+      '-czf', destination,
+      // ustar keeps the normalized mtime in its fixed header and avoids
+      // libarchive's non-deterministic pax ctime extension. Current source
+      // paths are bounded below ustar's 100-byte name limit.
+      '--format', 'ustar',
+      '--options', 'gzip:!timestamp',
+      '--no-acls', '--no-xattrs', '--no-mac-metadata', '--no-fflags',
+      '--uid', '0', '--gid', '0', '--uname', 'root', '--gname', 'root',
+      '-C', staging, '--', ...files
+    ], { cwd: root, maxBuffer: 4096 });
+  } finally {
+    await fs.rm(staging, { recursive: true, force: true });
+  }
   const entries = [];
   for (const relative of files) {
     const stat = await fs.stat(path.join(root, relative));

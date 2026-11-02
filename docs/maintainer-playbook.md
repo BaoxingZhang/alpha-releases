@@ -51,7 +51,7 @@ npm run bundle:recovery
 
 ## 证据与回滚
 
-每次发布保留 `.runtime/release-manifest.json`、App manifest、恢复源码包 manifest 及 `docs/independent-validation-current.json`。若验证失败，先回到上一个本地 Git 提交，确认 `npm run test:smoke` 的原生错误和 `npm run test:independent` 的独立后端状态分别记录，再定位变更。不要用删除测试、隐藏菜单或返回空数据来恢复绿色状态。
+每次发布保留 `.runtime/release-manifest.json`、App manifest、恢复源码包 manifest 及 `docs/independent-validation-current.json`。恢复源码包的 archive 内容是可重复的，同一源码状态应产生相同 SHA-256；manifest 的生成时间仅用于记录本次归档。若验证失败，先回到上一个本地 Git 提交，确认 `npm run test:smoke` 的原生错误和 `npm run test:independent` 的独立后端状态分别记录，再定位变更。不要用删除测试、隐藏菜单或返回空数据来恢复绿色状态。
 
 ## 许可证与来源
 

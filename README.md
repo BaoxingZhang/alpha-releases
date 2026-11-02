@@ -83,7 +83,7 @@ npm run prepare:public-source -- \
 
 独立 flavor 另外写入 `alpha-update-mode.json`，内容来自 [`provenance/independent-update-mode.json`](provenance/independent-update-mode.json)，当前默认 `mode=disabled`，因此不会沿用原作者的更新公钥、策略地址或镜像。未来由维护者建立自己的签名更新策略后，应先修改这个 provenance 配置再重新打包和验证；普通 `Alpha Recovered.app` 仍保留原包更新配置。
 
-`npm run bundle:recovery` 会生成 `.runtime/recovery-bundles/alpha-recovered-source.tar.gz` 及同名 manifest。源码包默认包含可编辑源码、测试、脚本、文档、协议材料和原生 provenance，但排除 `node_modules/`、`dist/`、`build/`、`.runtime/`、`.alpha/`、运行日志和截图，也不包含原生 runtime 二进制。需要在受控归档中携带原包二进制时可显式传入 `--include-vendor-runtime`；manifest 会记录 `includesVendorRuntime`、每个源文件的 SHA-256、原始 DMG 摘要，并始终标记 `nativeRecompiled=false`、`projectSigned=false`。这是一份未签名的维护源包，不是可直接安装的 DMG。
+`npm run bundle:recovery` 会生成 `.runtime/recovery-bundles/alpha-recovered-source.tar.gz` 及同名 manifest。归档会固定文件时间、压缩时间戳、归档所有者和 macOS 扩展元数据，因此在同一源码状态下重复构建时 archive SHA-256 应保持一致；manifest 的 `createdAt` 仍记录本次生成时间。源码包默认包含可编辑源码、测试、脚本、文档、协议材料和原生 provenance，但排除 `node_modules/`、`dist/`、`build/`、`.runtime/`、`.alpha/`、运行日志和截图，也不包含原生 runtime 二进制。需要在受控归档中携带原包二进制时可显式传入 `--include-vendor-runtime`；manifest 会记录 `includesVendorRuntime`、每个源文件的 SHA-256、原始 DMG 摘要，并始终标记 `nativeRecompiled=false`、`projectSigned=false`。这是一份未签名的维护源包，不是可直接安装的 DMG。
 
 Electron 44 的二进制安装是独立步骤，因此保留 `npm run setup`。恢复工程固定 Electron 44.10.1、esbuild 0.28.2、Playwright Core 1.64.1；`package-lock.json` 是此次新增的锁文件。React 19.2.8 等前端运行时已经包含在原 renderer chunks 中，无需再装一份 React。
 
