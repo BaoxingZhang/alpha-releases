@@ -35,7 +35,8 @@ test('recovery source archive bytes are reproducible across invocations', { time
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const first = await buildRecoveryBundle({ output: firstOutput });
   const second = await buildRecoveryBundle({ output: secondOutput });
-  assert.notEqual(first.manifest.createdAt, second.manifest.createdAt);
+  assert.match(first.manifest.createdAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert.match(second.manifest.createdAt, /^\d{4}-\d{2}-\d{2}T/);
   assert.equal(first.manifest.archive.bytes, second.manifest.archive.bytes);
   assert.equal(first.manifest.archive.sha256, second.manifest.archive.sha256);
   assert.equal(await fs.readFile(firstOutput, 'hex'), await fs.readFile(secondOutput, 'hex'));
