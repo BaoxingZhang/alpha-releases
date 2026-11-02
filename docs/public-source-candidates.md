@@ -1,12 +1,12 @@
 # 公共源码与替代后端候选
 
-检查日期：2026-11-01。本文只记录公开页面中能直接核对的材料，不把第三方项目的功能宣称当成 Alpha 兼容性证明。
+检查日期：2026-11-03。本文只记录公开页面中能直接核对的材料，不把第三方项目的功能宣称当成 Alpha 兼容性证明。
 
 ## Alpha 官方公开仓库
 
 公开的 [alpha-releases](https://github.com/xunchahaha/alpha-releases) 主要包含发行说明、安装包、HTTP API/MCP 文档和更新材料。其 README 明确说明 0.3.5 大概率是最后一个版本，并列出聊天、导出、分析、朋友圈、AI、媒体、其他资料和高级发送能力等产品范围。该仓库没有 Alpha 的 TypeScript、Rust、C/C++ 原生源码工程。
 
-截至 2026-11-01 的只读审查记录见 [`upstream-alpha-releases-current.json`](upstream-alpha-releases-current.json)。公开仓库 `main` HEAD 为 `09232cbca892241fd3d2046957832a6b4d764ddc`，`v0.3.5` 标签指向 `f4294fe7ba95aab5796c7ed32398c2879add5ca4`；根目录可见内容仍是 README、截图/图标、HTTP API/MCP 文档和 `update/stable.json`。README 的产品清单还明确提到收藏、媒体墙、朋友圈日历、年度/双人报告、AI 总结与分享图、消息防撤回/朋友圈防删除、通知、多账号/自动取钥、发送文字、公众号导出、消息编辑及微信 CDN 媒体补齐。`v0.3.5` 发布说明写明停更公告，媒体补齐目前仅 Windows x64 可用，并给出四个平台安装包的哈希。
+截至 2026-11-03 的只读审查记录见 [`upstream-alpha-releases-current.json`](upstream-alpha-releases-current.json)。公开仓库 `main` HEAD 为 `09232cbca892241fd3d2046957832a6b4d764ddc`，`v0.3.5` 标签指向 `f4294fe7ba95aab5796c7ed32398c2879add5ca4`；根目录可见内容仍是 README、截图/图标、HTTP API/MCP 文档和 `update/stable.json`，递归树没有 TypeScript、Rust、C/C++、Cargo 或 CMake 源文件。README 的产品清单还明确提到收藏、媒体墙、朋友圈日历、年度/双人报告、AI 总结与分享图、消息防撤回/朋友圈防删除、通知、多账号/自动取钥、发送文字、公众号导出、消息编辑及微信 CDN 媒体补齐。`v0.3.5` 发布说明写明停更公告，媒体补齐目前仅 Windows x64 可用，并给出四个平台安装包的哈希。
 
 该记录也保存了公开 issue 的交叉证据（例如引擎启动 `status -6`、macOS 通讯录、取钥鉴权、推送崩溃及 `SECURITY_RUNTIME_POLICY_REJECTED`）。这些是用户报告或历史闭环问题，不能推出安装包在所有机器上的必现行为，也不能替代源码或授权证明。
 

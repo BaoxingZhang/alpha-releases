@@ -1,6 +1,6 @@
 {
   "evidence_type": "read_only_public_repository_audit",
-  "observed_at": "2026-11-02",
+  "observed_at": "2026-11-03",
   "repository": {
     "url": "https://github.com/xunchahaha/alpha-releases",
     "api_url": "https://api.github.com/repos/xunchahaha/alpha-releases",
@@ -174,7 +174,7 @@
   "audit_boundary": [
     "Issue reports are public user reports and cross-checks, not proof of a universal failure mode or internal implementation details.",
     "No source code, private repositories, credentials, real WeChat data, or unredacted native secrets were accessed in this audit.",
-    "Observed facts come from GitHub repository/API/raw README/docs/stable metadata at the URLs above on 2026-11-02.",
+    "Observed facts come from GitHub repository/API/raw README/docs/stable metadata at the URLs above on 2026-11-03.",
     "The audit does not download release binaries; a local artifact is checked only when --artifact is supplied.",
     "No source code, private repositories, credentials, real WeChat data, or unredacted native secrets are accessed by this audit."
   ],

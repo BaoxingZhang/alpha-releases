@@ -190,12 +190,12 @@ export async function auditUpstream({
     release_v0_3_5: updateReleaseRecord(previous, release, artifact),
     stable_policy: updateStableRecord(previous, stable, stableBytes),
     artifact_verification: localVerification,
-    audit_boundary: [
-      ...(Array.isArray(previous.audit_boundary) ? previous.audit_boundary.filter(value => typeof value === 'string' && !value.includes('Observed facts come from')) : []),
+    audit_boundary: [...new Set([
+      ...(Array.isArray(previous.audit_boundary) ? previous.audit_boundary.filter(value => typeof value === 'string' && !value.includes('Observed facts come from') && value !== 'The audit does not download release binaries; a local artifact is checked only when --artifact is supplied.' && value !== 'No source code, private repositories, credentials, real WeChat data, or unredacted native secrets are accessed by this audit.') : []),
       `Observed facts come from GitHub repository/API/raw README/docs/stable metadata at the URLs above on ${dateOnly(now)}.`,
       'The audit does not download release binaries; a local artifact is checked only when --artifact is supplied.',
       'No source code, private repositories, credentials, real WeChat data, or unredacted native secrets are accessed by this audit.'
-    ]
+    ])]
   };
   return next;
 }
