@@ -24,6 +24,8 @@ npm test
 npm run test:independent
 npm run test:smoke
 npm run audit:api
+npm run verify:independent-support
+npm run audit:native-abi
 npm run audit:public-release -- --root /path/to/sanitized-tree --report /tmp/alpha-public-release-audit.json --strict
 npm run verify:protocol
 npm run verify:vendor

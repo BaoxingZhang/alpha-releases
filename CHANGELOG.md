@@ -31,6 +31,13 @@
 - 当前本机 HTTP/MCP 适配器由 `toolDefinitions()` 声明 60 个工具，`docs/api-reference-index.json` 的独立适配器索引同步为 60 个；工具存在不代表原生 schema、真实数据或写入能力已恢复。
 - CI 维护基线继续要求普通与独立 packaged app、独立 Electron smoke、原生 smoke、依赖/API/public-release 审计、发布清单和恢复源码包检查；原生 smoke 仍单独记录完整性错误，不能改写为 ready。
 
+## 0.3.5-recovery 维护增补 — 2026-11-03（后续）
+
+- 当前独立协议支持矩阵为 75/128，完整回归为 256/256；新增的离线 SQLite schema 诊断只面向调用方已选副本，固定标记 `complete=false`、`native_schema_supported=false`，不把 schema 盘点计入 Alpha 协议支持矩阵。
+- 增加 `audit:native-abi`，只读核对随包两个 arm64 WCDB dylib 的来源哈希、权限、Mach-O 架构、代码签名、系统依赖和已知导出，不调用未知函数表、不访问账号目录。
+- 公开候选导出默认隔离机器生成的运行/构建/原生 provenance 证据，并把维护文档中的本机路径改为公开占位符；实测候选为 652 个文件、0 个 public-release audit findings，状态为 `ready-for-license-and-review`。
+- 上游来源审计继续确认公开仓库没有 Alpha 原生源码；被 GitHub DMCA 限制访问的 WeFlow fork 不作为源码、二进制或依赖来源，仍公开的 WeFlow 只作许可证和 ABI 对照材料。
+
 ## 后续版本
 
 后续版本应先更新 `provenance/project-metadata.json`、本文件和 [维护范围](MAINTENANCE.md)，再提交可验证的代码与测试。未经证据支持的真实朋友圈、真实收藏库/媒体解密、写入、自动取钥和云服务能力保持未实现状态；synthetic favorites 仅限显式 fixture 的 listFavorites 读取。
