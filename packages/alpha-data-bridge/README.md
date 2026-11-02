@@ -2,6 +2,8 @@
 
 这是自有 Go 读取模块，不依赖 Alpha 原厂 engine/guard，也不导入 Chatlog 的 internal 包。当前支持用户显式指定的、已经解密的离线微信 v4 SQLite 副本：账号信息、联系人、会话、分页消息、全文搜索、消息定位、日期计数与消息类型统计。另支持一个明确标记的独立朋友圈 fixture（`moments.db` 中的 `__alpha_moments_v1` 表），提供朋友圈列表、作者聚合和日计数；不会把真实微信的 `SnsTimeLine`/`snsmessage` 表猜测成兼容 schema。Node 引擎的媒体浏览复用 `sessions.list`/`messages.list` 做真实元数据筛选；bridge 另提供严格独立的 `media.probe`，只扫描显式 root 下的 `hardlink.db`/`media_*.db`，输出带相对路径、大小和 SHA-256 的 metadata-only 索引，不读取媒体字节、不生成 `media1_...` token、不播放。该探针以 Chatlog v4 公开代码中的表名和字段为候选证据，返回 `nativeSchemaSupported=false`；真实 Alpha 媒体 parity 仍未宣称。这是完整 Alpha 后端的第一批数据依赖，不代表完整功能已经恢复。v4 候选媒体库的表名、字段与路径线索见 [`docs/media-schema-evidence.md`](../../docs/media-schema-evidence.md)。
 
+另有私有 bridge 操作 `schema.inspect`，只检查启动时已经选定并验证过的离线 SQLite 副本，列出数据库相对路径、表名、列名、SQLite 类型、NOT NULL 和主键序号。它使用只读连接、固定的数据库/表/列/响应上限，并在返回前重新确认数据集身份；调用方不能传入路径、SQL 或触发用户目录扫描。结果固定标记 `sourceKind=explicit-offline-sqlite-schema`、`readOnly=true`、`complete=false`、`nativeSchemaSupported=false`，仅用于维护诊断，不代表 Alpha/native schema 兼容，也不计入协议支持矩阵。
+
 源码的 schema 参考固定 [Chatlog v4 数据源](https://github.com/imldy/chatlog/blob/a7162bca9454fa43b5950a2414670983fe180e56/internal/wechatdb/datasource/v4/datasource.go)，查询、验证、协议和分页代码为本项目实现。固定 Go module 依赖为 `github.com/mattn/go-sqlite3 v1.14.32` 与 `github.com/klauspost/compress v1.18.0`（有界 zstd 解码）；使用已校验的 go.sum，不更新到 latest。源码和许可证保留在项目内依赖缓存及 [已有依赖许可索引](../../docs/chatlog-dependency-licenses.json)，另保留 [zstd 依赖许可证](licenses/klauspost-compress-LICENSE)。没有复制上游实现或改动 `vendor/chatlog`。
 
 在工程根目录构建与测试：

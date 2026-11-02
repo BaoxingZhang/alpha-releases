@@ -1,0 +1,75 @@
+{
+  "schema": "alpha-recovered.native-smoke-validation.v1",
+  "recordedAt": "2026-11-02T20:08:14Z",
+  "command": "npm run test:smoke:native",
+  "platform": "darwin-arm64",
+  "customSeatbelt": false,
+  "electronNoSandbox": true,
+  "temporaryHome": true,
+  "temporaryStateEnvironment": [
+    "HOME",
+    "USERPROFILE",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME",
+    "XDG_CACHE_HOME",
+    "TMPDIR",
+    "TMP",
+    "TEMP"
+  ],
+  "realWeChatData": false,
+  "nativeFilesModified": false,
+  "nativeRuntime": {
+    "fileCount": 43,
+    "beforeAfterAggregateSha256": "f9755fd3774452179bf655cdf6a2680d8dc440be639c8b8079de2e397d5f6117"
+  },
+  "status": "passed",
+  "errors": [],
+  "rendererLoaded": true,
+  "backend": {
+    "state": "ready",
+    "components": [
+      {
+        "component": "engine",
+        "version": "0.3.5",
+        "buildId": "alpha-engine/0.3.5",
+        "protocol": "1.0"
+      },
+      {
+        "component": "native-host",
+        "version": "0.3.5",
+        "buildId": "alpha-native-host/0.1.0",
+        "protocol": "2.0"
+      }
+    ]
+  },
+  "accounts": {
+    "count": 0,
+    "meaning": "disposable userData had no configured account; this is not a real-data query"
+  },
+  "capabilities": {
+    "productId": "",
+    "installationId": "",
+    "grants": [],
+    "leaseSequence": "0",
+    "policyVersion": 0,
+    "validUntilUnixMs": "0",
+    "inOfflineGrace": false
+  },
+  "comparison": {
+    "sandboxSmoke": {
+      "command": "npm run test:smoke",
+      "status": "native-backend-unavailable-in-project-seatbelt",
+      "errorCode": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY",
+      "scope": "project isolation wrapper"
+    },
+    "nativeSmoke": {
+      "command": "npm run test:smoke:native",
+      "status": "native-backend-ready",
+      "scope": "temporary project runtime without the custom Seatbelt wrapper"
+    }
+  },
+  "limits": [
+    "This proves native startup and the engine/native-host handshake only.",
+    "It does not prove real account discovery, automatic key acquisition, message reads, media, writes, sending, licensing, or remote services."
+  ]
+}

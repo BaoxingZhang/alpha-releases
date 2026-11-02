@@ -27,6 +27,9 @@ function fakeEngine() {
   return {
     get calls() { return calls; },
     get lastMomentDayCountRequest() { return lastMomentDayCountRequest; },
+    async getDataSchemaDiagnostics() {
+      return { status: 'ready', sourceKind: 'explicit-offline-sqlite-schema', snapshotId: 'a'.repeat(64), readOnly: true, nativeSchemaSupported: false, complete: false, databases: [{ path: 'contact.db', tables: [{ name: 'contact', columns: [{ name: 'username', type: 'TEXT', notNull: true, primaryKey: 1 }] }] }], tableCount: 1, limits: { maxDatabases: 128, maxTables: 4096, maxColumnsPerTable: 256, maxResponseBytes: 4194304 } };
+    },
     async dispatch(request) {
       calls += 1;
       if (request.hello) return EngineServerFrame.fromPartial({ requestId: request.requestId, hello: { negotiatedProtocol: { major: 1, minor: 0 }, components: [], serverNonce: new Uint8Array(0), supportedMethodIds: [] } });
@@ -80,6 +83,9 @@ function fakeEngine() {
 
 function richMcpEngine() {
   return {
+    async getDataSchemaDiagnostics() {
+      return { status: 'ready', sourceKind: 'explicit-offline-sqlite-schema', snapshotId: 'b'.repeat(64), readOnly: true, nativeSchemaSupported: false, complete: false, databases: [{ path: 'session.db', tables: [{ name: 'SessionTable', columns: [{ name: 'username', type: 'TEXT', notNull: false, primaryKey: 0 }] }] }], tableCount: 1, limits: { maxDatabases: 128, maxTables: 4096, maxColumnsPerTable: 256, maxResponseBytes: 4194304 } };
+    },
     async dispatch(request) {
       if (request.hello) return EngineServerFrame.fromPartial({ requestId: request.requestId, hello: { negotiatedProtocol: { major: 1, minor: 0 }, components: [], serverNonce: new Uint8Array(0), supportedMethodIds: [] } });
       if (request.listAccounts) return EngineServerFrame.fromPartial({ requestId: request.requestId, listAccounts: { accounts: [{ id: 'acct-1', accountId: 'acct-1', displayName: '测试账号', ready: true, verified: true }], selectedAccountId: 'acct-1' } });
@@ -314,6 +320,12 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   assert.equal(result.response.status, 200);
   assert.deepEqual(result.body.directories, ['/tmp/alpha-source']);
   assert.equal(result.body.scope, 'alpha-independent-source-diagnostics');
+  result = await request(base, '/api/v1/independent/source/schema?account_id=acct-1', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-schema-diagnostics');
+  assert.equal(result.body.native_schema_supported, false);
+  assert.equal(result.body.read_only, true);
+  assert.equal(result.body.databases[0].tables[0].columns[0].name, 'username');
   result = await request(base, '/api/v1/independent/source/revision?account_id=acct-1', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: '{}' });
   assert.equal(result.response.status, 405);
   result = await request(base, '/api/v1/independent/export-schedules?account_id=acct-1', { headers: { Authorization: `Bearer ${token}` } });
@@ -357,7 +369,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   const headers = { Authorization: `Bearer ${token}`, 'content-type': 'application/json' };
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 61);
+  assert.equal(result.body.result.tools.length, 62);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
@@ -385,6 +397,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.schedules.retry_attempt'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.source.get_revision'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.source.get_watch_targets'));
+  assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.source.get_schema'));
   const recordsTool = result.body.result.tools.find(tool => tool.name === 'wechat.forensics.list_records');
   assert.deepEqual(recordsTool.inputSchema.properties.category.enum, ['payments', 'friend_requests', 'revokes', 'calls']);
   const independentRecordsTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.records.list_candidates');
@@ -430,6 +443,11 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.revision, '0123456789abcdef');
   assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-source-diagnostics');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 24, method: 'tools/call', params: { name: 'alpha-independent.source.get_schema', arguments: {} } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-schema-diagnostics');
+  assert.equal(result.body.result.structuredContent.native_schema_supported, false);
+  assert.equal(result.body.result.structuredContent.databases[0].tables[0].name, 'contact');
   assert.equal(result.body.result.structuredContent.complete, false);
   assert.equal(result.body.result.structuredContent.native_schema_supported, false);
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 23, method: 'tools/call', params: { name: 'alpha-independent.source.get_watch_targets', arguments: {} } }) });

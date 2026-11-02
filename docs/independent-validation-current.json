@@ -189,7 +189,7 @@
         "mediaResolvePath": "/api/v1/favorites/media/:token",
         "mediaSchema": "__alpha_favorite_media_v1"
       },
-      "tools": 61,
+      "tools": 62,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,
@@ -210,7 +210,8 @@
           ],
           "mcpTools": [
             "alpha-independent.source.get_revision",
-            "alpha-independent.source.get_watch_targets"
+            "alpha-independent.source.get_watch_targets",
+            "alpha-independent.source.get_schema"
           ],
           "scope": "alpha-independent-source-diagnostics",
           "complete": false,

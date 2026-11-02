@@ -2,7 +2,7 @@
 
 本页保留原二进制模式的实测结论。新增独立后端已接入原界面并通过合成数据端到端验证，当前两种模式的区别见 [independent-backend.md](independent-backend.md)。
 
-结论：可从恢复的 JavaScript 重新构建并启动 Electron 界面；原生后端启动失败，尚不能作为完整聊天工具使用。当前 Alpha 启动链路中的原生组件均为原包二进制复用，没有重新编译其原始 Rust/C++ 工程。`vendor/chatlog` 仅作为结构研究和候选核查，未接入原包启动链路；自有独立 Go bridge 是另一条离线维护路径，已在独立模式中单独验证。
+结论：可从恢复的 JavaScript 重新构建并启动 Electron 界面。项目的 Seatbelt 隔离 smoke 会让原生安全 host 拒绝 peer-image，因而该隔离报告中的 backend 不可用；单独运行 `test:smoke:native` 时，使用临时状态目录且不改原生文件，原生 engine/native-host handshake 可以进入 ready。两种结果都不能替代真实账号和业务验收。当前 Alpha 启动链路中的原生组件均为原包二进制复用，没有重新编译其原始 Rust/C++ 工程。`vendor/chatlog` 仅作为结构研究和候选核查，未接入原包启动链路；自有独立 Go bridge 是另一条离线维护路径，已在独立模式中单独验证。
 
 ## 验证结果
 
@@ -18,13 +18,26 @@
 | renderer | 通过 | 首次设置页显示“连接你的微信”，本轮监听未捕获 renderer error；未连接账号 |
 | 隔离检查 | 通过 | 项目内文件可读；项目外临时测试标记读取遭 EPERM；远程 IP 连接遭 Operation not permitted |
 | 钥匙串隔离 | 显式不可用 | `safeStorage.isEncryptionAvailable()` 为 false，加解密调用抛 `RECOVERY_KEYCHAIN_DISABLED`，不读取或保存真实凭据 |
-| 原生 engine | **不可用** | 原程序返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，随后 `application lock is unavailable` |
-| 账号与许可 IPC | **受阻** | `accounts.list()`、`license.capabilities()` 返回 `ENGINE_NOT_STARTED`，不是返回空账号数组 |
+| 原生 engine（项目 Seatbelt smoke） | **隔离环境不可用** | 原程序在项目 `/usr/bin/sandbox-exec` wrapper 下返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，随后 `application lock is unavailable`；这项结果单独保留，不代表 native 文件损坏 |
+| 原生 engine（`test:smoke:native`） | **启动链路通过** | 临时 HOME/userData 下返回 backend `ready`，组件为 `engine` 0.3.5 与 `native-host` 0.1.0；账号为空是 disposable 状态，没有真实账号读取 |
+| 账号与许可 IPC（项目 Seatbelt smoke） | **受阻** | 隔离原生 engine 未启动时，`accounts.list()`、`license.capabilities()` 返回 `ENGINE_NOT_STARTED`，不是返回空账号数组；native smoke 可查询到空 disposable accounts 和无 grants capabilities |
 | 更新服务 | 未配置 | 开发分支 `state=unconfigured`、`download.phase=idle` |
 | AI worker | 仅构建和路径配置 | worker 已输出到原网关要求的 `workers/agent/dist/index.cjs`；未调用模型或启动完整 AI 流程 |
 | 真实业务 | 未验证 | 未获取微信密钥，未连接数据目录，未检索/导出聊天，未发消息或修改数据 |
 
 `test:smoke` 是界面及隔离冒烟测试，也记录真实后端结果；它不会将后端失败伪装成成功。`checks.backendReady=false` 表示后端未就绪；`checks.emptyAccounts=null` 表示账号查询失败，无法判断其列表状态。测试通过后会关闭自己的窗口和进程。
+
+### 原生运行时的独立 smoke
+
+项目的 Seatbelt 隔离 smoke 与原生 peer-image 校验存在边界：`test:smoke` 使用 `/usr/bin/sandbox-exec`，原生 `alpha-security-host` 会在该外层沙箱下返回 `RUNTIME_PEER_IMAGE_NOT_ALLOWED`，随后桌面层显示 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`。这项结果保留为“隔离环境下原生不可用”，不等同于原生文件或签名损坏。
+
+要单独验证原生运行时的启动链路，可运行：
+
+```sh
+npm run test:smoke:native
+```
+
+该命令不使用项目的自定义 Seatbelt wrapper（Electron 子进程仍按现有本地 smoke 约定使用 `--no-sandbox`）；这只改变 Chromium 的本地渲染隔离，不修改或绕过 Alpha 原生 guard、签名、许可或 peer manifest。命令仍使用项目 `.runtime/<session>/` 下的临时 HOME、userData、临时目录和原生路径；它不扫描个人微信目录、不注入账号、不修改 `vendor/runtime`，也不调用写入、发送或网络业务。成功标准是 renderer/IPC 可读、backend `state=ready`，并同时看到 `engine` 与 `native-host` 组件；空账号数组只表示本次 disposable userData 没有配置账号。每次运行的完整报告写入被忽略的 `.runtime/<session>/native-smoke.json`，与 `test:smoke` 的 sandbox 报告分开保存。
 
 ## 独立后端实际启动
 

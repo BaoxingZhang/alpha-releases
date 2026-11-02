@@ -198,6 +198,37 @@ function mediaProbeResponse(value) {
   if (!Number.isSafeInteger(value.itemCount) || value.itemCount !== items.length || !Number.isSafeInteger(value.ambiguousItems) || value.ambiguousItems < 0 || value.ambiguousItems > items.length) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
   return { status: 'ready', sourceKind: value.sourceKind, nativeSchemaSupported: false, metadataOnly: true, mediaReady: false, files, items, itemCount: value.itemCount, ambiguousItems: value.ambiguousItems };
 }
+function schemaDiagnosticText(value, maximum = 4096, allowEmpty = false) {
+  if (typeof value !== 'string' || value.length > maximum || value.includes('\0') || !allowEmpty && !value || /[\u0000-\u001f\u007f]/.test(value) || value !== value.trim()) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
+  return value;
+}
+function schemaDiagnosticResponse(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value.status !== 'ready' || value.sourceKind !== 'explicit-offline-sqlite-schema' || value.nativeSchemaSupported !== false || value.complete !== false || value.readOnly !== true || !/^[a-f0-9]{64}$/.test(value.snapshotId) || !Array.isArray(value.databases) || value.databases.length > 128 || !Number.isSafeInteger(value.tableCount) || value.tableCount < 0 || value.tableCount > 4096 || value.databases.length === 0) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
+  let tableCount = 0;
+  const databases = value.databases.map(database => {
+    if (!database || typeof database !== 'object' || Array.isArray(database) || typeof database.path !== 'string' || database.path.length > 1024 || database.path.startsWith('/') || database.path.includes('\\') || database.path.split('/').some(part => !part || part === '.' || part === '..') || !Array.isArray(database.tables)) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
+    if (database.tables.length > 4096) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
+    const tables = database.tables.map(table => {
+      if (!table || typeof table !== 'object' || Array.isArray(table) || typeof table.name !== 'string' || table.name.length > 1024 || table.name.includes('\0') || !Array.isArray(table.columns) || table.columns.length > 256) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
+      tableCount += 1;
+      const columns = table.columns.map(column => {
+        if (!column || typeof column !== 'object' || Array.isArray(column)) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
+        const name = schemaDiagnosticText(column.name, 1024);
+        const type = schemaDiagnosticText(column.type, 1024, true);
+        if (typeof column.notNull !== 'boolean' || !Number.isSafeInteger(column.primaryKey) || column.primaryKey < 0 || column.primaryKey > 256) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
+        if (column.defaultValue !== undefined && column.defaultValue !== null && !['string', 'number', 'boolean'].includes(typeof column.defaultValue)) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
+        if (typeof column.defaultValue === 'number' && !Number.isSafeInteger(column.defaultValue)) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
+        return { name, type, notNull: column.notNull, primaryKey: column.primaryKey, ...(column.defaultValue === undefined ? {} : { defaultValue: column.defaultValue }) };
+      });
+      return { name: schemaDiagnosticText(table.name, 1024), columns };
+    });
+    return { path: schemaDiagnosticText(database.path, 1024), tables };
+  });
+  if (tableCount !== value.tableCount) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
+  const result = { status: 'ready', sourceKind: value.sourceKind, snapshotId: value.snapshotId, readOnly: true, nativeSchemaSupported: false, complete: false, databases, tableCount, limits: { maxDatabases: 128, maxTables: 4096, maxColumnsPerTable: 256, maxResponseBytes: 4 * 1024 * 1024 } };
+  if (Buffer.byteLength(JSON.stringify(result), 'utf8') > 4 * 1024 * 1024) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
+  return result;
+}
 const INT64_MAX = (1n << 63n) - 1n;
 const MAX_SAFE_COUNT = BigInt(Number.MAX_SAFE_INTEGER);
 const MAX_EXPORT_MESSAGES = 100000;
@@ -2231,6 +2262,10 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       if (!stat || (stat.mode & 0o002) !== 0) throw error('DATA_WATCH_TARGETS_UNAVAILABLE');
       return { directories: [target] };
     },
+    async getDataSchemaDiagnostics(request) {
+      await requireAccount(request.accountId);
+      return schemaDiagnosticResponse(await callData('schema.inspect', {}));
+    },
     async analyzeAnnual(request) {
       await requireAccount(request.accountId);
       const utcOffsetMinutes = request.utcOffsetMinutes === undefined ? 0 : request.utcOffsetMinutes;
@@ -3037,6 +3072,13 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       const accountInfo = await requireAccount(normalizedAccountId);
       if (!accountInfo.capabilities?.includes('media.probe')) throw error('CAPABILITY_UNAVAILABLE');
       return mediaProbeResponse(await callData('media.probe', {}));
+    },
+    async getDataSchemaDiagnostics(accountId2) {
+      const normalizedAccountId = typeof accountId2 === 'string' ? accountId2.trim() : accountId2?.accountId;
+      if (typeof normalizedAccountId !== 'string' || !normalizedAccountId) throw error('ACCOUNT_ID_REQUIRED');
+      const accountInfo = await requireAccount(normalizedAccountId);
+      if (!accountInfo.capabilities?.includes('account.info')) throw error('CAPABILITY_UNAVAILABLE');
+      return schemaDiagnosticResponse(await callData('schema.inspect', {}));
     },
     async cancelPending() { await cancelImport(); },
     async close() { await aggregateAnalysisJobs.close(); await chatExportSchedules.close(); await chatExportJobs.close(); await momentExportJobs.close(); closed = true; await cancelImport(); await dropBridge(); }

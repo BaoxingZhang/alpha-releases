@@ -874,6 +874,26 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 		}
 		return value, nil
 	}
+	// schema.inspect is a bounded, read-only inventory of the already selected
+	// SQLite snapshot. It is intentionally outside the Alpha protobuf methods;
+	// the desktop adapter exposes it only as an independent diagnostic route.
+	if r.Op == "schema.inspect" {
+		var inspect struct{}
+		if len(r.Params) == 0 || string(r.Params) == "null" {
+			return nil, fail("INVALID_PARAMS", "schema.inspect requires an empty JSON object")
+		}
+		if err := decodeStrict(r.Params, &inspect); err != nil {
+			return nil, err
+		}
+		value, err := b.schemaDiagnostics(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if err := b.verify(); err != nil {
+			return nil, err
+		}
+		return value, nil
+	}
 	var p params
 	if len(r.Params) > 0 && string(r.Params) != "null" {
 		if err := decodeStrict(r.Params, &p); err != nil {
