@@ -804,7 +804,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     if (row?.refs === undefined) return [];
     if (!Array.isArray(row.refs) || row.refs.length > 4) throw error('BRIDGE_MESSAGE_REFS_INVALID');
     return row.refs.map(ref => {
-      if (!ref || typeof ref !== 'object' || !['image', 'video', 'voice'].includes(ref.kind)) throw error('BRIDGE_MESSAGE_REFS_INVALID');
+      if (!ref || typeof ref !== 'object' || !['image', 'video', 'voice', 'file'].includes(ref.kind)) throw error('BRIDGE_MESSAGE_REFS_INVALID');
       for (const [field, maximum] of [['id', 128], ['uri', 4096], ['mimeType', 128], ['rendition', 64]]) {
         if (ref[field] !== undefined && (typeof ref[field] !== 'string' || ref[field].length > maximum || ref[field].includes('\0'))) throw error('BRIDGE_MESSAGE_REFS_INVALID');
       }
@@ -813,16 +813,18 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       if (uri && !/^https?:\/\/[^\s<>]+$/i.test(uri)) throw error('BRIDGE_MESSAGE_REFS_INVALID');
       if (id && !/^[A-Za-z0-9._:-]+$/.test(id)) throw error('BRIDGE_MESSAGE_REFS_INVALID');
       const result = { kind: ref.kind, ...(ref.id ? { id: ref.id } : {}), ...(ref.uri ? { uri: ref.uri } : {}), ...(ref.mimeType ? { mimeType: ref.mimeType } : {}), ...(ref.rendition ? { rendition: ref.rendition } : {}) };
-      // Bind a local image only when the explicitly supplied index identifies
+      // Bind a local media ref only when the explicitly supplied index identifies
       // the same account-scoped conversation/message. The URI is an
       // independent content-addressed token; it is never Alpha's media1_
       // token and does not imply DAT/AES compatibility.
-      if (result.kind === 'image' && result.id) {
+      if (['image', 'video', 'voice', 'file'].includes(result.kind) && result.id) {
         const index = independentMediaIndex();
         const rendition = result.rendition || 'source';
-        const entry = index && Array.isArray(index.entries) ? index.entries.find(item => item.kind === 'image' && (!item.accountId || item.accountId === accountId) && item.id === result.id && item.rendition === rendition && (!item.conversationId || item.conversationId === conversationId) && (!item.messageId || item.messageId === messageId)) : null;
+        const indexedRendition = result.kind === 'voice' ? 'wav' : rendition;
+        const entry = index && Array.isArray(index.entries) ? index.entries.find(item => item.kind === result.kind && (!item.accountId || item.accountId === accountId) && item.id === result.id && item.rendition === indexedRendition && (!item.conversationId || item.conversationId === conversationId) && (!item.messageId || item.messageId === messageId)) : null;
         if (entry) {
           result.uri = `alpha-media://sha256/${entry.sha256}`;
+          if (result.kind === 'voice') result.rendition = entry.rendition;
           if (entry.mimeType) result.mimeType = entry.mimeType;
         }
       }

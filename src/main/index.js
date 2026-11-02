@@ -1506,7 +1506,29 @@ class PlaybackCacheAccess {
     };
     if (!/^[a-f0-9]{64}$/.test(opaqueId) || !grant()) return fail$c("NOT_AUTHORIZED");
     try {
-      const { directory: directory2, path, extension } = await locate(root, opaqueId);
+      let located;
+      try {
+        located = await locate(root, opaqueId);
+      } catch (reason) {
+        // Independent recovery may publish a verified WAV through its
+        // content-addressed media-index instead of the native av/ cache.
+        // Keep this fallback narrow: it requires a voice/wav entry whose
+        // indexed SHA-256 is exactly the requested opaque id.
+        if (!(reason instanceof Error) || reason.message !== "MEDIA_PLAYBACK_NOT_FOUND") throw reason;
+        let index;
+        try {
+          index = loadMediaIndex({ root });
+        } catch {
+          throw reason;
+        }
+        const entries = index.entries.filter((entry) => entry.kind === "voice" && entry.id === opaqueId && entry.rendition === "wav" && entry.sha256 === opaqueId && ["audio/wav", "audio/x-wav"].includes(entry.mimeType ?? ""));
+        if (entries.length !== 1) throw reason;
+        const media = await readMediaEntry(index, entries[0], { maxBytes: INPUT_LIMIT });
+        const bytes2 = Buffer.from(media.bytes);
+        if (!validWav(bytes2) || bytes2.length > OUTPUT_LIMIT || !grant()) return fail$c("FORMAT_INVALID");
+        return { mimeType: "audio/wav", dataBase64: bytes2.toString("base64") };
+      }
+      const { directory: directory2, path, extension } = located;
       if (extension === "mp4") {
         if (grant()?.kind !== "video") return fail$c("NOT_AUTHORIZED");
         await (await this.openVideo(path, opaqueId)).file.close();

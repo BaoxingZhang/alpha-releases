@@ -290,6 +290,7 @@ type mediaRef struct {
 }
 
 var mediaHashPattern = regexp.MustCompile(`(?i)(?:md5|rawmd5)=["']([0-9a-f]{32})["']`)
+var mediaSHA256Pattern = regexp.MustCompile(`(?i)(?:sha256|sha-256)=["']([0-9a-f]{64})["']`)
 var mediaURLPattern = regexp.MustCompile(`(?i)(cdnthumburl|cdnurl|url)=["']([^"'<>\x00-\x1f]{1,1000})["']`)
 
 // mediaReferences only exposes identifiers that are present in the decoded
@@ -303,6 +304,12 @@ func mediaReferences(localType, serverID, content string) []mediaRef {
 	case "3":
 		kind, mime = "image", "image/*"
 	case "34":
+		// An independently supplied SHA-256 attribute is accepted only as a
+		// content-addressed synthetic voice identity. Real WeChat voice rows
+		// continue to use their verified server_id below.
+		if match := mediaSHA256Pattern.FindStringSubmatch(content); len(match) == 2 {
+			return []mediaRef{{Kind: "voice", ID: strings.ToLower(match[1]), MimeType: "audio/amr", Rendition: "voice-data"}}
+		}
 		if serverID == "" || serverID == "0" {
 			return nil
 		}

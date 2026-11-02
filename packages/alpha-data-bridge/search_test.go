@@ -29,3 +29,15 @@ func TestBoundedSharedTextDecoder(t *testing.T) {
 		t.Fatal("invalid UTF-8 accepted")
 	}
 }
+
+func TestSyntheticVoiceReferenceAcceptsContentAddressedIdentity(t *testing.T) {
+	const id = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	refs := mediaReferences("34", "500", `<msg sha256="`+id+`"/>`)
+	if len(refs) != 1 || refs[0].Kind != "voice" || refs[0].ID != id || refs[0].Rendition != "voice-data" {
+		t.Fatalf("unexpected synthetic voice refs: %#v", refs)
+	}
+	legacy := mediaReferences("34", "500", "")
+	if len(legacy) != 1 || legacy[0].ID != "500" {
+		t.Fatalf("legacy voice identity changed: %#v", legacy)
+	}
+}

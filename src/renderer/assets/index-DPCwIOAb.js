@@ -6614,7 +6614,7 @@ function OnboardingWizard({ onComplete, onCancel, status }) {
   const detected = detectedAccountChoices(candidates);
   const saved = savedAccountChoices(accounts, candidates);
   const platform = window.alpha.windowChrome?.platform;
-const keyCopy = independentSource ? { intro: "打开启动时指定的微信 v4 离线数据副本。加密副本需要手动输入已有密钥，验证成功后生成本地解密副本；不会自动获取密钥。文本消息和部分只读导出已可用；图片文件读取、AI 与完整导出格式仍在接入中。", busy: "正在验证并打开数据副本…" } : autoDatabaseKeyCopy(platform);
+const keyCopy = independentSource ? { intro: "打开启动时指定的微信 v4 离线数据副本。加密副本需要手动输入已有密钥，验证成功后生成本地解密副本；不会自动获取密钥。文本消息、部分只读导出和已明确绑定索引的图片预览已可用；视频、语音播放、AI 与完整导出格式仍在接入中。", busy: "正在验证并打开数据副本…" } : autoDatabaseKeyCopy(platform);
   const nextLabel = step === 0 ? connected ? "继续" : manual ? "验证并连接" : independentSource ? "打开数据副本" : "连接微信" : step === 1 ? imageConfigured ? "继续" : "暂时跳过" : step === 2 ? "继续" : "进入 Alpha";
   return /* @__PURE__ */ jsxRuntimeExports.jsx("section", { className: "setup-screen", "aria-label": "Alpha 首次设置", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "setup-window", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "setup-sidebar", children: [

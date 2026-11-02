@@ -210,6 +210,7 @@ function toolDefinitions() {
     { name: 'alpha-independent.media.browse_account', description: '按账号可发现会话浏览媒体/图片/视频消息元数据；不读取、解密、下载或播放媒体，不生成原生 media1 token', inputSchema: { type: 'object', required: ['category'], properties: { account_id: string, category: { type: 'string', enum: ['media', 'image', 'video'] }, conversation_id: string, from_unix_ms: string, to_unix_ms: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.media.probe', description: '读取显式 v4 hardlink.db/media_*.db 的有界媒体元数据；不读取媒体字节、不播放、不生成 Alpha media1 token，结果始终 metadata-only', inputSchema: { type: 'object', properties: { account_id: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.media.decode_voice_playback', description: '解析独立 __alpha_voice_playback_v1 synthetic 映射并校验自有 WAV media-index；不兼容真实 VoiceInfo/SILK/native media cache', inputSchema: { type: 'object', required: ['media_id'], properties: { account_id: string, media_id: { type: 'string', pattern: '^[0-9a-f]{64}$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.mobile.get_overview', description: '组合返回已验证账号状态和会话摘要；不兼容官方 wechat.mobile.get_overview/native mobile snapshot schema', inputSchema: { type: 'object', properties: { account_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_conversation', description: '将已验证会话导出到本机新文件；ChatLab/SQL/WeClone 为独立后端的派生格式', inputSchema: { type: 'object', required: ['username', 'format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['json', 'markdown', 'html', 'txt', 'xlsx', 'chatlab-json', 'chatlab-jsonl', 'sql', 'weclone'] }, destination_path: string, include_media: { type: 'boolean', const: false }, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_media_metadata', description: '将已验证媒体消息的元数据导出到本机新文件；不读取、解密或播放媒体文件', inputSchema: { type: 'object', required: ['format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['media-json', 'media-csv'] }, destination_path: string, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha.messages.search_page', description: '读取独立后端的跨会话搜索页', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, username: string, sender_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -671,7 +672,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'],
       'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
       'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'],
-      'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
+      'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
       'alpha-independent.records.list_candidates': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
       'wechat.chat.list_search_senders': ['account_id', 'query', 'username', 'limit'], 'wechat.chat.get_message_around': ['account_id', 'username', 'anchor_id', 'before', 'after'],
       'wechat.chat.get_message_anchor': ['account_id', 'username', 'kind', 'date'], 'wechat.chat.get_daily_message_counts': ['account_id', 'username', 'month', 'utc_offset_minutes'], 'alpha-independent.moments.list_timeline': ['account_id', 'username', 'keyword', 'limit', 'offset', 'ascending', 'from_unix_ms', 'to_unix_ms'], 'alpha-independent.moments.list_users': ['account_id', 'limit'], 'alpha-independent.moments.day_counts': ['account_id', 'username', 'from_date', 'to_date', 'utc_offset_minutes'], 'alpha-independent.moments.start_export': ['account_id', 'format', 'output_directory', 'usernames', 'keyword', 'start_time_unix_ms', 'end_time_unix_ms', 'media_kinds', 'utc_offset_minutes'], 'alpha-independent.moments.watch_export': ['account_id', 'job_id'], 'alpha-independent.moments.cancel_export': ['account_id', 'job_id'], 'alpha-independent.favorites.list_items': ['account_id', 'type', 'query', 'tag_id', 'limit', 'offset', 'ascending', 'include_type_counts', 'include_media', 'skip_source_context'], 'alpha-independent.favorites.list_media_slots': ['account_id', 'favorite_id'], 'alpha-independent.favorites.resolve_media': ['account_id', 'token'], 'alpha.chat.export_capabilities': [], 'alpha.chat.export_stats': ['account_id', 'conversation_ids', 'refresh'], 'wechat.chat.get_message_raw': ['account_id', 'username', 'message_id', 'server_id', 'local_id'], 'wechat.chat.export_conversation': ['account_id', 'username', 'format', 'destination_path', 'include_media', 'start_time_unix_ms', 'end_time_unix_ms'], 'wechat.chat.export_media_metadata': ['account_id', 'username', 'format', 'destination_path', 'start_time_unix_ms', 'end_time_unix_ms']
@@ -790,6 +791,47 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const value = snakeKeys(await engine.probeMedia(account));
       const result = { ...value, scope: 'explicit-v4-media-database-probe', complete: value.status === 'ready', media_ready: false, metadata_only: true, native_schema_supported: false };
       return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
+    }
+    else if (name === 'alpha-independent.mobile.get_overview') {
+      const account = await selectedAccount(params);
+      const listed = snakeKeys(await call('listAccounts'));
+      const accounts = Array.isArray(listed.accounts) ? listed.accounts : [];
+      const row = accounts.find(item => item.account_id === account || item.id === account);
+      if (!row) throw new HttpAdapterError('HTTP_API_ACCOUNT_REQUIRED', accounts.length ? 400 : 503);
+      const sessions = await route('/api/v1/sessions', {
+        account_id: account,
+        limit: mcpLimit(args.limit, 20, 500, 'MCP_LIMIT_INVALID'),
+        ...(args.cursor === undefined ? {} : { cursor: args.cursor })
+      });
+      const accountInfo = {
+        id: row.id || row.account_id || '',
+        display_name: row.display_name || '',
+        state: row.state || '',
+        ready: row.ready === true,
+        verified: row.verified === true,
+        capabilities: Array.isArray(row.capabilities) ? row.capabilities : []
+      };
+      const items = Array.isArray(sessions.items) ? sessions.items.map(item => ({
+        id: item.id || '',
+        ...(item.display_name ? { display_name: item.display_name } : {}),
+        ...(item.kind !== undefined ? { kind: item.kind } : {}),
+        ...(item.last_activity_unix_ms !== undefined ? { last_activity_unix_ms: item.last_activity_unix_ms } : {}),
+        ...(item.preview ? { preview: item.preview } : {})
+      })) : [];
+      const overview = {
+        scope: 'alpha-independent-verified-dto',
+        complete: false,
+        native_schema_supported: false,
+        coverage: 'verified-account-and-session-dto',
+        account: accountInfo,
+        sessions: {
+          items,
+          has_more: Boolean(sessions.next_cursor),
+          ...(sessions.next_cursor ? { next_cursor: sessions.next_cursor } : {}),
+          ...(sessions.total_count !== undefined ? { total_count: sessions.total_count } : {})
+        }
+      };
+      return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: overview, content: [{ type: 'text', text: JSON.stringify(overview) }] } };
     }
     else if (name === 'alpha-independent.media.browse_conversation' || name === 'alpha-independent.media.browse_account') {
       const account = await selectedAccount(params);

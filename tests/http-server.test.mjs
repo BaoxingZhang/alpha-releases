@@ -260,7 +260,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   const headers = { Authorization: `Bearer ${token}`, 'content-type': 'application/json' };
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 45);
+  assert.equal(result.body.result.tools.length, 46);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.resolve_search_hit'));
@@ -271,6 +271,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.media.browse_conversation'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.media.browse_account'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.media.decode_voice_playback'));
+  assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.mobile.get_overview'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha.chat.export_stats'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.moments.list_timeline'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.moments.day_counts'));
@@ -414,6 +415,20 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'wechat.core.list_accounts', arguments: {} } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.accounts[0].id, 'acct-1');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 25, method: 'tools/call', params: { name: 'alpha-independent.mobile.get_overview', arguments: { limit: 20 } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-verified-dto');
+  assert.equal(result.body.result.structuredContent.complete, false);
+  assert.equal(result.body.result.structuredContent.native_schema_supported, false);
+  assert.equal(result.body.result.structuredContent.coverage, 'verified-account-and-session-dto');
+  assert.equal(result.body.result.structuredContent.account.id, 'acct-1');
+  assert.equal(result.body.result.structuredContent.sessions.items[0].id, 'wxid_peer');
+  assert.equal(result.body.result.structuredContent.sessions.next_cursor, 'AQI=');
+  assert.equal(result.body.result.structuredContent.sessions.has_more, true);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 26, method: 'tools/call', params: { name: 'alpha-independent.mobile.get_overview', arguments: { unexpected: true } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.isError, true);
+  assert.equal(result.body.result.structuredContent.code, 'MCP_ARGUMENTS_INVALID');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'wechat.chat.send_text', arguments: {} } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.isError, true);

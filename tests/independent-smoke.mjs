@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import { DatabaseSync } from 'node:sqlite';
 import { spawnSync } from 'node:child_process';
 import { root, launchEnvironment, sandboxProfile } from '../scripts/environment.mjs';
 import { createFixture } from './data-bridge-fixture.mjs';
@@ -15,6 +16,89 @@ fs.mkdirSync(runtime, { recursive: true });
 const fixture = await createFixture(path.join(runtime, 'fixture'));
 await installMomentsFixture(fixture.directory);
 await installFavoritesFixture(fixture.directory);
+
+// Add one explicitly synthetic, content-addressed PNG to this packaged smoke
+// fixture. The bridge derives the image id from the message XML; the manifest
+// binds that id to the exact message identity, so the renderer must obtain the
+// bytes through the same grant + hash checked IPC path used by a real image.
+const imageId = '0123456789abcdef0123456789abcdef';
+const imageBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+const imageRelativePath = 'media/independent-smoke.png';
+fs.mkdirSync(path.join(fixture.directory, 'media'), { recursive: true, mode: 0o700 });
+fs.writeFileSync(path.join(fixture.directory, imageRelativePath), imageBytes, { mode: 0o600 });
+const messageTable = 'Msg_' + crypto.createHash('md5').update(fixture.conversationId).digest('hex');
+const messageDatabase = path.join(fixture.directory, 'message', 'message_0.db');
+{
+  const db = new DatabaseSync(messageDatabase);
+  db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+    6, 400, 400, 3, 1700000005, 1, 1, `<msg md5="${imageId}"/> image source`, Buffer.alloc(0)
+  );
+  db.close();
+}
+const imageMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({
+  accountId: fixture.accountId,
+  database: 'message/message_0.db',
+  table: messageTable,
+  localId: '6'
+})).digest('hex')}`;
+fixture.messageCount += 1;
+const imageSha256 = crypto.createHash('sha256').update(imageBytes).digest('hex');
+const voiceBytes = Buffer.alloc(46);
+voiceBytes.write('RIFF', 0, 'ascii');
+voiceBytes.writeUInt32LE(voiceBytes.length - 8, 4);
+voiceBytes.write('WAVE', 8, 'ascii');
+voiceBytes.write('fmt ', 12, 'ascii');
+voiceBytes.writeUInt32LE(16, 16);
+voiceBytes.writeUInt16LE(1, 20);
+voiceBytes.writeUInt16LE(1, 22);
+voiceBytes.writeUInt32LE(8000, 24);
+voiceBytes.writeUInt32LE(16000, 28);
+voiceBytes.writeUInt16LE(2, 32);
+voiceBytes.writeUInt16LE(16, 34);
+voiceBytes.write('data', 36, 'ascii');
+voiceBytes.writeUInt32LE(2, 40);
+voiceBytes.writeUInt16LE(0, 44);
+const voiceId = crypto.createHash('sha256').update(voiceBytes).digest('hex');
+const voiceRelativePath = `media/voice/${voiceId}.wav`;
+fs.mkdirSync(path.dirname(path.join(fixture.directory, voiceRelativePath)), { recursive: true, mode: 0o700 });
+fs.writeFileSync(path.join(fixture.directory, voiceRelativePath), voiceBytes, { mode: 0o600 });
+{
+  const db = new DatabaseSync(messageDatabase);
+  db.exec(`CREATE TABLE "__alpha_voice_playback_v1" (media_id TEXT PRIMARY KEY, wav_media_id TEXT NOT NULL)`);
+  db.prepare(`INSERT INTO "__alpha_voice_playback_v1" (media_id, wav_media_id) VALUES (?, ?)`)
+    .run(voiceId, voiceId);
+  db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+    7, 401, 401, 34, 1700000006, 1, 1, `<msg sha256="${voiceId}"/> voice source`, Buffer.alloc(0)
+  );
+  db.close();
+}
+fixture.messageCount += 1;
+fs.writeFileSync(path.join(fixture.directory, 'media-index.v1.json'), JSON.stringify({
+  version: 1,
+  accountId: fixture.accountId,
+  entries: [{
+    kind: 'image',
+    id: imageId,
+    rendition: 'source',
+    relativePath: imageRelativePath,
+    sha256: imageSha256,
+    sizeBytes: imageBytes.length,
+    mimeType: 'image/png',
+    accountId: fixture.accountId,
+    conversationId: fixture.conversationId,
+    messageId: imageMessageId,
+    sentAtUnixMs: '1700000005000'
+  }, {
+    kind: 'voice',
+    id: voiceId,
+    rendition: 'wav',
+    relativePath: voiceRelativePath,
+    sha256: voiceId,
+    sizeBytes: voiceBytes.length,
+    mimeType: 'audio/wav',
+    accountId: fixture.accountId
+  }]
+}, null, 2) + '\n', { mode: 0o600 });
 const quote = x => "'" + x.replaceAll("'", "'\\''") + "'";
 const wrapper = path.join(runtime, 'electron-sandbox.sh');
 fs.writeFileSync(wrapper, `#!/bin/sh\nexec /usr/bin/sandbox-exec -f ${quote(sandboxProfile())} ${quote(electronPath)} "$@"\n`, { mode: 0o755 });
@@ -76,6 +160,12 @@ try {
   assert.ok(JSON.stringify(read.messages).includes('first source'));
   assert.match(read.sourceMessage?.sourceToken ?? '', /^independent1_[A-Za-z0-9_-]+$/);
   assert.deepEqual(read.source, { text: 'first source', format: 'text' });
+  const imageMessage = read.messages.find(message => message.text.includes('image source'));
+  assert.equal(imageMessage?.id, imageMessageId);
+  assert.equal(imageMessage?.refs?.[0]?.uri, `alpha-media://sha256/${imageSha256}`);
+  const voiceMessage = read.messages.find(message => message.text.includes('voice source'));
+  assert.equal(voiceMessage?.refs?.[0]?.uri, `alpha-media://sha256/${voiceId}`);
+  assert.equal(voiceMessage?.refs?.[0]?.rendition, 'wav');
   report.checks.realSqliteThroughDesktopIpc = true;
   report.checks.independentMessageSourceThroughRendererIpc = true;
   // Exercise the real renderer -> preload -> main IPC path for the recovered
@@ -98,6 +188,8 @@ try {
   assert.equal(report.ownedChildProcesses.some(x => /\/(?:vendor\/runtime|build\/runtime-bundle)\/bin\/alpha-/.test(x.executable)), false);
   report.checks.noOriginalAlphaChildObserved = true;
   // Walk the actual onboarding controls; no localStorage or query-cache injection.
+  await page.getByText('已明确绑定索引的图片预览已可用', { exact: false }).waitFor({ timeout: 15000 });
+  report.checks.independentOnboardingMediaBoundaryShown = true;
   await page.getByRole('checkbox', { name: '我已了解，开始连接本地数据' }).click();
   const connect = page.locator('.setup-footer').getByRole('button', { name: '打开数据副本', exact: true });
   await connect.click({ timeout: 20000 });
@@ -108,6 +200,26 @@ try {
   report.checks.originalOnboardingCompleted = true;
   await page.getByText('合成联系人甲', { exact: true }).first().click({ timeout: 15000 });
   await page.getByText('first source', { exact: true }).first().waitFor({ timeout: 15000 });
+  // Media IPC requires the selected account proof established by onboarding.
+  // The earlier listMessages call only checks metadata and intentionally does
+  // not imply a byte-read grant.
+  report.image = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.readImage(accountId, opaqueId), {
+    accountId: fixture.accountId,
+    opaqueId: imageSha256
+  });
+  assert.deepEqual(report.image, { mimeType: 'image/png', dataBase64: imageBytes.toString('base64') });
+  report.checks.independentImageReadThroughRendererIpc = true;
+  await page.locator('.message-media img').first().waitFor({ timeout: 15000 });
+  const renderedImage = page.locator('.message-media img').first();
+  assert.match(await renderedImage.getAttribute('src'), /^alpha-media:\/\/img\//);
+  assert.equal(await renderedImage.evaluate((image) => image.complete && image.naturalWidth > 0), true);
+  report.checks.independentImagePreviewRendered = true;
+  report.voice = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.readPlayback(accountId, opaqueId), {
+    accountId: fixture.accountId,
+    opaqueId: voiceId
+  });
+  assert.deepEqual(report.voice, { mimeType: 'audio/wav', dataBase64: voiceBytes.toString('base64') });
+  report.checks.independentVoicePlaybackThroughRendererIpc = true;
   report.checks.messageRendered = true;
   await page.getByRole('button', { name: '朋友圈', exact: true }).click({ timeout: 15000 });
   await page.locator('section[aria-label="朋友圈浏览器"]').waitFor({ timeout: 15000 });
