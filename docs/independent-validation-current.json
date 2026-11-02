@@ -1,6 +1,6 @@
 {
   "recordedAt": "2026-11-02",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
     "implementedRequestBranches": 73,
@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 241,
+      "passed": 243,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -415,9 +415,9 @@
       "gitDiffCheck": "passed"
     },
     "recordExport": {
-      "command": "node --test tests/engine-record-export.test.mjs",
+      "command": "node --test tests/engine-record-export.test.mjs tests/engine-favorites-export.test.mjs",
       "status": "passed",
-      "tests": 2,
+      "tests": 4,
       "formats": [
         "json",
         "csv",
@@ -427,12 +427,30 @@
         "payments",
         "friend_requests",
         "revokes",
-        "calls"
+        "calls",
+        "favorites"
       ],
       "unsupportedCategories": [
         "moment_interactions",
         "searches"
-      ]
+      ],
+      "favorites": {
+        "syntheticOnly": true,
+        "metadataOnly": true,
+        "nativeSchemaSupported": false,
+        "formats": [
+          "json",
+          "csv",
+          "xlsx"
+        ],
+        "omitted": [
+          "contentXml",
+          "mediaToken",
+          "downloadUrl",
+          "sourceLookup"
+        ],
+        "sourceTable": "__alpha_favorites_v1"
+      }
     },
     "contactExport": {
       "command": "node --test tests/engine.test.mjs",
@@ -473,13 +491,13 @@
       "nativeRecompiled": false,
       "projectSigned": false,
       "artifactCount": 991,
-      "artifactDigest": "0cefe65e17826894eb6499d1d8bceb27a204b49ea164ad1c9aa2293a5a98be55"
+      "artifactDigest": "bae88ae3ac93868c341246a11f09e7238007f17fd1fdebbe12764bee35f34028"
     },
     "releaseManifestVerification": {
       "command": "npm run verify:release-manifest",
       "status": "passed",
       "artifactCount": 991,
-      "artifactDigest": "0cefe65e17826894eb6499d1d8bceb27a204b49ea164ad1c9aa2293a5a98be55",
+      "artifactDigest": "bae88ae3ac93868c341246a11f09e7238007f17fd1fdebbe12764bee35f34028",
       "checks": [
         "path",
         "symlink",
@@ -502,11 +520,11 @@
       "status": "passed",
       "appPath": ".runtime/release-artifacts/Alpha Recovered Independent.app",
       "dmgPath": ".runtime/release-artifacts/Alpha Recovered Independent.dmg",
-      "appArtifactDigest": "b91c0d9c846e6688a967c81ae456362f42b09bf0e2355afb22110cc9a13f3886",
+      "appArtifactDigest": "c74469e66fcf23dd4dc2b889dd181b5f21b12de97a15a5c1a4250ad0c430610d",
       "appFileCount": 1640,
-      "appTotalBytes": 527961116,
-      "dmgBytes": 253173864,
-      "dmgSha256": "0658d63a96987d31dbd5752e262bace7ca4d9e81b76ca569d2019058cc1e76a4",
+      "appTotalBytes": 528067402,
+      "dmgBytes": 253241792,
+      "dmgSha256": "83d09a20930feca3df4783bb5ea9b0e726498d0073c479909f0bc06d539f97f7",
       "projectSigned": false,
       "notarized": false,
       "nativeRecompiled": false,
@@ -629,8 +647,8 @@
       "manifest": ".runtime/release-artifacts/Alpha Recovered.app.manifest.json",
       "electronVersion": "44.10.1",
       "fileCount": 1639,
-      "totalBytes": 527960939,
-      "artifactDigest": "b7ad5954c5f64d05ee7c3abab8b144499d77a6edf52ce65accbe8a9a58aefdfa",
+      "totalBytes": 528046582,
+      "artifactDigest": "192b64312ef68316a49957ee4c3429838749c3c253ec4b4a0032dcc66c7f99f5",
       "signed": false,
       "notarized": false,
       "independentResources": "Resources/independent",
@@ -647,7 +665,7 @@
           "bundleIdentifier": "local.alpha.recovered",
           "executable": "Contents/MacOS/AlphaRecovered",
           "fileCount": 1639,
-          "artifactDigest": "b7ad5954c5f64d05ee7c3abab8b144499d77a6edf52ce65accbe8a9a58aefdfa"
+          "artifactDigest": "192b64312ef68316a49957ee4c3429838749c3c253ec4b4a0032dcc66c7f99f5"
         },
         {
           "appName": "Alpha Recovered Independent",
@@ -655,7 +673,7 @@
           "bundleIdentifier": "local.alpha.recovered.independent",
           "executable": "Contents/MacOS/AlphaRecoveredIndependent",
           "fileCount": 1640,
-          "artifactDigest": "b91c0d9c846e6688a967c81ae456362f42b09bf0e2355afb22110cc9a13f3886",
+          "artifactDigest": "c74469e66fcf23dd4dc2b889dd181b5f21b12de97a15a5c1a4250ad0c430610d",
           "updateMode": {
             "path": "Contents/Resources/alpha-update-mode.json",
             "mode": "disabled",
@@ -773,6 +791,26 @@
       "tamperRejected": "MEDIA_INDEX_HASH_MISMATCH",
       "lockRejected": "APP_LOCK_LOCKED",
       "nativeCommentXml": false
+    },
+    "favoritesExport": {
+      "command": "node --test tests/engine-favorites-export.test.mjs",
+      "status": "passed",
+      "tests": 2,
+      "formats": [
+        "json",
+        "csv",
+        "xlsx"
+      ],
+      "syntheticOnly": true,
+      "metadataOnly": true,
+      "nativeSchemaSupported": false,
+      "sourceTable": "__alpha_favorites_v1",
+      "omitted": [
+        "contentXml",
+        "mediaToken",
+        "downloadUrl",
+        "sourceLookup"
+      ]
     }
   },
   "featureBoundary": {

@@ -4,7 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const FORMATS = new Set(['xlsx', 'csv', 'json']);
-const CATEGORIES = new Set(['payments', 'friend_requests', 'revokes', 'calls']);
+const CATEGORIES = new Set(['payments', 'friend_requests', 'revokes', 'calls', 'favorites']);
 const MAX_SELECTED = 20000;
 const MAX_JOBS = 64;
 

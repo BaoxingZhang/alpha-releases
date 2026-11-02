@@ -595,6 +595,61 @@ function recordExportOutput(format, meta, records) {
   throw error('RECORD_EXPORT_FORMAT_UNSUPPORTED');
 }
 
+// Favorites exports are deliberately a separate projection from the general
+// records formatter. The bridge row contains source XML and synthetic media
+// slots for the list/read APIs, but an export must remain metadata-only and
+// must never copy native-looking content, tokens, URLs, or source lookups.
+const FAVORITE_EXPORT_MAX_FIELDS = 32;
+const FAVORITE_EXPORT_MAX_ITEMS = RECORD_EXPORT_MAX_ITEMS;
+const FAVORITE_EXPORT_SENSITIVE_NAME = /(?:token|url|uri|path|media|download|source.?lookup|content.?xml|raw.?xml)/i;
+const FAVORITE_EXPORT_SENSITIVE_VALUE = /(?:https?:\/\/|file:\/\/|alpha-media:\/\/|fav1_[0-9a-f]{32})/i;
+
+function favoriteExportText(value, max) {
+  if (typeof value !== 'string' || value.length > max || value.includes('\0')) throw error('BRIDGE_FAVORITES_RESPONSE_INVALID');
+  return FAVORITE_EXPORT_SENSITIVE_VALUE.test(value) ? '' : value;
+}
+
+function favoriteExportField(field) {
+  if (!field || typeof field !== 'object' || typeof field.name !== 'string' || typeof field.value !== 'string' || !Number.isInteger(field.valueKind) || field.valueKind < 0 || field.valueKind > 16 || typeof field.truncated !== 'boolean') throw error('BRIDGE_FAVORITES_RESPONSE_INVALID');
+  if (field.name.length > 256 || field.value.length > 4096 || field.name.includes('\0') || field.value.includes('\0')) throw error('BRIDGE_FAVORITES_RESPONSE_INVALID');
+  if (FAVORITE_EXPORT_SENSITIVE_NAME.test(field.name) || FAVORITE_EXPORT_SENSITIVE_VALUE.test(field.value.trim())) return null;
+  return { name: field.name, value: field.value, valueKind: field.valueKind, truncated: field.truncated };
+}
+
+function favoriteExportRow(row) {
+  if (!row || typeof row !== 'object' || typeof row.id !== 'string' || !row.id || row.id.length > 1024 || row.id.includes('\0') || !Number.isInteger(row.type) || row.type < 0 || row.type > 0xffffffff || typeof row.updatedAtUnixMs !== 'string' || typeof row.title !== 'string' || row.title.length > 4096 || row.title.includes('\0') || typeof row.description !== 'string' || row.description.length > 4 * 1024 * 1024 || row.description.includes('\0') || typeof row.sourceId !== 'string' || row.sourceId.length > 1024 || row.sourceId.includes('\0') || typeof row.fromUsername !== 'string' || row.fromUsername.length > 1024 || row.fromUsername.includes('\0') || typeof row.contentXml !== 'string' || row.contentXml.length > 4 * 1024 * 1024 || row.contentXml.includes('\0') || typeof row.sourceTable !== 'string' || row.sourceTable !== '__alpha_favorites_v1' || !Array.isArray(row.fields)) throw error('BRIDGE_FAVORITES_RESPONSE_INVALID');
+  const updatedAtUnixMs = typeof row.updatedAtUnixMs === 'bigint' ? row.updatedAtUnixMs : decimal(row.updatedAtUnixMs, true);
+  if (updatedAtUnixMs < -(1n << 63n) || updatedAtUnixMs > (1n << 63n) - 1n) throw error('BRIDGE_FAVORITES_RESPONSE_INVALID');
+  const fields = row.fields.length <= FAVORITE_EXPORT_MAX_FIELDS
+    ? row.fields.map(favoriteExportField).filter(Boolean)
+    : (() => { throw error('BRIDGE_FAVORITES_RESPONSE_INVALID'); })();
+  return {
+    id: row.id,
+    type: row.type,
+    updatedAtUnixMs: updatedAtUnixMs.toString(),
+    title: favoriteExportText(row.title, 4096),
+    description: favoriteExportText(row.description, 4 * 1024 * 1024),
+    sourceId: favoriteExportText(row.sourceId, 1024),
+    fromUsername: favoriteExportText(row.fromUsername, 1024),
+    sourceTable: row.sourceTable,
+    fields,
+    syntheticOnly: true,
+    nativeSchemaSupported: false,
+    metadataOnly: true
+  };
+}
+
+function favoriteExportOutput(format, meta, favorites) {
+  const values = favorites.map(favoriteExportRow);
+  const flags = { syntheticOnly: true, nativeSchemaSupported: false, metadataOnly: true };
+  if (format === 'json') return Buffer.from(JSON.stringify({ version: 1, kind: 'favorites', format, ...flags, ...meta, itemCount: values.length, favorites: values }) + '\n', 'utf8');
+  const headers = ['id', 'type', 'updatedAtUnixMs', 'title', 'description', 'sourceId', 'fromUsername', 'sourceTable', 'fields', 'syntheticOnly', 'nativeSchemaSupported', 'metadataOnly'];
+  const rows = values.map(item => [item.id, item.type, item.updatedAtUnixMs, item.title, item.description, item.sourceId, item.fromUsername, item.sourceTable, JSON.stringify(item.fields), item.syntheticOnly, item.nativeSchemaSupported, item.metadataOnly]);
+  if (format === 'csv') return Buffer.from([headers.join(','), ...rows.map(row => row.map(csvCell).join(','))].join('\n') + '\n', 'utf8');
+  if (format === 'xlsx') return recordsXlsx(headers, rows, 'Favorites', 'RECORD_EXPORT_TOO_LARGE', FAVORITE_EXPORT_MAX_ITEMS);
+  throw error('RECORD_EXPORT_FORMAT_UNSUPPORTED');
+}
+
 function momentExportRow(moment) {
   if (!moment || typeof moment !== 'object' || typeof moment.id !== 'string' || !moment.id || typeof moment.username !== 'string' || !moment.username || typeof moment.nickname !== 'string' || typeof moment.createdAtUnixMs !== 'bigint' || typeof moment.type !== 'number' || !Number.isInteger(moment.type) || moment.type < 0 || moment.type > 0xffffffff || typeof moment.text !== 'string' || typeof moment.rawXml !== 'string' || moment.sourceTable !== '__alpha_moments_v1' || !Array.isArray(moment.fields)) throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
   if (moment.fields.length > 32 || moment.text.length > 4 * 1024 * 1024 || moment.rawXml.length > 4 * 1024 * 1024 || moment.id.length > 1024 || moment.username.length > 1024 || moment.nickname.length > 4096 || [moment.id, moment.username, moment.nickname, moment.text, moment.rawXml].some(value => value.includes('\0'))) throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
@@ -1348,6 +1403,34 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   }
   async function exportRecordCategory(request) {
     await requireAccount(request.accountId);
+    if (request.category === 'favorites') {
+      const selected = new Set(request.recordIds);
+      const favorites = [];
+      const excluded = [configuredSourcePath, dataDir, stateDir];
+      for (let offset = 0; offset <= FAVORITE_EXPORT_MAX_ITEMS; offset += 500) {
+        if (request.isCanceled?.()) throw error('RECORD_EXPORT_CANCELED');
+        const page = await callData('favorites.list', { limit: 500, offset, ascending: false, includeTypeCounts: false });
+        if (!page || !Array.isArray(page.items) || page.items.length > 500 || typeof page.sourceTable !== 'string' || page.sourceTable !== '__alpha_favorites_v1' || typeof page.total !== 'number' || page.total < 0 || page.total > FAVORITE_EXPORT_MAX_ITEMS || typeof page.hasMore !== 'boolean') throw error('BRIDGE_FAVORITES_RESPONSE_INVALID');
+        for (const row of page.items) if (!selected.size || selected.has(row.id)) favorites.push(row);
+        if (favorites.length > FAVORITE_EXPORT_MAX_ITEMS) throw error('RECORD_EXPORT_TOO_LARGE');
+        if (page.items.length < 500 || !page.hasMore) break;
+        if (offset === FAVORITE_EXPORT_MAX_ITEMS) throw error('RECORD_EXPORT_TOO_LARGE');
+      }
+      if (selected.size) {
+        const found = new Set(favorites.map(row => row.id));
+        if ([...selected].some(id => !found.has(id))) throw error('RECORD_EXPORT_RECORD_NOT_FOUND');
+      }
+      if (request.isCanceled?.()) throw error('RECORD_EXPORT_CANCELED');
+      const output = favoriteExportOutput(request.format, { accountId: request.accountId, category: 'favorites', sourceTable: '__alpha_favorites_v1' }, favorites);
+      if (output.length > RECORD_EXPORT_MAX_BYTES) throw error('RECORD_EXPORT_TOO_LARGE');
+      const destinationPath = path.resolve(request.destinationPath);
+      if (path.extname(destinationPath).toLowerCase() !== `.${request.format}`) throw error('RECORD_EXPORT_REQUEST_INVALID');
+      await writeRecordDestination(destinationPath, output, excluded, () => {
+        guard();
+        if (request.isCanceled?.()) throw error('RECORD_EXPORT_CANCELED');
+      });
+      return { destinationPath, itemCount: favorites.length };
+    }
     if (!Object.hasOwn(RECORD_EXPORT_TABLES, request.category)) throw error('RECORD_EXPORT_CATEGORY_UNSUPPORTED');
     const tableName = RECORD_EXPORT_TABLES[request.category];
     const selected = new Set(request.recordIds);
