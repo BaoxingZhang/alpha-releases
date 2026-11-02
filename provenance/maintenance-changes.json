@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-02T03:49:38.459Z",
+  "recordedAt": "2026-11-02T04:39:03.394Z",
   "sourceDmgSha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
   "originalManifest": "provenance/recovered-files.json",
   "originalFiles": 169,
@@ -8,8 +8,8 @@
     {
       "path": "src/main/index.js",
       "originalSha256": "7e8fabf836059696bc00ecf9266b68cbed4b0cd690e3ffe6f80e1755a72c193a",
-      "currentSha256": "f2a0ebd54f5a0ecc90a4d190f639c792df7c2ceb42417ca2ee0797792f54d7fe",
-      "currentBytes": 3194457
+      "currentSha256": "cf65229c3daa2ae65ee0b4599839c7904988b98048ec14857da52e6fd7c77607",
+      "currentBytes": 3195722
     },
     {
       "path": "src/preload/index.js",
@@ -30,7 +30,7 @@
       "currentBytes": 2882242
     }
   ],
-  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; bounded database-key acquisition watch with exact uint64 desktop cursors; search/navigation, contact/profile and group reads, group-member CSV/JSON/HTML/XLSX exports, media metadata and synthetic WAV playback through an explicit media-index, explicit data-watch targets, read-only exports and in-memory export jobs, annual and conversation base statistics, read-only local HTTP/MCP adapter including verified account/session mobile overview, synthetic favorite media slots bound to an explicit media-index, UI capability-boundary maintenance, independent flavor update policy marker, and fail-closed update configuration.",
+  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; bounded database-key acquisition watch with exact uint64 desktop cursors; search/navigation, contact/profile and group reads, group-member CSV/JSON/HTML/XLSX exports, media metadata and synthetic WAV playback through an explicit media-index, explicit kind=file media-index attachment save/open fallback with renderer grants and SHA-256 verification, explicit data-watch targets, read-only exports and in-memory export jobs, annual and conversation base statistics, read-only local HTTP/MCP adapter including verified account/session mobile overview, synthetic favorite media slots bound to an explicit media-index, UI capability-boundary maintenance, independent flavor update policy marker, and fail-closed update configuration.",
   "authoredModules": [
     "packages/alpha-engine",
     "packages/alpha-data-bridge",

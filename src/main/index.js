@@ -14,6 +14,7 @@ function independentBackendEnabled() {
   return backendMode.isIndependentBackendEnabled(electron.app, process.env);
 }
 const { loadMediaIndex, readMediaEntry } = require("../../packages/alpha-engine/media-index.cjs");
+const { locateIndexedAttachment } = require("../../packages/alpha-engine/file-attachment.cjs");
 const wire = require("@bufbuild/protobuf/wire");
 const node_util = require("node:util");
 const LIMIT = 64 * 1024 * 1024;
@@ -1215,19 +1216,53 @@ class AttachmentCacheAccess {
     if (!initial) return fail$d("NOT_AUTHORIZED");
     if (!HASH$1.test(id2) || initial.generation !== this.generation()) fail$d("NOT_AUTHORIZED");
     if (!cacheRoot || !node_path.isAbsolute(cacheRoot)) fail$d("CACHE_INVALID");
-    const root = node_path.resolve(cacheRoot, "files");
-    await verifyRoot(root);
-    const path = node_path.join(root, `${id2}.bin`);
-    const before = await promises.lstat(path, { bigint: true }).catch(() => fail$d("NOT_FOUND"));
-    if (!before.isFile() || before.isSymbolicLink() || before.nlink !== 1n || before.size < 0n) fail$d("CACHE_INVALID");
-    return new AttachmentSource(
-      initial.fileName,
-      id2,
-      root,
-      path,
-      before,
-      () => granted() === initial && initial.generation === this.generation()
-    );
+    const root = node_path.resolve(cacheRoot);
+    const grantStillLive = () => granted() === initial && initial.generation === this.generation();
+    const nativeRoot = node_path.join(root, "files");
+    let nativeAvailable = true;
+    try {
+      await verifyRoot(nativeRoot);
+    } catch (reason) {
+      // Independent datasets normally have no native files/ directory. An
+      // absent directory is the one case that permits the explicit
+      // media-index fallback; symlinks and malformed roots still fail closed.
+      if (reason?.code === "ENOENT") nativeAvailable = false;
+      else throw reason;
+    }
+    if (nativeAvailable) {
+      const nativePath = node_path.join(nativeRoot, `${id2}.bin`);
+      let before;
+      try {
+        before = await promises.lstat(nativePath, { bigint: true });
+      } catch (reason) {
+        if (reason?.code !== "ENOENT") throw reason;
+      }
+      if (before) {
+        if (!before.isFile() || before.isSymbolicLink() || before.nlink !== 1n || before.size < 0n) fail$d("CACHE_INVALID");
+        return new AttachmentSource(
+          initial.fileName,
+          id2,
+          nativeRoot,
+          nativePath,
+          before,
+          grantStillLive
+        );
+      }
+    }
+    try {
+      return locateIndexedAttachment({
+        root,
+        id: id2,
+        accountId: account2,
+        fileName: initial.fileName,
+        granted: grantStillLive
+      });
+    } catch (reason) {
+      const code2 = reason instanceof Error ? reason.message : "";
+      if (code2 === "MEDIA_INDEX_MANIFEST_MISSING" || code2 === "MEDIA_INDEX_ENTRY_NOT_FOUND") fail$d("NOT_FOUND");
+      if (/^MEDIA_INDEX_/.test(code2)) fail$d("CACHE_INVALID");
+      throw reason;
+    }
   }
 }
 const EXECUTABLE = /\.(?:exe|com|bat|cmd|msi|msp|msix|appx|ps1|psm1|vbs|vbe|js|jse|mjs|wsf|wsh|hta|scr|pif|cpl|lnk|url|reg|inf|jar|app|command|sh|bash|zsh|csh|dmg|pkg|appimage|run|deb|rpm|desktop|scpt|workflow)$/i;

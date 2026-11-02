@@ -1,6 +1,6 @@
 # 独立媒体索引基础
 
-独立后端支持一个可选的 `media-index.v1.json` 读取层。它只从调用者显式选择的数据源根目录加载，不扫描用户目录，也不伪装成 Alpha 原生 `media1_` token。基于该索引，协议 field 103 另提供一个明确隔离的 `alpha-media://sha256/<sha256>` 解析分支；它只服务唯一绑定到账号、会话和消息的图片条目。
+独立后端支持一个可选的 `media-index.v1.json` 读取层。它只从调用者显式选择的数据源根目录加载，不扫描用户目录，也不伪装成 Alpha 原生 `media1_` token。基于该索引，协议 field 103 另提供一个明确隔离的 `alpha-media://sha256/<sha256>` 解析分支；它只服务唯一绑定到账号、会话和消息的图片条目。显式 `kind=file` 条目也可被现有附件 grant 接受，用于只读保存或打开；该 fallback 的完整校验和上限见 [`file-attachment-recovery.md`](file-attachment-recovery.md)。
 
 调用方也可以使用 `writeMediaIndex({ root, entries, accountId })` 生成索引。`entries` 必须逐项给出媒体类型、原始 ID 和根目录内的相对文件路径；写入器会在发布 manifest 前检查目录和父路径、拒绝符号链接、限制文件大小、计算 SHA-256，并以临时文件原子发布。它不会根据微信目录自动发现媒体，也不会从消息内容猜路径；默认拒绝覆盖已有 manifest，只有显式 `overwrite: true` 才会替换它。
 

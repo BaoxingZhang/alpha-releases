@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-02T03:37:50.276Z",
+  "builtAt": "2026-11-02T04:29:32.566Z",
   "node": "v24.21.0",
   "electron": "44.10.1",
   "esbuild": "0.28.2",
@@ -28,7 +28,7 @@
         "source": "build/candidates/alpha-data-bridge",
         "path": "independent/bin/alpha-data-bridge",
         "bytes": 8566642,
-        "sha256": "394f1c740362d0facaf1f3a5ee3f9b8d2ad120d7f8ac461fea8c6bbee559c029",
+        "sha256": "69354d90a93a8a5fafd1a7b7d59bb3f28390494d2c68d9e7c1e817b46528d3c8",
         "mode": "755"
       },
       {
@@ -36,7 +36,7 @@
         "source": "build/candidates/alpha-snapshot-import",
         "path": "independent/bin/alpha-snapshot-import",
         "bytes": 7816610,
-        "sha256": "55e0545dfae3a1ca766484250c03a3ac1ac4d11de8616e9fc12a1c86ff3e3604",
+        "sha256": "a676b3a1bb69ff5ea09bb791c5f4787fa13eb4ae49d5c822bc52ca64795c794e",
         "mode": "755"
       }
     ],
@@ -46,7 +46,7 @@
     {
       "inputs": {
         "src/main/index.js": {
-          "bytes": 3194457,
+          "bytes": 3195722,
           "imports": [],
           "format": "cjs"
         }
@@ -56,7 +56,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 5361127
+          "bytes": 5363020
         },
         "dist/app/out/main/index.js": {
           "imports": [
@@ -116,6 +116,11 @@
               "external": true
             },
             {
+              "path": "../../packages/alpha-engine/file-attachment.cjs",
+              "kind": "require-call",
+              "external": true
+            },
+            {
               "path": "@bufbuild/protobuf/wire",
               "kind": "require-call",
               "external": true
@@ -140,10 +145,10 @@
           "entryPoint": "src/main/index.js",
           "inputs": {
             "src/main/index.js": {
-              "bytesInOutput": 3213687
+              "bytesInOutput": 3214730
             }
           },
-          "bytes": 3213735
+          "bytes": 3214778
         }
       }
     },
