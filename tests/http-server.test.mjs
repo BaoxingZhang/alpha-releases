@@ -724,6 +724,16 @@ test('HTTP conversation export reaches the real independent engine and publishes
     await engine.close();
     await fs.rm(directory, { recursive: true, force: true });
   });
+  const schemaResponse = await request(`http://${address.host}:${address.port}`, '/api/v1/independent/source/schema', {
+    headers: { Authorization: `Bearer ${'r'.repeat(32)}` }
+  });
+  assert.equal(schemaResponse.response.status, 200);
+  assert.equal(schemaResponse.body.scope, 'alpha-independent-schema-diagnostics');
+  assert.equal(schemaResponse.body.native_schema_supported, false);
+  assert.equal(schemaResponse.body.read_only, true);
+  assert.ok(schemaResponse.body.databases.some(database => database.path.endsWith('/contact.db')));
+  assert.ok(schemaResponse.body.databases.some(database => database.path.endsWith('/session.db')));
+  assert.ok(schemaResponse.body.databases.flatMap(database => database.tables).some(table => table.name === 'SessionTable'));
   const destinationPath = path.join(directory, 'exports', 'conversation.json');
   const response = await request(`http://${address.host}:${address.port}`, '/api/v1/exports', {
     method: 'POST',

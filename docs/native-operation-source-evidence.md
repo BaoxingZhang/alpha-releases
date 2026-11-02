@@ -84,6 +84,12 @@ Ghidra/REA 观察到的调用约定候选是四个参数：`param_1` 为内部 r
 
 这两个入口均未在本轮执行未知 ABI 调用，也没有向独立 bridge 注入返回的函数表。没有对应头文件、版本匹配的调用方或受控 fixture 前，不应仅凭 `size`/`version` 条件通过 `dlsym` 调用；否则无法判定崩溃、内存所有权或结果错误来自调用方还是原生组件。
 
+### 原生 dylib ABI 盘点（2026-11-03）
+
+`npm run audit:native-abi` 对随包两个 WCDB dylib 做只读盘点：核对 `vendor/runtime` 来源哈希与权限、Mach-O arm64 类型、代码签名、系统依赖和可见导出。当前结果见 [`native-abi-validation.json`](native-abi-validation.json)：`libalpha_native.dylib` 只列出 `_alpha_native_get_api`，只读库列出 `_alpha_sqlite_readonly_get_api` 与 `_alpha_moments_project_row_v1`；两个文件均为 arm64、代码签名校验通过，未发现用户目录或非系统绝对依赖。
+
+这项检查只证明工件身份和导出边界，没有调用任何未知函数表、没有打开账号目录或数据库，也没有把导出名当作可用 schema。`tests/native-abi.test.mjs` 只验证盘点结果和 `unknownAbiCallExecuted=false`；真正的 ABI 调用仍需要对应头文件、版本匹配的调用方和受控 fixture。
+
 ### 当前 REA 会话对 `alpha_native_get_api` 的复核（2026-11-03）
 
 本轮重新打开 `vendor/runtime/native/wcdb/libalpha_native.dylib`（SHA-256 `be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c`），REA/Ghidra 观察到 `_alpha_native_get_api` 入口 `0x1cb0`，函数体范围 `0x1cb0..0x1e17`，长度 360 字节。调用边界的静态形状为 `(int version, uint32_t size, uint32_t *out_api)`：`version` 必须为 `1`，`out_api` 不能为空，`size` 小于 `0x50` 时直接返回；初始化长度最多按 `0x90` 处理，并在输出表中写入版本/能力值以及多组内部函数指针。静态伪代码可见返回 `0`、`-2` 和 `-6` 候选，但没有可验证的公开错误枚举。

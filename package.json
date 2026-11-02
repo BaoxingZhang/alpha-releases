@@ -13,6 +13,7 @@
     "test:smoke:native": "node tests/native-smoke.mjs",
     "index": "node tools/index-recovered-code.mjs",
     "verify:vendor": "node scripts/verify-vendor.mjs",
+    "audit:native-abi": "node scripts/audit-native-abi.mjs",
     "setup": "node node_modules/electron/install.js && node node_modules/esbuild/install.js",
     "extract:protocol": "node tools/extract-protocol.mjs",
     "verify:protocol": "node tools/extract-protocol.mjs --check",

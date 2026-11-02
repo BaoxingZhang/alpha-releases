@@ -134,6 +134,7 @@ npm run verify:packaged-markers # 校验普通/独立 App 的 backend marker、m
 npm run verify:independent-support # 校验128项独立后端支持矩阵未漂移（当前75项已实现）
 npm run test:protocol   # 编解码、分帧边界与来源测试
 npm run verify:vendor   # 核对43个原包运行时文件的SHA256和权限
+npm run audit:native-abi # 只读盘点原生 WCDB dylib 的架构、导出、依赖和签名
 npm run verify:dependencies # 对当前锁定依赖实时运行 npm audit（不含 optional）
 npm run test:smoke      # 隔离检查、实际Electron界面、IPC与后端状态诊断
 npm run test:smoke:native # 不使用项目Seatbelt wrapper的原生启动链路，只读临时运行时

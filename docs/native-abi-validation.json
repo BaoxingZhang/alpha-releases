@@ -1,0 +1,61 @@
+{
+  "schema": "alpha-recovered.native-abi-audit.v1",
+  "status": "passed",
+  "platform": "darwin-arm64",
+  "nativeFilesModified": false,
+  "unknownAbiCallExecuted": false,
+  "targets": [
+    {
+      "name": "alpha-native",
+      "path": "vendor/runtime/native/wcdb/libalpha_native.dylib",
+      "bytes": 2104544,
+      "sha256": "be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c",
+      "mode": 493,
+      "architecture": "arm64",
+      "format": "Mach-O 64-bit dynamically linked shared library arm64",
+      "exports": [
+        "_alpha_native_get_api"
+      ],
+      "dependencies": [
+        "@rpath/libalpha_native.dylib",
+        "/System/Library/Frameworks/Security.framework/Versions/A/Security",
+        "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+        "/usr/lib/libc++.1.dylib",
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "codesign": {
+        "verified": true,
+        "output": ""
+      },
+      "sourceEvidence": "low-confidence-api-table-entry",
+      "unknownAbiCallExecuted": false
+    },
+    {
+      "name": "alpha-sqlcipher-readonly",
+      "path": "vendor/runtime/native/wcdb/libalpha_sqlcipher_readonly.dylib",
+      "bytes": 2036224,
+      "sha256": "90bbfd625de14ceac0b9d47fbe820f4a2bf67c9d9a5f8706a92980bb8144ccfe",
+      "mode": 493,
+      "architecture": "arm64",
+      "format": "Mach-O 64-bit dynamically linked shared library arm64",
+      "exports": [
+        "_alpha_moments_project_row_v1",
+        "_alpha_sqlite_readonly_get_api"
+      ],
+      "dependencies": [
+        "@rpath/libalpha_sqlcipher_readonly.dylib",
+        "/System/Library/Frameworks/Security.framework/Versions/A/Security",
+        "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+        "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+        "/usr/lib/libc++.1.dylib",
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "codesign": {
+        "verified": true,
+        "output": ""
+      },
+      "sourceEvidence": "low-confidence-readonly-api-and-moments-entry",
+      "unknownAbiCallExecuted": false
+    }
+  ]
+}

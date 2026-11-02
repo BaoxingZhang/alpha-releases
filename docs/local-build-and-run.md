@@ -39,6 +39,8 @@ npm run test:smoke:native
 
 该命令不使用项目的自定义 Seatbelt wrapper（Electron 子进程仍按现有本地 smoke 约定使用 `--no-sandbox`）；这只改变 Chromium 的本地渲染隔离，不修改或绕过 Alpha 原生 guard、签名、许可或 peer manifest。命令仍使用项目 `.runtime/<session>/` 下的临时 HOME、userData、临时目录和原生路径；它不扫描个人微信目录、不注入账号、不修改 `vendor/runtime`，也不调用写入、发送或网络业务。成功标准是 renderer/IPC 可读、backend `state=ready`，并同时看到 `engine` 与 `native-host` 组件；空账号数组只表示本次 disposable userData 没有配置账号。每次运行的完整报告写入被忽略的 `.runtime/<session>/native-smoke.json`，与 `test:smoke` 的 sandbox 报告分开保存。
 
+启动 smoke 之后，可运行 `npm run audit:native-abi` 对两个随包 WCDB dylib 做静态 ABI 盘点。它只读校验来源哈希/权限、arm64 Mach-O、代码签名、系统依赖和导出名字，不调用 `_alpha_native_get_api` 或 `_alpha_sqlite_readonly_get_api`，不访问账号目录；它不能代替真实数据库 fixture、ABI 头文件或 native schema 验收。
+
 ## 独立后端实际启动
 
 要在原界面中验证可编辑的独立后端，先构建桥接层和桌面产物，再启动合成数据演示：

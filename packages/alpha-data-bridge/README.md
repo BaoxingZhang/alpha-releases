@@ -49,6 +49,7 @@ build/candidates/alpha-data-bridge --data-dir /absolute/offline-copy --account-i
 | `messages.list` | `conversationId`、`limit`、`cursor`、`ascending`、可选 `afterTime`/`beforeTime` | 消息页；时间边界是十进制字符串形式的 Unix 秒，包含边界；默认升序 |
 | `sessions.list` + `messages.list` | 由 Node 引擎组合调用 | 为 `browseConversationMessages`/`browseAccountMedia` 提供真实会话和消息元数据；不提供媒体文件索引、路径、下载或播放 |
 | `media.probe` | 无参数；只针对启动时显式选择的数据目录 | 只读扫描 `hardlink.db` 的 image/video/file hardlink 表和 `media_*.db` 的 `VoiceInfo`；返回相对路径、大小、修改时间、voice data 长度、源库/表和源库 SHA-256。结果始终 `metadataOnly=true`、`mediaReady=false`、`nativeSchemaSupported=false`；没有候选库返回 `status=unavailable` |
+| `schema.inspect` | 严格空 JSON 对象 `{}`；只针对启动时已经选定的数据目录 | 返回所有已打开 SQLite 文件的相对路径、表、列、SQLite 类型、NOT NULL 和主键序号；固定 `readOnly=true`、`complete=false`、`nativeSchemaSupported=false`，最多 128 个数据库、4096 张表、每表 256 列和 4 MiB 响应；不接受路径/SQL，不扫描用户目录 |
 | `messages.search` | 非空 `query`、可选 `conversationId`、`senderId`、`afterTime`/`beforeTime`、`ascending`、`groupByConversation`、`limit`、`cursor` | 同消息 DTO、matchCount 字符串及 coverage；默认降序，时间双端包含 |
 | `messages.locate` | `conversationId`、`serverId`（正 uint64 十进制字符串） | message 或 null，及 beforeCursor/afterCursor |
 | `messages.dayCounts` | `conversationId`、`fromUnixMs`、`toUnixMs`（十进制字符串）、`utcOffsetMinutes`（整数） | `{days:[{localDay,count}]}`，数字为字符串；毫秒范围半开、最多 62 天 |
