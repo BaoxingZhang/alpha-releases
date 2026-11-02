@@ -19,7 +19,7 @@
 | `ALPHA_INDEPENDENT_ACCOUNT_ID` | 配置数据时必填，调用者指定的数据集标识，不代表验证过的微信登录身份 |
 | `ALPHA_INDEPENDENT_SELF_USERNAME` | 可选，显式提供的自身 username；缺失时消息方向为 unknown |
 
-自动取钥是显式 opt-in 的 macOS 实验能力。设置 `ALPHA_INDEPENDENT_KEY_HELPER_PATH` 为经过校验的绝对可执行文件路径后，`acquireDatabaseKey` 才会调用兼容 Chatlog 的 helper；helper 只接收显式 PID 和 1–900 秒超时，运行在临时 `CHATLOG_DIR`，输出的 32 字节 key 只在内存中短暂存在，随后交给现有加密导入流程验证。helper 的配置目录、key、stdout/stderr 和路径不会写入 stateDir、manifest 或日志；微信进程不存在、SIP/权限限制、超时和模式不支持都会失败关闭。未设置该变量时返回 `KEY_ACQUISITION_UNAVAILABLE`。这条路径有 fake-helper 回归测试，但当前没有真实微信进程取钥验收，也不代表原生 Alpha 的完整取钥链路。
+自动取钥是显式 opt-in 的 macOS 实验能力。设置 `ALPHA_INDEPENDENT_KEY_HELPER_PATH` 为经过校验的绝对可执行文件路径后，`acquireDatabaseKey` 才会调用兼容 Chatlog 的 helper；helper 只接收显式 PID 和 1–900 秒超时，运行在临时 `CHATLOG_DIR`，输出的 32 字节 key 只在内存中短暂存在，随后交给现有加密导入流程验证。helper 的配置目录、key、stdout/stderr 和路径不会写入 stateDir、manifest 或日志；微信进程不存在、SIP/权限限制、超时和模式不支持都会失败关闭。未设置该变量时返回 `KEY_ACQUISITION_UNAVAILABLE`。开发启动器和 packaged Electron 启动器都会透传这个绝对路径，但不会从用户目录自动发现或替换 helper。该路径有 fake-helper 回归测试，但当前没有真实微信进程取钥验收，也不代表原生 Alpha 的完整取钥链路。
 
 明文数据源根目录可以额外放置 `media-index.v1.json`，也可以通过 `writeMediaIndex` 从调用方明确给出的根目录内相对文件清单生成它。引擎不会扫描其他位置；它只把已声明且绑定到当前账号/会话/消息的图片引用映射为独立 `alpha-media://sha256/...` URI。索引文件和媒体文件仍属于数据源快照，源变化会触发既有的不可变数据集检查。
 

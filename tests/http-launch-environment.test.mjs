@@ -43,6 +43,43 @@ test('independent HTTP settings cross both desktop environment boundaries', asyn
   }
 });
 
+test('explicit key helper path crosses development and packaged desktop boundaries', async () => {
+  const previous = process.env.ALPHA_INDEPENDENT_KEY_HELPER_PATH;
+  const helper = path.join(os.tmpdir(), 'alpha-key-helper-boundary');
+  process.env.ALPHA_INDEPENDENT_KEY_HELPER_PATH = helper;
+  try {
+    const inherited = launchEnvironment('key-helper-boundary', { backend: 'independent' });
+    assert.equal(inherited.ALPHA_INDEPENDENT_KEY_HELPER_PATH, helper);
+
+    const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-key-helper-runtime-'));
+    try {
+      const workspace = path.join(temporary, 'workspace');
+      const userData = path.join(temporary, 'user-data');
+      await fs.mkdir(path.join(workspace, 'dist/app/packages/alpha-engine'), { recursive: true });
+      await fs.mkdir(path.join(workspace, 'build/candidates'), { recursive: true });
+      await fs.writeFile(path.join(workspace, 'dist/app/packages/alpha-engine/cli.cjs'), '#!/usr/bin/env node\n');
+      await fs.writeFile(path.join(workspace, 'build/candidates/alpha-data-bridge'), 'bridge');
+      const development = independentRuntime({ workspace, userData, execPath: process.execPath, environment: inherited });
+      assert.equal(development.environment.ALPHA_INDEPENDENT_KEY_HELPER_PATH, helper);
+
+      const resources = path.join(temporary, 'Resources');
+      const packagedRoot = path.join(resources, 'independent');
+      await fs.mkdir(path.join(packagedRoot, 'alpha-engine'), { recursive: true });
+      await fs.mkdir(path.join(packagedRoot, 'bin'), { recursive: true });
+      await fs.writeFile(path.join(packagedRoot, 'alpha-engine', 'cli.cjs'), '#!/usr/bin/env node\n');
+      await fs.writeFile(path.join(packagedRoot, 'bin', 'alpha-data-bridge'), 'bridge');
+      await fs.writeFile(path.join(packagedRoot, 'bin', 'alpha-snapshot-import'), 'importer');
+      const packaged = independentRuntime({ packaged: true, resourcesPath: resources, workspace, userData, execPath: process.execPath, environment: inherited });
+      assert.equal(packaged.environment.ALPHA_INDEPENDENT_KEY_HELPER_PATH, helper);
+    } finally {
+      await fs.rm(temporary, { recursive: true, force: true });
+    }
+  } finally {
+    if (previous === undefined) delete process.env.ALPHA_INDEPENDENT_KEY_HELPER_PATH;
+    else process.env.ALPHA_INDEPENDENT_KEY_HELPER_PATH = previous;
+  }
+});
+
 test('packaged independent runtime resolves only Resources/independent payloads', async () => {
   const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-packaged-runtime-'));
   try {
