@@ -199,7 +199,7 @@
         "mediaResolvePath": "/api/v1/favorites/media/:token",
         "mediaSchema": "__alpha_favorite_media_v1"
       },
-      "tools": 62,
+      "tools": 66,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,

@@ -22,6 +22,8 @@ function fakeEngine() {
   const runId = '00000000-0000-4000-8000-000000000004';
   const attemptId = '00000000-0000-4000-8000-000000000005';
   const schedulePlan = () => ({ accountId: 'acct-1', scheduleId, conversationId: 'wxid_peer', formats: ['json'], includeMedia: false, intervalSeconds: 3600n, lookbackSeconds: 86400n, nextRunUnixMs: 1700000000000n, enabled: true, createdAtUnixMs: 1699990000000n, updatedAtUnixMs: 1700000000000n, conversationIds: ['wxid_peer'], maxRuns: 0, successCount: 0 });
+  const officialPlanId = '00000000-0000-4000-8000-000000000006';
+  const officialPlan = () => ({ accountId: 'acct-1', scheduleId: officialPlanId, officialAccountId: 'gh_alpha', materialBundleId: 'bundle-1', scope: 1, selected: [], formats: ['json'], downloadAssets: false, includeMedia: false, maxPages: 20, intervalSeconds: 3600n, nextRunUnixMs: 1700000000000n, enabled: true, createdAtUnixMs: 1699990000000n, updatedAtUnixMs: 1700000000000n });
   const scheduleRun = () => ({ accountId: 'acct-1', scheduleId, runId, conversationId: 'wxid_peer', state: 'completed', createdAtUnixMs: 1700000000000n, updatedAtUnixMs: 1700000001000n, finishedAtUnixMs: 1700000001000n, artifactCount: 1 });
   const scheduleAttempt = () => ({ accountId: 'acct-1', scheduleId, attemptId, conversationId: 'wxid_peer', occurrenceUnixMs: 1700000000000n, state: 'failed', reasonCode: 'start_failed', runId: '', preparationCount: 1, revision: 2n, createdAtUnixMs: 1700000000000n, updatedAtUnixMs: 1700000001000n, exportCenter: false });
   return {
@@ -76,6 +78,10 @@ function fakeEngine() {
       if (request.listChatExportAttempts) return EngineServerFrame.fromPartial({ requestId: request.requestId, listChatExportAttempts: { records: [scheduleAttempt()], truncated: false } });
       if (request.getChatExportAttempt) return EngineServerFrame.fromPartial({ requestId: request.requestId, getChatExportAttempt: scheduleAttempt() });
       if (request.retryChatExportAttempt) return EngineServerFrame.fromPartial({ requestId: request.requestId, retryChatExportAttempt: { ...scheduleAttempt(), state: 'queued', reasonCode: '', revision: 3n } });
+      if (request.listOfficialSchedulePlans) return EngineServerFrame.fromPartial({ requestId: request.requestId, listOfficialSchedulePlans: { plans: [officialPlan()], truncated: false } });
+      if (request.getOfficialSchedulePlan) return EngineServerFrame.fromPartial({ requestId: request.requestId, getOfficialSchedulePlan: officialPlan() });
+      if (request.saveOfficialSchedulePlan) return EngineServerFrame.fromPartial({ requestId: request.requestId, saveOfficialSchedulePlan: { ...officialPlan(), updatedAtUnixMs: 1700000002000n } });
+      if (request.deleteOfficialSchedulePlan) return EngineServerFrame.fromPartial({ requestId: request.requestId, deleteOfficialSchedulePlan: { accountId: 'acct-1', scheduleId: officialPlanId, deleted: true } });
       throw new Error('unexpected method');
     }
   };
@@ -373,12 +379,13 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 62);
+  assert.equal(result.body.result.tools.length, 66);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.resolve_search_hit'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.get_source'));
+  assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.official_plans.list'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha.analysis.start'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.analytics.analyze_annual'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.analytics.analyze_conversation'));
@@ -681,6 +688,18 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 12, method: 'tools/call', params: { name: 'alpha.chat.export_stats', arguments: { conversation_ids: ['wxid_peer'], refresh: true } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.items[0].conversation_id, 'wxid_peer');
+  const officialPlan = { account_id: 'acct-1', schedule_id: '00000000-0000-4000-8000-000000000006', official_account_id: 'gh_alpha', material_bundle_id: 'bundle-1', scope: 1, selected: [], formats: ['json'], download_assets: false, include_media: false, max_pages: 20, interval_seconds: '3600', next_run_unix_ms: '1700000000000', enabled: true };
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 130, method: 'tools/call', params: { name: 'alpha-independent.official_plans.list', arguments: { account_id: 'acct-1', include_disabled: true } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-official-schedule-plans');
+  assert.equal(result.body.result.structuredContent.local_metadata_only, true);
+  assert.equal(result.body.result.structuredContent.plans[0].schedule_id, officialPlan.schedule_id);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 131, method: 'tools/call', params: { name: 'alpha-independent.official_plans.get', arguments: { account_id: 'acct-1', schedule_id: officialPlan.schedule_id } } }) });
+  assert.equal(result.body.result.structuredContent.official_account_id, 'gh_alpha');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 132, method: 'tools/call', params: { name: 'alpha-independent.official_plans.save', arguments: { account_id: 'acct-1', mode: 'replace', expected_updated_at_unix_ms: '1700000000000', plan: officialPlan } } }) });
+  assert.equal(result.body.result.structuredContent.updated_at_unix_ms, '1700000002000');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 133, method: 'tools/call', params: { name: 'alpha-independent.official_plans.delete', arguments: { account_id: 'acct-1', schedule_id: officialPlan.schedule_id, expected_updated_at_unix_ms: '1700000000000' } } }) });
+  assert.equal(result.body.result.structuredContent.deleted, true);
 });
 
 test('MCP adapter exposes bounded resolver, context, anchor and day-count helpers', async t => {

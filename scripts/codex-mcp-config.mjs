@@ -15,12 +15,12 @@ function absolute(value, name) {
 }
 
 function parseArgs(argv) {
-  const options = { node: process.execPath, output: '' };
+  const options = { node: process.execPath, output: '', format: 'json', server_name: 'alpha' };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (!argument.startsWith('--')) fail('ARGUMENTS_INVALID');
     const name = argument.slice(2);
-    if (!['state-dir', 'data-dir', 'bridge-path', 'account-id', 'node', 'output'].includes(name)) fail('ARGUMENTS_INVALID');
+    if (!['state-dir', 'data-dir', 'bridge-path', 'account-id', 'node', 'output', 'format', 'server-name'].includes(name)) fail('ARGUMENTS_INVALID');
     const value = argv[++index];
     if (value === undefined || value.startsWith('--')) fail('ARGUMENTS_INVALID');
     options[name.replaceAll('-', '_')] = value;
@@ -29,13 +29,15 @@ function parseArgs(argv) {
   if (typeof options.account_id !== 'string' || !options.account_id || options.account_id.length > 256 || /[\u0000-\u001f\u007f]/.test(options.account_id)) fail('ACCOUNT_ID_INVALID');
   options.node = absolute(options.node, 'NODE');
   if (options.output) options.output = absolute(options.output, 'OUTPUT');
+  if (!['json', 'codex-toml', 'toml'].includes(options.format)) fail('FORMAT_INVALID');
+  if (typeof options.server_name !== 'string' || !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(options.server_name)) fail('SERVER_NAME_INVALID');
   return options;
 }
 
 function document(options) {
   return {
     mcpServers: {
-      alpha: {
+      [options.server_name]: {
         command: options.node,
         args: [transport],
         env: {
@@ -49,8 +51,33 @@ function document(options) {
   };
 }
 
+function tomlString(value) {
+  // JSON basic strings are valid TOML basic strings and correctly escape
+  // paths/account ids without allowing table or key injection.
+  return JSON.stringify(value);
+}
+
+function tomlDocument(options) {
+  const section = `mcp_servers.${options.server_name}`;
+  return [
+    `[${section}]`,
+    `command = ${tomlString(options.node)}`,
+    `args = [${tomlString(transport)}]`,
+    `cwd = ${tomlString(root)}`,
+    '',
+    `[${section}.env]`,
+    `ALPHA_INDEPENDENT_STATE_DIR = ${tomlString(options.state_dir)}`,
+    `ALPHA_INDEPENDENT_DATA_DIR = ${tomlString(options.data_dir)}`,
+    `ALPHA_INDEPENDENT_BRIDGE_PATH = ${tomlString(options.bridge_path)}`,
+    `ALPHA_INDEPENDENT_ACCOUNT_ID = ${tomlString(options.account_id)}`,
+    ''
+  ].join('\n');
+}
+
 const options = parseArgs(process.argv.slice(2));
-const serialized = `${JSON.stringify(document(options), null, 2)}\n`;
+const serialized = options.format === 'json'
+  ? `${JSON.stringify(document(options), null, 2)}\n`
+  : tomlDocument(options);
 if (options.output) {
   await fs.mkdir(path.dirname(options.output), { recursive: true, mode: 0o700 });
   const temporary = `${options.output}.${process.pid}.tmp`;
