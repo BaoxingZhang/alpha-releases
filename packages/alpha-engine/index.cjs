@@ -17,6 +17,7 @@ const { createRecordExportJobs } = require('./records-export-jobs.cjs');
 const { createMomentsExportJobs } = require('./moments-export-jobs.cjs');
 const { createChatExportSchedules } = require('./chat-export-schedules.cjs');
 const { createOfficialSchedulePlans } = require('./official-schedule-plans.cjs');
+const { createOfficialPlanAttempts } = require('./official-plan-attempts.cjs');
 const { createGenericJobs } = require('./generic-jobs.cjs');
 const { createAggregateAnalysisJobs } = require('./aggregate-analysis-jobs.cjs');
 const { contactsXlsx, conversationXlsx, groupMembersXlsx, recordsXlsx } = require('./xlsx-writer.cjs');
@@ -1769,6 +1770,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
   let momentExportJobs;
   let chatExportSchedules;
   let officialSchedulePlans;
+  let officialPlanAttempts;
   let aggregateAnalysisJobs;
   let genericJobs;
 
@@ -2359,6 +2361,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
         await momentExportJobs.removeAccount(accountId);
         await recordExportJobs.removeAccount(accountId);
         await officialSchedulePlans.removeAccount(accountId);
+        await officialPlanAttempts.removeAccount(accountId);
         await aggregateAnalysisJobs.removeAccount(accountId);
         await dropBridge();
         removeOfficialPlanIntent();
@@ -3181,6 +3184,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
     watchExport: jobId => chatExportJobs.watch(jobId)
   });
   officialSchedulePlans = createOfficialSchedulePlans({ stateDir, accountId });
+  officialPlanAttempts = createOfficialPlanAttempts({ stateDir, accountId, getPlan: scheduleId => officialSchedulePlans.getPlan({ accountId, scheduleId }) });
   aggregateAnalysisJobs = createAggregateAnalysisJobs({ runAnalysis: runAggregateAnalysis });
   genericJobs = createGenericJobs({ chatExportJobs, momentExportJobs, recordExportJobs });
   return {
@@ -3227,7 +3231,11 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       return schemaDiagnosticResponse(await callData('schema.inspect', {}));
     },
     async cancelPending() { await cancelImport(); },
-    async close() { await aggregateAnalysisJobs.close(); await officialSchedulePlans.close(); await chatExportSchedules.close(); await chatExportJobs.close(); await momentExportJobs.close(); closed = true; await cancelImport(); await dropBridge(); }
+    async listOfficialPlanAttempts(request) { await requireAccount(request.accountId); return officialPlanAttempts.list(request); },
+    async getOfficialPlanAttempt(request) { await requireAccount(request.accountId); return officialPlanAttempts.get(request); },
+    async requestOfficialPlanAttempt(request) { await requireAccount(request.accountId); return officialPlanAttempts.request(request); },
+    async archiveOfficialPlanAttempt(request) { await requireAccount(request.accountId); return officialPlanAttempts.archive(request); },
+    async close() { await aggregateAnalysisJobs.close(); await officialPlanAttempts.close(); await officialSchedulePlans.close(); await chatExportSchedules.close(); await chatExportJobs.close(); await momentExportJobs.close(); closed = true; await cancelImport(); await dropBridge(); }
   };
 }
 

@@ -71,6 +71,10 @@ npm run start:independent -- --data-dir /absolute/project/.runtime/your-snapshot
 
 独立后端 Hello 的 ready 只表示当前服务初始化成功。配置了有效且未锁定的数据源时会实际验证 SQLite；启用密码锁后重启只初始化锁和协议服务，数据访问必须先解锁。账号能力来自真实存在的库；数据源改变后再次查询会失败，不保留旧的就绪结果。
 
+公众号计划的执行请求另有独立的 `official-plan-attempts.v1.json` 本地记录。它只保存账号、计划、时间、revision、归档状态和固定 blocked 原因，所有记录都保持 `executionSupported=false`；HTTP/MCP 入口不联网、不抓取文章、不下载媒体、不创建原生运行记录，也不改变 82/128 协议支持矩阵。
+
+语音转文字仍不属于 native parity。`docs/optional-asr.md` 描述的可选 backend 只接受调用方明确选定的 WAV `media-index.v1.json` 条目，并要求外部提供哈希匹配的 sherpa-onnx runtime 和 zipformer 模型；它不处理真实 VoiceInfo、SILK、`media1_` token 或 native media cache，也不修改 `transcribeVoice`/`transcribeVoiceBatch` 的 `UNIMPLEMENTED` 边界。
+
 ## 实测证据
 
 初始阶段合并测试 43/43 通过，历史汇总保留在 [independent-validation.json](independent-validation.json)；当前回归、聚合分析、图片 key 生命周期、独立计划存储测试、记录导出、消息撤回候选分页、遥测同意、防撤回/防删除状态、手动密钥导入进度、账号本地移除/重新发现、synthetic moments/favorites fixture、朋友圈导出任务、收藏列表及 synthetic 媒体边界和 82/128 协议范围见 [independent-validation-current.json](independent-validation-current.json)。加入加密导入后的阶段记录为 [encrypted-validation.json](encrypted-validation.json)。本轮搜索、导航及回归的最新结果见 [search-validation.json](search-validation.json)，各记录分别对应当时的实现范围。
