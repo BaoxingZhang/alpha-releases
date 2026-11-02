@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 233,
+      "passed": 239,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -257,7 +257,10 @@
           "coverage": "explicit-v4-media-database-metadata",
           "httpPath": "/api/v1/independent/media/probe",
           "sourceMethod": "media.probe",
-          "sourceFiles": ["hardlink.db", "media_*.db"],
+          "sourceFiles": [
+            "hardlink.db",
+            "media_*.db"
+          ],
           "mediaBytesRead": false,
           "alphaMedia1Tokens": false
         }
@@ -455,14 +458,14 @@
       "target": "darwin-arm64",
       "nativeRecompiled": false,
       "projectSigned": false,
-      "artifactCount": 989,
-    "artifactDigest": "668d4949b6048f0b03f531b121dc7a5a6a156769ccafee28727f8170f5a3cb1b"
+      "artifactCount": 991,
+      "artifactDigest": "0cefe65e17826894eb6499d1d8bceb27a204b49ea164ad1c9aa2293a5a98be55"
     },
     "releaseManifestVerification": {
       "command": "npm run verify:release-manifest",
       "status": "passed",
-      "artifactCount": 989,
-    "artifactDigest": "668d4949b6048f0b03f531b121dc7a5a6a156769ccafee28727f8170f5a3cb1b",
+      "artifactCount": 991,
+      "artifactDigest": "0cefe65e17826894eb6499d1d8bceb27a204b49ea164ad1c9aa2293a5a98be55",
       "checks": [
         "path",
         "symlink",
@@ -485,10 +488,11 @@
       "status": "passed",
       "appPath": ".runtime/release-artifacts/Alpha Recovered Independent.app",
       "dmgPath": ".runtime/release-artifacts/Alpha Recovered Independent.dmg",
-    "appArtifactDigest": "15c37f8dabe47e4c4979bce05d424d358bef5bdcc432d42009fdeeb624d83416",
-      "appFileCount": 1637,
-    "dmgBytes": 253265570,
-    "dmgSha256": "529273904892270edb9467edeeef812b24d84739f5cfacce74584d548e74afca",
+      "appArtifactDigest": "b91c0d9c846e6688a967c81ae456362f42b09bf0e2355afb22110cc9a13f3886",
+      "appFileCount": 1640,
+      "appTotalBytes": 527961116,
+      "dmgBytes": 253173864,
+      "dmgSha256": "0658d63a96987d31dbd5752e262bace7ca4d9e81b76ca569d2019058cc1e76a4",
       "projectSigned": false,
       "notarized": false,
       "nativeRecompiled": false,
@@ -610,13 +614,14 @@
       "status": "passed",
       "manifest": ".runtime/release-artifacts/Alpha Recovered.app.manifest.json",
       "electronVersion": "44.10.1",
-      "fileCount": 1636,
-      "totalBytes": 527578823,
-      "artifactDigest": "11a8bb7b775122519630c6c5697ea862e1f5854fc93880c013f1fe77d7584d6c",
+      "fileCount": 1639,
+      "totalBytes": 527960939,
+      "artifactDigest": "b7ad5954c5f64d05ee7c3abab8b144499d77a6edf52ce65accbe8a9a58aefdfa",
       "signed": false,
       "notarized": false,
       "independentResources": "Resources/independent",
-      "backendMode": "original"
+      "backendMode": "original",
+      "executable": "Contents/MacOS/AlphaRecovered"
     },
     "packagedMarkers": {
       "command": "npm run verify:packaged-markers",
@@ -626,15 +631,17 @@
           "appName": "Alpha Recovered",
           "backendMode": "original",
           "bundleIdentifier": "local.alpha.recovered",
-          "fileCount": 1636,
-          "artifactDigest": "11a8bb7b775122519630c6c5697ea862e1f5854fc93880c013f1fe77d7584d6c"
+          "executable": "Contents/MacOS/AlphaRecovered",
+          "fileCount": 1639,
+          "artifactDigest": "b7ad5954c5f64d05ee7c3abab8b144499d77a6edf52ce65accbe8a9a58aefdfa"
         },
         {
           "appName": "Alpha Recovered Independent",
           "backendMode": "independent",
           "bundleIdentifier": "local.alpha.recovered.independent",
-          "fileCount": 1637,
-          "artifactDigest": "15c37f8dabe47e4c4979bce05d424d358bef5bdcc432d42009fdeeb624d83416",
+          "executable": "Contents/MacOS/AlphaRecoveredIndependent",
+          "fileCount": 1640,
+          "artifactDigest": "b91c0d9c846e6688a967c81ae456362f42b09bf0e2355afb22110cc9a13f3886",
           "updateMode": {
             "path": "Contents/Resources/alpha-update-mode.json",
             "mode": "disabled",
@@ -644,18 +651,27 @@
       ]
     },
     "packagedUiSmoke": {
-      "command": "npm run package:macos-app:independent:from-build",
+      "command": "npm run test:packaged-independent",
       "status": "passed",
       "backend": "independent",
       "optIn": "bundled Resources/alpha-backend-mode.json",
-      "fixture": ".runtime/packaged-smoke-fixture",
+      "fixture": ".runtime/<ephemeral packaged smoke fixture>",
       "observed": [
-        "首次设置页显示打开离线数据副本",
-        "检测到 synthetic-account",
-        "进入 Alpha 后显示合成联系人甲、Beta 两个会话和合成消息"
+        "app.isPackaged=true",
+        "Resources/app and Resources/independent loaded from generated .app",
+        "renderer loaded through packaged Electron executable",
+        "renderer → preload → main IPC read synthetic-account and fixture messages"
+      ],
+      "checks": [
+        "independentPackagedMarker",
+        "electronPackagedMode",
+        "packagedRendererLoaded",
+        "independentBackendReady",
+        "fixtureReadThroughRendererIpc"
       ],
       "nativeBackend": "not exercised",
       "appPath": ".runtime/release-artifacts/Alpha Recovered Independent.app",
+      "executable": "Contents/MacOS/AlphaRecoveredIndependent",
       "marker": "alpha-backend-mode.json: backend=independent",
       "updateMode": {
         "path": "Contents/Resources/alpha-update-mode.json",
