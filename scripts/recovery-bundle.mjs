@@ -12,6 +12,10 @@ const TOP_LEVEL_EXCLUDES = new Set(['.git', '.alpha', '.runtime', 'node_modules'
 
 function fail(message) { throw new Error(message); }
 
+function compareText(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function excluded(relative, includeVendorRuntime) {
   const normalized = relative.split(path.sep).join('/');
   const first = normalized.split('/')[0];
@@ -30,7 +34,7 @@ async function collectFiles({ includeVendorRuntime }) {
   const files = [];
   async function visit(directory, relativeDirectory = '') {
     const entries = await fs.readdir(directory, { withFileTypes: true });
-    entries.sort((a, b) => a.name.localeCompare(b.name));
+    entries.sort((a, b) => compareText(a.name, b.name));
     for (const entry of entries) {
       const relative = relativeDirectory ? `${relativeDirectory}/${entry.name}` : entry.name;
       if (excluded(relative, includeVendorRuntime)) continue;
@@ -43,7 +47,7 @@ async function collectFiles({ includeVendorRuntime }) {
   }
   await visit(root);
   if (!files.includes('README.md') || !files.includes('MAINTENANCE.md') || !files.includes('package-lock.json')) fail('RECOVERY_BUNDLE_REQUIRED_SOURCE_MISSING');
-  return files.sort((a, b) => a.localeCompare(b));
+  return files.sort(compareText);
 }
 
 async function sha256File(filename) {
