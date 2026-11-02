@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+)
 
 func TestParseMessageDisplayLinkKeepsRawAndDropsUnsafeURL(t *testing.T) {
 	content := `<msg><appmsg><type>5</type><title><![CDATA[项目 & Alpha]]></title><des>说明 &amp; 详情</des><url>https://example.test/article</url></appmsg></msg>`
@@ -75,5 +79,39 @@ func TestParseMessageDisplayLocationUsesBoundedCoordinates(t *testing.T) {
 		if got := parseMessageDisplay("48", value, "wxid_alpha", "wxid_sender"); got != nil {
 			t.Fatalf("invalid location should be ignored: %#v from %q", got, value)
 		}
+	}
+}
+
+func TestParseMessageDisplayQuoteProjectsOnlyShallowReferMetadata(t *testing.T) {
+	content := `<msg><appmsg><type>57</type><title>这是引用的文字</title><refermsg><type>1</type><svrid>9007199254740993</svrid><fromusr>wxid_sender</fromusr><chatusr>room@chatroom</chatusr><displayname>群友甲</displayname><content><![CDATA[<msg><img aeskey="secret" /></msg>]]></content></refermsg></appmsg></msg>`
+	display := parseMessageDisplay("244813135921", content, "room@chatroom", "wxid_self")
+	if display == nil || display.Kind != "quote" || display.Quote == nil {
+		t.Fatalf("unexpected quote display: %#v", display)
+	}
+	quote := display.Quote
+	if quote.Sender != "群友甲" || quote.SenderID != "room@chatroom" || quote.Kind != "text" || quote.Text != "这是引用的文字" || quote.ServerID != "9007199254740993" {
+		t.Fatalf("unexpected quote fields: %#v", quote)
+	}
+	encoded, err := json.Marshal(display)
+	if err != nil || strings.Contains(string(encoded), "aeskey") {
+		t.Fatalf("nested media credentials must not enter quote metadata: %s", encoded)
+	}
+}
+
+func TestParseMessageDisplayQuoteRejectsAmbiguousOrMismatchedReferMetadata(t *testing.T) {
+	cases := []string{
+		`<msg><appmsg><type>57</type><title>x</title></appmsg></msg>`,
+		`<msg><appmsg><type>57</type><title>x</title><refermsg><displayname>a</displayname><displayname>b</displayname></refermsg></appmsg></msg>`,
+		`<msg><appmsg><type>57</type><title>x</title><refermsg><displayname><nested>bad</nested></displayname></refermsg></appmsg></msg>`,
+		`<msg><appmsg><type>5</type><title>x</title><refermsg><displayname>a</displayname></refermsg></appmsg></msg>`,
+	}
+	for _, content := range cases {
+		if got := parseMessageDisplay("244813135921", content, "wxid_alpha", "wxid_sender"); got != nil {
+			t.Fatalf("ambiguous or mismatched quote XML should be ignored: %#v from %q", got, content)
+		}
+	}
+	control := `<msg><appmsg><type>57</type><title>x</title><refermsg><chatusr>bad&#10;id</chatusr></refermsg></appmsg></msg>`
+	if got := parseMessageDisplay("244813135921", control, "wxid_alpha", "wxid_sender"); got == nil || got.Quote == nil || got.Quote.SenderID != "" {
+		t.Fatalf("control characters in sender identity must be omitted: %#v", got)
 	}
 }

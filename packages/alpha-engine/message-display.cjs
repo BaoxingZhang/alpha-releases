@@ -1,8 +1,9 @@
 'use strict';
 
 const MAX_UINT64 = (1n << 64n) - 1n;
-const DISPLAY_KEYS = new Set(['kind', 'title', 'description', 'sourceName', 'fileName', 'fileSize', 'fileExtension', 'displayUrl', 'linkUrl', 'location']);
+const DISPLAY_KEYS = new Set(['kind', 'title', 'description', 'sourceName', 'fileName', 'fileSize', 'fileExtension', 'displayUrl', 'linkUrl', 'location', 'quote']);
 const TEXT_KEYS = new Set(['title', 'description', 'sourceName', 'fileName']);
+const QUOTE_KEYS = new Set(['sender', 'kind', 'text', 'senderId', 'serverId']);
 
 function invalid() {
   throw new Error('BRIDGE_MESSAGE_DISPLAY_INVALID');
@@ -59,6 +60,17 @@ function validateMessageDisplay(value) {
     const location = value.location;
     if (!object(location) || typeof location.latitude !== 'number' || !Number.isFinite(location.latitude) || Math.abs(location.latitude) > 90 || typeof location.longitude !== 'number' || !Number.isFinite(location.longitude) || Math.abs(location.longitude) > 180 || !plain(location.label)) invalid();
     output.location = { latitude: location.latitude, longitude: location.longitude, label: location.label };
+  }
+  if (value.quote !== undefined) {
+    const quote = value.quote;
+    if (!object(quote) || Object.keys(quote).some(key => !QUOTE_KEYS.has(key)) || !plain(quote.sender) || !plain(quote.kind, 64) || !plain(quote.text) || quote.senderId !== undefined && (!plain(quote.senderId, 256) || !quote.senderId.trim() || /[\x00-\x1f\x7f]/.test(quote.senderId)) || quote.serverId !== undefined && (typeof quote.serverId !== 'string' || !/^\d{1,20}$/.test(quote.serverId))) invalid();
+    output.quote = {
+      sender: quote.sender,
+      kind: quote.kind,
+      text: quote.text,
+      ...(quote.senderId ? { senderId: quote.senderId.trim() } : {}),
+      ...(quote.serverId ? { serverId: quote.serverId } : {})
+    };
   }
   const encoded = Buffer.from(JSON.stringify(output), 'utf8');
   if (encoded.length > 64 * 1024) invalid();

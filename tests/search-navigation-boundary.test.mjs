@@ -41,8 +41,8 @@ const methods = methodNames.map(name => {
   assert.ok(node, `main EngineClient method missing: ${name}`);
   return mainSource.slice(node.start, node.end);
 });
-const functionNames = ['independentBackendEnabled', 'messageAfterUnixMs', 'messagePageRequest', 'messagePageResponse', 'conversationPageRequest', 'searchPageRequest', 'searchPageResponse', 'searchRequestFailure', 'searchContextTarget', 'readSearchMessageContext', 'readAnchoredMessageContext', 'scope', 'locateRequest', 'locatedSearchResult', 'LocatedMessages', 'localDay', 'dayCountsRequest', 'dayCountsFromWire', 'CHAT_EXPORT_MESSAGE_TYPES', 'MESSAGE_TYPES', 'MAX_SAFE', 'safeCount$1', 'chatExportStatsFromWire'];
-const desktop = vm.runInNewContext(functionNames.map(declaration).join('\n') + `\n({methods:{${methods.join(',\n')}}, searchPageRequest, searchPageResponse, readSearchMessageContext, LocatedMessages, dayCountsRequest, dayCountsFromWire, chatExportStatsFromWire})`, {
+const functionNames = ['independentBackendEnabled', 'acceptedMessageSourceToken', 'messageAfterUnixMs', 'messagePageRequest', 'messagePageResponse', 'conversationPageRequest', 'searchPageRequest', 'searchPageResponse', 'searchRequestFailure', 'searchContextTarget', 'readSearchMessageContext', 'readAnchoredMessageContext', 'scope', 'locateRequest', 'locatedSearchResult', 'LocatedMessages', 'localDay', 'dayCountsRequest', 'dayCountsFromWire', 'CHAT_EXPORT_MESSAGE_TYPES', 'MESSAGE_TYPES', 'MAX_SAFE', 'safeCount$1', 'chatExportStatsFromWire'];
+const desktop = vm.runInNewContext(functionNames.map(declaration).join('\n') + `\n({methods:{${methods.join(',\n')}}, acceptedMessageSourceToken, messagePageResponse, searchPageRequest, searchPageResponse, readSearchMessageContext, LocatedMessages, dayCountsRequest, dayCountsFromWire, chatExportStatsFromWire})`, {
   Buffer, Uint8Array, TextEncoder, TextDecoder,
   MAX_INT64$3: 9223372036854775807n, MAX_INT64$1: 9223372036854775807n,
   MAX_UINT64: 18446744073709551615n, MAX_CURSOR_BYTES$1: 1024,
@@ -208,6 +208,24 @@ test('server-id locate anchors use real shared ordering and reject cross-shard a
   const target = await api.locateMessageByServerId(accountId, history, '800001');
   const context = await api.searchMessageContext(accountId, target, { before: 3, after: 3 });
   assert.equal(context.targetIndex, 3); assert.equal(context.items.length, 7); assert.equal(context.items[3].id, anchor.message.id);
+});
+
+test('independent source tokens survive desktop message DTO validation', async t => {
+  const identity = { accountId, database: 'message_0.db', table: 'Msg_fixture', localId: '9007199254740993' };
+  const sourceToken = `independent1_${Buffer.from(JSON.stringify(identity), 'utf8').toString('base64url')}`;
+  assert.equal(desktop.acceptedMessageSourceToken(sourceToken), true);
+  assert.equal(desktop.acceptedMessageSourceToken(`media1_${'0'.repeat(32)}`), false);
+  const mapped = desktop.messagePageResponse({
+    appliedAfterUnixMs: undefined,
+    appliedBeforeUnixMs: undefined,
+    nextCursor: new Uint8Array(),
+    items: [{
+      id: 'message-source-token', localId: '1', serverId: 1n, conversationId: history,
+      sourceId: '1', sentAtUnixMs: 1700000000000n, direction: 1, kind: 'text', text: 'source',
+      refs: [], sourceToken
+    }]
+  }, history, new Uint8Array(), 10);
+  assert.equal(mapped.items[0].sourceToken, sourceToken);
 });
 
 test('calendar half-open millisecond bounds, timezone days and first-message stats agree with actual rows', async t => {

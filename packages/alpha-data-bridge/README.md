@@ -1,6 +1,6 @@
 # Alpha offline data bridge
 
-这是自有 Go 读取模块，不依赖 Alpha 原厂 engine/guard，也不导入 Chatlog 的 internal 包。当前支持用户显式指定的、已经解密的离线微信 v4 SQLite 副本：账号信息、联系人、会话、分页消息、全文搜索、消息定位、日期计数与消息类型统计。Node 引擎的媒体浏览复用 `sessions.list`/`messages.list` 做真实元数据筛选；bridge 本身不建立媒体索引，也不读取媒体文件。这是完整 Alpha 后端的第一批数据依赖，不代表完整功能已经恢复。v4 候选媒体库的表名、字段与路径线索见 [`docs/media-schema-evidence.md`](../../docs/media-schema-evidence.md)；本 bridge 目前不会打开这些媒体库。
+这是自有 Go 读取模块，不依赖 Alpha 原厂 engine/guard，也不导入 Chatlog 的 internal 包。当前支持用户显式指定的、已经解密的离线微信 v4 SQLite 副本：账号信息、联系人、会话、分页消息、全文搜索、消息定位、日期计数与消息类型统计。另支持一个明确标记的独立朋友圈 fixture（`moments.db` 中的 `__alpha_moments_v1` 表），提供朋友圈列表、作者聚合和日计数；不会把真实微信的 `SnsTimeLine`/`snsmessage` 表猜测成兼容 schema。Node 引擎的媒体浏览复用 `sessions.list`/`messages.list` 做真实元数据筛选；bridge 另提供严格独立的 `media.probe`，只扫描显式 root 下的 `hardlink.db`/`media_*.db`，输出带相对路径、大小和 SHA-256 的 metadata-only 索引，不读取媒体字节、不生成 `media1_...` token、不播放。该探针以 Chatlog v4 公开代码中的表名和字段为候选证据，返回 `nativeSchemaSupported=false`；真实 Alpha 媒体 parity 仍未宣称。这是完整 Alpha 后端的第一批数据依赖，不代表完整功能已经恢复。v4 候选媒体库的表名、字段与路径线索见 [`docs/media-schema-evidence.md`](../../docs/media-schema-evidence.md)。
 
 源码的 schema 参考固定 [Chatlog v4 数据源](https://github.com/imldy/chatlog/blob/a7162bca9454fa43b5950a2414670983fe180e56/internal/wechatdb/datasource/v4/datasource.go)，查询、验证、协议和分页代码为本项目实现。固定 Go module 依赖为 `github.com/mattn/go-sqlite3 v1.14.32` 与 `github.com/klauspost/compress v1.18.0`（有界 zstd 解码）；使用已校验的 go.sum，不更新到 latest。源码和许可证保留在项目内依赖缓存及 [已有依赖许可索引](../../docs/chatlog-dependency-licenses.json)，另保留 [zstd 依赖许可证](licenses/klauspost-compress-LICENSE)。没有复制上游实现或改动 `vendor/chatlog`。
 
@@ -42,11 +42,15 @@ build/candidates/alpha-data-bridge --data-dir /absolute/offline-copy --account-i
 | `sessions.list` | `limit`、`cursor` | 会话页，按 sort_timestamp 降序、username/rowid 升序 |
 | `messages.list` | `conversationId`、`limit`、`cursor`、`ascending`、可选 `afterTime`/`beforeTime` | 消息页；时间边界是十进制字符串形式的 Unix 秒，包含边界；默认升序 |
 | `sessions.list` + `messages.list` | 由 Node 引擎组合调用 | 为 `browseConversationMessages`/`browseAccountMedia` 提供真实会话和消息元数据；不提供媒体文件索引、路径、下载或播放 |
+| `media.probe` | 无参数；只针对启动时显式选择的数据目录 | 只读扫描 `hardlink.db` 的 image/video/file hardlink 表和 `media_*.db` 的 `VoiceInfo`；返回相对路径、大小、修改时间、voice data 长度、源库/表和源库 SHA-256。结果始终 `metadataOnly=true`、`mediaReady=false`、`nativeSchemaSupported=false`；没有候选库返回 `status=unavailable` |
 | `messages.search` | 非空 `query`、可选 `conversationId`、`senderId`、`afterTime`/`beforeTime`、`ascending`、`groupByConversation`、`limit`、`cursor` | 同消息 DTO、matchCount 字符串及 coverage；默认降序，时间双端包含 |
 | `messages.locate` | `conversationId`、`serverId`（正 uint64 十进制字符串） | message 或 null，及 beforeCursor/afterCursor |
 | `messages.dayCounts` | `conversationId`、`fromUnixMs`、`toUnixMs`（十进制字符串）、`utcOffsetMinutes`（整数） | `{days:[{localDay,count}]}`，数字为字符串；毫秒范围半开、最多 62 天 |
 | `messages.stats` | 可选 `conversationId`，空表示整个账号 | `{conversationId,messageCount,firstTime,lastTime,counts:[{localType,count}]}`；first/last 为秒字符串，空集合为空字符串 |
-| `general.list` | `tableName=__alpha_group_members`、`query=<chatroom>@chatroom`、`offset`、`limit`（单页最多 1000）、`ascending=true`；或 `__alpha_general_payments`/`__alpha_general_friend_requests`/`__alpha_general_revokes`/`__alpha_general_calls`、空 `query`、`ascending=false` | 群成员从 v4 `chat_room.ext_buffer` 解析真实成员，补充 contact 表中的昵称/备注/别名和 `isOwner`；支付、好友申请、撤回和通话候选只从可验证的消息 XML 生成带 `partial=1,candidate=1` 字段的记录。好友申请仅接受 `local_type=37` 且 XML `sysmsg` 类型为 `VerifyMsg`/`friend`/`friendmsg`，通话仅接受 `local_type=50` 且包含明确 `voipmsg`/`voipinvitemsg` 元素；保留来源库/表/行号，不猜测请求方向、状态、标签、媒体、时长或通话状态；不伪造 Alpha 完整记录库、头像、管理员或原消息恢复 |
+| `moments.list` | `limit`、`offset`、可选 `username`、`keyword`、`fromUnixMs`、`toUnixMs`、`ascending` | 仅读取 `moments.db` 的显式 `__alpha_moments_v1` fixture；时间范围为半开 `[fromUnixMs,toUnixMs)`；返回 `NativeMomentRecord` 对应字段、`sourceDatabase= moments.db` 和 `hasMore` |
+| `moments.authors` | `limit` | 对显式 moments fixture 按 username 聚合，返回 postCount/latestAtUnixMs；不补联系人头像或备注 |
+| `moments.dayCounts` | 可选 `username`、`fromUnixMs`、`toUnixMs`、`utcOffsetMinutes` | 显式 moments fixture 的本地日计数；时间范围为半开 `[fromUnixMs,toUnixMs)`；无 fixture 返回 `CAPABILITY_UNAVAILABLE`/不可用边界 |
+| `general.list` | `tableName=__alpha_group_members`、`query=<chatroom>@chatroom`、`offset`、`limit`（单页最多 1000）、`ascending=true`；或 `__alpha_general_payments`/`__alpha_general_friend_requests`/`__alpha_general_revokes`/`__alpha_general_calls`、可选不超过 512 字节的 UTF-8 字面 `query`、显式 `ascending`、`offset`、`limit` | 群成员从 v4 `chat_room.ext_buffer` 解析真实成员，补充 contact 表中的昵称/备注/别名和 `isOwner`；支付、好友申请、撤回和通话候选只从可验证的消息 XML 生成带 `partial=1,candidate=1` 字段的记录，查询只在已派生的记录 ID、内容、actor、字段名和值上做不区分大小写的字面包含匹配。好友申请仅接受 `local_type=37` 且 XML `sysmsg` 类型为 `VerifyMsg`/`friend`/`friendmsg`，通话仅接受 `local_type=50` 且包含明确 `voipmsg`/`voipinvitemsg` 元素；保留来源库/表/行号，不猜测请求方向、状态、标签、媒体、时长或通话状态；不伪造 Alpha 完整记录库、头像、管理员或原消息恢复 |
 
 Cursor 是 bridge 产生的不透明 base64url 字符串，绑定本次数据快照和全部筛选/排序参数；调用者原样传回，不能拿另一个查询的 cursor 继续读取。limit 可以调整。消息跨所有分库按 `(create_time, database, table, local_id)` 全局排序，再截取一页；反向分页反转完整排序，不依赖分库的 Timestamp 范围声明。`sort_seq` 作为原始信息保留，不参与新排序。这样原界面按时间跳转、搜索上下文读取与分页保持一致；本轮并未证明原厂 native 的全部排序细节。cursor-v2 绑定新排序语义，旧 cursor 明确拒绝。查询不存在的 `Msg_<MD5(conversationId)>` 表会返回真实空页；缺失整个消息库则返回明确不可用。
 
@@ -60,7 +64,7 @@ Cursor 是 bridge 产生的不透明 base64url 字符串，绑定本次数据快
 
 `source.database` 是相对输入根目录的路径。外层 Alpha 协议如果只允许 int32 localId，必须把完整字符串和 source locator 保存在自己的 opaque source token/映射里，不能截断、取模或转成失真的 Number。`status` 保留原值，不代表已验证的消息方向；方向需要明确自己的 username。
 
-`contentBase64` 和 `packedInfoBase64` 在各自不超过 4 MiB 时保留原始字节。SQL 查询在物化前拦截更大的字段；超大 content 返回 `contentDecodeStatus=too-large`、空 content/raw，超大 packed metadata 返回空字段及 `packedInfoOmitted=true`。UTF-8 和正常 zstd 帧由列表、搜索和定位共享同一解码器，成功时 `contentEncoding=utf8`，zstd 额外标记 `contentCompression=zstd`；压缩输入、解压结果、窗口均最多 4 MiB。解码失败保留 `binary` 与具体 `contentDecodeStatus`，调用方不能再次采用更宽松解码然后声称搜索完整。XML/卡片/protobuf 业务内容仍未完整解析，当前搜索的是实际显示的原始可读文本，未知消息类型不会被假定为文本类型。
+`contentBase64` 和 `packedInfoBase64` 在各自不超过 4 MiB 时保留原始字节。SQL 查询在物化前拦截更大的字段；超大 content 返回 `contentDecodeStatus=too-large`、空 content/raw，超大 packed metadata 返回空字段及 `packedInfoOmitted=true`。UTF-8 和正常 zstd 帧由列表、搜索和定位共享同一解码器，成功时 `contentEncoding=utf8`，zstd 额外标记 `contentCompression=zstd`；压缩输入、解压结果、窗口均最多 4 MiB。解码失败保留 `binary` 与具体 `contentDecodeStatus`，调用方不能再次采用更宽松解码然后声称搜索完整。XML/卡片/protobuf 业务内容仍未完整解析；当前只对已验证的链接、文件、位置和引用（type 57）做有界 display projection，引用不读取嵌套媒体/原文。搜索的是实际显示的原始可读文本，未知消息类型不会被假定为文本类型。
 
 ### 媒体引用（只读声明）
 

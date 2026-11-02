@@ -4341,19 +4341,21 @@ function databaseKeyProgressText(messageKey, platform) {
 function startDatabaseKeyProgressPoll(accountId, bridge, platform, onText, intervalMs = 1e3) {
   if (!isMacDatabaseKeyFlow(platform)) return () => {
   };
-  let cursor = 0;
+  let cursor = 0n;
   let stopped = false;
   let timer;
   const tick = async () => {
     if (stopped) return;
     try {
-      const watched = await bridge.watchDatabaseKeyAcquisition(accountId, cursor);
+      const watched = await bridge.watchDatabaseKeyAcquisition(accountId, cursor.toString());
       if (stopped) return;
       if (!watched.active) {
-        cursor = Math.max(cursor, watched.lastEventSeq);
+        const reported = BigInt(watched.lastEventSeq);
+        if (reported > cursor) cursor = reported;
       } else {
         for (const event of watched.events) {
-          cursor = Math.max(cursor, event.eventSeq);
+          const reported = BigInt(event.eventSeq);
+          if (reported > cursor) cursor = reported;
           if (!event.terminal && event.messageKey) onText(databaseKeyProgressText(event.messageKey, platform));
         }
       }
@@ -8474,6 +8476,9 @@ function toAccountFixture(account, nickname = "") {
     id: account.id,
     name,
     initials: (name || "?").slice(0, 1),
+    sourceProfile: account.sourceProfile || "",
+    schemaProfile: account.schemaProfile || "",
+    capabilities: Array.isArray(account.capabilities) ? [...account.capabilities] : [],
     state: account.state === "ready" ? "ready" : account.state === "locked" ? "locked" : account.state === "degraded" ? "degraded" : "locked",
     unread: 0
   };
@@ -15985,18 +15990,22 @@ function MessageImages({ accountId, message, active: active2 = true, poster = fa
     }
   );
 }
-function MediaTile({ accountId, message, active: active2, size, caption, onLocate, onOpenImage, onOpenVideo }) {
+function MediaTile({ accountId, message, active: active2, size, caption, onLocate, onOpenImage, onOpenVideo, metadataOnly = false }) {
   const video = messagePresentationKind(message) === "video";
   const duration2 = video ? messageCardView(message).duration : "";
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { role: "listitem", className: `type-browse-tile ${video ? "is-video" : ""}`, style: { width: size, height: size }, children: [
+  const indexedImages = cachedMessageImages(message.refs).length > 0;
+  const canReadImage = !metadataOnly || indexedImages;
+  const canReadVideo = !metadataOnly;
+  const metadataOnlyTile = metadataOnly && (video || !indexedImages);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { role: "listitem", className: `type-browse-tile ${video ? "is-video" : ""} ${metadataOnlyTile ? "is-metadata-only" : ""}`, style: { width: size, height: size }, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "type-browse-tile-fallback", "aria-hidden": "true", children: video ? /* @__PURE__ */ jsxRuntimeExports.jsx(Video, { size: 20 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Image, { size: 20 }) }),
     video ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-      cachedMessageImages(message.refs).length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(MessageImages, { accountId, message, active: active2, poster: true, passive: true, quiet: true }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "type-browse-tile-open", "aria-label": "播放视频", onClick: () => onOpenVideo(message), children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "type-browse-play", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { size: 16, "aria-hidden": "true" }) }) }),
+      canReadVideo && indexedImages && /* @__PURE__ */ jsxRuntimeExports.jsx(MessageImages, { accountId, message, active: active2, poster: true, passive: true, quiet: true }),
+      canReadVideo && onOpenVideo ? /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "type-browse-tile-open", "aria-label": "播放视频", onClick: () => onOpenVideo(message), children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "type-browse-play", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { size: 16, "aria-hidden": "true" }) }) }) : metadataOnlyTile && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "type-browse-tile-metadata", role: "status", children: "仅有元数据" }),
       duration2 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "type-browse-duration", children: duration2 })
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(MessageImages, { accountId, message, active: active2, passive: true, quiet: true }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "type-browse-tile-open is-photo", "aria-label": "查看大图", onClick: () => onOpenImage(message) })
+      canReadImage && /* @__PURE__ */ jsxRuntimeExports.jsx(MessageImages, { accountId, message, active: active2, passive: true, quiet: true }),
+      canReadImage && onOpenImage ? /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "type-browse-tile-open is-photo", "aria-label": "查看大图", onClick: () => onOpenImage(message) }) : metadataOnlyTile && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "type-browse-tile-metadata", role: "status", children: "仅有元数据" })
     ] }),
     caption && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "type-browse-caption", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TruncatedText, { text: caption }) }),
     onLocate && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -16016,7 +16025,7 @@ function MediaTile({ accountId, message, active: active2, size, caption, onLocat
 }
 const GAP$1 = 4;
 const MONTH_ROW = 34;
-function MediaGrid({ accountId, items, active: active2, hasMore, fetching, minTile = 76, caption, onLoadMore, onLocate, onOpenImage, onOpenVideo, footer }) {
+function MediaGrid({ accountId, items, active: active2, hasMore, fetching, minTile = 76, caption, onLoadMore, onLocate, onOpenImage, onOpenVideo, metadataOnly = false, footer }) {
   const scroller = reactExports.useRef(null);
   const [width, setWidth] = reactExports.useState(0);
   reactExports.useLayoutEffect(() => {
@@ -16061,7 +16070,8 @@ function MediaGrid({ accountId, items, active: active2, hasMore, fetching, minTi
           caption: caption?.(message),
           onLocate,
           onOpenImage,
-          onOpenVideo
+          onOpenVideo,
+          metadataOnly
         },
         `${message.conversationId}:${message.id}`
       )) }) }, row.key);
@@ -16340,7 +16350,8 @@ function accountMediaQueryOptions(accountId, accountEpoch, category, filters, re
   });
 }
 function TypeBrowseView({ accountId, conversation, category, visible, filters, filterBar, onLocate }) {
-  const { accountEpoch } = useWorkspace();
+  const { accountEpoch, status } = useWorkspace();
+  const metadataOnly = isIndependentEngineStatus(status);
   const supported = typeof window.alpha.messages.browseByType === "function";
   const query = useInfiniteQuery({
     ...typeBrowseQueryOptions(accountId, accountEpoch, conversation.id, category, filters ?? {}),
@@ -16392,6 +16403,7 @@ function TypeBrowseView({ accountId, conversation, category, visible, filters, f
         onLocate: (message) => void locate(message),
         onOpenImage: (message) => void viewer.open(message),
         onOpenVideo: setVideo,
+        metadataOnly,
         footer: query.isFetchingNextPage ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "conversation-search-note", role: "status", children: "正在读取更多…" }) : void 0
       }
     ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -16408,7 +16420,7 @@ function TypeBrowseView({ accountId, conversation, category, visible, filters, f
         onLocate: (message) => void locate(message)
       }
     ),
-    video && /* @__PURE__ */ jsxRuntimeExports.jsx(
+    video && !metadataOnly && /* @__PURE__ */ jsxRuntimeExports.jsx(
       MediaVideoDialog,
       {
         accountId,
@@ -29657,7 +29669,7 @@ function createActivePlayback() {
   };
 }
 const FAVORITE_PAGE_SIZE = 50;
-function useFavoriteFeed(accountId, accountEpoch, independent = false) {
+function useFavoriteFeed(accountId, accountEpoch, independent = false, syntheticFavorites = false) {
   const queryClient2 = useQueryClient();
   const [search, setSearch] = reactExports.useState("");
   const [type, setType] = reactExports.useState(ALL_FAVORITE_TYPES);
@@ -29683,7 +29695,7 @@ function useFavoriteFeed(accountId, accountEpoch, independent = false) {
     }),
     initialPageParam: 0,
     getNextPageParam: (last, pages) => last.hasMore && last.items.length ? pages.reduce((total, page) => total + page.items.length, 0) : void 0,
-    enabled: Boolean(accountId) && !independent && !searchError,
+    enabled: Boolean(accountId) && (!independent || syntheticFavorites) && !searchError,
     retry: false,
     staleTime: 3e4,
     refetchOnWindowFocus: false
@@ -30567,9 +30579,10 @@ function FavoriteTypeChips({ chips, selected, disabled, onSelect }) {
     chip.type
   )) });
 }
-function FavoritesBrowser({ accountId, independent = false }) {
+function FavoritesBrowser({ accountId, independent = false, syntheticFavorites = false }) {
   const { remoteConversations, accountEpoch } = useWorkspace();
-  const data = useFavoriteFeed(accountId, accountEpoch, independent);
+  const data = useFavoriteFeed(accountId, accountEpoch, independent, syntheticFavorites);
+  const favoritesEnabled = !independent || syntheticFavorites;
   const { feed, entries } = data;
   const sessions2 = reactExports.useMemo(() => new Map(remoteConversations.map((item) => [item.id, item])), [remoteConversations]);
   const chips = favoriteTypeChips(data.typeCounts, data.total, data.type);
@@ -30597,7 +30610,8 @@ function FavoritesBrowser({ accountId, independent = false }) {
         }
       )
     ] }) }),
-    independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立离线模式暂未接入微信收藏数据库，因此收藏页不会读取或猜测聊天中的收藏内容。保留原生模式可在取得授权的收藏库样本或原生组件后接入。" }),
+    independent && !syntheticFavorites && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立离线模式暂未接入微信收藏数据库，因此收藏页不会读取或猜测聊天中的收藏内容。取得明确标记的独立 synthetic fixture 后可继续接入只读列表；真实收藏库与媒体仍不可用。" }),
+    independent && syntheticFavorites && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立 synthetic-only 收藏：仅读取 favorite.db 或 favorites.db 的 __alpha_favorites_v1，展示文字和已验证字段。真实微信收藏库 schema、媒体、source lookup 和写入均不可用。" }),
     accountId && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "favorite-filters", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(FavoriteTypeChips, { chips, selected: data.type, disabled: !accountId, onSelect: data.setType }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(FavoriteTagSelect, { options: tagOptions, selected: data.tagId, disabled: !accountId, onSelect: data.setTagId })
@@ -30605,14 +30619,14 @@ function FavoritesBrowser({ accountId, independent = false }) {
     data.searchError && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "favorites-search-error", role: "alert", children: data.searchError.message }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "favorites-body", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "favorites-feed", ref: feedRef, ...events, tabIndex: 0, "aria-label": "收藏列表", "aria-busy": feed.isFetching, children: [
-        independent && accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Bookmark, { size: 22 }), title: "独立模式暂不支持收藏", description: "需要微信收藏数据库与原生媒体解析组件；当前离线后端不会把聊天消息冒充收藏记录。" }),
-        !independent && !accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { size: 22 }), title: "等待账号数据", action: /* @__PURE__ */ jsxRuntimeExports.jsx(ConnectAccountButton, {}), description: "请先在账号设置中连接账号，再回来查看收藏。" }),
-        !independent && accountId && feed.isPending && !data.searchError && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "favorites-status", role: "status", children: [
+        independent && !syntheticFavorites && accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Bookmark, { size: 22 }), title: "独立模式暂不支持收藏", description: "需要明确标记的 synthetic 收藏 fixture；当前离线后端不会把聊天消息冒充收藏记录。" }),
+        favoritesEnabled && !accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { size: 22 }), title: "等待账号数据", action: /* @__PURE__ */ jsxRuntimeExports.jsx(ConnectAccountButton, {}), description: "请先在账号设置中连接账号，再回来查看收藏。" }),
+        favoritesEnabled && accountId && feed.isPending && !data.searchError && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "favorites-status", role: "status", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "spin", size: 18 }),
           "正在读取收藏…"
         ] }),
         feed.error && !pageError && /* @__PURE__ */ jsxRuntimeExports.jsx(FeedError, { error: feed.error, onRetry: () => void feed.refetch() }),
-        !independent && accountId && feed.isSuccess && entries.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        favoritesEnabled && accountId && feed.isSuccess && entries.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
           EmptyState,
           {
             icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Bookmark, { size: 22 }),
@@ -30620,7 +30634,7 @@ function FavoritesBrowser({ accountId, independent = false }) {
             description: filtered ? "换个关键词、类型或标签再试。" : "本机收藏库中没有可展示的收藏。"
           }
         ),
-        !independent && entries.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "favorites-list", role: "feed", "aria-busy": feed.isFetchingNextPage, children: entries.map(({ favorite, item }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+        favoritesEnabled && entries.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "favorites-list", role: "feed", "aria-busy": feed.isFetchingNextPage, children: entries.map(({ favorite, item }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
           FavoriteCard,
           {
             accountId,
@@ -30631,12 +30645,12 @@ function FavoritesBrowser({ accountId, independent = false }) {
           },
           item.key
         )) }),
-        !independent && pageError && /* @__PURE__ */ jsxRuntimeExports.jsx(FeedError, { error: feed.error, onRetry: retry }),
-        !independent && feed.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "favorites-status", role: "status", children: [
+        favoritesEnabled && pageError && /* @__PURE__ */ jsxRuntimeExports.jsx(FeedError, { error: feed.error, onRetry: retry }),
+        favoritesEnabled && feed.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "favorites-status", role: "status", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "spin", size: 16 }),
           "正在读取更多收藏…"
         ] }),
-        !independent && entries.length > 0 && !feed.hasNextPage && !feed.isFetching && !feed.error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "favorites-status", children: "已全部加载" })
+        favoritesEnabled && entries.length > 0 && !feed.hasNextPage && !feed.isFetching && !feed.error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "favorites-status", children: "已全部加载" })
       ] }),
       record2.current && /* @__PURE__ */ jsxRuntimeExports.jsx(FavoriteRecordDrawer, { accountId, favorite: record2.current.favorite, item: record2.current.item, onClose: record2.close })
     ] })
@@ -30650,13 +30664,16 @@ function FeedError({ error, onRetry }) {
   ] });
 }
 function FavoritesPage(_) {
-  const { activeAccountId, accountEpoch, hasRemoteAccount, status } = useWorkspace();
+  const { activeAccountId, accountEpoch, hasRemoteAccount, activeAccount, status } = useWorkspace();
   const independent = isIndependentEngineStatus(status);
+  const capabilities = new Set(Array.isArray(activeAccount?.capabilities) ? activeAccount.capabilities : []);
+  const syntheticFavorites = independent && String(activeAccount?.sourceProfile ?? "").startsWith("alpha-independent-") && capabilities.has("favorites");
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     FavoritesBrowser,
     {
       accountId: hasRemoteAccount ? activeAccountId : "",
-      independent
+      independent,
+      syntheticFavorites
     },
     `favorites-${activeAccountId}-${accountEpoch}`
   );
@@ -30784,7 +30801,7 @@ function useMomentMonthDayCounts(accountId, accountEpoch, username, month, enabl
     refetchOnReconnect: false
   });
 }
-function useMomentsQuery(accountId, independent = false) {
+function useMomentsQuery(accountId, independent = false, syntheticMoments = false) {
   const client = useQueryClient();
   const { accountEpoch } = useWorkspace();
   const [applied, setApplied] = reactExports.useState(EMPTY_MOMENT_FILTERS);
@@ -30799,7 +30816,7 @@ function useMomentsQuery(accountId, independent = false) {
     queryFn: ({ pageParam }) => window.alpha.data.moments(accountId, buildMomentQueryOptions(filters, pageParam)),
     initialPageParam: 0,
     getNextPageParam: (_lastPage, pages) => nextMomentPageOffset(pages),
-    enabled: Boolean(accountId) && !independent,
+    enabled: Boolean(accountId) && (!independent || syntheticMoments),
     retry: false,
     refetchOnWindowFocus: false,
     staleTime: 5e3
@@ -33546,8 +33563,24 @@ function MomentExportAction({ accountId, icon, seed, label }) {
     opened && opened.accountId === accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportDialog, { accountId, accountScope: `${accountId}:${accountEpoch}`, seed: opened.seed, onClose: () => setOpened(null) })
   ] });
 }
-function MomentsBrowser({ accountId, independent = false }) {
-  const data = useMomentsQuery(accountId, independent);
+function SyntheticMomentCard({ moment }) {
+  const name = moment.nickname?.trim() || moment.username || "未知账号";
+  const initial = [...name][0] || "?";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("article", { className: "moment-card synthetic-moment-card", "data-source-table": moment.sourceTable, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "moment-avatar", "aria-hidden": "true", children: initial }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moment-content", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "moment-author-name", children: name }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("time", { children: formatMomentTime(moment.createdAtUnixMs) })
+      ] }),
+      moment.text ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: moment.text }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "empty", children: "（无正文）" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("small", { className: "moment-synthetic-meta", children: "synthetic-only · __alpha_moments_v1 · 只读文字" })
+    ] })
+  ] });
+}
+function MomentsBrowser({ accountId, independent = false, syntheticMoments = false }) {
+  const data = useMomentsQuery(accountId, independent, syntheticMoments);
+  const momentsEnabled = !independent || syntheticMoments;
   const { applied, author, query, moments, nextOffset, scope, mediaRevision, refresh } = data;
   const panel = useMomentsPanel();
   const { momentsRequest, consumeMomentsRequest } = useNavigation();
@@ -33567,9 +33600,10 @@ function MomentsBrowser({ accountId, independent = false }) {
     fetchNextPage: () => query.fetchNextPage({ cancelRefetch: false })
   });
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "moments-workspace", "aria-label": "朋友圈浏览器", children: [
-    independent && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立离线模式暂未接入微信朋友圈数据库，因此不会把普通聊天消息冒充朋友圈动态。取得授权的朋友圈明文样本或原生组件后，可继续接入读取、媒体与导出。" }),
+    independent && !syntheticMoments && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立离线模式暂未接入微信朋友圈数据库，因此不会把普通聊天消息冒充朋友圈动态。取得授权的朋友圈明文样本或原生组件后，可继续接入读取、媒体与导出。" }),
+    independent && syntheticMoments && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立 synthetic-only 朋友圈：仅读取 moments.db 的 __alpha_moments_v1，展示文字、作者和日期统计。真实微信 SnsTimeLine/snsmessage schema、媒体、点赞评论、导出和防删除写入均不可用。" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Masthead, { title: "朋友圈", actions: /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-      !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      momentsEnabled && /* @__PURE__ */ jsxRuntimeExports.jsx(
         MomentsCalendarEntry,
         {
           accountId,
@@ -33580,7 +33614,7 @@ function MomentsBrowser({ accountId, independent = false }) {
         }
       ),
       !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsProtectionEntry, { accountId, ready: !query.isPending }),
-      !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      momentsEnabled && /* @__PURE__ */ jsxRuntimeExports.jsx(
         IconButton,
         {
           id: panel.toggleId,
@@ -33590,7 +33624,7 @@ function MomentsBrowser({ accountId, independent = false }) {
           onClick: panel.toggle
         }
       ),
-      !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(IconButton, { label: "刷新朋友圈", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCcw, { size: 17, className: query.isRefetching && !query.isFetchingNextPage ? "spin" : void 0 }), disabled, onClick: refresh }),
+      momentsEnabled && /* @__PURE__ */ jsxRuntimeExports.jsx(IconButton, { label: "刷新朋友圈", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCcw, { size: 17, className: query.isRefetching && !query.isFetchingNextPage ? "spin" : void 0 }), disabled, onClick: refresh }),
       !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportAction, { accountId, icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { size: 17 }), seed: () => ({
         authors: author && applied.username === author.username ? [{ username: author.username, name: author.name }] : [],
         keyword: applied.keyword,
@@ -33612,16 +33646,16 @@ function MomentsBrowser({ accountId, independent = false }) {
           }
         ),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-feed", ref: feedRef, ...events, tabIndex: 0, "aria-label": "朋友圈动态", "aria-busy": query.isFetching, children: [
-          independent && accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Aperture, { size: 22 }), title: "独立模式暂不支持朋友圈", description: "需要微信朋友圈数据库与原生投影组件；当前离线后端不会把聊天消息当作朋友圈。" }),
-          !independent && author && applied.username === author.username && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsAuthorStrip, { accountId, author }),
-          !independent && query.isRefetching && !query.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "moments-feed-status", role: "status", children: "正在重新读取朋友圈…" }),
-          !independent && query.error && !query.isFetchNextPageError && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsError, { error: momentQueryErrorDetails(query.error), onRetry: () => void query.refetch() }),
-          !independent && !accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { size: 22 }), title: "等待账号数据", description: "请先在账号设置中连接账号，再回来查看朋友圈。" }),
-          !independent && accountId && query.isPending && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-loading", role: "status", children: [
+          independent && !syntheticMoments && accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Aperture, { size: 22 }), title: "独立模式暂不支持朋友圈", description: "需要微信朋友圈数据库与原生投影组件；当前离线后端不会把聊天消息当作朋友圈。" }),
+          momentsEnabled && author && applied.username === author.username && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsAuthorStrip, { accountId, author }),
+          momentsEnabled && query.isRefetching && !query.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "moments-feed-status", role: "status", children: "正在重新读取朋友圈…" }),
+          momentsEnabled && query.error && !query.isFetchNextPageError && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsError, { error: momentQueryErrorDetails(query.error), onRetry: () => void query.refetch() }),
+          momentsEnabled && !accountId && /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { size: 22 }), title: "等待账号数据", description: "请先在账号设置中连接账号，再回来查看朋友圈。" }),
+          momentsEnabled && accountId && query.isPending && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-loading", role: "status", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "spin", size: 18 }),
             "正在读取朋友圈…"
           ] }),
-          !independent && accountId && !query.isPending && !query.error && moments.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          momentsEnabled && accountId && !query.isPending && !query.error && moments.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
             EmptyState,
             {
               icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Aperture, { size: 22 }),
@@ -33630,17 +33664,17 @@ function MomentsBrowser({ accountId, independent = false }) {
               action: filtered && !query.hasNextPage ? /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "moments-empty-action", onClick: data.resetFilters, children: "清除筛选" }) : void 0
             }
           ),
-          !independent && moments.map((moment, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(MomentCard, { moment, accountId, mediaRevision, onSelectAuthor: data.selectAuthor }, moment.id || `moment-${index}`)),
-          !independent && query.isFetchNextPageError && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsError, { error: momentQueryErrorDetails(query.error), onRetry: retry }),
-          !independent && query.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-feed-status", role: "status", children: [
+          momentsEnabled && moments.map((moment, index) => syntheticMoments ? /* @__PURE__ */ jsxRuntimeExports.jsx(SyntheticMomentCard, { moment }, moment.id || `moment-${index}`) : /* @__PURE__ */ jsxRuntimeExports.jsx(MomentCard, { moment, accountId, mediaRevision, onSelectAuthor: data.selectAuthor }, moment.id || `moment-${index}`)),
+          momentsEnabled && query.isFetchNextPageError && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsError, { error: momentQueryErrorDetails(query.error), onRetry: retry }),
+          momentsEnabled && query.isFetchingNextPage && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "moments-feed-status", role: "status", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "spin", size: 16 }),
             "正在读取朋友圈…"
           ] }),
-          !independent && moments.length > 0 && !query.hasNextPage && !query.isFetching && !query.error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "moments-feed-status", children: "已到当前结果末尾" })
+          momentsEnabled && moments.length > 0 && !query.hasNextPage && !query.isFetching && !query.error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "moments-feed-status", children: "已到当前结果末尾" })
         ] })
       ] }),
-      !independent && panel.overlay && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "moments-panel-scrim", "aria-hidden": "true", onClick: panel.close }),
-      !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsSidePanel, { accountId, data, open: panel.open, overlay: panel.overlay, onClose: panel.close })
+      momentsEnabled && panel.overlay && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "moments-panel-scrim", "aria-hidden": "true", onClick: panel.close }),
+      momentsEnabled && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentsSidePanel, { accountId, data, open: panel.open, overlay: panel.overlay, onClose: panel.close })
     ] })
   ] });
 }
@@ -33651,13 +33685,16 @@ function MomentsError({ error, onRetry }) {
   ] });
 }
 function MomentsPage(_) {
-  const { activeAccountId, accountEpoch, hasRemoteAccount, status } = useWorkspace();
+  const { activeAccountId, accountEpoch, hasRemoteAccount, activeAccount, status } = useWorkspace();
   const independent = isIndependentEngineStatus(status);
+  const capabilities = new Set(Array.isArray(activeAccount?.capabilities) ? activeAccount.capabilities : []);
+  const syntheticMoments = independent && String(activeAccount?.sourceProfile ?? "").startsWith("alpha-independent-") && ["moments", "moment-authors", "moment-day-counts"].every((name) => capabilities.has(name));
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     MomentsBrowser,
     {
       accountId: hasRemoteAccount ? activeAccountId : "",
-      independent
+      independent,
+      syntheticMoments
     },
     `moments-${activeAccountId}-${accountEpoch}`
   );
@@ -33749,7 +33786,8 @@ function ConversationFilter({ accountId, value, onChange }) {
   ] });
 }
 function MediaWall({ accountId, accountEpoch }) {
-  const { remoteConversations } = useWorkspace();
+  const { remoteConversations, status } = useWorkspace();
+  const metadataOnly = isIndependentEngineStatus(status);
   const navigate = useNavigate();
   const client = useQueryClient();
   const [tab, setTab] = reactExports.useState("media");
@@ -33794,7 +33832,7 @@ function MediaWall({ accountId, accountEpoch }) {
       Masthead,
       {
         title: "图片与视频",
-        hint: "所有会话里的图片和视频，按时间从新到旧排列；视频在点击播放后才读取。",
+        hint: metadataOnly ? "独立离线模式按元数据浏览；仅明确绑定本地索引的图片允许预览，视频和未绑定媒体不会读取或播放。" : "所有会话里的图片和视频，按时间从新到旧排列；视频在点击播放后才读取。",
         nav: accountId ? /* @__PURE__ */ jsxRuntimeExports.jsx(Tabs, { items: MEDIA_TABS, variant: "underline", value: tab, onChange: setTab, label: "媒体类型", idPrefix: "media" }) : void 0,
         actions: accountId ? /* @__PURE__ */ jsxRuntimeExports.jsx(
           IconButton,
@@ -33810,6 +33848,7 @@ function MediaWall({ accountId, accountEpoch }) {
         ) : void 0
       }
     ),
+    metadataOnly && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "records-banner", role: "note", children: "独立离线媒体浏览默认只显示已验证元数据（metadataOnly=true，mediaReady=false）；仅明确绑定本地索引的图片允许预览，视频和未绑定媒体不会读取或播放。" }),
     !accountId ? /* @__PURE__ */ jsxRuntimeExports.jsx(
       EmptyState,
       {
@@ -33877,11 +33916,12 @@ function MediaWall({ accountId, accountEpoch }) {
           onLocate: locate,
           onOpenImage: (message) => void viewer.open(message),
           onOpenVideo: setVideo,
+          metadataOnly,
           footer: query.isFetchingNextPage ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "conversation-search-note media-page-more", role: "status", children: "正在读取更多…" }) : void 0
         }
       )
     ] }),
-    video && /* @__PURE__ */ jsxRuntimeExports.jsx(
+    video && !metadataOnly && /* @__PURE__ */ jsxRuntimeExports.jsx(
       MediaVideoDialog,
       {
         accountId,
@@ -46397,7 +46437,7 @@ function ExportCenter() {
             running2 > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "export-task-badge", "aria-label": `${running2} 个进行中`, children: running2 })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(ContactExportAction, { accountId, label: "导出通讯录", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(BookUser, { size: 16, "aria-hidden": "true" }), seed: () => ({}), independent }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportAction, { accountId, label: "导出朋友圈", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Aperture, { size: 16, "aria-hidden": "true" }), seed: () => EMPTY_MOMENT_EXPORT_SEED }),
+          !independent && /* @__PURE__ */ jsxRuntimeExports.jsx(MomentExportAction, { accountId, label: "导出朋友圈", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Aperture, { size: 16, "aria-hidden": "true" }), seed: () => EMPTY_MOMENT_EXPORT_SEED }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(RecordExportAction, { accountId, label: "导出其他资料", icon: /* @__PURE__ */ jsxRuntimeExports.jsx(FileStack, { size: 16, "aria-hidden": "true" }), seed: () => ({}), independent })
         ] })
       }

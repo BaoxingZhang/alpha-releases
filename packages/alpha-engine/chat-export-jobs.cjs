@@ -261,12 +261,25 @@ function createChatExportJobs({ runExport, now = () => BigInt(Date.now()), maxJo
     return {};
   }
 
+  async function removeAccount(accountId) {
+    if (typeof accountId !== 'string' || !accountId.trim()) fail('CHAT_EXPORT_REQUEST_INVALID');
+    const entries = [...jobs.values()].filter(entry => entry.job.accountId === accountId);
+    for (const entry of entries) {
+      entry.job.cancelRequested = true;
+      if (entry.job.state === 'running') setState(entry.job, 'canceling');
+    }
+    await Promise.allSettled([...active]);
+    for (const entry of entries) jobs.delete(entry.job.jobId);
+    await persist();
+  }
+
   return {
     capabilities: () => ({ messageTypes: [], mediaKinds: [], voiceTranscripts: false, maxConversations: MAX_CONVERSATIONS, options: [], xlsxColumns: [] }),
     start,
     list,
     watch,
     cancel,
+    removeAccount,
     close: async () => { closed = true; await Promise.allSettled([...active]); await writeQueue; },
   };
 }

@@ -28,12 +28,24 @@ type messageDisplay struct {
 	DisplayURL    string           `json:"displayUrl,omitempty"`
 	LinkURL       string           `json:"linkUrl,omitempty"`
 	Location      *messageLocation `json:"location,omitempty"`
+	Quote         *messageQuote    `json:"quote,omitempty"`
 }
 
 type messageLocation struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 	Label     string  `json:"label"`
+}
+
+// messageQuote is intentionally a shallow projection.  The referenced
+// message's XML may contain media credentials or another nested message; it
+// stays in the original content and is never copied into display metadata.
+type messageQuote struct {
+	Sender   string `json:"sender"`
+	Kind     string `json:"kind"`
+	Text     string `json:"text"`
+	SenderID string `json:"senderId,omitempty"`
+	ServerID string `json:"serverId,omitempty"`
 }
 
 const messageDisplayXMLLimit = 64 * 1024
@@ -93,7 +105,7 @@ func parseMessageDisplay(localType, content, conversationID, sender string) *mes
 	if err != nil || typeValue < 0 || (rootType != 0 && uint64(typeValue) != rootType) {
 		return nil
 	}
-	if typeValue != 5 && typeValue != 6 {
+	if typeValue != 5 && typeValue != 6 && typeValue != 57 {
 		return nil
 	}
 	for _, name := range []string{"title", "des", "sourcedisplayname", "url"} {
@@ -110,8 +122,11 @@ func parseMessageDisplay(localType, content, conversationID, sender string) *mes
 	} else if len(directDisplayChildren(app, "appattach")) > 1 {
 		return nil
 	}
+	if typeValue == 57 && len(directDisplayChildren(app, "refermsg")) != 1 {
+		return nil
+	}
 
-	display := &messageDisplay{Kind: map[int64]string{5: "link", 6: "file"}[typeValue]}
+	display := &messageDisplay{Kind: map[int64]string{5: "link", 6: "file", 57: "quote"}[typeValue]}
 	setDisplayText := func(name string, dst *string) {
 		node, found := uniqueDisplayChild(app, name)
 		if !found || len(node.children) != 0 {
@@ -125,9 +140,11 @@ func parseMessageDisplay(localType, content, conversationID, sender string) *mes
 	}
 	// An overlong known field is omitted as metadata. It cannot make raw
 	// content disappear, and it cannot be used to bypass the main validator.
-	setDisplayText("title", &display.Title)
-	setDisplayText("des", &display.Description)
-	setDisplayText("sourcedisplayname", &display.SourceName)
+	if typeValue != 57 {
+		setDisplayText("title", &display.Title)
+		setDisplayText("des", &display.Description)
+		setDisplayText("sourcedisplayname", &display.SourceName)
+	}
 
 	if typeValue == 5 {
 		if node, found := uniqueDisplayChild(app, "url"); found {
@@ -138,36 +155,126 @@ func parseMessageDisplay(localType, content, conversationID, sender string) *mes
 				}
 			}
 		}
-	} else if attach, found := uniqueDisplayChild(app, "appattach"); found {
-		// appattach with scalar fields is expected; a nested attach is
-		// ambiguous and is therefore omitted rather than guessed.
-		for _, name := range []string{"totallen", "fileext"} {
-			if len(directDisplayChildren(attach, name)) > 1 {
-				return nil
+	} else if typeValue == 6 {
+		if attach, found := uniqueDisplayChild(app, "appattach"); found {
+			// appattach with scalar fields is expected; a nested attach is
+			// ambiguous and is therefore omitted rather than guessed.
+			for _, name := range []string{"totallen", "fileext"} {
+				if len(directDisplayChildren(attach, name)) > 1 {
+					return nil
+				}
+				if node, ok := uniqueDisplayChild(attach, name); ok && len(node.children) != 0 {
+					return nil
+				}
 			}
-			if node, ok := uniqueDisplayChild(attach, name); ok && len(node.children) != 0 {
-				return nil
+			if node, ok := uniqueDisplayChild(attach, "totallen"); ok {
+				if value, valid := displayFileSize(strings.TrimSpace(node.text.String())); valid {
+					display.FileSize = value
+				}
+			}
+			if node, ok := uniqueDisplayChild(attach, "fileext"); ok {
+				if value, valid := displayText(strings.TrimSpace(node.text.String())); valid && messageDisplayExtension.MatchString(value) {
+					display.FileExtension = value
+				}
 			}
 		}
-		if node, ok := uniqueDisplayChild(attach, "totallen"); ok {
-			if value, valid := displayFileSize(strings.TrimSpace(node.text.String())); valid {
-				display.FileSize = value
-			}
-		}
-		if node, ok := uniqueDisplayChild(attach, "fileext"); ok {
-			if value, valid := displayText(strings.TrimSpace(node.text.String())); valid && messageDisplayExtension.MatchString(value) {
-				display.FileExtension = value
-			}
+	} else if typeValue == 57 {
+		display.Quote = parseQuoteDisplay(app)
+		if display.Quote == nil {
+			return nil
 		}
 	}
 	if typeValue == 6 && display.Title != "" {
 		display.FileName = display.Title
 		display.Title = ""
 	}
-	if display.Title == "" && display.Description == "" && display.SourceName == "" && display.FileName == "" && display.FileSize == "" && display.FileExtension == "" && display.LinkURL == "" {
+	if display.Title == "" && display.Description == "" && display.SourceName == "" && display.FileName == "" && display.FileSize == "" && display.FileExtension == "" && display.LinkURL == "" && display.Quote == nil {
 		return nil
 	}
 	return display
+}
+
+func parseQuoteDisplay(app *displayXMLNode) *messageQuote {
+	refer, found := uniqueDisplayChild(app, "refermsg")
+	if !found {
+		return nil
+	}
+	// Only scalar identity fields are projected.  In particular, refermsg
+	// content is deliberately ignored because it can contain nested XML,
+	// media tokens, or credentials that are outside this display contract.
+	for _, name := range []string{"type", "svrid", "fromusr", "chatusr", "displayname"} {
+		if len(directDisplayChildren(refer, name)) > 1 {
+			return nil
+		}
+		if node, ok := uniqueDisplayChild(refer, name); ok && len(node.children) != 0 {
+			return nil
+		}
+	}
+	textNode := func(parent *displayXMLNode, name string, limit int) string {
+		node, ok := uniqueDisplayChild(parent, name)
+		if !ok || len(node.children) != 0 {
+			return ""
+		}
+		value, valid := displayTextLimit(node.text.String(), limit)
+		if !valid {
+			return ""
+		}
+		return value
+	}
+	quotedText := textNode(app, "title", messageDisplayMaxText)
+	displayName := textNode(refer, "displayname", messageDisplayMaxText)
+	senderID := textNode(refer, "chatusr", 512)
+	if senderID == "" {
+		senderID = textNode(refer, "fromusr", 512)
+	}
+	if strings.IndexFunc(senderID, func(r rune) bool { return r < 0x20 || r == 0x7f }) >= 0 {
+		senderID = ""
+	}
+	sender := displayName
+	if sender == "" {
+		sender = senderID
+	}
+	if sender == "" && quotedText == "" {
+		return nil
+	}
+	kind := "text"
+	if typeText := textNode(refer, "type", 20); typeText != "" {
+		if parsed, err := strconv.ParseInt(typeText, 10, 64); err == nil && parsed >= 0 {
+			kind = quotedMessageKind(parsed)
+		}
+	}
+	serverID := textNode(refer, "svrid", 20)
+	if serverID != "" && !messageDisplayDigits.MatchString(serverID) {
+		serverID = ""
+	}
+	return &messageQuote{Sender: sender, Kind: kind, Text: quotedText, SenderID: senderID, ServerID: serverID}
+}
+
+func quotedMessageKind(value int64) string {
+	switch value {
+	case 1:
+		return "text"
+	case 3:
+		return "image"
+	case 34:
+		return "voice"
+	case 42:
+		return "contact"
+	case 43:
+		return "video"
+	case 47:
+		return "sticker"
+	case 48:
+		return "location"
+	case 49:
+		return "link"
+	case 50:
+		return "call"
+	case 10000, 10002:
+		return "system"
+	default:
+		return "other"
+	}
 }
 
 // parseLocationDisplay accepts the standard WeChat <msg><location x="..."
@@ -310,8 +417,12 @@ func uniqueDisplayChild(node *displayXMLNode, name string) (*displayXMLNode, boo
 }
 
 func displayText(value string) (string, bool) {
+	return displayTextLimit(value, messageDisplayMaxText)
+}
+
+func displayTextLimit(value string, limit int) (string, bool) {
 	value = strings.TrimSpace(value)
-	if strings.IndexByte(value, 0) >= 0 || len(utf16.Encode([]rune(value))) > messageDisplayMaxText {
+	if strings.IndexByte(value, 0) >= 0 || len(utf16.Encode([]rune(value))) > limit {
 		return "", false
 	}
 	return value, value != ""

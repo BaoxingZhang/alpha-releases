@@ -104,8 +104,9 @@ function errorFor(snapshot) {
   };
 }
 
-function createGenericJobs({ chatExportJobs, recordExportJobs, now = () => BigInt(Date.now()) } = {}) {
+function createGenericJobs({ chatExportJobs, momentExportJobs, recordExportJobs, now = () => BigInt(Date.now()) } = {}) {
   if (!chatExportJobs || typeof chatExportJobs.watch !== 'function' || typeof chatExportJobs.cancel !== 'function') throw new TypeError('chatExportJobs is required');
+  if (momentExportJobs && (typeof momentExportJobs.watch !== 'function' || typeof momentExportJobs.cancel !== 'function')) throw new TypeError('momentExportJobs is invalid');
   if (!recordExportJobs || typeof recordExportJobs.watch !== 'function' || typeof recordExportJobs.cancel !== 'function') throw new TypeError('recordExportJobs is required');
   const observations = new Map();
 
@@ -121,6 +122,10 @@ function createGenericJobs({ chatExportJobs, recordExportJobs, now = () => BigIn
   function locate(jobId) {
     const chat = read(chatExportJobs, jobId);
     if (chat) return { manager: chatExportJobs, snapshot: chat };
+    if (momentExportJobs) {
+      const moments = read(momentExportJobs, jobId);
+      if (moments) return { manager: momentExportJobs, snapshot: moments };
+    }
     const records = read(recordExportJobs, jobId);
     if (records) return { manager: recordExportJobs, snapshot: records };
     fail('JOB_NOT_FOUND');

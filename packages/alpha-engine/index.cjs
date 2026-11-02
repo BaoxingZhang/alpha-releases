@@ -13,6 +13,7 @@ const { buildAnnualReport, buildConversationReport } = require('./analysis.cjs')
 const { inspectExportPath, prepareExportPath, cleanupExportDirectories } = require('./export-path.cjs');
 const { createChatExportJobs } = require('./chat-export-jobs.cjs');
 const { createRecordExportJobs } = require('./records-export-jobs.cjs');
+const { createMomentsExportJobs } = require('./moments-export-jobs.cjs');
 const { createChatExportSchedules } = require('./chat-export-schedules.cjs');
 const { createGenericJobs } = require('./generic-jobs.cjs');
 const { createAggregateAnalysisJobs } = require('./aggregate-analysis-jobs.cjs');
@@ -22,7 +23,7 @@ const { loadMediaIndex, readMediaEntry } = require('./media-index.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, listContacts: 42, getContactProfile: 115, listGeneral: 45, exportContacts: 117, exportGroupMembers: 139, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
 // These enum values are recovered from the Alpha protocol. The independent
 // engine can report the local package boundary, but it cannot start or claim
 // a dynamically entitled native component. Keep this status explicit and
@@ -81,6 +82,54 @@ function checkedPage(result, limit) {
   if (!result || !Array.isArray(result.items) || result.items.length > limit || typeof result.nextCursor !== 'string' || result.nextCursor.length > 1024 || typeof result.hasMore !== 'boolean' || result.hasMore !== Boolean(result.nextCursor)) throw error('BRIDGE_PAGE_INVALID');
   return result;
 }
+function mediaProbeText(value, maximum = 1024, allowEmpty = false) {
+  if (typeof value !== 'string' || value.length > maximum || value.includes('\0') || !allowEmpty && !value || /[\u0000-\u001f\u007f]/.test(value) || value !== value.trim()) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
+  return value;
+}
+function mediaProbeInteger(value, maximum = Number.MAX_SAFE_INTEGER) {
+  if (!Number.isSafeInteger(value) || value < 0 || value > maximum) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
+  return value;
+}
+function mediaProbeResponse(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !['ready', 'unavailable'].includes(value.status) || value.sourceKind !== 'explicit-v4-media-database-probe' || value.nativeSchemaSupported !== false || value.metadataOnly !== true || value.mediaReady !== false || !Array.isArray(value.files) || value.files.length > 16 || !Array.isArray(value.items) || value.items.length > 4096) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
+  const files = value.files.map(file => {
+    if (!file || typeof file !== 'object' || Array.isArray(file)) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
+    const relativePath = mediaProbeText(file.path, 1024);
+    if (relativePath.startsWith('/') || relativePath.includes('\\') || relativePath.split('/').some(part => part === '..' || !part)) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
+    const sha256 = mediaProbeText(file.sha256, 64);
+    if (!/^[a-f0-9]{64}$/.test(sha256)) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
+    return { path: relativePath, bytes: mediaProbeInteger(file.bytes, 512 * 1024 * 1024), sha256 };
+  });
+  const items = value.items.map(item => {
+    if (!item || typeof item !== 'object' || Array.isArray(item) || !['image', 'video', 'file', 'voice'].includes(item.kind)) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
+    const key = mediaProbeText(item.key, 1024);
+    const sourceDatabase = mediaProbeText(item.sourceDatabase, 1024);
+    const sourceTable = mediaProbeText(item.sourceTable, 128);
+    const normalized = { kind: item.kind, key, sourceDatabase, sourceTable, nativeSchemaSupported: false, metadataOnly: true };
+    if (item.ambiguous !== undefined && typeof item.ambiguous !== 'boolean') throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
+    if (item.ambiguous === true) normalized.ambiguous = true;
+    if (item.kind === 'voice') {
+      normalized.dataBytes = mediaProbeInteger(item.dataBytes ?? 0, 1 << 40);
+    } else {
+      const name = mediaProbeText(item.name, 1024);
+      const relativePath = mediaProbeText(item.path, 4096);
+      if (relativePath.startsWith('/') || relativePath.includes('\\') || relativePath.split('/').some(part => part === '..' || !part)) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
+      normalized.name = name;
+      normalized.path = relativePath;
+      normalized.size = mediaProbeInteger(item.size ?? 0, 1 << 40);
+      normalized.modifyTime = mediaProbeInteger(item.modifyTime ?? 0, Number.MAX_SAFE_INTEGER);
+      normalized.dir1 = mediaProbeText(item.dir1, 1024);
+      normalized.dir2 = mediaProbeText(item.dir2, 1024);
+    }
+    return normalized;
+  });
+  if (value.status === 'unavailable') {
+    if (typeof value.reason !== 'string' || value.reason.length > 4096 || value.reason.includes('\0')) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
+    return { status: 'unavailable', reason: value.reason, sourceKind: value.sourceKind, nativeSchemaSupported: false, metadataOnly: true, mediaReady: false, files, items };
+  }
+  if (!Number.isSafeInteger(value.itemCount) || value.itemCount !== items.length || !Number.isSafeInteger(value.ambiguousItems) || value.ambiguousItems < 0 || value.ambiguousItems > items.length) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
+  return { status: 'ready', sourceKind: value.sourceKind, nativeSchemaSupported: false, metadataOnly: true, mediaReady: false, files, items, itemCount: value.itemCount, ambiguousItems: value.ambiguousItems };
+}
 const INT64_MAX = (1n << 63n) - 1n;
 const MAX_SAFE_COUNT = BigInt(Number.MAX_SAFE_INTEGER);
 const MAX_EXPORT_MESSAGES = 100000;
@@ -120,6 +169,17 @@ const TELEMETRY_STATE_MAX_BYTES = 16 * 1024;
 const TELEMETRY_DEFAULT_CONSENT_VERSION = 'telemetry-v1';
 const TELEMETRY_DISABLED_ERROR = 'INDEPENDENT_TELEMETRY_DISABLED';
 const TELEMETRY_DECISIONS = new Set(['granted', 'revoked']);
+const IMPORT_EVENT_HISTORY_LIMIT = 64;
+const IMPORT_EVENT_TOTAL_STEPS = 5;
+const IMPORT_EVENT_PHASES = Object.freeze({ discovering: 1, scanning: 2, capturing: 3, verifying: 4, sealing: 5, completed: 6 });
+const IMPORT_EVENT_MESSAGE_KEYS = Object.freeze({
+  discovering: 'key.progress.discovering',
+  scanning: 'key.progress.scanning',
+  capturing: 'key.progress.scanning',
+  verifying: 'key.progress.verifying',
+  sealing: 'key.progress.sealing',
+  completed: 'key.progress.completed'
+});
 function requestTime(value, code, optional = false) {
   if (optional && value === undefined) return undefined;
   if (typeof value !== 'bigint' || value < 0n || value > INT64_MAX) throw error(code);
@@ -413,6 +473,11 @@ const RECORD_EXPORT_MAX_BYTES = 64 * 1024 * 1024;
 // when candidate rows carry many bounded fields. The scan remains bounded to
 // the bridge's 20,000-record ceiling.
 const RECORD_EXPORT_PAGE_SIZE = 100;
+const MOMENT_EXPORT_FORMATS = new Set(['html', 'json', 'markdown', 'txt']);
+const MOMENT_EXPORT_PAGE_SIZE = 100;
+const MOMENT_EXPORT_MAX_ITEMS = 100000;
+const MOMENT_EXPORT_MAX_BYTES = 64 * 1024 * 1024;
+const MOMENT_EXPORT_MAX_RUNTIME_MS = 30000;
 
 function recordExportPlainRecord(record) {
   if (!record || typeof record !== 'object' || typeof record.id !== 'string' || typeof record.tableName !== 'string' || typeof record.actor !== 'string' || typeof record.content !== 'string' || !Array.isArray(record.fields)) throw error('BRIDGE_GENERAL_RECORD_INVALID');
@@ -437,6 +502,34 @@ function recordExportOutput(format, meta, records) {
   if (format === 'csv') return Buffer.from([headers.join(','), ...rows.map(row => row.map(csvCell).join(','))].join('\n') + '\n', 'utf8');
   if (format === 'xlsx') return recordsXlsx(headers, rows, meta.category, 'RECORD_EXPORT_TOO_LARGE', RECORD_EXPORT_MAX_ITEMS);
   throw error('RECORD_EXPORT_FORMAT_UNSUPPORTED');
+}
+
+function momentExportRow(moment) {
+  if (!moment || typeof moment !== 'object' || typeof moment.id !== 'string' || !moment.id || typeof moment.username !== 'string' || !moment.username || typeof moment.nickname !== 'string' || typeof moment.createdAtUnixMs !== 'bigint' || typeof moment.type !== 'number' || !Number.isInteger(moment.type) || moment.type < 0 || moment.type > 0xffffffff || typeof moment.text !== 'string' || typeof moment.rawXml !== 'string' || moment.sourceTable !== '__alpha_moments_v1' || !Array.isArray(moment.fields)) throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
+  if (moment.fields.length > 32 || moment.text.length > 4 * 1024 * 1024 || moment.rawXml.length > 4 * 1024 * 1024 || moment.id.length > 1024 || moment.username.length > 1024 || moment.nickname.length > 4096 || [moment.id, moment.username, moment.nickname, moment.text, moment.rawXml].some(value => value.includes('\0'))) throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
+  const fields = moment.fields.map(field => {
+    if (!field || typeof field.name !== 'string' || !field.name || typeof field.value !== 'string' || !Number.isInteger(field.valueKind) || field.valueKind < 0 || field.valueKind > 16 || typeof field.truncated !== 'boolean' || field.name.length > 256 || field.value.length > 4096 || field.name.includes('\0') || field.value.includes('\0')) throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
+    return { name: field.name, value: field.value, valueKind: field.valueKind, truncated: field.truncated };
+  });
+  return { id: moment.id, username: moment.username, nickname: moment.nickname, createdAtUnixMs: moment.createdAtUnixMs.toString(), type: moment.type, text: moment.text, rawXml: moment.rawXml, sourceTable: moment.sourceTable, fields };
+}
+function momentExportOutput(format, meta, moments) {
+  if (format === 'json') return Buffer.from(JSON.stringify({ version: 1, kind: 'moments', format, syntheticOnly: true, metadataOnly: true, ...meta, itemCount: moments.length, moments }) + '\n', 'utf8');
+  if (format === 'markdown') {
+    const lines = ['# Alpha synthetic moments export', '', '- syntheticOnly: true', '- metadataOnly: true', `- accountId: ${meta.accountId}`, `- itemCount: ${moments.length}`, ''];
+    for (const item of moments) lines.push(`## ${item.createdAtUnixMs} · ${item.nickname || item.username}`, '', `- username: ${item.username}`, `- id: ${item.id}`, `- type: ${item.type}`, '', item.text, '');
+    return Buffer.from(lines.join('\n'), 'utf8');
+  }
+  if (format === 'txt') {
+    const lines = ['Alpha synthetic moments export', 'syntheticOnly: true', 'metadataOnly: true', `accountId: ${meta.accountId}`, `itemCount: ${moments.length}`, ''];
+    for (const item of moments) lines.push(`[${item.createdAtUnixMs}] ${item.nickname || item.username} <${item.type}> ${item.text}`, '');
+    return Buffer.from(lines.join('\n'), 'utf8');
+  }
+  if (format === 'html') {
+    const cards = moments.map(item => `<article><header><time>${htmlEscape(item.createdAtUnixMs)}</time><strong>${htmlEscape(item.nickname || item.username)}</strong><span>${htmlEscape(item.username)}</span></header><dl><dt>id</dt><dd>${htmlEscape(item.id)}</dd><dt>type</dt><dd>${htmlEscape(item.type)}</dd></dl><p>${htmlEscape(item.text)}</p></article>`).join('\n');
+    return Buffer.from(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="alpha-synthetic-only" content="true"><meta name="alpha-media" content="metadata-only"><title>Alpha synthetic moments export</title><style>body{margin:2rem auto;max-width:64rem;font:14px/1.55 system-ui,"Microsoft YaHei",sans-serif;color:#202124;background:#fff}article{border:1px solid #dadce0;border-radius:8px;padding:1rem;margin:1rem 0}header{display:flex;gap:.75rem;align-items:baseline;flex-wrap:wrap}header span{color:#5f6368;font-size:.85em}dl{display:grid;grid-template-columns:max-content 1fr;gap:.2rem 1rem;color:#5f6368}dt{font-weight:600}dd{margin:0}p{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body><h1>Alpha synthetic moments export</h1><p>仅包含 __alpha_moments_v1 合成朋友圈；媒体、点赞、评论和原生微信 schema 未恢复。</p>${cards}</body></html>\n`, 'utf8');
+  }
+  throw error('MOMENT_EXPORT_FORMAT_UNSUPPORTED');
 }
 
 async function writeRecordDestination(destinationPath, output, excluded, guard) {
@@ -478,8 +571,9 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   if (!Number.isSafeInteger(importerTimeoutMs) || importerTimeoutMs < 1 || importerTimeoutMs > 115000) throw error('IMPORT_TIMEOUT_INVALID');
   if (selfUsername && /[\x00-\x1f]/.test(selfUsername)) throw error('SELF_USERNAME_INVALID');
   const selectionFile = path.join(stateDir, 'selected-source.v1.json');
+  const removedAccountFile = path.join(stateDir, 'removed-account.v1.json');
   const telemetryFile = path.join(stateDir, 'telemetry-consent.v1.json');
-  let selectedId = '', selectedPath = '', bridge = null, info = null, helloDone = false;
+  let selectedId = '', selectedPath = '', accountRemoved = false, accountRemovalInProgress = false, bridge = null, info = null, helloDone = false;
   let telemetryStateLoaded = false;
   let telemetryState = { decision: '', categories: [], consentVersion: TELEMETRY_DEFAULT_CONSENT_VERSION };
   // Image keys are deliberately process-local. The independent backend has
@@ -491,6 +585,10 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   // selected source root and never inferred from arbitrary home-directory
   // paths. A malformed/missing manifest leaves metadata refs unchanged.
   let mediaIndexState;
+  // Acquisition progress is deliberately process-local. It is a bounded
+  // status journal, never a key/path/credential store, and is lost on restart.
+  let acquisitionEventSeq = 0n;
+  const acquisitionEvents = [];
   let activeImport = null, snapshotLoaded = false, sourceInventory = null, outputInventory = null, sourceFailure = '', closed = false;
   const snapshotOptions = { snapshotRoot, accountId, encryptedDir };
   const names = new Map();
@@ -552,6 +650,15 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       selectedId = state.id; selectedPath = state.path;
     } finally { fs.closeSync(fd); }
   } catch (failure) { if (failure.code !== 'ENOENT') throw error('ENGINE_STATE_INVALID'); }
+  try {
+    const fd = fs.openSync(removedAccountFile, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+    try {
+      const stat = fs.fstatSync(fd); if (!stat.isFile() || stat.size > 4096 || (stat.mode & 0o077)) throw error('ENGINE_STATE_INVALID');
+      const state = JSON.parse(fs.readFileSync(fd, 'utf8'));
+      if (state.version !== 1 || typeof state.accountId !== 'string' || state.accountId !== accountId || !state.accountId) throw error('ENGINE_STATE_INVALID');
+      accountRemoved = true;
+    } finally { fs.closeSync(fd); }
+  } catch (failure) { if (failure.code !== 'ENOENT') throw error('ENGINE_STATE_INVALID'); }
   function saveSelection() {
     safeStateDirectory(stateDir);
     const temporary = path.join(stateDir, `.selected-${crypto.randomUUID()}`);
@@ -559,7 +666,58 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     finally { fs.rmSync(temporary, { force: true }); }
     selectedId = accountId; selectedPath = configuredSourcePath;
   }
+  function removeSelection() {
+    try {
+      const stat = fs.lstatSync(selectionFile);
+      if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) throw error('ENGINE_STATE_INVALID');
+      fs.unlinkSync(selectionFile);
+    } catch (failure) {
+      if (failure.code !== 'ENOENT') throw failure.message === 'ENGINE_STATE_INVALID' ? failure : error('ENGINE_STATE_INVALID');
+    }
+    selectedId = ''; selectedPath = '';
+  }
+  function saveRemovedAccount() {
+    safeStateDirectory(stateDir);
+    const temporary = path.join(stateDir, `.removed-account-${crypto.randomUUID()}`);
+    try {
+      fs.writeFileSync(temporary, JSON.stringify({ version: 1, accountId }) + '\n', { flag: 'wx', mode: 0o600 });
+      fs.chmodSync(temporary, 0o600);
+      fs.renameSync(temporary, removedAccountFile);
+    } finally { fs.rmSync(temporary, { force: true }); }
+  }
+  function clearRemovedAccount() {
+    try {
+      const stat = fs.lstatSync(removedAccountFile);
+      if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) throw error('ENGINE_STATE_INVALID');
+      fs.unlinkSync(removedAccountFile);
+    } catch (failure) {
+      if (failure.code !== 'ENOENT') throw failure.message === 'ENGINE_STATE_INVALID' ? failure : error('ENGINE_STATE_INVALID');
+    }
+    accountRemoved = false;
+  }
   function guard(signal) { lock.assertAccess(); if (closed) throw error('ENGINE_CLOSED'); if (signal?.aborted) throw error(signal.reason?.message === 'IMPORT_TIMEOUT' ? 'IMPORT_TIMEOUT' : 'IMPORT_CANCELED'); }
+  function importErrorCode(failure) {
+    return /^[A-Z][A-Z0-9_]{1,95}$/.test(failure?.message ?? '') ? failure.message : 'IMPORT_FAILED';
+  }
+  function recordAcquisitionEvent(operation, phase, completedSteps, messageKey, terminal = false, errorCode = '') {
+    if (!Number.isInteger(phase) || phase < 0 || phase > 6 || !Number.isInteger(completedSteps) || completedSteps < 0 || completedSteps > IMPORT_EVENT_TOTAL_STEPS || typeof messageKey !== 'string' || messageKey.length > 256 || !/^[a-zA-Z0-9._-]*$/.test(messageKey) || typeof errorCode !== 'string' || errorCode.length > 96 || !/^[A-Z][A-Z0-9_]{1,95}$/.test(errorCode) && errorCode !== '') return;
+    if (acquisitionEventSeq >= 18446744073709551615n) return;
+    const event = Object.freeze({ eventSeq: ++acquisitionEventSeq, phase, completedSteps, totalSteps: IMPORT_EVENT_TOTAL_STEPS, messageKey, terminal: Boolean(terminal), errorCode });
+    acquisitionEvents.push(event);
+    if (acquisitionEvents.length > IMPORT_EVENT_HISTORY_LIMIT) acquisitionEvents.splice(0, acquisitionEvents.length - IMPORT_EVENT_HISTORY_LIMIT);
+    if (operation) {
+      operation.phase = phase;
+      operation.completedSteps = completedSteps;
+      operation.messageKey = messageKey;
+      operation.terminal = Boolean(terminal);
+    }
+  }
+  function watchAcquisition(request) {
+    if (closed) throw error('ENGINE_CLOSED');
+    if (!request || request.accountId !== accountId || typeof request.afterEventSeq !== 'bigint' || request.afterEventSeq < 0n || request.afterEventSeq > 18446744073709551615n) throw error('DATABASE_KEY_ACQUISITION_REQUEST_INVALID');
+    const events = acquisitionEvents.filter(event => event.eventSeq > request.afterEventSeq);
+    return { active: Boolean(activeImport && !activeImport.terminal), events, lastEventSeq: acquisitionEventSeq };
+  }
   function independentMediaIndex() {
     if (mediaIndexState !== undefined) return mediaIndexState;
     if (!dataDir || !path.isAbsolute(dataDir)) { mediaIndexState = null; return mediaIndexState; }
@@ -641,7 +799,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     }
   }
   async function callData(op, params) { await source(); const current = bridge; const result = await current.call(op, params); guard(); return result; }
-  async function requireAccount(id) { guard(); if (id !== accountId || !configuredSourcePath) throw error('ACCOUNT_NOT_FOUND'); return source(); }
+  async function requireAccount(id) { guard(); if (accountRemovalInProgress) throw error('ACCOUNT_REMOVAL_IN_PROGRESS'); if (accountRemoved || id !== accountId || !configuredSourcePath) throw error('ACCOUNT_NOT_FOUND'); return source(); }
   function messageRefs(row, conversationId, messageId) {
     if (row?.refs === undefined) return [];
     if (!Array.isArray(row.refs) || row.refs.length > 4) throw error('BRIDGE_MESSAGE_REFS_INVALID');
@@ -687,7 +845,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       if (unsupportedContent) content = '[未支持的二进制消息内容]';
     } else throw error('BRIDGE_MESSAGE_ENCODING_INVALID');
     const rawType = decimal(row.localType), type = Number(rawType & 0xffffffffn);
-    const kind = unsupportedContent ? 'unsupported' : ({ 1: 'text', 3: 'image', 34: 'voice', 42: 'contact', 43: 'video', 47: 'sticker', 48: 'location', 49: 'share', 10000: 'system' })[type] || 'unknown';
+    let kind = unsupportedContent ? 'unsupported' : ({ 1: 'text', 3: 'image', 34: 'voice', 42: 'contact', 43: 'video', 47: 'sticker', 48: 'location', 49: 'share', 10000: 'system' })[type] || 'unknown';
     const messageId = `msg-${sha(JSON.stringify(identity))}`;
     const refs = messageRefs(row, row.conversationId, messageId);
     let display, displayJson = new Uint8Array(0);
@@ -695,6 +853,10 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       const checked = validateMessageDisplay(row.display);
       display = checked.value;
       displayJson = checked.bytes;
+      // App.Type=57 is carried by the message's low-level type 49 envelope.
+      // Only the independently parsed display projection can promote it to
+      // the renderer's quote card; arbitrary rows cannot claim quote kind.
+      if (type === 49 && display.kind === 'quote') kind = 'quote';
     }
     // A voice ref is verified from the row's real server_id, so retain it
     // when the encoded audio payload itself is not decodable as message text.
@@ -759,6 +921,31 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     });
     return { tableName: row.tableName, id: row.id, eventAtUnixMs, actor: text(row.actor), content: text(row.content), fields };
   }
+  function momentFromRow(row) {
+    if (!row || typeof row !== 'object' || typeof row.id !== 'string' || !row.id || row.id.length > 1024 || row.id.includes('\0') || typeof row.username !== 'string' || !row.username || row.username.length > 1024 || row.username.includes('\0') || typeof row.nickname !== 'string' || row.nickname.length > 4096 || row.nickname.includes('\0') || typeof row.createdAtUnixMs !== 'string' || typeof row.type !== 'number' || !Number.isInteger(row.type) || row.type < 0 || row.type > 0xffffffff || typeof row.text !== 'string' || row.text.length > 4 * 1024 * 1024 || row.text.includes('\0') || typeof row.rawXml !== 'string' || row.rawXml.length > 4 * 1024 * 1024 || row.rawXml.includes('\0') || typeof row.sourceTable !== 'string' || row.sourceTable !== '__alpha_moments_v1' || !Array.isArray(row.fields) || row.fields.length > 32) throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
+    const createdAtUnixMs = decimal(row.createdAtUnixMs, true);
+    const fields = row.fields.map(field => {
+      if (!field || typeof field.name !== 'string' || !field.name || field.name.length > 256 || field.name.includes('\0') || typeof field.value !== 'string' || field.value.length > 4096 || field.value.includes('\0') || !Number.isInteger(field.valueKind) || field.valueKind < 0 || field.valueKind > 16 || typeof field.truncated !== 'boolean') throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
+      return { name: field.name, value: field.value, valueKind: field.valueKind, truncated: field.truncated };
+    });
+    return { id: row.id, username: row.username, nickname: row.nickname, createdAtUnixMs, type: row.type, text: row.text, rawXml: row.rawXml, sourceTable: row.sourceTable, fields };
+  }
+  function favoriteFromRow(row) {
+    if (!row || typeof row !== 'object' || typeof row.id !== 'string' || !row.id || row.id.length > 1024 || row.id.includes('\0') || typeof row.type !== 'number' || !Number.isInteger(row.type) || row.type < 0 || row.type > 0xffffffff || typeof row.updatedAtUnixMs !== 'string' || typeof row.title !== 'string' || row.title.length > 4096 || row.title.includes('\0') || typeof row.description !== 'string' || row.description.length > 4 * 1024 * 1024 || row.description.includes('\0') || typeof row.sourceId !== 'string' || row.sourceId.length > 1024 || row.sourceId.includes('\0') || typeof row.fromUsername !== 'string' || row.fromUsername.length > 1024 || row.fromUsername.includes('\0') || typeof row.contentXml !== 'string' || row.contentXml.length > 4 * 1024 * 1024 || row.contentXml.includes('\0') || row.sourceTable !== '__alpha_favorites_v1' || !Array.isArray(row.fields) || row.fields.length > 32) throw error('BRIDGE_FAVORITES_RESPONSE_INVALID');
+    const updatedAtUnixMs = decimal(row.updatedAtUnixMs, true);
+    const fields = row.fields.map(field => {
+      if (!field || typeof field.name !== 'string' || !field.name || field.name.length > 256 || field.name.includes('\0') || typeof field.value !== 'string' || field.value.length > 4096 || field.value.includes('\0') || !Number.isInteger(field.valueKind) || field.valueKind < 0 || field.valueKind > 16 || typeof field.truncated !== 'boolean') throw error('BRIDGE_FAVORITES_RESPONSE_INVALID');
+      return { name: field.name, value: field.value, valueKind: field.valueKind, truncated: field.truncated };
+    });
+    // Synthetic fixtures intentionally carry no recovered source-message graph
+    // or media token. Keep those protocol fields empty so callers cannot treat
+    // the row as a native WeChat favorite.
+    return { id: row.id, type: row.type, updatedAtUnixMs, title: row.title, description: row.description, sourceId: row.sourceId, fromUsername: row.fromUsername, contentXml: row.contentXml, sourceTable: row.sourceTable, fields, sourceLookup: undefined, mediaObjects: [], detailsTruncated: false };
+  }
+  function momentAuthorFromRow(row) {
+    if (!row || typeof row !== 'object' || typeof row.username !== 'string' || !row.username || row.username.length > 1024 || row.username.includes('\0') || typeof row.nickname !== 'string' || row.nickname.length > 4096 || row.nickname.includes('\0') || !Number.isInteger(row.postCount) || row.postCount < 0 || row.postCount > 0xffffffff || typeof row.latestAtUnixMs !== 'string') throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
+    return { username: row.username, nickname: row.nickname, postCount: row.postCount, latestAtUnixMs: decimal(row.latestAtUnixMs, true), isContact: row.isContact === true, remark: text(row.remark || '', 4096), contactNickname: text(row.contactNickname || '', 4096), alias: text(row.alias || '', 4096), avatarRef: text(row.avatarRef || '', 4096), quanPin: text(row.quanPin || '', 4096), remarkQuanPin: text(row.remarkQuanPin || '', 4096) };
+  }
   function commonGroupsFromRow(value, limit) {
     if (!value || !Array.isArray(value.items) || value.items.length > limit || !Number.isInteger(value.count) || value.count < value.items.length || value.count > 100000 || typeof value.truncated !== 'boolean' || value.truncated !== (value.count > value.items.length) || typeof value.sourceDatabase !== 'string' || value.sourceDatabase.length > 1024 || value.sourceDatabase.includes('\0')) throw error('BRIDGE_COMMON_GROUPS_RESPONSE_INVALID');
     const seen = new Set();
@@ -772,7 +959,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   function account(value) {
     const selected = selectedId === accountId && selectedPath === configuredSourcePath;
     if (!value) return { id: accountId, sourceProfile: 'alpha-independent-encrypted-v4', subjectId: selfUsername, displayName: `加密数据源 · ${accountId}`, dataSourcePath: encryptedDir, schemaProfile: 'wechat-v4-encrypted', state: 1, handleState: 3, handleGeneration: 0n, activeHandleGeneration: 0n, selected, capabilities: ['offline-encrypted'], detected: true, usable: false, enabled: false, verified: false, ready: false };
-    const capabilities = ['offline-readonly', ...Object.entries({ 'contacts.list': 'contacts', 'groups.members': 'group-members', 'sessions.list': 'conversations', 'messages.list': 'messages' }).filter(([operation]) => value.capabilities.includes(operation)).map(([, capability]) => capability)];
+    const capabilities = ['offline-readonly', ...Object.entries({ 'contacts.list': 'contacts', 'groups.members': 'group-members', 'sessions.list': 'conversations', 'messages.list': 'messages', 'messages.voicePlayback': 'voice-playback', 'moments.list': 'moments', 'moments.authors': 'moment-authors', 'moments.dayCounts': 'moment-day-counts', 'favorites.list': 'favorites', 'favorites.media': 'favorite-media' }).filter(([operation]) => value.capabilities.includes(operation)).map(([, capability]) => capability)];
     return { id: accountId, sourceProfile: 'alpha-independent-offline-v4', subjectId: selfUsername, displayName: `离线数据源 · ${accountId}`, dataSourcePath: configuredSourcePath, schemaProfile: 'wechat-v4-offline', state: 2, handleState: 4, handleGeneration: 1n, activeHandleGeneration: 1n, selected, capabilities, detected: true, usable: true, enabled: true, verified: true, ready: true };
   }
   async function contactName(username) {
@@ -933,10 +1120,11 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     if (!encryptedDir) throw error('ENCRYPTED_SOURCE_NOT_CONFIGURED');
     if (request.accountId !== accountId || !(request.databaseKey instanceof Uint8Array) || request.databaseKey.length !== 32) throw error('DATABASE_KEY_INVALID');
     if (activeImport) throw error('IMPORT_BUSY');
-    let done; const operation = { controller: new AbortController(), done: new Promise(resolve => { done = resolve; }) }; activeImport = operation;
+    let done; const operation = { controller: new AbortController(), done: new Promise(resolve => { done = resolve; }), phase: 0, completedSteps: 0, messageKey: '', terminal: false }; activeImport = operation;
     const deadline = setTimeout(() => operation.controller.abort(error('IMPORT_TIMEOUT')), importerTimeoutMs);
     const check = () => guard(operation.controller.signal);
     let workDir, finalDir, candidate = null, published = false;
+    recordAcquisitionEvent(operation, IMPORT_EVENT_PHASES.discovering, 0, IMPORT_EVENT_MESSAGE_KEYS.discovering);
     try {
       check(); await dropBridge(); dataDir = ''; mediaIndexState = undefined; sourceInventory = null; outputInventory = null; snapshotLoaded = false; sourceFailure = '';
       await snapshot.safeDirectory(stateDir, check);
@@ -945,12 +1133,16 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       workDir = await fs.promises.mkdtemp(path.join(snapshotRoot, '.work-')); await fs.promises.chmod(workDir, 0o700); check();
       const outputDir = path.join(workDir, 'data');
       const original = await snapshot.inventory(encryptedDir, check); check();
+      recordAcquisitionEvent(operation, IMPORT_EVENT_PHASES.scanning, 1, IMPORT_EVENT_MESSAGE_KEYS.scanning);
+      recordAcquisitionEvent(operation, IMPORT_EVENT_PHASES.capturing, 2, IMPORT_EVENT_MESSAGE_KEYS.capturing);
       const summary = await runImporter({ executable: importerPath, sourceDir: encryptedDir, outputDir, key: request.databaseKey, signal: operation.controller.signal, timeoutMs: importerTimeoutMs }); check();
       if (!summary || summary.ok !== true || summary.profile !== snapshot.PROFILE || summary.sourceUnchanged !== true || summary.reservedBytesZeroed !== true || summary.outputDir !== outputDir || summary.sourceFingerprint !== original.fingerprint) throw error('IMPORT_SUMMARY_INVALID');
       snapshot.records(summary.databases);
+      recordAcquisitionEvent(operation, IMPORT_EVENT_PHASES.verifying, 3, IMPORT_EVENT_MESSAGE_KEYS.verifying);
       await snapshot.verifyStamps(original, check);
       const output = await snapshot.inventory(outputDir, check, true); check(); snapshot.matchInventory(original, output, summary.databases);
       candidate = bridgeFactory({ executable: bridgePath, dataDir: outputDir, accountId }); checkedInfo(await candidate.call('account.info')); check(); await candidate.close(); candidate = null;
+      recordAcquisitionEvent(operation, IMPORT_EVENT_PHASES.sealing, 4, IMPORT_EVENT_MESSAGE_KEYS.sealing);
       finalDir = path.join(snapshotRoot, `snapshot-${crypto.randomUUID()}`); await fs.promises.rename(workDir, finalDir); workDir = null; check();
       const finalData = path.join(finalDir, 'data');
       const finalInventory = await snapshot.inventory(finalData, check, true); snapshot.matchInventory(original, finalInventory, summary.databases); check();
@@ -960,7 +1152,11 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       // suppress the response and close handles, but must retain this valid cache.
       await snapshot.writeManifest(manifest, snapshotOptions, check);
       dataDir = finalData; mediaIndexState = undefined; bridge = candidate; candidate = null; info = checked; sourceInventory = original; outputInventory = finalInventory; snapshotLoaded = true; published = true;
+      recordAcquisitionEvent(operation, IMPORT_EVENT_PHASES.completed, IMPORT_EVENT_TOTAL_STEPS, IMPORT_EVENT_MESSAGE_KEYS.completed, true);
       return account(checked);
+    } catch (failure) {
+      if (!operation.terminal) recordAcquisitionEvent(operation, operation.phase, operation.completedSteps, operation.messageKey, true, importErrorCode(failure));
+      throw failure;
     } finally {
       clearTimeout(deadline); request.databaseKey.fill(0);
       try {
@@ -1049,8 +1245,63 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     return { destinationPath, itemCount: records.length };
   }
 
+  async function exportMoments(request) {
+    await requireAccount(request.accountId);
+    if (!MOMENT_EXPORT_FORMATS.has(request.format)) throw error('MOMENT_EXPORT_FORMAT_UNSUPPORTED');
+    if (!Array.isArray(request.mediaKinds) || request.mediaKinds.length > 3 || request.mediaKinds.some(kind => !['image', 'video', 'live_photo'].includes(kind))) throw error('MOMENT_EXPORT_REQUEST_INVALID');
+    // The recovered fixture has no verified media locator or decoder. Refuse a
+    // request that asks for media instead of silently reporting it as saved.
+    if (request.mediaKinds.length) throw error('MOMENT_EXPORT_MEDIA_UNAVAILABLE');
+    if (!Array.isArray(request.usernames) || request.usernames.length > 500 || new Set(request.usernames).size !== request.usernames.length) throw error('MOMENT_EXPORT_REQUEST_INVALID');
+    if (typeof request.keyword !== 'string' || request.keyword.length > 512 || request.keyword.trim() !== request.keyword || request.keyword.includes('\0')) throw error('MOMENT_EXPORT_REQUEST_INVALID');
+    if (request.startTimeUnixMs !== undefined && (typeof request.startTimeUnixMs !== 'bigint' || request.startTimeUnixMs < 0n) || request.endTimeUnixMs !== undefined && (typeof request.endTimeUnixMs !== 'bigint' || request.endTimeUnixMs < 0n)) throw error('MOMENT_EXPORT_REQUEST_INVALID');
+    if (request.startTimeUnixMs !== undefined && request.endTimeUnixMs !== undefined && request.startTimeUnixMs > request.endTimeUnixMs) throw error('MOMENT_EXPORT_REQUEST_INVALID');
+    if (!Number.isInteger(request.utcOffsetMinutes) || request.utcOffsetMinutes < -720 || request.utcOffsetMinutes > 840) throw error('MOMENT_EXPORT_REQUEST_INVALID');
+    if (typeof request.destinationPath !== 'string' || !path.isAbsolute(request.destinationPath) || path.extname(request.destinationPath).toLowerCase() !== `.${request.format === 'markdown' ? 'md' : request.format}`) throw error('MOMENT_EXPORT_REQUEST_INVALID');
+    const excluded = [configuredSourcePath, dataDir, stateDir];
+    const startedAt = Date.now();
+    const rows = [];
+    const seen = new Set();
+    const usernames = request.usernames.length ? request.usernames : [undefined];
+    for (const username of usernames) {
+      let offset = 0;
+      for (;;) {
+        if (Date.now() - startedAt > MOMENT_EXPORT_MAX_RUNTIME_MS) throw error('MOMENT_EXPORT_TIMEOUT');
+        if (request.isCanceled?.()) throw error('MOMENT_EXPORT_CANCELED');
+        const page = await handlers.listMoments({
+          accountId: request.accountId,
+          limit: MOMENT_EXPORT_PAGE_SIZE,
+          offset,
+          ascending: true,
+          ...(username === undefined ? {} : { username }),
+          ...(request.keyword ? { keyword: request.keyword } : {}),
+          ...(request.startTimeUnixMs === undefined ? {} : { startTimeUnixMs: request.startTimeUnixMs }),
+          ...(request.endTimeUnixMs === undefined ? {} : { endTimeUnixMs: request.endTimeUnixMs })
+        });
+        const items = page.response?.items;
+        if (!Array.isArray(items) || items.length > MOMENT_EXPORT_PAGE_SIZE) throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
+        for (const item of items) {
+          const row = momentExportRow(item);
+          if (seen.has(row.id)) continue;
+          seen.add(row.id); rows.push(row);
+          if (rows.length > MOMENT_EXPORT_MAX_ITEMS) throw error('MOMENT_EXPORT_TOO_LARGE');
+        }
+        if (items.length < MOMENT_EXPORT_PAGE_SIZE) break;
+        offset += items.length;
+        if (offset > MOMENT_EXPORT_MAX_ITEMS) throw error('MOMENT_EXPORT_TOO_LARGE');
+      }
+    }
+    rows.sort((left, right) => left.createdAtUnixMs === right.createdAtUnixMs ? left.id.localeCompare(right.id) : BigInt(left.createdAtUnixMs) < BigInt(right.createdAtUnixMs) ? -1 : 1);
+    const meta = { accountId: request.accountId, sourceDatabase: 'moments.db', sourceTable: '__alpha_moments_v1', syntheticOnly: true, metadataOnly: true, ...(request.startTimeUnixMs === undefined ? {} : { startTimeUnixMs: request.startTimeUnixMs.toString() }), ...(request.endTimeUnixMs === undefined ? {} : { endTimeUnixMs: request.endTimeUnixMs.toString() }), ...(request.keyword ? { keyword: request.keyword } : {}), usernames: [...request.usernames] };
+    const output = momentExportOutput(request.format, meta, rows);
+    if (output.byteLength > MOMENT_EXPORT_MAX_BYTES) throw error('MOMENT_EXPORT_TOO_LARGE');
+    await writeRecordDestination(request.destinationPath, output, excluded, () => { guard(); if (request.isCanceled?.()) throw error('MOMENT_EXPORT_CANCELED'); });
+    return { destinationPath: request.destinationPath, format: request.format, itemCount: rows.length, mediaManifestPath: '', mediaIncluded: 0, mediaFailed: 0, metadataOnly: true, syntheticOnly: true };
+  }
+
   let chatExportJobs;
   let recordExportJobs;
+  let momentExportJobs;
   let chatExportSchedules;
   let aggregateAnalysisJobs;
   let genericJobs;
@@ -1487,6 +1738,20 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     async resolveMessageMedia(request) {
       return resolveIndexedMessageMedia(request);
     },
+    async decodeVoicePlayback(request) {
+      const accountInfo = await requireAccount(request.accountId);
+      if (!accountInfo.capabilities?.includes('messages.voicePlayback')) throw error('VOICE_PLAYBACK_UNAVAILABLE');
+      if (!request || typeof request.mediaId !== 'string' || !/^[0-9a-f]{64}$/.test(request.mediaId)) throw error('VOICE_PLAYBACK_REQUEST_INVALID');
+      const mapping = await callData('voice.playback', { mediaId: request.mediaId });
+      if (!mapping || mapping.status === 'missing') throw error('VOICE_PLAYBACK_NOT_FOUND');
+      if (mapping.status !== 'ready' || mapping.mediaId !== request.mediaId || typeof mapping.wavMediaId !== 'string' || !/^[0-9a-f]{64}$/.test(mapping.wavMediaId)) throw error('VOICE_PLAYBACK_RESPONSE_INVALID');
+      const index = independentMediaIndex();
+      if (!index || !Array.isArray(index.entries)) throw error('VOICE_PLAYBACK_UNAVAILABLE');
+      const candidates = index.entries.filter(entry => entry.kind === 'voice' && entry.id === mapping.wavMediaId && entry.rendition === 'wav' && (!entry.accountId || entry.accountId === request.accountId) && (entry.mimeType === 'audio/wav' || entry.mimeType === 'audio/x-wav') && entry.sha256 === mapping.wavMediaId);
+      if (candidates.length !== 1) throw error(candidates.length ? 'VOICE_PLAYBACK_AMBIGUOUS' : 'VOICE_PLAYBACK_NOT_FOUND');
+      await readMediaEntry(index, candidates[0], { maxBytes: 64 * 1024 * 1024 });
+      return { wavMediaId: mapping.wavMediaId };
+    },
     async getApplicationLockStatus() { return { status: lock.status() }; },
     async unlockApplication(request) { return { status: await lock.unlock(request.password) }; },
     async lockApplication() { const status = lock.lock(); clearImageKeyState(); await cancelImport(); await dropBridge(); if (encryptedDir) { dataDir = ''; mediaIndexState = undefined; snapshotLoaded = false; sourceInventory = outputInventory = null; } return { status }; },
@@ -1515,14 +1780,57 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       return { status: imageMediaStatus() };
     },
     async importDatabaseKey(request) { return { account: await importKey(request) }; },
+    async watchDatabaseKeyAcquisition(request) { return watchAcquisition(request); },
     async listAccounts() {
       guard(); if (activeImport) throw error('IMPORT_IN_PROGRESS');
+      if (accountRemoved || accountRemovalInProgress) return { accounts: [], selectedAccountId: '' };
       await restoreSnapshot(); guard();
+      if (accountRemoved || accountRemovalInProgress) return { accounts: [], selectedAccountId: '' };
       if (encryptedDir && !dataDir) { await snapshot.verifyStamps(sourceInventory, guard); return { accounts: [account(null)], selectedAccountId: '' }; }
       if (!dataDir) return { accounts: [], selectedAccountId: '' };
       const value = await source(); return { accounts: [account(value)], selectedAccountId: selectedId === accountId && selectedPath === configuredSourcePath ? accountId : '' };
     },
-    async discoverAccounts(request) { guard(); if (!configuredSourcePath || request.sourceLocation !== configuredSourcePath) throw error('SOURCE_NOT_AUTHORIZED'); return handlers.listAccounts(); },
+    async discoverAccounts(request) {
+      guard();
+      if (!configuredSourcePath || request.sourceLocation !== configuredSourcePath) throw error('SOURCE_NOT_AUTHORIZED');
+      if (!accountRemoved) return handlers.listAccounts();
+      // Re-adding is an explicit discovery action against the same caller
+      // supplied source. Verify the source before removing the tombstone; a
+      // failed or changed source must leave the account removed.
+      await restoreSnapshot();
+      if (encryptedDir && !dataDir) {
+        await snapshot.verifyStamps(sourceInventory, guard);
+        clearRemovedAccount();
+        return { accounts: [account(null)], selectedAccountId: '' };
+      }
+      if (!dataDir) throw error('ACCOUNT_NOT_FOUND');
+      const value = await source();
+      clearRemovedAccount();
+      return { accounts: [account(value)], selectedAccountId: selectedId === accountId && selectedPath === configuredSourcePath ? accountId : '' };
+    },
+    async removeAccount(request) {
+      guard();
+      if (!request || typeof request.accountId !== 'string' || !request.accountId.trim()) throw error('ACCOUNT_ID_INVALID');
+      if (request.accountId !== accountId || !configuredSourcePath) throw error('ACCOUNT_NOT_FOUND');
+      if (accountRemoved) return { removed: false, selectedAccountId: '' };
+      if (accountRemovalInProgress) throw error('ACCOUNT_REMOVAL_IN_PROGRESS');
+      accountRemovalInProgress = true;
+      try {
+        await cancelImport();
+        await chatExportSchedules.removeAccount(accountId);
+        await chatExportJobs.removeAccount(accountId);
+        await momentExportJobs.removeAccount(accountId);
+        await recordExportJobs.removeAccount(accountId);
+        await aggregateAnalysisJobs.removeAccount(accountId);
+        await dropBridge();
+        removeSelection();
+        saveRemovedAccount();
+        accountRemoved = true;
+        return { removed: true, selectedAccountId: '' };
+      } finally {
+        accountRemovalInProgress = false;
+      }
+    },
     async selectAccount(request) { const value = await requireAccount(request.accountId); const previousAccountId = selectedId; guard(); saveSelection(); return { account: account(value), previousAccountId }; },
     async getDataRevision(request) { const value = await requireAccount(request.accountId); return { revision: sha(value.snapshotId).slice(0, 16) }; },
     async getDataWatchTargets(request) {
@@ -1682,6 +1990,9 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         throw error('EXPORT_OUTPUT_FAILED');
       }
       return { destinationPath, format, itemCount: items.length, mediaManifestPath: '', mediaIncluded: 0, mediaFailed: 0 };
+    },
+    async exportMoments(request) {
+      return exportMoments(request);
     },
     async exportContacts(request) {
       await requireAccount(request.accountId);
@@ -1873,6 +2184,102 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       if (request.ascending !== true) contacts.reverse();
       return { response: { items: contacts.slice(offset, offset + limit), sourceTable: 'contact' } };
     },
+    async listMoments(request) {
+      const accountInfo = await requireAccount(request.accountId);
+      if (!accountInfo.capabilities?.includes('moments.list')) throw error('CAPABILITY_UNAVAILABLE');
+      const limit = request.limit || 100, offset = request.offset || 0;
+      if (!Number.isInteger(limit) || limit < 1 || limit > 500 || !Number.isInteger(offset) || offset < 0 || offset > 100000) throw error('MOMENTS_REQUEST_INVALID');
+      if (request.username !== undefined && (typeof request.username !== 'string' || request.username.length > 1024 || request.username.includes('\0'))) throw error('MOMENTS_REQUEST_INVALID');
+      if (request.keyword !== undefined && (typeof request.keyword !== 'string' || request.keyword.length > 512 || request.keyword.trim() !== request.keyword || request.keyword.includes('\0'))) throw error('MOMENTS_REQUEST_INVALID');
+      const from = request.startTimeUnixMs === undefined || request.startTimeUnixMs === 0n ? undefined : requestTime(request.startTimeUnixMs, 'MOMENTS_REQUEST_INVALID');
+      const to = request.endTimeUnixMs === undefined || request.endTimeUnixMs === 0n ? undefined : requestTime(request.endTimeUnixMs, 'MOMENTS_REQUEST_INVALID');
+      if (from !== undefined && to !== undefined && to < from) throw error('MOMENTS_REQUEST_INVALID');
+      const value = await callData('moments.list', { limit, offset, ascending: request.ascending === true, ...(request.username ? { username: request.username } : {}), ...(request.keyword ? { keyword: request.keyword } : {}), ...(from !== undefined ? { fromUnixMs: from.toString() } : {}), ...(to !== undefined ? { toUnixMs: to.toString() } : {}) });
+      if (!value || !Array.isArray(value.items) || value.items.length > limit || typeof value.sourceDatabase !== 'string' || value.sourceDatabase.length > 1024 || typeof value.sourceTable !== 'string') throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
+      return { response: { items: value.items.map(momentFromRow), sourceDatabase: text(value.sourceDatabase, 1024), sourceTable: text(value.sourceTable, 1024) } };
+    },
+    async listFavorites(request) {
+      const accountInfo = await requireAccount(request.accountId);
+      if (!accountInfo.capabilities?.includes('favorites.list')) throw error('CAPABILITY_UNAVAILABLE');
+      const limit = request.limit || 100, offset = request.offset || 0;
+      if (!Number.isInteger(limit) || limit < 1 || limit > 500 || !Number.isInteger(offset) || offset < 0 || offset > 100000) throw error('FAVORITES_REQUEST_INVALID');
+      if (request.type !== undefined && (!Number.isInteger(request.type) || request.type < -1 || request.type > 0x7fffffff)) throw error('FAVORITES_REQUEST_INVALID');
+      if (request.query !== undefined && (typeof request.query !== 'string' || request.query.length > 512 || request.query.trim() !== request.query || request.query.includes('\0'))) throw error('FAVORITES_REQUEST_INVALID');
+      if (request.includeMedia === true) throw error('FAVORITES_MEDIA_UNAVAILABLE');
+      if (request.skipSourceContext !== undefined && typeof request.skipSourceContext !== 'boolean') throw error('FAVORITES_REQUEST_INVALID');
+      const tagId = request.tagId === undefined ? 0n : request.tagId;
+      if (typeof tagId !== 'bigint' || tagId < 0n || tagId > (1n << 64n) - 1n) throw error('FAVORITES_REQUEST_INVALID');
+      const value = await callData('favorites.list', {
+        limit,
+        offset,
+        ascending: request.ascending === true,
+        ...(request.type !== undefined && request.type !== 0 && request.type !== -1 ? { type: request.type } : {}),
+        ...(request.query ? { query: request.query } : {}),
+        includeTypeCounts: request.includeTypeCounts === true,
+        ...(tagId > 0n ? { tagId: tagId.toString() } : {})
+      });
+      if (!value || !Array.isArray(value.items) || value.items.length > limit || typeof value.sourceDatabase !== 'string' || typeof value.sourceTable !== 'string' || value.sourceTable !== '__alpha_favorites_v1' || !Array.isArray(value.typeCounts) || !Number.isInteger(value.total) || value.total < 0 || value.total > 100000 || typeof value.hasMore !== 'boolean' || !Array.isArray(value.tags)) throw error('BRIDGE_FAVORITES_RESPONSE_INVALID');
+      const typeCounts = value.typeCounts.map(row => {
+        if (!row || !Number.isInteger(row.type) || row.type < 0 || row.type > 0x7fffffff || !Number.isInteger(row.count) || row.count < 0 || row.count > 0xffffffff) throw error('BRIDGE_FAVORITES_RESPONSE_INVALID');
+        return { type: row.type, count: row.count };
+      });
+      const seenTags = new Set();
+      const tags = value.tags.map(row => {
+        if (!row || typeof row.id !== 'string' || !/^(?:0|[1-9][0-9]*)$/.test(row.id) || typeof row.name !== 'string' || row.name.length > 1024 || row.name.includes('\0') || !Number.isInteger(row.count) || row.count < 0 || row.count > 0xffffffff || seenTags.has(row.id)) throw error('BRIDGE_FAVORITES_RESPONSE_INVALID');
+        seenTags.add(row.id);
+        return { id: decimal(row.id), name: row.name, count: row.count };
+      });
+      return { response: { items: value.items.map(favoriteFromRow), sourceDatabase: text(value.sourceDatabase, 1024), sourceTable: value.sourceTable, typeCounts, total: value.total, hasMore: value.hasMore, tags } };
+    },
+    async listFavoriteMediaSlots(request) {
+      const accountInfo = await requireAccount(request.accountId);
+      if (!accountInfo.capabilities?.includes('favorites.media')) throw error('CAPABILITY_UNAVAILABLE');
+      if (!request || typeof request.favoriteId !== 'string' || !request.favoriteId || request.favoriteId.length > 1024 || request.favoriteId.includes('\0')) throw error('FAVORITES_REQUEST_INVALID');
+      const value = await callData('favorites.mediaSlots', { favoriteId: request.favoriteId });
+      if (!value || value.status !== 'ready' || !value.media || !Array.isArray(value.media.slots) || value.media.slots.length > 64 || typeof value.media.truncated !== 'boolean') throw error('BRIDGE_FAVORITES_MEDIA_RESPONSE_INVALID');
+      const slots = value.media.slots.map(slot => {
+        if (!slot || !Number.isInteger(slot.itemIndex) || slot.itemIndex < 0 || slot.itemIndex > 0xffffffff || typeof slot.role !== 'string' || !/^[a-z][a-z0-9_-]{0,31}$/.test(slot.role) || typeof slot.token !== 'string' || !/^fav1_[0-9a-f]{32}$/.test(slot.token)) throw error('BRIDGE_FAVORITES_MEDIA_RESPONSE_INVALID');
+        return { itemIndex: slot.itemIndex, role: slot.role, token: slot.token };
+      });
+      return { status: 'ready', media: { slots, truncated: value.media.truncated } };
+    },
+    async resolveFavoriteMedia(request) {
+      const accountInfo = await requireAccount(request.accountId);
+      if (!accountInfo.capabilities?.includes('favorites.media')) throw error('CAPABILITY_UNAVAILABLE');
+      if (!request || typeof request.token !== 'string' || !/^fav1_[0-9a-f]{32}$/.test(request.token)) throw error('FAVORITES_MEDIA_REQUEST_INVALID');
+      const metadata = await callData('favorites.media', { token: request.token });
+      if (!metadata || metadata.status === 'missing') return { status: 'missing' };
+      if (metadata.status !== 'ready' || metadata.token !== request.token || typeof metadata.favoriteId !== 'string' || typeof metadata.role !== 'string') throw error('BRIDGE_FAVORITES_MEDIA_RESPONSE_INVALID');
+      const index = independentMediaIndex();
+      if (!index || !Array.isArray(index.entries)) return { status: 'missing' };
+      const candidates = index.entries.filter(entry => entry.id === request.token && (!entry.accountId || entry.accountId === accountId));
+      if (candidates.length !== 1) return { status: 'missing' };
+      const entry = candidates[0];
+      await readMediaEntry(index, entry, { maxBytes: 64 * 1024 * 1024 });
+      const mimeType = entry.mimeType || ({ image: 'image/png', video: 'video/mp4', voice: 'audio/ogg', file: 'application/octet-stream' }[entry.kind] || 'application/octet-stream');
+      const fileName = entry.kind === 'file' ? path.basename(entry.relativePath) : '';
+      return { status: 'ready', opaqueId: entry.sha256, mimeType, ...(fileName ? { fileName } : {}) };
+    },
+    async listMomentAuthors(request) {
+      const accountInfo = await requireAccount(request.accountId);
+      if (!accountInfo.capabilities?.includes('moments.authors')) throw error('CAPABILITY_UNAVAILABLE');
+      const limit = request.limit || 100;
+      if (!Number.isInteger(limit) || limit < 1 || limit > 500) throw error('MOMENTS_REQUEST_INVALID');
+      const value = await callData('moments.authors', { limit });
+      if (!value || !Array.isArray(value.items) || value.items.length > limit || typeof value.totalPosts !== 'string' || typeof value.sourceDatabase !== 'string' || typeof value.sourceTable !== 'string') throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
+      return { response: { items: value.items.map(momentAuthorFromRow), totalPosts: safeCount(value.totalPosts), truncated: value.truncated === true, sourceDatabase: text(value.sourceDatabase, 1024), sourceTable: text(value.sourceTable, 1024) } };
+    },
+    async getMomentDayCounts(request) {
+      const accountInfo = await requireAccount(request.accountId);
+      if (!accountInfo.capabilities?.includes('moments.dayCounts')) throw error('CAPABILITY_UNAVAILABLE');
+      const from = requestTime(request.fromUnixMs, 'MOMENTS_REQUEST_INVALID'), to = requestTime(request.toUnixMs, 'MOMENTS_REQUEST_INVALID');
+      if (to <= from || to - from > 366n * 86400000n || !Number.isInteger(request.utcOffsetMinutes) || request.utcOffsetMinutes < -840 || request.utcOffsetMinutes > 840) throw error('MOMENTS_REQUEST_INVALID');
+      const value = await callData('moments.dayCounts', { fromUnixMs: from.toString(), toUnixMs: to.toString(), utcOffsetMinutes: request.utcOffsetMinutes, ...(request.username ? { username: request.username } : {}) });
+      if (!value || typeof value.available !== 'boolean' || !Array.isArray(value.days) || value.days.length > 367) throw error('BRIDGE_MOMENTS_RESPONSE_INVALID');
+      let previous = null;
+      const days = value.days.map(row => { if (!row || typeof row.localDay !== 'string' || typeof row.count !== 'string') throw error('BRIDGE_MOMENTS_RESPONSE_INVALID'); const localDay = decimal(row.localDay, true), count = safeCount(row.count); if (count === 0n || previous !== null && localDay <= previous) throw error('BRIDGE_MOMENTS_RESPONSE_INVALID'); previous = localDay; return { localDay, count }; });
+      return { available: value.available, days };
+    },
     async getContactProfile(request) {
       const accountInfo = await requireAccount(request.accountId);
       const username = requestName(request.username, 'CONTACT_PROFILE_REQUEST_INVALID');
@@ -1951,7 +2358,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       if (!GENERAL_RECORD_TABLES.has(request.tableName)) throw error('UNIMPLEMENTED');
       const recordTable = request.tableName !== '__alpha_group_members';
       if (recordTable) {
-        if (request.query !== '' || request.ascending !== false) throw error('GENERAL_RECORDS_REQUEST_INVALID');
+        if (typeof request.query !== 'string' || Buffer.byteLength(request.query, 'utf8') > 512 || /[\u0000-\u001f\u007f]/.test(request.query) || request.query !== request.query.trim() || request.ascending === undefined || (request.ascending !== true && request.ascending !== false)) throw error('GENERAL_RECORDS_REQUEST_INVALID');
       } else if (typeof request.query !== 'string' || request.query !== request.query.trim() || request.query.length <= 9 || request.query.length > 256 || !request.query.endsWith('@chatroom') || /[\u0000-\u001f\u007f]/.test(request.query) || request.ascending !== true) throw error('GROUP_MEMBERS_REQUEST_INVALID');
       const limit = request.limit || 1000, offset = request.offset || 0;
       if (!Number.isInteger(limit) || limit < 1 || limit > 1000 || !Number.isInteger(offset) || offset < 0 || offset > 20000) throw error(recordTable ? 'GENERAL_RECORDS_REQUEST_INVALID' : 'GROUP_MEMBERS_REQUEST_INVALID');
@@ -2064,21 +2471,34 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       await requireAccount(request.accountId);
       return chatExportJobs.start(request);
     },
+    async startMomentExport(request) {
+      await requireAccount(request.accountId);
+      if (Array.isArray(request.mediaKinds) && request.mediaKinds.length) throw error('MOMENT_EXPORT_MEDIA_UNAVAILABLE');
+      return momentExportJobs.start(request);
+    },
     async startRecordExport(request) {
       await requireAccount(request.accountId);
       return recordExportJobs.start(request);
     },
     async listChatExports(request) {
       await requireAccount(request.accountId);
-      return { jobs: [...chatExportJobs.list(request.accountId), ...recordExportJobs.list(request.accountId)] };
+      return { jobs: [...chatExportJobs.list(request.accountId), ...momentExportJobs.list(request.accountId), ...recordExportJobs.list(request.accountId)] };
     },
     async watchChatExport(request) {
       try { return chatExportJobs.watch(request.jobId); }
-      catch (failure) { if (failure?.message !== 'CHAT_EXPORT_JOB_NOT_FOUND') throw failure; return recordExportJobs.watch(request.jobId); }
+      catch (failure) {
+        if (failure?.message !== 'CHAT_EXPORT_JOB_NOT_FOUND') throw failure;
+        try { return momentExportJobs.watch(request.jobId); }
+        catch (momentFailure) { if (momentFailure?.message !== 'CHAT_EXPORT_JOB_NOT_FOUND') throw momentFailure; return recordExportJobs.watch(request.jobId); }
+      }
     },
     async cancelChatExport(request) {
       try { return chatExportJobs.cancel(request.jobId); }
-      catch (failure) { if (failure?.message !== 'CHAT_EXPORT_JOB_NOT_FOUND') throw failure; return recordExportJobs.cancel(request.jobId); }
+      catch (failure) {
+        if (failure?.message !== 'CHAT_EXPORT_JOB_NOT_FOUND') throw failure;
+        try { return momentExportJobs.cancel(request.jobId); }
+        catch (momentFailure) { if (momentFailure?.message !== 'CHAT_EXPORT_JOB_NOT_FOUND') throw momentFailure; return recordExportJobs.cancel(request.jobId); }
+      }
     },
     async getJob(request) {
       return genericJobs.getJob(request);
@@ -2149,6 +2569,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     }
   };
   chatExportJobs = createChatExportJobs({ stateDir, runExport: request => handlers.exportConversation(request) });
+  momentExportJobs = createMomentsExportJobs({ stateDir, runExport: request => handlers.exportMoments(request) });
   recordExportJobs = createRecordExportJobs({ runExport: exportRecordCategory });
   chatExportSchedules = createChatExportSchedules({
     stateDir,
@@ -2157,7 +2578,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
     watchExport: jobId => chatExportJobs.watch(jobId)
   });
   aggregateAnalysisJobs = createAggregateAnalysisJobs({ runAnalysis: runAggregateAnalysis });
-  genericJobs = createGenericJobs({ chatExportJobs, recordExportJobs });
+  genericJobs = createGenericJobs({ chatExportJobs, momentExportJobs, recordExportJobs });
   return {
     supportedMethods: Object.keys(SUPPORTED),
     async dispatch(request) {
@@ -2170,7 +2591,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         if (!Object.hasOwn(handlers, method)) throw error('UNIMPLEMENTED');
         if (method !== 'hello' && !helloDone) throw error('HELLO_REQUIRED');
         const response = await handlers[method](request[method]);
-        if (!['hello', 'getCapabilities', 'getApplicationLockStatus', 'unlockApplication', 'lockApplication', 'configureApplicationLock'].includes(method)) lock.assertAccess();
+        if (!['hello', 'getCapabilities', 'getApplicationLockStatus', 'unlockApplication', 'lockApplication', 'configureApplicationLock', 'watchDatabaseKeyAcquisition'].includes(method)) lock.assertAccess();
         return EngineServerFrame.fromPartial({ requestId, [method]: response });
       } catch (failure) {
         const code = /^[A-Z][A-Z0-9_]{1,95}$/.test(failure.message ?? '') ? failure.message : 'INTERNAL_ERROR';
@@ -2184,8 +2605,15 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
         }
       }
     },
+    async probeMedia(accountId2) {
+      const normalizedAccountId = typeof accountId2 === 'string' ? accountId2.trim() : '';
+      if (!normalizedAccountId) throw error('ACCOUNT_ID_REQUIRED');
+      const accountInfo = await requireAccount(normalizedAccountId);
+      if (!accountInfo.capabilities?.includes('media.probe')) throw error('CAPABILITY_UNAVAILABLE');
+      return mediaProbeResponse(await callData('media.probe', {}));
+    },
     async cancelPending() { await cancelImport(); },
-    async close() { await aggregateAnalysisJobs.close(); await chatExportSchedules.close(); await chatExportJobs.close(); closed = true; await cancelImport(); await dropBridge(); }
+    async close() { await aggregateAnalysisJobs.close(); await chatExportSchedules.close(); await chatExportJobs.close(); await momentExportJobs.close(); closed = true; await cancelImport(); await dropBridge(); }
   };
 }
 

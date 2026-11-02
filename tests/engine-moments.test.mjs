@@ -1,0 +1,58 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { createMomentsFixture } from './moments-fixture.mjs';
+const require = createRequire(import.meta.url);
+const { createEngine, SUPPORTED } = require('../packages/alpha-engine/index.cjs');
+const { createSecurity } = require('../packages/alpha-security/index.cjs');
+const { EngineClientFrame, EngineServerFrame } = require('../packages/alpha-protocol/index.cjs');
+const root = fileURLToPath(new URL('../', import.meta.url));
+const bridgePath = path.join(root, 'build/candidates/alpha-data-bridge');
+const execute = promisify(execFile);
+
+test('independent engine reads only the explicit moments fixture schema', async t => {
+  const outer = await fs.mkdtemp(path.join(root, '.runtime/engine-moments-'));
+  const dataDir = path.join(outer, 'data');
+  const fixture = await createMomentsFixture(dataDir);
+  const stateDir = path.join(outer, 'state');
+  await fs.mkdir(stateDir, { mode: 0o700 });
+  const lock = await createSecurity({ stateDir });
+  const engine = await createEngine({ lock, stateDir, bridgePath, dataDir, accountId: fixture.accountId });
+  t.after(async () => { await engine.close(); await fs.rm(outer, { recursive: true, force: true }); });
+  let id = 0n;
+  async function call(method, payload = {}) {
+    const request = EngineClientFrame.fromPartial({ requestId: ++id, [method]: { accountId: fixture.accountId, ...payload } });
+    const result = await engine.dispatch(EngineClientFrame.decode(EngineClientFrame.encode(request).finish()));
+    return EngineServerFrame.decode(EngineServerFrame.encode(result).finish());
+  }
+  const hello = await call('hello', { protocol: { major: 1, minor: 0 } });
+  assert.equal(hello.error, undefined);
+  assert.ok(hello.hello.supportedMethodIds.includes(SUPPORTED.listMoments));
+  assert.ok(hello.hello.supportedMethodIds.includes(SUPPORTED.listMomentAuthors));
+  assert.ok(hello.hello.supportedMethodIds.includes(SUPPORTED.getMomentDayCounts));
+  const accounts = await call('listAccounts');
+  assert.equal(accounts.error, undefined);
+  assert.deepEqual(accounts.listAccounts.accounts[0].capabilities, ['offline-readonly', 'moments', 'moment-authors', 'moment-day-counts']);
+  const moments = await call('listMoments', { limit: 2, ascending: true, keyword: 'o' });
+  assert.equal(moments.error, undefined, moments.error?.code);
+  assert.deepEqual(moments.listMoments.response.items.map(row => row.id), ['m1', 'm2']);
+  assert.equal(moments.listMoments.response.items[0].sourceTable, '__alpha_moments_v1');
+  const authors = await call('listMomentAuthors', { limit: 10 });
+  assert.equal(authors.error, undefined, authors.error?.code);
+  assert.deepEqual(authors.listMomentAuthors.response.items.map(row => row.username), ['wxid_a', 'wxid_b']);
+  const days = await call('getMomentDayCounts', { fromUnixMs: 1700000000000n, toUnixMs: 1700259200000n, utcOffsetMinutes: 0 });
+  assert.equal(days.error, undefined, days.error?.code);
+  assert.equal(days.getMomentDayCounts.available, true);
+  assert.equal(days.getMomentDayCounts.days.length, 3);
+  const bounded = await call('listMoments', { limit: 10, ascending: true, startTimeUnixMs: 1700000000000n, endTimeUnixMs: 1700086400000n });
+  assert.equal(bounded.error, undefined, bounded.error?.code);
+  assert.deepEqual(bounded.listMoments.response.items.map(row => row.id), ['m1']);
+  const boundedDays = await call('getMomentDayCounts', { fromUnixMs: 1700000000000n, toUnixMs: 1700086400000n, utcOffsetMinutes: 0 });
+  assert.equal(boundedDays.error, undefined, boundedDays.error?.code);
+  assert.deepEqual(boundedDays.getMomentDayCounts.days.map(row => row.count), [1n]);
+});

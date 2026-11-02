@@ -397,6 +397,17 @@ function createChatExportSchedules({ stateDir, accountId, startExport, watchExpo
     schedulerTickPromise = schedulerTickPromise.then(() => runDueSchedules(at));
     return schedulerTickPromise;
   }
+  async function removeAccount(id) {
+    if (id !== accountId) fail('ACCOUNT_NOT_FOUND');
+    schedulerClosed = true;
+    if (schedulerTimer !== null) { clearTimeoutFn(schedulerTimer); schedulerTimer = null; }
+    await schedulerTickPromise;
+    await Promise.allSettled([...activeExecutions]);
+    state = { version: 1, plans: [], runs: [], attempts: [] };
+    await persist();
+    schedulerClosed = false;
+    if (scheduler) scheduleNextTick();
+  }
   async function retry(raw) {
     if (!raw || !isUuid(raw.accountId) || raw.accountId !== accountId || !isUuid(raw.attemptId) || typeof raw.expectedRevision !== 'bigint' || raw.expectedRevision <= 0n) fail('CHAT_EXPORT_ATTEMPT_INVALID');
     const attempt = findAttempt(raw.attemptId); if (BigInt(attempt.revision) !== raw.expectedRevision) fail('CHAT_EXPORT_ATTEMPT_CONFLICT'); if (attempt.state !== 'failed') fail('CHAT_EXPORT_ATTEMPT_NOT_RETRYABLE');
@@ -416,6 +427,7 @@ function createChatExportSchedules({ stateDir, accountId, startExport, watchExpo
     listAttempts: request => { const result = records(request, 'attempts'); return { records: result.records.map(row => toWireAttempt(row)), truncated: result.truncated }; },
     getAttempt: ({ accountId: id, attemptId } = {}) => { if (id !== accountId || !isUuid(attemptId)) fail('CHAT_EXPORT_ATTEMPT_INVALID'); return toWireAttempt(findAttempt(attemptId)); },
     retry: async raw => toWireAttempt(await retry(raw)),
+    removeAccount,
     schedulerTick,
     close: async () => { schedulerClosed = true; if (schedulerTimer !== null) { clearTimeoutFn(schedulerTimer); schedulerTimer = null; } await schedulerTickPromise; await Promise.allSettled([...activeExecutions]); await writeQueue; }
   };

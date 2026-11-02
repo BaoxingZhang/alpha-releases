@@ -48,12 +48,14 @@ import sqlite3,sys
 db=sqlite3.connect(sys.argv[1] + '/message/message_1.db')
 table=sys.argv[2]
 payment='<msg><appmsg><type>2000</type><wcpayinfo><paysubtype>1</paysubtype><feedesc>￥20.00</feedesc><transcationid>tx-1</transcationid><transferid>tr-1</transferid><invalidtime>1700003600</invalidtime><pay_memo>测试备注</pay_memo><receiver_username>wxid_beta</receiver_username><payer_username>wxid_self</payer_username></wcpayinfo></appmsg></msg>'
+older_payment='<msg><appmsg><type>2000</type><wcpayinfo><paysubtype>3</paysubtype><feedesc>￥7.00</feedesc><transferid>tr-0</transferid><receiver_username>wxid_self</receiver_username><payer_username>wxid_beta</payer_username></wcpayinfo></appmsg></msg>'
 revoke='<msg><sysmsg type="revokemsg"><revokemsg><content>撤回了一条消息</content><revoketime>1699999900</revoketime></revokemsg></sysmsg></msg>'
 call='<msg><voipmsg><voiptype>video</voiptype><duration>42</duration></voipmsg></msg>'
 unknown_call='<msg><text>not a voip payload</text></msg>'
 malformed_call='<msg><voipmsg></msg>'
 friend='<msg><sysmsg type="VerifyMsg"><username>wxid_gamma</username><nickname>Gamma</nickname><content>加个好友</content><scene>33</scene></sysmsg></msg>'
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(6,123456,301,49,1700000005,2,2,payment,''))
+db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(12,123462,307,49,1700000004,2,2,older_payment,''))
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(7,123457,302,10000,1700000006,1,2,revoke,''))
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(8,123458,303,50,1700000007,2,2,call,''))
 db.execute('INSERT INTO "'+table+'" VALUES (?,?,?,?,?,?,?,?,?)',(9,123459,304,50,1700000008,2,2,unknown_call,''))
@@ -64,7 +66,11 @@ db.commit();db.close()
   await execute('/usr/bin/python3', ['-c', script, directory, fixture.table]);
   const c = client(directory);
   t.after(async () => { await c.close(); await fs.rm(outer, { recursive: true, force: true }); });
-  const payments = await c.request('general.list', { tableName: '__alpha_general_payments', query: '', limit: 100, offset: 0, ascending: false });
+  const allPayments = await c.request('general.list', { tableName: '__alpha_general_payments', query: '', limit: 100, offset: 0, ascending: false });
+  assert.equal(allPayments.ok, true, JSON.stringify(allPayments));
+  assert.equal(allPayments.result.items.length, 2);
+  assert.equal(allPayments.result.items[0].eventAtUnixMs, '1700000005000');
+  const payments = await c.request('general.list', { tableName: '__alpha_general_payments', query: 'tr-1', limit: 100, offset: 0, ascending: false });
   assert.equal(payments.ok, true, JSON.stringify(payments));
   assert.equal(payments.result.items.length, 1);
   const payment = payments.result.items[0];
@@ -110,6 +116,11 @@ db.commit();db.close()
   assert.equal(friendFields.get('greeting'), '加个好友');
   assert.equal(friendFields.get('partial'), '1');
   assert.equal(friendFields.get('candidate'), '1');
-  assert.equal((await c.request('general.list', { tableName: '__alpha_general_payments', query: '', limit: 10, offset: 0, ascending: true })).error.code, 'INVALID_PARAMS');
+  const ascendingPayments = await c.request('general.list', { tableName: '__alpha_general_payments', query: '', limit: 10, offset: 0, ascending: true });
+  assert.equal(ascendingPayments.ok, true, JSON.stringify(ascendingPayments));
+  assert.equal(ascendingPayments.result.items.length, 2);
+  assert.equal(ascendingPayments.result.items[0].eventAtUnixMs, '1700000004000');
+  assert.equal((await c.request('general.list', { tableName: '__alpha_general_payments', query: ' tr-1', limit: 10, offset: 0, ascending: false })).error.code, 'INVALID_PARAMS');
+  assert.equal((await c.request('general.list', { tableName: '__alpha_general_payments', query: 'tr\u00001', limit: 10, offset: 0, ascending: false })).error.code, 'INVALID_PARAMS');
 });
 

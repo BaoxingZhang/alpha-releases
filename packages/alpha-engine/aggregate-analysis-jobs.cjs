@@ -116,10 +116,18 @@ function createAggregateAnalysisJobs({ runAnalysis, now = () => BigInt(Date.now(
     return { canceled: true };
   }
 
+  async function removeAccount(accountId) {
+    if (typeof accountId !== 'string' || !accountId.trim()) fail('ANALYSIS_REQUEST_INVALID');
+    for (const job of jobs.values()) if (job.accountId === accountId && job.state === STATES.running) job.cancelRequested = true;
+    await Promise.allSettled([...active]);
+    for (const [id, job] of jobs) if (job.accountId === accountId) jobs.delete(id);
+  }
+
   return {
     start,
     watch,
     cancel,
+    removeAccount,
     close: async () => {
       closed = true;
       for (const job of jobs.values()) if (job.state === STATES.running) job.cancelRequested = true;

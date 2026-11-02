@@ -219,6 +219,32 @@ func candidateMetadata(database, table, localID, serverID string) []generalField
 	}
 }
 
+// generalRecordMatchesQuery performs a bounded literal search over values that
+// are already exposed by the candidate record. It deliberately does not parse
+// or execute a query language: the caller has validated UTF-8, size, control
+// characters and surrounding whitespace before reaching this function. Field
+// names are included so callers can discover records by a stable derived key
+// such as "transfer_id" while the source message and candidate markers remain
+// searchable through their values.
+func generalRecordMatchesQuery(item generalRecord, query string) bool {
+	if query == "" {
+		return true
+	}
+	needle := strings.ToLower(query)
+	contains := func(value string) bool {
+		return strings.Contains(strings.ToLower(value), needle)
+	}
+	if contains(item.ID) || contains(item.EventAtUnixMs) || contains(item.Actor) || contains(item.Content) {
+		return true
+	}
+	for _, field := range item.Fields {
+		if contains(field.Name) || contains(field.Value) {
+			return true
+		}
+	}
+	return false
+}
+
 func paymentRecord(tableName, conversation, database, table, sender, localID, serverID string, seconds int64, xmlValue string) (recordEnvelope, bool, error) {
 	var parsed paymentXML
 	if err := xml.Unmarshal([]byte(xmlValue), &parsed); err != nil {
@@ -385,6 +411,7 @@ func (b *bridge) generalMessageRecords(ctx context.Context, p params, tableName 
 		return nil, err
 	}
 	result := make([]recordEnvelope, 0)
+	candidates := 0
 	for _, d := range b.messageDBs {
 		tables := make([]string, 0)
 		for table := range d.tables {
@@ -451,10 +478,13 @@ func (b *bridge) generalMessageRecords(ctx context.Context, p params, tableName 
 					return nil, candidateErr
 				}
 				if found {
-					result = append(result, candidate)
-					if len(result) > maxGeneralRecords {
+					candidates++
+					if candidates > maxGeneralRecords {
 						rows.Close()
 						return nil, fail("GENERAL_RECORDS_LIMIT_EXCEEDED", "General record scan exceeds the bounded limit")
+					}
+					if generalRecordMatchesQuery(candidate.item, p.Query) {
+						result = append(result, candidate)
 					}
 				}
 			}

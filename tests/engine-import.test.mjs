@@ -88,6 +88,42 @@ test('real encrypted fixture -> Go importer -> Go bridge only becomes ready afte
   await assertNoKey(f.stateDir, f.keyHex); await cleanWork(f.stateDir);
 });
 
+test('watchDatabaseKeyAcquisition reports the bounded terminal journal and supports cursors', async t => {
+  const f = await setup(t), { call } = await f.open(); await call('hello', helloPayload);
+  const initial = success(await call('watchDatabaseKeyAcquisition', { accountId }), 'watchDatabaseKeyAcquisition');
+  assert.equal(initial.active, false); assert.deepEqual(initial.events, []); assert.equal(initial.lastEventSeq, 0n);
+  success(await call('importDatabaseKey', { accountId, databaseKey: Buffer.from(f.keyHex, 'hex') }), 'importDatabaseKey');
+  const watched = success(await call('watchDatabaseKeyAcquisition', { accountId }), 'watchDatabaseKeyAcquisition');
+  assert.equal(watched.active, false); assert.ok(watched.events.length >= 6); assert.ok(watched.lastEventSeq >= 6n);
+  for (let index = 0; index < watched.events.length; index += 1) {
+    const event = watched.events[index];
+    assert.equal(event.eventSeq, BigInt(index + 1));
+    assert.ok(event.eventSeq <= watched.lastEventSeq);
+    assert.ok(event.phase >= 0 && event.phase <= 6);
+    assert.ok(event.completedSteps >= 0 && event.completedSteps <= event.totalSteps);
+    assert.match(event.messageKey, /^[a-zA-Z0-9._-]*$/);
+    assert.equal(event.messageKey.includes(f.keyHex), false);
+  }
+  const terminal = watched.events.at(-1);
+  assert.equal(terminal.phase, 6); assert.equal(terminal.completedSteps, terminal.totalSteps); assert.equal(terminal.terminal, true); assert.equal(terminal.errorCode, '');
+  const after = success(await call('watchDatabaseKeyAcquisition', { accountId, afterEventSeq: watched.lastEventSeq }), 'watchDatabaseKeyAcquisition');
+  assert.equal(after.active, false); assert.deepEqual(after.events, []); assert.equal(after.lastEventSeq, watched.lastEventSeq);
+  await assertNoKey(f.stateDir, f.keyHex);
+});
+
+test('watchDatabaseKeyAcquisition drops old events at the process-local history bound', async t => {
+  const f = await setup(t), importer = path.join(f.base, 'bounded-import-failure.cjs');
+  await fs.writeFile(importer, `#!${process.execPath}\nprocess.stdin.resume(); process.stdin.on('end',()=>process.stdout.write('{}'));\n`, { mode: 0o700 });
+  const { call } = await f.open({ importerPath: importer, importerTimeoutMs: 3000 }); await call('hello', helloPayload);
+  for (let index = 0; index < 70; index += 1) {
+    const key = Buffer.from(f.keyHex, 'hex');
+    assert.equal((await call('importDatabaseKey', { accountId, databaseKey: key })).error.code, 'IMPORT_SUMMARY_INVALID');
+    assert.ok(key.every(value => value === 0));
+  }
+  const watched = success(await call('watchDatabaseKeyAcquisition', { accountId }), 'watchDatabaseKeyAcquisition');
+  assert.equal(watched.active, false); assert.equal(watched.events.length, 64); assert.equal(watched.events[0].eventSeq, watched.lastEventSeq - 63n); assert.equal(watched.events.at(-1).terminal, true);
+});
+
 test('restart validates both cached plaintext hashes and same encrypted source without invoking importer', async t => {
   const f = await setup(t), first = await f.open(); await first.call('hello', helloPayload); success(await first.call('importDatabaseKey', { accountId, databaseKey: Buffer.from(f.keyHex, 'hex') }), 'importDatabaseKey'); await first.engine.close();
   const second = await f.open({ importerPath: '/deliberately/nonexistent/importer' }); await second.call('hello', helloPayload);
@@ -118,10 +154,14 @@ test('real stdio stays responsive during Go import: duplicate rejection, status,
   const password = 'Synthetic import password'; success(await c.call('configureApplicationLock', { action: 'enable_password', newPassword: Buffer.from(password) }), 'configureApplicationLock');
   const importing = c.call('importDatabaseKey', { accountId, databaseKey: Buffer.from(f.keyHex, 'hex') });
   await waitForImporterWork(f.stateDir);
+  const active = success(await c.call('watchDatabaseKeyAcquisition', { accountId }), 'watchDatabaseKeyAcquisition');
+  assert.equal(active.active, true); assert.ok(active.events.some(event => event.phase === 3 && event.terminal === false));
   assert.equal((await c.call('importDatabaseKey', { accountId, databaseKey: Buffer.from(f.keyHex, 'hex') })).error.code, 'IMPORT_BUSY');
   const start = Date.now(); assert.equal(success(await c.call('getApplicationLockStatus'), 'getApplicationLockStatus').status.locked, false);
   assert.equal(success(await c.call('lockApplication'), 'lockApplication').status.locked, true); assert.ok(Date.now() - start < 2000);
   assert.ok(['APP_LOCK_LOCKED', 'IMPORT_CANCELED'].includes((await importing).error.code)); await cleanWork(f.stateDir);
+  const canceled = success(await c.call('watchDatabaseKeyAcquisition', { accountId }), 'watchDatabaseKeyAcquisition');
+  assert.equal(canceled.active, false); assert.equal(canceled.events.at(-1).terminal, true); assert.ok(['APP_LOCK_LOCKED', 'IMPORT_CANCELED'].includes(canceled.events.at(-1).errorCode));
   success(await c.call('unlockApplication', { password: Buffer.from(password) }), 'unlockApplication');
   const pending = c.call('importDatabaseKey', { accountId, databaseKey: Buffer.from(f.keyHex, 'hex') }); await waitForImporterWork(f.stateDir); c.child.stdin.end();
   assert.equal((await pending).error.code, 'IMPORT_CANCELED'); assert.equal((await c.exited).code, 0);
@@ -138,6 +178,8 @@ test('fault injection only: importer timeout, bounded output and malformed summa
     const executable = path.join(f.base, name + '.cjs'); await fs.writeFile(executable, `#!${process.execPath}\n${content}\n`, { mode: 0o700 });
     const { call, engine } = await f.open({ importerPath: executable, importerTimeoutMs: name === 'timeout' ? 100 : 3000 }); await call('hello', helloPayload);
     const key = Buffer.from(f.keyHex, 'hex'); assert.equal((await call('importDatabaseKey', { accountId, databaseKey: key })).error.code, expected); assert.ok(key.every(n => n === 0));
+    const watched = success(await call('watchDatabaseKeyAcquisition', { accountId }), 'watchDatabaseKeyAcquisition');
+    assert.equal(watched.active, false); assert.equal(watched.events.at(-1).terminal, true); assert.equal(watched.events.at(-1).errorCode, expected);
     assert.equal(success(await call('listAccounts'), 'listAccounts').accounts[0].ready, false); await cleanWork(f.stateDir); await engine.close();
   }
 });

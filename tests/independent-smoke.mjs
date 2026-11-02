@@ -7,10 +7,14 @@ import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { root, launchEnvironment, sandboxProfile } from '../scripts/environment.mjs';
 import { createFixture } from './data-bridge-fixture.mjs';
+import { installMomentsFixture } from './moments-fixture.mjs';
+import { installFavoritesFixture } from './favorites-fixture.mjs';
 const session = `independent-smoke-${Date.now()}`;
 const runtime = path.join(root, '.runtime', session);
 fs.mkdirSync(runtime, { recursive: true });
 const fixture = await createFixture(path.join(runtime, 'fixture'));
+await installMomentsFixture(fixture.directory);
+await installFavoritesFixture(fixture.directory);
 const quote = x => "'" + x.replaceAll("'", "'\\''") + "'";
 const wrapper = path.join(runtime, 'electron-sandbox.sh');
 fs.writeFileSync(wrapper, `#!/bin/sh\nexec /usr/bin/sandbox-exec -f ${quote(sandboxProfile())} ${quote(electronPath)} "$@"\n`, { mode: 0o755 });
@@ -50,15 +54,30 @@ try {
   assert.equal(report.accounts[0].handleState, 'open');
   report.capabilities = await page.evaluate(() => window.alpha.license.capabilities());
   assert.equal(report.capabilities, null, 'No original entitlement is forged');
-  const read = await page.evaluate(async ({ accountId, conversationId }) => ({
-    contacts: await window.alpha.data.contacts(accountId, '', 100, 0),
-    conversations: await window.alpha.conversations.list(accountId, 100),
-    messages: await window.alpha.messages.list(accountId, conversationId, 100, true)
-  }), fixture);
+  const read = await page.evaluate(async ({ accountId, conversationId }) => {
+    const messages = await window.alpha.messages.list(accountId, conversationId, 100, true);
+    const sourceMessage = messages.find(message => message.text === 'first source');
+    const source = sourceMessage ? await window.alpha.messages.source(accountId, {
+      conversationId: sourceMessage.conversationId,
+      messageId: sourceMessage.id,
+      sourceToken: sourceMessage.sourceToken,
+      sentAtUnixMs: sourceMessage.sentAtUnixMs
+    }) : null;
+    return {
+      contacts: await window.alpha.data.contacts(accountId, '', 100, 0),
+      conversations: await window.alpha.conversations.list(accountId, 100),
+      messages,
+      sourceMessage,
+      source
+    };
+  }, fixture);
   report.read = read;
   assert.ok(JSON.stringify(read.contacts).includes('合成联系人甲'));
   assert.ok(JSON.stringify(read.messages).includes('first source'));
+  assert.match(read.sourceMessage?.sourceToken ?? '', /^independent1_[A-Za-z0-9_-]+$/);
+  assert.deepEqual(read.source, { text: 'first source', format: 'text' });
   report.checks.realSqliteThroughDesktopIpc = true;
+  report.checks.independentMessageSourceThroughRendererIpc = true;
   // Exercise the real renderer -> preload -> main IPC path for the recovered
   // directory/profile APIs. The fixture is synthetic and has no real WeChat
   // directory or credentials.
@@ -90,6 +109,27 @@ try {
   await page.getByText('合成联系人甲', { exact: true }).first().click({ timeout: 15000 });
   await page.getByText('first source', { exact: true }).first().waitFor({ timeout: 15000 });
   report.checks.messageRendered = true;
+  await page.getByRole('button', { name: '朋友圈', exact: true }).click({ timeout: 15000 });
+  await page.locator('section[aria-label="朋友圈浏览器"]').waitFor({ timeout: 15000 });
+  await page.getByText('独立 synthetic-only 朋友圈：仅读取 moments.db 的 __alpha_moments_v1', { exact: false }).waitFor({ timeout: 15000 });
+  await page.getByText('合成朋友圈第一条', { exact: true }).waitFor({ timeout: 15000 });
+  await page.getByText('合成朋友圈第二条', { exact: true }).waitFor({ timeout: 15000 });
+  assert.equal(await page.locator('.synthetic-moment-card').count(), 3);
+  assert.deepEqual(await page.locator('.synthetic-moment-card').evaluateAll((cards) => cards.map((card) => card.getAttribute('data-source-table'))), ['__alpha_moments_v1', '__alpha_moments_v1', '__alpha_moments_v1']);
+  assert.equal(await page.getByRole('button', { name: '导出朋友圈', exact: true }).count(), 0, 'Synthetic moments must not expose export');
+  assert.equal(await page.getByRole('button', { name: '朋友圈防删除', exact: true }).count(), 0, 'Synthetic moments must not expose anti-delete writes');
+  assert.equal(await page.locator('.synthetic-moment-card button').count(), 0, 'Synthetic moments must not expose media/interaction controls');
+  assert.equal(await page.locator('.synthetic-moment-card img, .synthetic-moment-card video, .synthetic-moment-card audio').count(), 0, 'Synthetic moments must remain text-only');
+  report.checks.syntheticMomentsRenderedReadOnly = true;
+  await page.getByRole('button', { name: '收藏', exact: true }).click({ timeout: 15000 });
+  await page.locator('section[aria-label="收藏"]').waitFor({ timeout: 15000 });
+  await page.getByText('独立 synthetic-only 收藏：仅读取 favorite.db 或 favorites.db 的 __alpha_favorites_v1', { exact: false }).waitFor({ timeout: 15000 });
+  await page.getByText('一段说明', { exact: true }).waitFor({ timeout: 15000 });
+  await page.getByText('包含关键字', { exact: true }).waitFor({ timeout: 15000 });
+  assert.equal(await page.locator('.favorite-card-row').count(), 2);
+  assert.equal(await page.getByRole('button', { name: '刷新收藏', exact: true }).count(), 1);
+  assert.equal(await page.locator('.favorite-card-row img, .favorite-card-row video, .favorite-card-row audio').count(), 0, 'Synthetic favorites must remain metadata/text-only');
+  report.checks.syntheticFavoritesRenderedReadOnly = true;
   // Frame 136 is implemented independently even when the native moments
   // exporter (frame 135) is unavailable. Exercise the actual renderer ->
   // preload -> main -> independent engine path with an empty synthetic

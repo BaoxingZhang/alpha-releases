@@ -1,24 +1,30 @@
 {
-  "recordedAt": "2026-10-31T23:17:38.011Z",
+  "recordedAt": "2026-11-01T21:51:48.208Z",
   "sourceDmgSha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
   "originalManifest": "provenance/recovered-files.json",
   "originalFiles": 169,
-  "unchangedOriginalFiles": 167,
+  "unchangedOriginalFiles": 166,
   "changed": [
     {
       "path": "src/main/index.js",
       "originalSha256": "7e8fabf836059696bc00ecf9266b68cbed4b0cd690e3ffe6f80e1755a72c193a",
-      "currentSha256": "3cee1ae63f45a8fcba540041345d277c8b21908adc2a08db2507f087506a790b",
-      "currentBytes": 3186664
+      "currentSha256": "ff42348bb0eb397ad88d6da7b9873328985c1f17160c783f6843f72631505143",
+      "currentBytes": 3193249
+    },
+    {
+      "path": "src/preload/index.js",
+      "originalSha256": "3dda505f7afc673cbf476f1d040b12f7e8613f29c225ba78d8e413e7e48d8068",
+      "currentSha256": "f56851c481e2fc7e68ca9e31c3c322066f659aceb082bb9fb5a82dd9f7ec69e7",
+      "currentBytes": 53037
     },
     {
       "path": "src/renderer/assets/index-DPCwIOAb.js",
       "originalSha256": "8547e1338248bf174063cf7153c398a6d1a7d8c72ec0e6780e25ed01a954bde3",
-      "currentSha256": "3e0071ee1fe3c52d4486e307215f11068e15c4ab82e01f1f30d7f505754ec852",
-      "currentBytes": 2875086
+      "currentSha256": "2a2cd6389de93fbd5c417a58c7ae578f5af5f433a590cb6d95fac2a6413a4a83",
+      "currentBytes": 2880782
     }
   ],
-  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; search/navigation, contact/profile and group reads, contact and group-member CSV/JSON/VCF/HTML/XLSX exports, media metadata, explicit data-watch targets, read-only exports and in-memory export jobs, annual and conversation base statistics, read-only local HTTP/MCP adapter, and UI capability-boundary maintenance.",
+  "reason": "Independent backend startup and gateway boundaries; offline manual-key onboarding and import routing; bounded database-key acquisition watch with exact uint64 desktop cursors; search/navigation, contact/profile and group reads, group-member CSV/JSON/HTML/XLSX exports, media metadata, explicit data-watch targets, read-only exports and in-memory export jobs, annual and conversation base statistics, read-only local HTTP/MCP adapter, synthetic favorite media slots bound to an explicit media-index, UI capability-boundary maintenance, independent flavor update policy marker, and fail-closed update configuration.",
   "authoredModules": [
     "packages/alpha-engine",
     "packages/alpha-data-bridge",

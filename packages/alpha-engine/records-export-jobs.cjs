@@ -70,6 +70,7 @@ function validateRequest(request) {
 function createRecordExportJobs({ runExport, now = () => BigInt(Date.now()), maxJobs = MAX_JOBS } = {}) {
   if (typeof runExport !== 'function') throw new TypeError('runExport must be a function');
   const jobs = new Map();
+  const active = new Set();
 
   function stamp(job) { job.updatedAtUnixMs = now(); }
   function setState(job, state) { job.state = state; stamp(job); }
@@ -146,11 +147,13 @@ function createRecordExportJobs({ runExport, now = () => BigInt(Date.now()), max
       cancelRequested: false
     };
     jobs.set(jobId, { job, request });
-    void run(job, request).catch(failure => {
+    const execution = run(job, request).catch(failure => {
       job.errorCode = /^[A-Z][A-Z0-9_]{1,95}$/.test(failure?.message || '') ? failure.message : 'RECORD_EXPORT_FAILED';
       setState(job, 'failed');
       job.finishedAtUnixMs = now();
     });
+    active.add(execution);
+    execution.finally(() => active.delete(execution)).catch(() => {});
     return { jobId };
   }
 
@@ -174,7 +177,18 @@ function createRecordExportJobs({ runExport, now = () => BigInt(Date.now()), max
     return {};
   }
 
-  return { start, list, watch, cancel, safeRecordFileName, validateRequest };
+  async function removeAccount(accountId) {
+    if (typeof accountId !== 'string' || !accountId.trim()) fail('CHAT_EXPORT_REQUEST_INVALID');
+    const entries = [...jobs.values()].filter(entry => entry.job.accountId === accountId);
+    for (const entry of entries) {
+      entry.job.cancelRequested = true;
+      if (entry.job.state === 'running') setState(entry.job, 'canceling');
+    }
+    await Promise.allSettled([...active]);
+    for (const entry of entries) jobs.delete(entry.job.jobId);
+  }
+
+  return { start, list, watch, cancel, removeAccount, safeRecordFileName, validateRequest };
 }
 
 module.exports = { createRecordExportJobs, safeRecordFileName, validateRequest, CATEGORIES, FORMATS, MAX_SELECTED };

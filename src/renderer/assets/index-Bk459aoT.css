@@ -1058,6 +1058,7 @@ textarea.st-input { height: auto; min-height: 76px; padding: 8px 12px; line-heig
 .type-browse-tile .message-image-preview { cursor: zoom-in; }
 .type-browse-tile .message-image-preview:focus-visible, .type-browse-tile-open:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
 .type-browse-tile-open { position: absolute; inset: 0; display: grid; place-items: center; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.type-browse-tile-metadata { position: absolute; inset: 0; display: grid; place-items: center; padding: 4px; color: var(--muted-foreground); font-size: 11px; text-align: center; background: color-mix(in srgb, var(--muted) 86%, transparent); pointer-events: none; }
 .type-browse-play { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 50%; background: var(--media-overlay); color: var(--media-foreground); }
 .type-browse-play svg { margin-left: 2px; fill: currentColor; }
 .type-browse-duration { position: absolute; right: 5px; bottom: 4px; color: var(--media-foreground); font-size: 11px; font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px var(--media-backdrop); pointer-events: none; }

@@ -54,6 +54,10 @@ db.commit();db.close()
   assert.equal(payment.items.length, 1);
   assert.equal(payment.items[0].fields.find(field => field.name === 'partial').value, '1');
   assert.equal(payment.items[0].fields.find(field => field.name === 'amount').value, '￥8.00');
+  const filteredPaymentReply = await call('listGeneral', { accountId: fixture.accountId, tableName: '__alpha_general_payments', query: '￥8.00', limit: 100, offset: 0, ascending: true });
+  assert.equal(filteredPaymentReply.error, undefined, String(filteredPaymentReply.error?.code || 'filtered payment failed'));
+  assert.equal(filteredPaymentReply.listGeneral.response.items.length, 1);
+  assert.equal(filteredPaymentReply.listGeneral.response.items[0].fields.find(field => field.name === 'candidate').value, '1');
   const revokeReply = await call('listGeneral', { accountId: fixture.accountId, tableName: '__alpha_general_revokes', query: '', limit: 100, offset: 0, ascending: false });
   assert.equal(revokeReply.error, undefined, String(revokeReply.error?.code || 'revoke failed'));
   const revoke = revokeReply.listGeneral.response;

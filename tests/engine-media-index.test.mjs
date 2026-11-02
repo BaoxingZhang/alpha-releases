@@ -32,7 +32,12 @@ async function fixture(t, manifestAccountId = accountId) {
     mimeType: 'image/png', accountId: manifestAccountId, conversationId: 'wxid_peer'
   };
   await fs.writeFile(path.join(dataDir, 'media-index.v1.json'), JSON.stringify({ version: 1, accountId: manifestAccountId, entries: [entry] }) + '\n', { mode: 0o600 });
-  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  // Engine initialization queues a small durable state write.  The engine
+  // close hook and fixture cleanup are registered by different helpers, so
+  // cleanup can observe that write racing with recursive removal.  Ask
+  // fs.rm to retry transient ENOTEMPTY/EBUSY results instead of turning a
+  // successful media assertion into a flaky teardown failure.
+  t.after(() => fs.rm(root, { recursive: true, force: true, maxRetries: 8, retryDelay: 25 }));
   return { root, stateDir, dataDir, entry };
 }
 

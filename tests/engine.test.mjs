@@ -183,6 +183,32 @@ test('real Go SQLite data crosses protobuf with pagination, exact identifiers an
   assert.equal(ok(await reopened.send('getDataRevision', { accountId }), 'getDataRevision').revision, revision);
 });
 
+test('removeAccount clears independent state, preserves the source, and requires explicit rediscovery', async t => {
+  const f = await fixture(t), c = f.start(); await handshake(c);
+  assert.ok(ok(await c.send('selectAccount', { accountId }), 'selectAccount').account.selected);
+  const sourcePath = path.join(f.dataDir, 'contact/contact.db');
+  const sourceBefore = await fs.readFile(sourcePath);
+  const removed = ok(await c.send('removeAccount', { accountId }), 'removeAccount');
+  assert.deepEqual(removed, { removed: true, selectedAccountId: '' });
+  assert.deepEqual(ok(await c.send('listAccounts'), 'listAccounts'), { accounts: [], selectedAccountId: '' });
+  assert.equal((await c.send('listMessages', { accountId, conversationId: 'wxid_alpha' })).error.code, 'ACCOUNT_NOT_FOUND');
+  assert.deepEqual(await fs.readFile(sourcePath), sourceBefore);
+  await assert.rejects(fs.access(path.join(f.stateDir, 'selected-source.v1.json')));
+  const tombstone = path.join(f.stateDir, 'removed-account.v1.json');
+  const tombstoneStat = await fs.stat(tombstone);
+  assert.equal(tombstoneStat.mode & 0o077, 0);
+  await c.close();
+
+  const reopened = f.start(); await handshake(reopened);
+  assert.deepEqual(ok(await reopened.send('listAccounts'), 'listAccounts'), { accounts: [], selectedAccountId: '' });
+  assert.equal((await reopened.send('removeAccount', { accountId })).removeAccount.removed, false);
+  const rediscovered = ok(await reopened.send('discoverAccounts', { sourceLocation: f.dataDir }), 'discoverAccounts');
+  assert.equal(rediscovered.accounts.length, 1);
+  assert.equal(rediscovered.accounts[0].id, accountId);
+  assert.equal(ok(await reopened.send('listAccounts'), 'listAccounts').accounts.length, 1);
+  assert.equal(await fs.stat(tombstone).then(() => true, () => false), false);
+});
+
 test('read-only contact export uses verified contact fields and rejects unsupported classifications/media', async t => {
   const f = await fixture(t), c = f.start(); await handshake(c);
   const destination = path.join(f.directory, 'contacts.json');

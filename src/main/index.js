@@ -9,6 +9,7 @@ const node_http = require("node:http");
 const node_os = require("node:os");
 const node_child_process = require("node:child_process");
 const backendMode = require("../../packages/alpha-desktop/backend-mode.cjs");
+const updateMode = require("../../packages/alpha-desktop/update-mode.cjs");
 function independentBackendEnabled() {
   return backendMode.isIndependentBackendEnabled(electron.app, process.env);
 }
@@ -923,7 +924,11 @@ function momentFromWire(item) {
     nickname: item.nickname,
     createdAtUnixMs: item.createdAtUnixMs.toString(),
     type: item.type,
-    text: "",
+    // The explicit synthetic fixture's text column is already bounded by the
+    // bridge and is safe display data even when no parsed detail projection is
+    // present. Keep it visible instead of treating an absent detail field as
+    // an empty post; raw XML/media credentials remain stripped below.
+    text: item.sourceTable === "__alpha_moments_v1" ? item.text : "",
     // XML and native fields can contain media credentials; they are not display data.
     rawXml: "",
     sourceTable: item.sourceTable,
@@ -961,7 +966,7 @@ function momentFromWire(item) {
     if (card) result.detail.finder = card;
     const song = music(detail.music, mediaSources);
     if (song) result.detail.music = song;
-    result.text = item.text;
+    if (item.sourceTable !== "__alpha_moments_v1") result.text = item.text;
     sources.set(result, mediaSources);
   } catch {
     result.detailError = "moment.detail_wire_invalid";
@@ -6049,6 +6054,10 @@ function messagePageRequest(accountId2, conversationId, options2 = {}) {
     ...beforeUnixMs !== void 0 ? { beforeUnixMs } : {}
   };
 }
+function acceptedMessageSourceToken(value) {
+  if (independentBackendEnabled()) return typeof value === "string" && value.length <= 4096 && /^independent1_[A-Za-z0-9_-]+$/.test(value);
+  return typeof value === "string" && /^media1_[0-9a-f]{32}$/.test(value);
+}
 function messagePageResponse(value, conversationId, requestedCursor, pageSize = 1e3, afterUnixMs, beforeUnixMs) {
   if (!value) throw new Error("MESSAGE_PAGE_RESPONSE_MISSING");
   if (value.appliedAfterUnixMs !== afterUnixMs || value.appliedBeforeUnixMs !== beforeUnixMs) throw new Error("MESSAGE_PAGE_RESPONSE_INVALID");
@@ -6071,7 +6080,7 @@ function messagePageResponse(value, conversationId, requestedCursor, pageSize = 
     ...item.senderId ? { senderId: item.senderId } : {},
     ...item.mutationLocator && /^mut1_[0-9a-f]{64}$/.test(item.mutationLocator) ? { mutationLocator: item.mutationLocator } : {},
     ...item.mediaResolveToken && /^media1_[0-9a-f]{32}$/.test(item.mediaResolveToken) ? { mediaResolveToken: item.mediaResolveToken } : {},
-    ...item.sourceToken && /^media1_[0-9a-f]{32}$/.test(item.sourceToken) ? { sourceToken: item.sourceToken } : {},
+    ...acceptedMessageSourceToken(item.sourceToken) ? { sourceToken: item.sourceToken } : {},
     ...item.platformMessageId ? { platformMessageId: item.platformMessageId } : {},
     ...item.sourceType !== void 0 ? { sourceType: item.sourceType.toString() } : {}
   })) };
@@ -8243,7 +8252,10 @@ function favoritePageRequest(accountId2, options2) {
     skipSourceContext: true,
     query: options2.query,
     includeTypeCounts: options2.includeTypeCounts,
-    includeMedia: true,
+    // The maintained independent reader exposes metadata/text only. Keep the
+    // original native request's media expansion, but avoid asking the
+    // independent bridge for unsupported favorite media slots.
+    includeMedia: !independentBackendEnabled(),
     tagId: options2.tagId ? BigInt(options2.tagId) : 0n
   };
 }
@@ -12620,7 +12632,7 @@ const bounded$2 = (value, max) => typeof value === "string" && Boolean(value.tri
 function messageSourceRequest(accountId2, raw) {
   if (!bounded$2(accountId2, 256) || !raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("MESSAGE_SOURCE_REQUEST_INVALID");
   const value = raw;
-  if (Object.keys(value).some((key) => !["conversationId", "messageId", "sourceToken", "sentAtUnixMs"].includes(key)) || !bounded$2(value.conversationId, 1024) || !bounded$2(value.messageId, 1024) || typeof value.sourceToken !== "string" || !/^media1_[0-9a-f]{32}$/.test(value.sourceToken)) throw new Error("MESSAGE_SOURCE_REQUEST_INVALID");
+  if (Object.keys(value).some((key) => !["conversationId", "messageId", "sourceToken", "sentAtUnixMs"].includes(key)) || !bounded$2(value.conversationId, 1024) || !bounded$2(value.messageId, 1024) || !acceptedMessageSourceToken(value.sourceToken)) throw new Error("MESSAGE_SOURCE_REQUEST_INVALID");
   const sentAtUnixMs = value.sentAtUnixMs;
   if (sentAtUnixMs !== void 0 && (typeof sentAtUnixMs !== "string" || !/^(0|[1-9]\d{0,18})$/.test(sentAtUnixMs) || BigInt(sentAtUnixMs) > 9223372036854775807n)) throw new Error("MESSAGE_SOURCE_REQUEST_INVALID");
   return {
@@ -12646,7 +12658,7 @@ async function readMessageSourceWithRenewal(request2, read, page2) {
     const rows = await page2(wire2.accountId, wire2.conversationId, { cursor, pageSize: 128, ascending: true, afterUnixMs });
     const row = rows.items.find((item) => item.id === wire2.messageId && item.conversationId === wire2.conversationId);
     if (row) {
-      if (!row.sourceToken || !/^media1_[0-9a-f]{32}$/.test(row.sourceToken)) throw new Error("MESSAGE_SOURCE_UNAVAILABLE");
+      if (!acceptedMessageSourceToken(row.sourceToken)) throw new Error("MESSAGE_SOURCE_UNAVAILABLE");
       return read({ ...wire2, sourceToken: row.sourceToken });
     }
     if (!rows.nextCursor || visited.has(rows.nextCursor) || rows.items.some((item) => /^(0|[1-9]\d{0,18})$/.test(item.sentAtUnixMs) && BigInt(item.sentAtUnixMs) > timestamp2)) break;
@@ -63313,24 +63325,28 @@ class EngineClient {
     return this.textSendBundles.get(accountId2) ?? "";
   }
   /** Progress of the latest acquisition for an account. Answered while the acquisition runs. */
-  async watchDatabaseKeyAcquisition(accountId2, afterEventSeq = 0) {
-    const trimmed = accountId2.trim();
-    if (!trimmed || trimmed.length > 128 || !Number.isSafeInteger(afterEventSeq) || afterEventSeq < 0) {
+  async watchDatabaseKeyAcquisition(accountId2, afterEventSeq = "0") {
+    const trimmed = typeof accountId2 === "string" ? accountId2.trim() : "";
+    let cursor;
+    if (typeof afterEventSeq === "bigint") cursor = afterEventSeq;
+    else if (typeof afterEventSeq === "number" && Number.isSafeInteger(afterEventSeq) && afterEventSeq >= 0) cursor = BigInt(afterEventSeq);
+    else if (typeof afterEventSeq === "string" && /^[0-9]{1,20}$/u.test(afterEventSeq)) cursor = BigInt(afterEventSeq);
+    if (!trimmed || trimmed.length > 128 || cursor === void 0 || cursor < 0n || cursor > UINT64_MAX$1) {
       throw new Error("DATABASE_KEY_ACQUISITION_REQUEST_INVALID");
     }
     await this.start();
     const response = await this.call({
       requestId: this.nextRequestId++,
-      watchDatabaseKeyAcquisition: { accountId: trimmed, afterEventSeq: BigInt(afterEventSeq) }
+      watchDatabaseKeyAcquisition: { accountId: trimmed, afterEventSeq: cursor }
     }, 5e3);
     if (response.error) throw new Error(response.error.code);
     const watched = response.watchDatabaseKeyAcquisition;
     if (!watched) throw new Error("DATABASE_KEY_ACQUISITION_RESPONSE_INVALID");
     return {
       active: watched.active,
-      lastEventSeq: Number(watched.lastEventSeq),
+      lastEventSeq: watched.lastEventSeq.toString(),
       events: watched.events.map((event) => ({
-        eventSeq: Number(event.eventSeq),
+        eventSeq: event.eventSeq.toString(),
         phase: event.phase,
         completedSteps: event.completedSteps,
         totalSteps: event.totalSteps,
@@ -73582,6 +73598,11 @@ let activeDownload = null;
 let activeInstall = null;
 let activeRefresh = null;
 function updateConfiguration() {
+  if (independentBackendEnabled()) {
+    const selected = updateMode.readIndependentUpdateMode(electron.app.isPackaged ? process.resourcesPath : "");
+    if (selected.mode !== "configured") return { disabled: true, publicKey: "", policyUrl: "", channel: "stable" };
+    return resolveUpdateConfiguration(true, selected.config, process.env);
+  }
   return resolveUpdateConfiguration(
     electron.app.isPackaged,
     typeof define_ALPHA_RELEASE_UPDATE_TRUST_default === "undefined" ? null : define_ALPHA_RELEASE_UPDATE_TRUST_default,
@@ -73602,6 +73623,10 @@ function refreshUpdateStatus() {
 async function refreshUpdateStatusOnce() {
   const currentVersion = resolveApplicationVersion(electron.app.isPackaged, electron.app.getVersion(), "0.3.5");
   const config = updateConfiguration();
+  if (config.disabled) {
+    updateStatus = { state: "unconfigured", currentVersion, download: downloadStatus };
+    return updateStatus;
+  }
   if (!config.publicKey || !config.policyPath && !config.policyUrl) {
     updateStatus = {
       state: electron.app.isPackaged ? "blocked" : "unconfigured",
@@ -74491,8 +74516,8 @@ if (primaryInstance) electron.app.whenReady().then(async () => {
     }
   });
   electron.ipcMain.handle(IPC_CHANNELS.watchDatabaseKeyAcquisition, async (_event, accountId2, afterEventSeq) => {
-    const normalizedSeq = afterEventSeq ?? 0;
-    if (typeof accountId2 !== "string" || typeof normalizedSeq !== "number" || !Number.isSafeInteger(normalizedSeq) || normalizedSeq < 0) {
+    const normalizedSeq = afterEventSeq ?? "0";
+    if (typeof accountId2 !== "string" || typeof normalizedSeq !== "string" && typeof normalizedSeq !== "number" && typeof normalizedSeq !== "bigint") {
       throw new Error("DATABASE_KEY_ACQUISITION_REQUEST_INVALID");
     }
     return engine.watchDatabaseKeyAcquisition(accountId2, normalizedSeq);

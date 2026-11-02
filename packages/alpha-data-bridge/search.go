@@ -66,9 +66,83 @@ func conversationTable(name string) string {
 func boolPointer(v bool) *bool { return &v }
 func validateOperationParams(op string, p *params) error {
 	switch op {
-	case "general.list", "contacts.list", "sessions.list", "messages.list", "messages.search", "messages.locate", "messages.dayCounts", "messages.stats":
+	case "general.list", "contacts.list", "sessions.list", "messages.list", "messages.search", "messages.locate", "messages.dayCounts", "messages.stats", "moments.list", "moments.authors", "moments.dayCounts", "favorites.list", "favorites.mediaSlots", "favorites.media", "voice.playback":
 	default:
 		return fail("UNSUPPORTED_OPERATION", "This read-only operation is not implemented")
+	}
+	if strings.HasPrefix(op, "moments.") {
+		if p.Cursor != "" || p.TableName != "" || p.ConversationID != "" || p.UsernameExact != "" || p.Sender != "" || p.GroupByConversation || p.ServerID != "" || p.AfterTime != "" || p.BeforeTime != "" {
+			return fail("INVALID_PARAMS", "Moment operations do not accept message or cursor parameters")
+		}
+		if p.Username != "" && !validLookupUsername(p.Username) {
+			return fail("MOMENTS_REQUEST_INVALID", "Moment username is not a bounded UTF-8 string")
+		}
+		if p.Keyword != "" && (len(p.Keyword) > 512 || !utf8.ValidString(p.Keyword) || strings.IndexByte(p.Keyword, 0) >= 0 || strings.IndexFunc(p.Keyword, unicode.IsControl) >= 0 || strings.TrimSpace(p.Keyword) != p.Keyword) {
+			return fail("MOMENTS_REQUEST_INVALID", "Moment keyword must be bounded literal UTF-8 text")
+		}
+		if p.Offset < 0 || p.Offset > maxMomentsRows {
+			return fail("MOMENTS_REQUEST_INVALID", "Moment offset is outside the bounded range")
+		}
+		if op == "moments.authors" && (p.Offset != 0 || p.Keyword != "" || p.FromUnixMs != "" || p.ToUnixMs != "" || p.UTCOffsetMinutes != nil || p.Ascending != nil) {
+			return fail("MOMENTS_REQUEST_INVALID", "Moment author lookup accepts only account and limit")
+		}
+		if op == "moments.dayCounts" && (p.Limit != 100 || p.Offset != 0 || p.Keyword != "" || p.Ascending != nil) {
+			return fail("MOMENTS_REQUEST_INVALID", "Moment day counts do not accept paging parameters")
+		}
+		if op == "moments.list" && p.Ascending != nil && *p.Ascending != true && *p.Ascending != false {
+			return fail("MOMENTS_REQUEST_INVALID", "Moment sort order is invalid")
+		}
+		if p.UTCOffsetMinutes != nil && (*p.UTCOffsetMinutes < -24*60 || *p.UTCOffsetMinutes > 24*60) {
+			return fail("MOMENTS_REQUEST_INVALID", "Moment UTC offset is outside the bounded range")
+		}
+		if _, _, err := parseMomentRange(*p); err != nil {
+			return err
+		}
+		return nil
+	}
+	if op == "favorites.list" {
+		if p.Cursor != "" || p.TableName != "" || p.ConversationID != "" || p.UsernameExact != "" || p.Sender != "" || p.GroupByConversation || p.ServerID != "" || p.AfterTime != "" || p.BeforeTime != "" || p.FromUnixMs != "" || p.ToUnixMs != "" || p.UTCOffsetMinutes != nil {
+			return fail("FAVORITES_REQUEST_INVALID", "Favorite lookup does not accept message or cursor parameters")
+		}
+		if p.Offset < 0 || p.Offset > maxFavoritesRows {
+			return fail("FAVORITES_REQUEST_INVALID", "Favorite offset is outside the bounded range")
+		}
+		if p.Query != "" && (len(p.Query) > 512 || !utf8.ValidString(p.Query) || strings.IndexByte(p.Query, 0) >= 0 || strings.IndexFunc(p.Query, unicode.IsControl) >= 0 || strings.TrimSpace(p.Query) != p.Query) {
+			return fail("FAVORITES_REQUEST_INVALID", "Favorite query must be bounded literal UTF-8 text")
+		}
+		if p.Type != nil && (*p.Type < -1 || *p.Type > 0x7fffffff) {
+			return fail("FAVORITES_REQUEST_INVALID", "Favorite type is outside the supported range")
+		}
+		if p.IncludeMedia {
+			return fail("FAVORITES_MEDIA_UNAVAILABLE", "Synthetic favorites do not include media")
+		}
+		if p.TagID != "" {
+			if _, err := strconv.ParseUint(p.TagID, 10, 64); err != nil {
+				return fail("FAVORITES_REQUEST_INVALID", "Favorite tag id is invalid")
+			}
+		}
+		return nil
+	}
+	if op == "favorites.mediaSlots" {
+		if p.FavoriteID == "" || p.Limit != 100 || p.Offset != 0 || p.Cursor != "" || p.Query != "" || p.TagID != "" || p.Type != nil || p.IncludeMedia || p.IncludeTypeCounts {
+			return fail("FAVORITES_REQUEST_INVALID", "Favorite media slot lookup accepts only a favorite id")
+		}
+		return nil
+	}
+	if op == "favorites.media" {
+		if p.MediaToken == "" || p.Limit != 100 || p.Offset != 0 || p.Cursor != "" || p.Query != "" || p.TagID != "" || p.Type != nil || p.IncludeMedia || p.IncludeTypeCounts {
+			return fail("FAVORITES_REQUEST_INVALID", "Favorite media lookup accepts only a token")
+		}
+		return nil
+	}
+	if op == "voice.playback" {
+		if p.MediaID == "" || p.Limit != 100 || p.Offset != 0 || p.Cursor != "" || p.Query != "" || p.TagID != "" || p.Type != nil || p.IncludeMedia || p.IncludeTypeCounts {
+			return fail("VOICE_PLAYBACK_REQUEST_INVALID", "Voice playback lookup accepts only a media id")
+		}
+		return nil
+	}
+	if p.Username != "" || p.Keyword != "" {
+		return fail("INVALID_PARAMS", "username and keyword filters require a moments operation")
 	}
 	isMessage := strings.HasPrefix(op, "messages.")
 	if op == "general.list" {
@@ -79,17 +153,17 @@ func validateOperationParams(op string, p *params) error {
 			return fail("UNSUPPORTED_OPERATION", "This general record table is not implemented")
 		}
 		if verifiedGeneralRecordTable(p.TableName) {
-			if p.Ascending == nil || *p.Ascending {
-				return fail("INVALID_PARAMS", "General record tables require descending order")
+			if p.Ascending == nil {
+				return fail("INVALID_PARAMS", "General record tables require an explicit sort order")
+			}
+			if p.Query != "" && (len(p.Query) > 512 || !utf8.ValidString(p.Query) || strings.IndexByte(p.Query, 0) >= 0 || strings.IndexFunc(p.Query, unicode.IsControl) >= 0 || strings.TrimSpace(p.Query) != p.Query) {
+				return fail("INVALID_PARAMS", "General record search requires bounded literal UTF-8 text")
 			}
 		} else if p.Ascending == nil || !*p.Ascending {
 			return fail("INVALID_PARAMS", "Group member records require ascending order")
 		}
 		if p.TableName == groupMembersTable && p.Query == "" {
 			return fail("INVALID_PARAMS", "Group member records require a chatroom query")
-		}
-		if verifiedGeneralRecordTable(p.TableName) && p.Query != "" {
-			return fail("INVALID_PARAMS", "General record tables do not accept a query")
 		}
 		return nil
 	}

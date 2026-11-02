@@ -57,13 +57,22 @@ type params struct {
 	AfterTime           string `json:"afterTime"`
 	BeforeTime          string `json:"beforeTime"`
 	UsernameExact       string `json:"usernameExact"`
+	Username            string `json:"username"`
 	Query               string `json:"query"`
+	Keyword             string `json:"keyword"`
 	Sender              string `json:"senderId"`
 	GroupByConversation bool   `json:"groupByConversation"`
 	ServerID            string `json:"serverId"`
 	FromUnixMs          string `json:"fromUnixMs"`
 	ToUnixMs            string `json:"toUnixMs"`
 	UTCOffsetMinutes    *int   `json:"utcOffsetMinutes"`
+	Type                *int   `json:"type"`
+	IncludeTypeCounts   bool   `json:"includeTypeCounts"`
+	IncludeMedia        bool   `json:"includeMedia"`
+	TagID               string `json:"tagId"`
+	FavoriteID          string `json:"favoriteId"`
+	MediaToken          string `json:"token"`
+	MediaID             string `json:"mediaId"`
 }
 type sourceRef struct {
 	Database string `json:"database"`
@@ -135,11 +144,11 @@ type directoryStamp struct {
 	info os.FileInfo
 }
 type bridge struct {
-	root, accountID, snapshot string
-	databases                 []*database
-	contactDB, sessionDB      *database
-	messageDBs                []*database
-	directories               []directoryStamp
+	root, accountID, snapshot                    string
+	databases                                    []*database
+	contactDB, sessionDB, momentsDB, favoritesDB *database
+	messageDBs                                   []*database
+	directories                                  []directoryStamp
 }
 
 var messageName = regexp.MustCompile(`^message(?:_[0-9]+)?\.db$`)
@@ -205,15 +214,27 @@ func openBridge(root, accountID string) (_ *bridge, err error) {
 			return nil
 		}
 		base := entry.Name()
-		if base != "contact.db" && base != "session.db" && !messageName.MatchString(base) {
+		if base != "contact.db" && base != "session.db" && base != "moments.db" && base != "favorite.db" && base != "favorites.db" && !messageName.MatchString(base) {
 			return nil
 		}
 		if len(b.databases) >= 128 {
 			return fail("DATASET_TOO_LARGE", "Too many database shards")
 		}
-		d, e := openDatabase(root, relative)
-		if e != nil {
-			return e
+		var d *database
+		var openErr error
+		if base == "favorite.db" || base == "favorites.db" {
+			d, openErr = openDatabase(root, relative, true)
+			if openErr != nil {
+				return openErr
+			}
+			if d == nil {
+				return nil
+			}
+		} else {
+			d, openErr = openDatabase(root, relative)
+		}
+		if openErr != nil {
+			return openErr
 		}
 		b.databases = append(b.databases, d)
 		switch base {
@@ -238,6 +259,19 @@ func openBridge(root, accountID string) (_ *bridge, err error) {
 				return fail("SCHEMA_UNSUPPORTED", "SessionTable is missing")
 			}
 			b.sessionDB = d
+		case "moments.db":
+			if b.momentsDB != nil {
+				return fail("AMBIGUOUS_DATABASE", "Multiple moments databases require separate datasets")
+			}
+			if !d.tables[momentsTable] {
+				return fail("SCHEMA_UNSUPPORTED", "The explicit independent moments schema marker is missing")
+			}
+			b.momentsDB = d
+		case "favorite.db", "favorites.db":
+			if b.favoritesDB != nil {
+				return fail("AMBIGUOUS_DATABASE", "Multiple favorites databases require separate datasets")
+			}
+			b.favoritesDB = d
 		default:
 			b.messageDBs = append(b.messageDBs, d)
 		}
@@ -263,7 +297,7 @@ func openBridge(root, accountID string) (_ *bridge, err error) {
 	return b, nil
 }
 
-func openDatabase(root, relative string) (_ *database, err error) {
+func openDatabase(root, relative string, optionalFavorites ...bool) (_ *database, err error) {
 	name := filepath.Join(root, relative)
 	if err := checkPath(name); err != nil {
 		return nil, err
@@ -326,17 +360,32 @@ func openDatabase(root, relative string) (_ *database, err error) {
 	}
 	d := &database{relative: filepath.ToSlash(relative), path: name, info: info, db: db, tables: tables}
 	required := map[string][]string{}
+	isOptionalFavorite := len(optionalFavorites) > 0 && optionalFavorites[0] && (filepath.Base(relative) == "favorite.db" || filepath.Base(relative) == "favorites.db")
+	if isOptionalFavorite && !tables[favoritesTable] {
+		db.Close()
+		return nil, nil
+	}
 	switch filepath.Base(relative) {
 	case "contact.db":
 		required["contact"] = []string{"username", "local_type", "alias", "remark", "nick_name"}
 	case "session.db":
 		required["SessionTable"] = []string{"username", "summary", "last_timestamp", "sort_timestamp", "last_msg_sender", "last_sender_display_name"}
+	case "moments.db":
+		required[momentsTable] = momentsColumns
+	case "favorite.db", "favorites.db":
+		required[favoritesTable] = favoritesColumns
+		if tables[favoriteMediaTable] {
+			required[favoriteMediaTable] = favoriteMediaColumns
+		}
 	default:
 		required["Name2Id"] = []string{"user_name"}
 		for table := range tables {
 			if regexp.MustCompile(`^Msg_[0-9a-f]{32}$`).MatchString(table) {
 				required[table] = []string{"local_id", "server_id", "sort_seq", "local_type", "create_time", "real_sender_id", "status", "message_content", "packed_info_data"}
 			}
+		}
+		if tables[voicePlaybackTable] {
+			required[voicePlaybackTable] = voicePlaybackColumns
 		}
 	}
 	for table, columns := range required {
@@ -458,6 +507,21 @@ func (b *bridge) info() any {
 	}
 	if len(b.messageDBs) > 0 {
 		capabilities = append(capabilities, "messages.list", "messages.search", "messages.locate", "messages.dayCounts", "messages.stats")
+	}
+	if b.momentsDB != nil {
+		capabilities = append(capabilities, "moments.list", "moments.authors", "moments.dayCounts")
+	}
+	if b.favoritesDB != nil {
+		capabilities = append(capabilities, "favorites.list")
+		if b.favoritesDB.tables[favoriteMediaTable] {
+			capabilities = append(capabilities, "favorites.media")
+		}
+	}
+	for _, d := range b.messageDBs {
+		if d.tables[voicePlaybackTable] {
+			capabilities = append(capabilities, "messages.voicePlayback")
+			break
+		}
 	}
 	files := []string{}
 	for _, d := range b.databases {
@@ -774,6 +838,25 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 		}
 		return value, nil
 	}
+	// media.probe is intentionally a separate strict operation. It inspects
+	// only explicitly named v4 hardlink/voice databases and never accepts a
+	// caller-supplied path, token, or media byte request.
+	if r.Op == "media.probe" {
+		var probe struct{}
+		if len(r.Params) > 0 && string(r.Params) != "null" {
+			if err := decodeStrict(r.Params, &probe); err != nil {
+				return nil, err
+			}
+		}
+		value, err := b.mediaProbe(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if err := b.verify(); err != nil {
+			return nil, err
+		}
+		return value, nil
+	}
 	var p params
 	if len(r.Params) > 0 && string(r.Params) != "null" {
 		if err := decodeStrict(r.Params, &p); err != nil {
@@ -824,6 +907,20 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 		value, err = b.dayCounts(ctx, p)
 	case "messages.stats":
 		value, err = b.stats(ctx, p)
+	case "moments.list":
+		value, err = b.momentsList(ctx, p)
+	case "moments.authors":
+		value, err = b.momentsAuthors(ctx, p)
+	case "moments.dayCounts":
+		value, err = b.momentsDayCounts(ctx, p)
+	case "favorites.list":
+		value, err = b.favoritesList(ctx, p)
+	case "favorites.mediaSlots":
+		value, err = b.favoritesMediaSlots(ctx, p)
+	case "favorites.media":
+		value, err = b.favoriteMedia(ctx, p)
+	case "voice.playback":
+		value, err = b.voicePlayback(ctx, p)
 	}
 	if err != nil {
 		return nil, err
