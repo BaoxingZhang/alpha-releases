@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { buildFileManifest, manifestDigest, rewriteElectronInfoPlist } from '../scripts/package-macos-app.mjs';
+import updateMode from '../packages/alpha-desktop/update-mode.cjs';
+const { readIndependentUpdateMode } = updateMode;
 
 test('macOS app packaging rewrites identity while retaining Electron executable', () => {
   const source = `<?xml version="1.0"?><plist><dict>
@@ -22,6 +24,31 @@ test('macOS app packaging rewrites identity while retaining Electron executable'
   assert.match(result, /CFBundleName<\/key>\s*<string>Alpha Recovered<\/string>/);
   assert.match(result, /CFBundleIdentifier<\/key>\s*<string>local\.alpha\.recovered<\/string>/);
   assert.match(result, /CFBundleExecutable<\/key>\s*<string>Electron<\/string>/);
+});
+
+test('independent app flavor gets a distinct display name and bundle identifier', () => {
+  const source = '<key>CFBundleDisplayName</key>\n\t<string>Electron</string>\n<key>CFBundleName</key>\n\t<string>Electron</string>\n<key>CFBundleIdentifier</key>\n\t<string>com.github.Electron</string>';
+  const result = rewriteElectronInfoPlist(source, { appName: 'Alpha Recovered Independent', bundleIdentifier: 'local.alpha.recovered.independent' });
+  assert.match(result, /CFBundleDisplayName<\/key>\s*<string>Alpha Recovered Independent<\/string>/);
+  assert.match(result, /CFBundleName<\/key>\s*<string>Alpha Recovered Independent<\/string>/);
+  assert.match(result, /CFBundleIdentifier<\/key>\s*<string>local\.alpha\.recovered\.independent<\/string>/);
+});
+
+test('independent update mode fails closed until the project ships its own policy', async () => {
+  const projectConfig = JSON.parse(await fs.readFile(path.join(path.dirname(path.dirname(new URL(import.meta.url).pathname)), 'provenance', 'independent-update-mode.json'), 'utf8'));
+  assert.equal(updateMode.normalizeIndependentUpdateMode(projectConfig).mode, 'disabled');
+  const resources = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-update-mode-'));
+  try {
+    assert.equal(readIndependentUpdateMode(resources).mode, 'disabled');
+    await fs.writeFile(path.join(resources, 'alpha-update-mode.json'), JSON.stringify({ schema: 'alpha.recovered.update-mode.v1', mode: 'disabled', reason: 'test' }));
+    assert.equal(readIndependentUpdateMode(resources).reason, 'test');
+    await fs.writeFile(path.join(resources, 'alpha-update-mode.json'), JSON.stringify({ schema: 'alpha.recovered.update-mode.v1', mode: 'configured', config: { publicKey: 'key', policyUrl: 'https://updates.example.invalid/policy.json', channel: 'stable' } }));
+    assert.equal(readIndependentUpdateMode(resources).mode, 'configured');
+    await fs.writeFile(path.join(resources, 'alpha-update-mode.json'), '{"schema":"wrong","mode":"configured"}');
+    assert.equal(readIndependentUpdateMode(resources).mode, 'disabled');
+  } finally {
+    await fs.rm(resources, { recursive: true, force: true });
+  }
 });
 
 test('macOS app file manifests are deterministic and reject symlinks', async () => {

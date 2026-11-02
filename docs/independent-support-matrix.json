@@ -8,8 +8,8 @@
   },
   "counts": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 62,
-    "unsupportedRequestBranches": 66
+    "implementedRequestBranches": 72,
+    "unsupportedRequestBranches": 56
   },
   "supported": [
     {
@@ -85,6 +85,14 @@
       "fieldNumber": 42
     },
     {
+      "name": "listMoments",
+      "fieldNumber": 43
+    },
+    {
+      "name": "listFavorites",
+      "fieldNumber": 44
+    },
+    {
       "name": "listGeneral",
       "fieldNumber": 45
     },
@@ -119,6 +127,10 @@
     {
       "name": "getAdvancedComponentStatus",
       "fieldNumber": 65
+    },
+    {
+      "name": "removeAccount",
+      "fieldNumber": 70
     },
     {
       "name": "listChatExportSchedules",
@@ -197,8 +209,20 @@
       "fieldNumber": 112
     },
     {
+      "name": "resolveFavoriteMedia",
+      "fieldNumber": 113
+    },
+    {
+      "name": "listMomentAuthors",
+      "fieldNumber": 114
+    },
+    {
       "name": "getContactProfile",
       "fieldNumber": 115
+    },
+    {
+      "name": "listFavoriteMediaSlots",
+      "fieldNumber": 116
     },
     {
       "name": "exportContacts",
@@ -241,8 +265,20 @@
       "fieldNumber": 127
     },
     {
+      "name": "decodeVoicePlayback",
+      "fieldNumber": 128
+    },
+    {
+      "name": "watchDatabaseKeyAcquisition",
+      "fieldNumber": 129
+    },
+    {
       "name": "configureApplicationLock",
       "fieldNumber": 131
+    },
+    {
+      "name": "startMomentExport",
+      "fieldNumber": 135
     },
     {
       "name": "startRecordExport",
@@ -259,6 +295,10 @@
     {
       "name": "exportGroupMembers",
       "fieldNumber": 139
+    },
+    {
+      "name": "getMomentDayCounts",
+      "fieldNumber": 141
     }
   ],
   "unsupported": [
@@ -327,10 +367,6 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "decodeVoicePlayback",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "deleteOfficialSchedulePlan",
       "status": "UNIMPLEMENTED"
     },
@@ -347,10 +383,6 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "getMomentDayCounts",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "getOfficialSchedulePlan",
       "status": "UNIMPLEMENTED"
     },
@@ -363,27 +395,11 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "listFavoriteMediaSlots",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "listFavorites",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "listMaterialOfficialExports",
       "status": "UNIMPLEMENTED"
     },
     {
       "name": "listMessageRecallRecords",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "listMomentAuthors",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "listMoments",
       "status": "UNIMPLEMENTED"
     },
     {
@@ -427,19 +443,11 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "removeAccount",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "reportMessageActivity",
       "status": "UNIMPLEMENTED"
     },
     {
       "name": "resetApplicationLock",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "resolveFavoriteMedia",
       "status": "UNIMPLEMENTED"
     },
     {
@@ -483,10 +491,6 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "startMomentExport",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "startOfficialExport",
       "status": "UNIMPLEMENTED"
     },
@@ -504,10 +508,6 @@
     },
     {
       "name": "watchAdvancedComponent",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "watchDatabaseKeyAcquisition",
       "status": "UNIMPLEMENTED"
     },
     {

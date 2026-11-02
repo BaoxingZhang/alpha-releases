@@ -1,16 +1,16 @@
 {
   "recordedAt": "2026-11-02",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch, moments fixture reader, metadata-only export task and favorites fixture reader, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch, moments fixture reader, metadata-only export task and favorites fixture reader, moments anti-delete status boundary and reproducible packaging; not full Alpha parity",
   "protocol": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 71,
-    "unsupportedRequestBranches": 57,
+    "implementedRequestBranches": 72,
+    "unsupportedRequestBranches": 56,
     "source": "packages/alpha-engine/index.cjs:SUPPORTED"
   },
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 215,
+      "passed": 233,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -41,6 +41,16 @@
         "nativeMedia1Compatible": false,
         "remotePendingLiveAndMd5": "unsupported"
       }
+    },
+    "voicePlayback": {
+      "command": "node --test tests/engine-voice-playback.test.mjs",
+      "status": "passed",
+      "tests": 2,
+      "markerTable": "__alpha_voice_playback_v1",
+      "mediaIndex": "media-index.v1.json",
+      "syntheticOnly": true,
+      "nativeSilkVoiceInfoDecoder": false,
+      "duplicateMapping": "rejected"
     },
     "imageKey": {
       "command": "node --test tests/engine-image-key.test.mjs",
@@ -154,9 +164,9 @@
       "status": "passed"
     },
     "httpAdapter": {
-      "command": "node --test tests/http-server.test.mjs",
+      "command": "node --test tests/http-server.test.mjs tests/http-voice-playback.test.mjs tests/http-media-probe.test.mjs",
       "status": "passed",
-      "tests": 4,
+      "tests": 6,
       "favoritesRoute": {
         "command": "node --test tests/http-favorites.test.mjs",
         "status": "passed",
@@ -167,7 +177,7 @@
         "mediaResolvePath": "/api/v1/favorites/media/:token",
         "mediaSchema": "__alpha_favorite_media_v1"
       },
-      "tools": 41,
+      "tools": 45,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,
@@ -183,10 +193,14 @@
         ],
         "independentExtensions": [
           "alpha-independent.messages.resolve_search_hit",
+          "alpha-independent.messages.get_source",
           "alpha-independent.analytics.analyze_annual",
           "alpha-independent.analytics.analyze_conversation",
           "alpha-independent.media.browse_conversation",
-          "alpha-independent.media.browse_account"
+          "alpha-independent.media.browse_account",
+          "alpha-independent.media.probe",
+          "alpha-independent.media.decode_voice_playback",
+          "alpha-independent.records.list_candidates"
         ]
       },
       "analyticsTools": [
@@ -232,8 +246,33 @@
           "mediaReady": false,
           "coverage": "discoverable-session-message-metadata",
           "sourceMethod": "browseAccountMedia"
+        },
+        {
+          "name": "alpha-independent.media.probe",
+          "status": "passed",
+          "complete": false,
+          "nativeSchemaSupported": false,
+          "metadataOnly": true,
+          "mediaReady": false,
+          "coverage": "explicit-v4-media-database-metadata",
+          "httpPath": "/api/v1/independent/media/probe",
+          "sourceMethod": "media.probe",
+          "sourceFiles": ["hardlink.db", "media_*.db"],
+          "mediaBytesRead": false,
+          "alphaMedia1Tokens": false
         }
       ],
+      "voicePlaybackAdapter": {
+        "name": "alpha-independent.media.decode_voice_playback",
+        "status": "passed",
+        "httpPath": "/api/v1/independent/media/voice-playback",
+        "sourceMethod": "decodeVoicePlayback",
+        "syntheticOnly": true,
+        "nativeSchemaSupported": false,
+        "schema": "__alpha_voice_playback_v1",
+        "mediaReady": true,
+        "realVoiceInfoSilkDecoder": false
+      },
       "resolveSearchHit": {
         "name": "alpha-independent.messages.resolve_search_hit",
         "status": "passed",
@@ -241,6 +280,16 @@
         "nativeSchemaSupported": false,
         "mediaReturned": false,
         "missingHitReturns": "message:null with empty cursors"
+      },
+      "messageSource": {
+        "name": "alpha-independent.messages.get_source",
+        "status": "passed",
+        "sourceMethod": "getMessageSource",
+        "scope": "verified-message-text",
+        "nativeSchemaSupported": false,
+        "rawAvailable": false,
+        "mediaReady": false,
+        "tokenPrefix": "independent1_"
       },
       "momentsDayCountsPath": "/api/v1/sns/day-counts",
       "momentsDayCountsSyntheticOnly": true,
@@ -299,7 +348,28 @@
       "favoritesMediaRequestError": "FAVORITES_MEDIA_UNAVAILABLE",
       "favoritesMediaSlotsPath": "/api/v1/favorites/:favorite_id/media",
       "favoritesMediaResolvePath": "/api/v1/favorites/media/:token",
-      "favoritesMediaSyntheticOnly": true
+      "favoritesMediaSyntheticOnly": true,
+      "independentCandidateRecords": {
+        "name": "alpha-independent.records.list_candidates",
+        "status": "passed",
+        "nativeSchemaSupported": false,
+        "scope": "alpha-independent-message-derived-candidates",
+        "sourceMethod": "listGeneral",
+        "categories": [
+          "payments",
+          "friend_requests",
+          "revokes",
+          "calls"
+        ],
+        "partial": true,
+        "candidate": true
+      },
+      "independentRecordsPath": "/api/v1/independent/records",
+      "independentRecordsScope": "alpha-independent-message-derived-candidates",
+      "independentRecordsNativeSchemaSupported": false,
+      "messageSourcePath": "/api/v1/independent/message-source",
+      "messageSourceScope": "verified-message-text",
+      "messageSourceNativeSchemaSupported": false
     },
     "chatExportSchedules": {
       "command": "node --test tests/schedule-export.test.mjs",
@@ -385,8 +455,22 @@
       "target": "darwin-arm64",
       "nativeRecompiled": false,
       "projectSigned": false,
-      "artifactCount": 985,
-      "artifactDigest": "ba7ad3ec2bd455345883804ca3e392ff282825f0a5ed9325a68a00f3ef851e1f"
+      "artifactCount": 989,
+    "artifactDigest": "668d4949b6048f0b03f531b121dc7a5a6a156769ccafee28727f8170f5a3cb1b"
+    },
+    "releaseManifestVerification": {
+      "command": "npm run verify:release-manifest",
+      "status": "passed",
+      "artifactCount": 989,
+    "artifactDigest": "668d4949b6048f0b03f531b121dc7a5a6a156769ccafee28727f8170f5a3cb1b",
+      "checks": [
+        "path",
+        "symlink",
+        "size",
+        "sha256",
+        "mode",
+        "artifactDigest"
+      ]
     },
     "fixtureAgent": {
       "command": "node --test tests/agent-fixture.test.mjs tests/independent-boundary-gateway.test.mjs tests/http-launch-environment.test.mjs",
@@ -401,10 +485,10 @@
       "status": "passed",
       "appPath": ".runtime/release-artifacts/Alpha Recovered Independent.app",
       "dmgPath": ".runtime/release-artifacts/Alpha Recovered Independent.dmg",
-      "appArtifactDigest": "ef30af672d71e18347bc61a00d0c9da3f121def0e1eaf1d53c45ff5f7c96b2e4",
+    "appArtifactDigest": "15c37f8dabe47e4c4979bce05d424d358bef5bdcc432d42009fdeeb624d83416",
       "appFileCount": 1637,
-      "dmgBytes": 253131579,
-      "dmgSha256": "988c7ae42b9c61a3f13c5e25d14f961ffc2af5ed6411e8e673bed42a0a1cb31b",
+    "dmgBytes": 253265570,
+    "dmgSha256": "529273904892270edb9467edeeef812b24d84739f5cfacce74584d548e74afca",
       "projectSigned": false,
       "notarized": false,
       "nativeRecompiled": false,
@@ -517,8 +601,8 @@
       "status": "passed",
       "record": "docs/independent-support-matrix.json",
       "totalRequestBranches": 128,
-      "implementedRequestBranches": 71,
-      "unsupportedRequestBranches": 57,
+      "implementedRequestBranches": 72,
+      "unsupportedRequestBranches": 56,
       "unsupportedBehavior": "UNIMPLEMENTED"
     },
     "packagedApp": {
@@ -550,7 +634,7 @@
           "backendMode": "independent",
           "bundleIdentifier": "local.alpha.recovered.independent",
           "fileCount": 1637,
-          "artifactDigest": "ef30af672d71e18347bc61a00d0c9da3f121def0e1eaf1d53c45ff5f7c96b2e4",
+          "artifactDigest": "15c37f8dabe47e4c4979bce05d424d358bef5bdcc432d42009fdeeb624d83416",
           "updateMode": {
             "path": "Contents/Resources/alpha-update-mode.json",
             "mode": "disabled",
@@ -616,10 +700,38 @@
       "mediaRequestError": "FAVORITES_MEDIA_UNAVAILABLE when the optional synthetic media table is absent",
       "mediaSchema": "__alpha_favorite_media_v1",
       "mediaIndex": "media-index.v1.json"
+    },
+    "mediaProbe": {
+      "command": "node scripts/build-data-bridge.mjs",
+      "status": "passed",
+      "tests": 4,
+      "operation": "media.probe",
+      "sourceKind": "explicit-v4-media-database-probe",
+      "supportedFiles": [
+        "hardlink.db",
+        "media_*.db"
+      ],
+      "supportedTables": [
+        "image_hardlink_info_v3",
+        "image_hardlink_info_v4",
+        "video_hardlink_info_v3",
+        "video_hardlink_info_v4",
+        "file_hardlink_info_v3",
+        "file_hardlink_info_v4",
+        "VoiceInfo"
+      ],
+      "metadataOnly": true,
+      "nativeSchemaSupported": false,
+      "mediaReady": false,
+      "sourceSha256": true,
+      "mediaBytesRead": false,
+      "mediaPlayback": false,
+      "alphaMedia1Tokens": false,
+      "sidecarAndSymlinkRejected": true
     }
   },
   "featureBoundary": {
-    "mediaFilesAndVoicePlayback": "partial-indexed-image-only; native media, DAT/AES integration, voice/video playback unimplemented",
+    "mediaFilesAndVoicePlayback": "synthetic-voice-playback-mapping-and-indexed-image-only; native media, DAT/AES integration, real SILK/VoiceInfo decoding and video playback unimplemented",
     "momentsAndFavorites": "synthetic-moments-and-favorites-only; real SnsTimeLine/snsmessage and real favorites database/source lookup/media semantics remain unimplemented; synthetic favorite media requires explicit __alpha_favorite_media_v1 plus media-index.v1.json",
     "generalRecordListing": {
       "payments": "partial-candidate-from-message-xml",

@@ -44,6 +44,12 @@ jobs:
       - name: Assemble unsigned macOS app and verify its manifest
         run: npm run package:macos-app:from-build
 
+      - name: Assemble unsigned independent macOS app and verify its marker
+        run: npm run package:macos-app:independent:from-build
+
+      - name: Verify packaged backend markers and identities
+        run: npm run verify:packaged-markers
+
       - name: Run complete test suite
         run: npm test
 
@@ -53,9 +59,19 @@ jobs:
       - name: Run original runtime and isolation smoke
         run: npm run test:smoke
 
+      - name: Audit locked dependencies
+        run: npm run verify:dependencies
+
+      - name: Audit independent API coverage
+        run: npm run audit:api
+
+      - name: Report public release privacy findings
+        run: npm run audit:public-release -- --report .runtime/public-release-audit.json
+
       - name: Generate unsigned artifact manifest and recovery source bundle
         run: |
           npm run release:manifest
+          npm run verify:release-manifest
           npm run bundle:recovery
 
       - name: Verify maintenance boundaries
@@ -64,6 +80,7 @@ jobs:
           npm run check:maintainability
           npm run verify:protocol
           npm run verify:vendor
+          npm run verify:independent-support
           git diff --check
 
       - name: Upload validation reports
@@ -75,11 +92,14 @@ jobs:
           path: |
             docs/*-run.json
             docs/*-validation*.json
+            docs/independent-support-matrix.json
             docs/build-results.json
             build/candidates/*-build.json
             packages/alpha-data-bridge/build-validation.json
             packages/alpha-snapshot-import/build-validation.json
             .runtime/release-manifest.json
+            .runtime/public-release-audit.json
             .runtime/release-artifacts/Alpha Recovered.app.manifest.json
+            .runtime/release-artifacts/Alpha Recovered Independent.app.manifest.json
             .runtime/recovery-bundles/alpha-recovered-source.tar.gz
             .runtime/recovery-bundles/alpha-recovered-source.tar.gz.manifest.json

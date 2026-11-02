@@ -1,8 +1,8 @@
 {
-  "testedAt": "2026-11-01T08:21:19.576Z",
-  "session": "independent-smoke-1793521279524",
+  "testedAt": "2026-11-02T01:22:34.322Z",
+  "session": "independent-smoke-1793582554134",
   "fixture": {
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793521279524/fixture",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793582554134/fixture",
     "accountId": "synthetic-account",
     "conversationId": "wxid_alpha",
     "selfUsername": "wxid_self",
@@ -13,10 +13,13 @@
   "checks": {
     "independentBackendReady": true,
     "realSqliteThroughDesktopIpc": true,
+    "independentMessageSourceThroughRendererIpc": true,
     "contactDirectoryAndProfileThroughRendererIpc": true,
     "noOriginalAlphaChildObserved": true,
     "originalOnboardingCompleted": true,
     "messageRendered": true,
+    "syntheticMomentsRenderedReadOnly": true,
+    "syntheticFavoritesRenderedReadOnly": true,
     "independentRecordExportThroughRendererIpc": true,
     "independentRecordCategoriesGated": true,
     "independentUnsupportedContactCategoriesGated": true,
@@ -48,7 +51,7 @@
     {
       "id": "synthetic-account",
       "sourceProfile": "alpha-independent-offline-v4",
-      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793521279524/fixture",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793582554134/fixture",
       "subjectId": "",
       "displayName": "离线数据源 · synthetic-account",
       "schemaProfile": "wechat-v4-offline",
@@ -63,7 +66,11 @@
         "offline-readonly",
         "contacts",
         "conversations",
-        "messages"
+        "messages",
+        "moments",
+        "moment-authors",
+        "moment-day-counts",
+        "favorites"
       ],
       "detected": true,
       "usable": true,
@@ -147,6 +154,7 @@
         "text": "earlier shard",
         "refs": [],
         "senderId": "wxid_alpha",
+        "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzEuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiIxIn0",
         "platformMessageId": "9007199254740997",
         "sourceType": "1"
       },
@@ -162,6 +170,7 @@
         "text": "first source",
         "refs": [],
         "senderId": "wxid_alpha",
+        "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzAuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiI5MDA3MTk5MjU0NzQwOTkzIn0",
         "platformMessageId": "9223372036854775807",
         "sourceType": "1"
       },
@@ -177,6 +186,7 @@
         "text": "second source",
         "refs": [],
         "senderId": "wxid_self",
+        "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzAuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiIyIn0",
         "platformMessageId": "9007199254740995",
         "sourceType": "1"
       },
@@ -192,6 +202,7 @@
         "text": "same sequence",
         "refs": [],
         "senderId": "wxid_alpha",
+        "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzAuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiIzIn0",
         "platformMessageId": "0",
         "sourceType": "1"
       },
@@ -207,6 +218,7 @@
         "text": "cross shard tie",
         "refs": [],
         "senderId": "wxid_alpha",
+        "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzEuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiI0In0",
         "platformMessageId": "9007199254740999",
         "sourceType": "1"
       },
@@ -222,10 +234,31 @@
         "text": "[未支持的二进制消息内容]",
         "refs": [],
         "senderId": "wxid_self",
+        "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzEuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiI1In0",
         "platformMessageId": "9007199254741001",
         "sourceType": "49"
       }
-    ]
+    ],
+    "sourceMessage": {
+      "id": "msg-64c97a224bfe89a56f7d4b4d4e45dbdbe65027214aa9a200904ef53d6c88467a",
+      "localId": 0,
+      "serverId": "9223372036854775807",
+      "conversationId": "wxid_alpha",
+      "sourceId": "source-8273ea7dc1e892ec2fb4bf21db4c680aac3e8b96276230e92165cbd8314ea750",
+      "sentAtUnixMs": "1700000000000",
+      "direction": 0,
+      "kind": "text",
+      "text": "first source",
+      "refs": [],
+      "senderId": "wxid_alpha",
+      "sourceToken": "independent1_eyJhY2NvdW50SWQiOiJzeW50aGV0aWMtYWNjb3VudCIsImRhdGFiYXNlIjoibWVzc2FnZS9tZXNzYWdlXzAuZGIiLCJ0YWJsZSI6Ik1zZ183YmI0YmFmM2JhNTFlMmI0ZDJjNGI1M2ViZDY0NWU0MCIsImxvY2FsSWQiOiI5MDA3MTk5MjU0NzQwOTkzIn0",
+      "platformMessageId": "9223372036854775807",
+      "sourceType": "1"
+    },
+    "source": {
+      "text": "first source",
+      "format": "text"
+    }
   },
   "contacts": {
     "directory": {
@@ -310,40 +343,40 @@
   },
   "ownedChildProcesses": [
     {
-      "pid": 45254,
+      "pid": 54899,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 45255,
+      "pid": 54900,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 45258,
+      "pid": 54922,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
     },
     {
-      "pid": 45260,
+      "pid": 54924,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
     },
     {
-      "pid": 45261,
+      "pid": 54925,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge"
     },
     {
-      "pid": 45262,
+      "pid": 54926,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
     }
   ],
   "recordExport": {
-    "jobId": "e5af8c84-144a-47d1-a189-f839b1870cba",
+    "jobId": "68b11551-50e2-458c-8c21-3b5af07e140a",
     "accountId": "synthetic-account",
     "kind": "records",
     "state": "completed",
     "format": "json",
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793521279524/records-export",
-    "createdAtUnixMs": "1793521281384",
-    "updatedAtUnixMs": "1793521281394",
-    "finishedAtUnixMs": "1793521281394",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793582554134/records-export",
+    "createdAtUnixMs": "1793582556521",
+    "updatedAtUnixMs": "1793582556528",
+    "finishedAtUnixMs": "1793582556528",
     "items": [
       {
         "conversationId": "payments",
@@ -354,7 +387,7 @@
         "messagesTotal": 0,
         "mediaSaved": 0,
         "mediaFailed": 0,
-        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793521279524/records-export/payments-71a312ebf4b8.json"
+        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793582554134/records-export/payments-71a312ebf4b8.json"
       }
     ]
   },

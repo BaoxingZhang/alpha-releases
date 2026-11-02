@@ -2,6 +2,7 @@
 const { app, safeStorage } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
+const backendMode = require('./packages/alpha-desktop/backend-mode.cjs');
 const project = path.resolve(__dirname, '../..');
 const runtimeRoot = path.join(project, '.runtime', process.env.ALPHA_RECOVERY_SESSION || 'manual');
 if (!runtimeRoot.startsWith(path.join(project, '.runtime') + path.sep)) throw new Error('Invalid runtime directory');
@@ -14,7 +15,8 @@ app.on('web-contents-created', (_event, contents) => {
   contents.on('did-finish-load', () => lifecycle('did-finish-load', contents.getURL().startsWith('data:') ? 'splash' : contents.getURL()));
   contents.on('render-process-gone', (_e, detail) => lifecycle('render-process-gone', detail));
 });
-app.setName('Alpha Recovered');
+const packagedBackend = backendMode.applyPackagedBackendMode(process.resourcesPath, process.env);
+app.setName(packagedBackend === 'independent' || process.env.ALPHA_RECOVERY_BACKEND === 'independent' ? 'Alpha Recovered Independent' : 'Alpha Recovered');
 for (const name of ['home', 'documents', 'desktop', 'downloads', 'appData', 'userData', 'sessionData', 'temp', 'logs', 'crashDumps']) {
   const directory = path.join(runtimeRoot, name);
   fs.mkdirSync(directory, { recursive: true });

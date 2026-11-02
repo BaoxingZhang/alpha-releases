@@ -15,6 +15,7 @@
     "setup": "node node_modules/electron/install.js && node node_modules/esbuild/install.js",
     "extract:protocol": "node tools/extract-protocol.mjs",
     "verify:protocol": "node tools/extract-protocol.mjs --check",
+    "verify:packaged-markers": "node scripts/verify-packaged-markers.mjs",
     "test:protocol": "node --test tests/protocol.test.mjs",
     "build:bridge": "node scripts/build-data-bridge.mjs",
     "build:snapshot-import": "node scripts/build-snapshot-import.mjs",
@@ -23,7 +24,15 @@
     "package:macos-app": "npm run build:packaged && node scripts/package-macos-app.mjs",
     "package:macos-app:from-build": "node scripts/package-macos-app.mjs",
     "package:macos-dmg": "npm run build:packaged && node scripts/package-macos-app.mjs --dmg",
+    "package:macos-app:independent": "npm run build:packaged && node scripts/package-macos-app.mjs --independent",
+    "package:macos-app:independent:from-build": "node scripts/package-macos-app.mjs --independent",
+    "package:macos-dmg:independent": "npm run build:packaged && node scripts/package-macos-app.mjs --independent --dmg",
     "release:manifest": "node scripts/release-manifest.mjs",
+    "verify:release-manifest": "node scripts/verify-release-manifest.mjs",
+    "audit:upstream": "node scripts/audit-upstream-release.mjs",
+    "audit:public-release": "node scripts/audit-public-release.mjs",
+    "audit:api": "node scripts/audit-api-coverage.mjs --check",
+    "prepare:public-source": "node scripts/prepare-public-source.mjs",
     "bundle:recovery": "node scripts/recovery-bundle.mjs",
     "start:independent": "node scripts/launch.mjs --independent",
     "test:security": "node --test tests/security.test.mjs tests/independent-boundary-security.test.cjs",
@@ -40,7 +49,8 @@
     "record:maintenance": "node scripts/record-maintenance.mjs",
     "check:project": "node scripts/check-project.mjs",
     "check:maintainability": "node scripts/check-maintainability.mjs",
-    "verify:independent-support": "node scripts/verify-independent-support.mjs"
+    "verify:independent-support": "node scripts/verify-independent-support.mjs",
+    "verify:dependencies": "node scripts/verify-dependencies.mjs"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.14.0",

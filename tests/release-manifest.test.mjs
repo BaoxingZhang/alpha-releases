@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { buildReleaseManifest, writeReleaseManifest } from '../scripts/release-manifest.mjs';
+import { verifyReleaseManifest } from '../scripts/verify-release-manifest.mjs';
 
 test('release manifest records every publishable artifact and stable digest', async () => {
   const first = await buildReleaseManifest();
@@ -32,5 +33,34 @@ test('release manifest writes atomically to a caller-selected path', async () =>
     assert.equal(parsed.artifactDigest, result.manifest.artifactDigest);
     const mode = (await fs.stat(destination)).mode & 0o777;
     assert.equal(mode, 0o600);
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
+});
+
+test('release manifest verifier re-hashes every artifact and recomputes the aggregate digest', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-release-verify-'));
+  try {
+    const destination = path.join(directory, 'manifest.json');
+    const written = await writeReleaseManifest(destination);
+    const verified = await verifyReleaseManifest(destination);
+    assert.equal(verified.artifactCount, written.manifest.artifactCount);
+    assert.equal(verified.artifactDigest, written.manifest.artifactDigest);
+    const tampered = JSON.parse(await fs.readFile(destination, 'utf8'));
+    tampered.artifacts[0].sha256 = '0'.repeat(64);
+    await fs.writeFile(destination, JSON.stringify(tampered));
+    await assert.rejects(() => verifyReleaseManifest(destination), /RELEASE_MANIFEST_FILE_HASH_MISMATCH/);
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
+});
+
+test('release manifest verifier rejects traversal and duplicate entries', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-release-invalid-'));
+  try {
+    const source = await buildReleaseManifest();
+    const destination = path.join(directory, 'manifest.json');
+    const traversal = { ...source, artifactCount: 1, artifacts: [{ ...source.artifacts[0], path: '../outside' }] };
+    await fs.writeFile(destination, JSON.stringify(traversal));
+    await assert.rejects(() => verifyReleaseManifest(destination), /RELEASE_MANIFEST_PATH_INVALID/);
+    const duplicate = { ...source, artifacts: [source.artifacts[0], source.artifacts[0]], artifactCount: 2 };
+    await fs.writeFile(destination, JSON.stringify(duplicate));
+    await assert.rejects(() => verifyReleaseManifest(destination), /RELEASE_MANIFEST_DUPLICATE_PATH/);
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });

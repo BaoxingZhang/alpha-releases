@@ -1,9 +1,15 @@
-Error occurred in handler for 'alpha:messages:list': Error: APP_LOCK_LOCKED
-    at EngineClient.listMessagePage (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63776:31)
+Error occurred in handler for 'alpha:moments:authors': Error: MOMENTS_REQUEST_INVALID
+    at EngineClient.listMomentAuthors (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64221:31)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async EngineClient.listMessages (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63761:13)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74808:22
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72100:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:75414:21
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72116:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:1:119027)
-Debugger ending on ws://127.0.0.1:55320/eafb1d07-b80c-4ebd-a136-24f86ac38f74
+Error occurred in handler for 'alpha:messages:list': Error: APP_LOCK_LOCKED
+    at EngineClient.listMessagePage (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63792:31)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async EngineClient.listMessages (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63777:13)
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74833:22
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72116:14
+    at async Session.<anonymous> (node:electron/js2c/browser_init:1:119027)
+Debugger ending on ws://127.0.0.1:61508/5daf9fce-47c4-4f07-a66b-cabf265cbd26
 For help, see: https://nodejs.org/learn/getting-started/debugging

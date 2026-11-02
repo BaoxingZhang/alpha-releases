@@ -1,0 +1,5 @@
+{
+  "schema": "alpha.recovered.update-mode.v1",
+  "mode": "disabled",
+  "reason": "independent-update-policy-not-configured"
+}

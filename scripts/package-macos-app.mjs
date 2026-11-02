@@ -4,12 +4,17 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import updateMode from '../packages/alpha-desktop/update-mode.cjs';
 
 const execFileAsync = promisify(execFile);
 export const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 export const DEFAULT_OUTPUT = path.join(root, '.runtime', 'release-artifacts', 'Alpha Recovered.app');
+export const DEFAULT_INDEPENDENT_OUTPUT = path.join(root, '.runtime', 'release-artifacts', 'Alpha Recovered Independent.app');
 const APP_NAME = 'Alpha Recovered';
+const INDEPENDENT_APP_NAME = 'Alpha Recovered Independent';
 const REQUIRED_INDEPENDENT_DEPENDENCY = path.join('node_modules', '@bufbuild', 'protobuf', 'dist', 'commonjs', 'wire', 'index.js');
+export const UPDATE_MODE_MARKER = 'Contents/Resources/alpha-update-mode.json';
+const UPDATE_MODE_CONFIG = path.join(root, 'provenance', 'independent-update-mode.json');
 
 function fail(message) { throw new Error(message); }
 
@@ -50,11 +55,11 @@ export async function copyDirectoryContents(source, destination, { allowSymlinks
   }
 }
 
-export function rewriteElectronInfoPlist(source) {
+export function rewriteElectronInfoPlist(source, { appName = APP_NAME, bundleIdentifier = 'local.alpha.recovered' } = {}) {
   const replacements = [
-    ['<key>CFBundleDisplayName</key>\n\t<string>Electron</string>', `<key>CFBundleDisplayName</key>\n\t<string>${APP_NAME}</string>`],
-    ['<key>CFBundleName</key>\n\t<string>Electron</string>', `<key>CFBundleName</key>\n\t<string>${APP_NAME}</string>`],
-    ['<key>CFBundleIdentifier</key>\n\t<string>com.github.Electron</string>', '<key>CFBundleIdentifier</key>\n\t<string>local.alpha.recovered</string>']
+    ['<key>CFBundleDisplayName</key>\n\t<string>Electron</string>', `<key>CFBundleDisplayName</key>\n\t<string>${appName}</string>`],
+    ['<key>CFBundleName</key>\n\t<string>Electron</string>', `<key>CFBundleName</key>\n\t<string>${appName}</string>`],
+    ['<key>CFBundleIdentifier</key>\n\t<string>com.github.Electron</string>', `<key>CFBundleIdentifier</key>\n\t<string>${bundleIdentifier}</string>`]
   ];
   let output = source;
   for (const [before, after] of replacements) output = output.replace(before, after);
@@ -113,9 +118,10 @@ async function gitCommit() {
   } catch { return ''; }
 }
 
-export async function packageMacosApp({ output = DEFAULT_OUTPUT, createDmg = false } = {}) {
+export async function packageMacosApp({ output, createDmg = false, independent = false } = {}) {
   assertTarget();
-  const destination = path.resolve(output);
+  const productName = independent ? INDEPENDENT_APP_NAME : APP_NAME;
+  const destination = path.resolve(output ?? (independent ? DEFAULT_INDEPENDENT_OUTPUT : DEFAULT_OUTPUT));
   if (!destination.startsWith(`${path.join(root, '.runtime')}${path.sep}`) && !destination.startsWith(`${path.join(root, 'build')}${path.sep}`)) fail('MACOS_APP_OUTPUT_MUST_BE_PROJECT_GENERATED_DIR');
   const electronApp = path.join(root, 'node_modules/electron/dist/Electron.app');
   const recoveredApp = path.join(root, 'dist/app');
@@ -140,16 +146,25 @@ export async function packageMacosApp({ output = DEFAULT_OUTPUT, createDmg = fal
   await copyDirectoryContents(recoveredApp, path.join(resources, 'app'));
   await copyDirectoryContents(runtime, resources);
   await copyDirectoryContents(packagedIndependent, path.join(resources, 'independent'));
+  await fs.writeFile(path.join(resources, 'alpha-backend-mode.json'), `${JSON.stringify({ schema: 'alpha.recovered.backend-mode.v1', backend: independent ? 'independent' : 'original' }, null, 2)}\n`, { mode: 0o644 });
+  if (independent) {
+    let configured;
+    try { configured = JSON.parse(await fs.readFile(UPDATE_MODE_CONFIG, 'utf8')); }
+    catch { fail('INDEPENDENT_UPDATE_MODE_CONFIG_MISSING'); }
+    const normalized = updateMode.normalizeIndependentUpdateMode(configured);
+    if (configured?.mode === 'configured' && normalized.mode !== 'configured') fail('INDEPENDENT_UPDATE_MODE_CONFIG_INVALID');
+    await fs.writeFile(path.join(resources, updateMode.UPDATE_MODE_FILE), `${JSON.stringify(normalized, null, 2)}\n`, { mode: 0o644 });
+  }
   const plistPath = path.join(destination, 'Contents', 'Info.plist');
   const plist = await fs.readFile(plistPath, 'utf8');
-  await fs.writeFile(plistPath, rewriteElectronInfoPlist(plist), { mode: 0o644 });
+  await fs.writeFile(plistPath, rewriteElectronInfoPlist(plist, { appName: productName, bundleIdentifier: independent ? 'local.alpha.recovered.independent' : 'local.alpha.recovered' }), { mode: 0o644 });
   const executable = path.join(destination, 'Contents', 'MacOS', 'Electron');
   const executableStat = await fs.stat(executable);
   await fs.chmod(executable, executableStat.mode | 0o111);
   const files = await buildFileManifest(destination, { allowSymlinks: true, sourceRoot: destination });
   const manifest = {
     schema: 'alpha-recovered.macos-app.v1',
-    productName: APP_NAME,
+    productName,
     version: '0.3.5',
     appPath: path.relative(root, destination).split(path.sep).join('/'),
     target: { platform: 'darwin', arch: 'arm64' },
@@ -157,7 +172,8 @@ export async function packageMacosApp({ output = DEFAULT_OUTPUT, createDmg = fal
     nativeRecompiled: false,
     projectSigned: false,
     notarized: false,
-    source: { recoveredApp: 'dist/app', originalRuntime: 'build/runtime-bundle', independentResources: 'build/packaged-resources/independent' },
+    backendMode: independent ? 'independent' : 'original',
+    source: { recoveredApp: 'dist/app', originalRuntime: 'build/runtime-bundle', independentResources: 'build/packaged-resources/independent', backendModeMarker: 'Contents/Resources/alpha-backend-mode.json', ...(independent ? { updateModeConfig: 'provenance/independent-update-mode.json', updateModeMarker: UPDATE_MODE_MARKER } : {}) },
     gitCommit: await gitCommit(),
     artifactDigest: manifestDigest(files),
     fileCount: files.length,
@@ -170,7 +186,7 @@ export async function packageMacosApp({ output = DEFAULT_OUTPUT, createDmg = fal
   if (createDmg) {
     const dmgPath = destination.replace(/\.app$/i, '.dmg');
     await fs.rm(dmgPath, { force: true });
-    await execFileAsync('/usr/bin/hdiutil', ['create', '-volname', APP_NAME, '-srcfolder', destination, '-ov', '-format', 'UDZO', dmgPath], { cwd: root, maxBuffer: 4096 });
+    await execFileAsync('/usr/bin/hdiutil', ['create', '-volname', productName, '-srcfolder', destination, '-ov', '-format', 'UDZO', dmgPath], { cwd: root, maxBuffer: 4096 });
     const bytes = await fs.readFile(dmgPath);
     dmg = { path: path.relative(root, dmgPath).split(path.sep).join('/'), bytes: bytes.byteLength, sha256: crypto.createHash('sha256').update(bytes).digest('hex'), signed: false, notarized: false };
     manifest.dmg = dmg;
@@ -180,15 +196,17 @@ export async function packageMacosApp({ output = DEFAULT_OUTPUT, createDmg = fal
 }
 
 function parseArgs(args) {
-  let output = DEFAULT_OUTPUT;
+  let output;
   let createDmg = false;
+  let independent = false;
   while (args.length) {
     const argument = args.shift();
     if (argument === '--output' && args.length) output = args.shift();
     else if (argument === '--dmg') createDmg = true;
+    else if (argument === '--independent') independent = true;
     else throw new Error(`Unknown or incomplete argument: ${argument}`);
   }
-  return { output, createDmg };
+  return { output, createDmg, independent };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
@@ -197,5 +215,5 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
   console.log(`Manifest written: ${result.manifestPath}`);
   console.log(`Artifact digest: ${result.manifest.artifactDigest}`);
   if (result.dmg) console.log(`DMG written: ${path.resolve(root, result.dmg.path)}`);
-  console.log(`Signed: ${result.manifest.projectSigned}; notarized: ${result.manifest.notarized}`);
+  console.log(`Backend: ${result.manifest.backendMode}; signed: ${result.manifest.projectSigned}; notarized: ${result.manifest.notarized}`);
 }

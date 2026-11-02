@@ -41,16 +41,16 @@ npm run demo -- --search
 
 ## 打包独立后端
 
-Electron 的 packaged 模式默认仍启动随原包提供的原生 engine。要把恢复的独立后端放入可分发的资源目录，先运行：
+Electron 的 packaged 模式提供两个明确 flavor。普通 `Alpha Recovered.app` 默认启动随原包提供的原生 engine；独立 flavor 通过应用包内的受控 marker 默认启动本项目独立后端，不需要从终端注入环境变量。两者都保留原生完整性、签名和许可边界。先运行：
 
 ```sh
 npm run build:packaged
 ```
 
-该命令会在 `build/packaged-resources/independent/` 生成 `alpha-engine`、`alpha-security`、`alpha-protocol` 和两个只读 Go 适配器。打包器应将这个目录复制为应用 `Resources/independent/`，并保留普通文件属性。安装后的应用只有在同时设置 `ALPHA_RECOVERY_BACKEND=independent` 与 `ALPHA_INDEPENDENT_PACKAGED=1` 时才会选择该后端；缺少任一标记时保持原生启动链路和许可/完整性检查。独立资源不完整时主进程会 fail-closed，不会回退到原生 engine。
-本机已用 Electron 44.10.1 实际生成 `.runtime/release-artifacts/Alpha Recovered.app`；最新 manifest 记录 1630 个文件、527299976 bytes，未签名且未公证。打包资源包含自包含的 `@bufbuild/protobuf` wire 运行时依赖；结果摘要见 [`independent-validation-current.json`](independent-validation-current.json)。
+该命令会在 `build/packaged-resources/independent/` 生成 `alpha-engine`、`alpha-security`、`alpha-protocol` 和两个只读 Go 适配器。打包器会将这个目录复制为应用 `Resources/independent/`，并保留普通文件属性。独立资源不完整时主进程会 fail-closed，不会回退到原生 engine。开发启动器使用 `ALPHA_RECOVERY_BACKEND=independent` 显式选择独立资源；手工模拟已打包进程时才需要再设置 `ALPHA_INDEPENDENT_PACKAGED=1`。正式组装时使用下面的独立 flavor 命令，应用会写入 `Resources/alpha-backend-mode.json` 并在双击启动时选择独立后端。
+本机已用 Electron 44.10.1 实际生成 `.runtime/release-artifacts/Alpha Recovered.app` 和 `.runtime/release-artifacts/Alpha Recovered Independent.app`；当前普通 flavor manifest 记录 1636 个文件、527578823 bytes，独立 flavor manifest 记录 1637 个文件、527878653 bytes，均未签名且未公证。独立 flavor 额外包含 `Contents/Resources/alpha-update-mode.json`，默认关闭原作者更新源。打包资源包含自包含的 `@bufbuild/protobuf` wire 运行时依赖；结果摘要见 [`independent-validation-current.json`](independent-validation-current.json)。
 
-本轮还实际启动了打包 app，并在 `ALPHA_RECOVERY_BACKEND=independent`、`ALPHA_INDEPENDENT_PACKAGED=1` 和合成离线副本下完成首次设置：窗口显示“打开离线数据副本”，检测到 `synthetic-account`，进入 Alpha 后显示两个合成会话和消息。由于本项目的组装器保留 `Resources/app` 目录而未生成 app.asar，Electron 报告 `app.isPackaged=false`；显式 packaged 标记仍会选择 `Resources/independent`，没有回退到原生 engine。最新 app manifest 的 artifact digest 为 `ad5e7a93a30e62028980e13d1d667f6ed3a1ad3ac6ca43861b17f48056def97e`，对应提交 `0356e85871392a4bc72a637213d3a358abaa8919`。
+本轮实际启动了独立 flavor app，未向进程注入 `ALPHA_RECOVERY_BACKEND` 或 `ALPHA_INDEPENDENT_PACKAGED`，只通过 `Resources/alpha-backend-mode.json` 选择独立后端；合成离线副本检查到 backend `ready`、组件 `alpha-independent-engine` 和账号 `synthetic-account`。由于本项目的组装器保留 `Resources/app` 目录而未生成 app.asar，Electron 报告 `app.isPackaged=false`，marker 仍明确选择 `Resources/independent`。普通 flavor 的 artifact digest 为 `11a8bb7b775122519630c6c5697ea862e1f5854fc93880c013f1fe77d7584d6c`，独立 flavor 的 artifact digest 为 `15c37f8dabe47e4c4979bce05d424d358bef5bdcc432d42009fdeeb624d83416`。
 
 在本机 macOS arm64 上可以生成未签名的 Electron app：
 
@@ -59,6 +59,16 @@ npm run package:macos-app
 ```
 
 如果刚运行过 `npm run build:packaged`，可以使用 `npm run package:macos-app:from-build` 只组装 app，避免重复编译。产物写入 `.runtime/release-artifacts/Alpha Recovered.app`，旁边有包含逐文件 SHA-256 的 manifest。需要制作未签名、未公证的压缩 DMG 时运行 `npm run package:macos-dmg`；这些产物不能绕过 Gatekeeper、授权或原生完整性策略。
+
+要生成可直接双击使用独立后端的自有 flavor：
+
+```sh
+npm run package:macos-app:independent
+# 或
+npm run package:macos-dmg:independent
+```
+
+该 flavor 只选择 `Resources/independent` 下已验证的本项目后端；它仍然需要用户导入或选择离线数据副本，不能读取真实微信目录，也不代表完整 Alpha parity。
 
 ## 本次补齐的工程部分
 

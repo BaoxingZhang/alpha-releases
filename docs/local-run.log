@@ -1,31 +1,34 @@
 [alpha-engine]  INFO alpha-engine starting
 [alpha-engine]  WARN application lock security IPC failed code="SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
+[alpha-engine] Error: [alpha-engine] application lock is unavailable
+[alpha-engine]  INFO alpha-engine starting
+[alpha-engine]  WARN application lock security IPC failed code="SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
 [alpha-engine] Error: application lock is unavailable
 Error occurred in handler for 'alpha:security:application-lock-status': Error: ENGINE_NOT_STARTED
-    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64835:39)
-    at EngineClient.getApplicationLockStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63140:30)
+    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64851:39)
+    at EngineClient.getApplicationLockStatus (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63152:30)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74302:20
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72100:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74327:20
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72116:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:1:119027)
 [alpha-engine]  INFO alpha-engine starting
 [alpha-engine]  WARN application lock security IPC failed code="SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
 [alpha-engine] Error: application lock is unavailable
 Error occurred in handler for 'alpha:accounts:list': Error: ENGINE_NOT_STARTED
-    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64835:39)
-    at EngineClient.listAccounts (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63628:33)
+    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64851:39)
+    at EngineClient.listAccounts (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63644:33)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72100:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72116:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:1:119027)
 [alpha-engine]  INFO alpha-engine starting
 [alpha-engine]  WARN application lock security IPC failed code="SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
 [alpha-engine] Error: application lock is unavailable
 Error occurred in handler for 'alpha:license:capabilities': Error: ENGINE_NOT_STARTED
-    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64835:39)
-    at EngineClient.getCapabilities (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63586:30)
+    at EngineClient.call (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:64851:39)
+    at EngineClient.getCapabilities (/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:63602:30)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74380:19
-    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72100:14
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74405:19
+    at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72116:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:1:119027)
-Debugger ending on ws://127.0.0.1:55108/0fd9f6b7-748f-4bef-951d-c1237fc01a94
+Debugger ending on ws://127.0.0.1:63181/53cf6088-aff8-4277-8a79-6eecadf4cf6d
 For help, see: https://nodejs.org/learn/getting-started/debugging
