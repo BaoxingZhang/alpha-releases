@@ -30,7 +30,7 @@ function fakeEngine() {
     async dispatch(request) {
       calls += 1;
       if (request.hello) return EngineServerFrame.fromPartial({ requestId: request.requestId, hello: { negotiatedProtocol: { major: 1, minor: 0 }, components: [], serverNonce: new Uint8Array(0), supportedMethodIds: [] } });
-      if (request.listAccounts) return EngineServerFrame.fromPartial({ requestId: request.requestId, listAccounts: { accounts: [{ id: 'acct-1', accountId: 'acct-1', subjectId: 'wxid_self', displayName: '测试账号', capabilities: ['messages', 'contacts', 'groups.members'], ready: true, verified: true }], selectedAccountId: 'acct-1' } });
+      if (request.listAccounts) return EngineServerFrame.fromPartial({ requestId: request.requestId, listAccounts: { accounts: [{ id: 'acct-1', accountId: 'acct-1', subjectId: 'wxid_self', displayName: '测试账号', capabilities: ['messages', 'contacts', 'groups.members', 'groups.pinnedMessages'], ready: true, verified: true }], selectedAccountId: 'acct-1' } });
       if (request.listConversations) return EngineServerFrame.fromPartial({ requestId: request.requestId, listConversations: { items: [{ id: 'wxid_peer', accountId: 'acct-1', kind: 1, displayName: '联系人', lastActivityUnixMs: 1700000000000n, preview: '你好' }], nextCursor: new Uint8Array([1, 2]), totalCount: 1 } });
       if (request.listMessages) return EngineServerFrame.fromPartial({ requestId: request.requestId, listMessages: { items: [{ id: 'msg-1', conversationId: 'wxid_peer', sentAtUnixMs: 1700000000000n, senderId: 'wxid_self', text: '你好', localId: 1, serverId: 2n }], nextCursor: new Uint8Array(0), appliedAfterUnixMs: 0n } });
       if (request.locateMessage) return EngineServerFrame.fromPartial({ requestId: request.requestId, locateMessage: request.locateMessage.serverId === '999' ? { message: null, beforeCursor: new Uint8Array(0), afterCursor: new Uint8Array(0) } : { message: { id: 'msg-1', conversationId: request.locateMessage.conversationId, sentAtUnixMs: 1700000000000n, senderId: 'wxid_self', direction: 2, kind: 'text', text: '你好', serverId: 2n }, beforeCursor: new Uint8Array([7]), afterCursor: new Uint8Array([8]) } });
@@ -48,6 +48,7 @@ function fakeEngine() {
       if (request.cancelChatExport) return EngineServerFrame.fromPartial({ requestId: request.requestId, cancelChatExport: {} });
       if (request.listContacts?.directory) return EngineServerFrame.fromPartial({ requestId: request.requestId, listContacts: { response: { directory: { items: [{ contact: { username: 'wxid_peer', alias: 'peer', remark: '联系人', nickname: '联系人', localType: 1 }, category: 'friend', officialAccountKind: '' }], counts: [{ category: 'friend', count: 1 }, { category: 'group', count: 0 }], total: 1, hasMore: false } } } });
       if (request.listContacts) return EngineServerFrame.fromPartial({ requestId: request.requestId, listContacts: { response: { items: [{ username: 'wxid_peer', alias: 'peer', remark: '联系人', nickname: '联系人', localType: 1 }], nextCursor: '', totalCount: 1 } } });
+      if (request.listGeneral?.tableName === '__alpha_group_pins') return EngineServerFrame.fromPartial({ requestId: request.requestId, listGeneral: { response: { items: [{ id: 'room@chatroom:1:9223372036854775808:1', actor: 'wxid_alpha', content: '合成置顶第一条', fields: [{ name: 'seq', value: '1' }, { name: 'senderId', value: 'wxid_alpha' }, { name: 'serverId', value: '9223372036854775808' }, { name: 'localType', value: '1' }, { name: 'preview', value: '合成置顶第一条' }, { name: 'pinnedBy', value: 'wxid_alpha' }] }], sourceDatabase: 'contact/contact.db', sourceTable: '__alpha_group_pins' } } });
       if (request.listGeneral) return EngineServerFrame.fromPartial({ requestId: request.requestId, listGeneral: { response: { items: [{ actor: 'wxid_peer', fields: [{ name: 'groupNickname', value: '群昵称' }, { name: 'isOwner', value: 'true' }] }], sourceDatabase: 'contact/contact.db', sourceTable: 'chat_room' } } });
       if (request.listMessageRecallRecords) return EngineServerFrame.fromPartial({ requestId: request.requestId, listMessageRecallRecords: { records: [{ recordId: `rcl_${'a'.repeat(64)}`, conversationId: request.listMessageRecallRecords.conversationId, originalLocalId: 7n, originalServerId: '8', originalSentAtUnixMs: 1700000000000n, originalSourceType: 10000n, originalSender: 'wxid_peer', originalText: '候选撤回', capturedAtUnixMs: 0n, confirmedAtUnixMs: 0n, confirmation: 'unverified-candidate', provenance: 'alpha-independent-message-derived-candidate', compressedContentRetained: false, packedInfoRetained: false, decodeErrorCode: 'NATIVE_RECALL_SCHEMA_UNSUPPORTED' }], nextCursor: 'next-recall' } });
       if (request.startAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, startAggregateAnalysis: { analysisId, conversationsTotal: 1, expiresAtUnixMs: BigInt(Date.now() + 600000) } });
@@ -161,6 +162,17 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   result = await request(base, '/api/v1/group-members?chatroom_id=room%40chatroom', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.items[0].is_owner, true);
+  result = await request(base, '/api/v1/independent/group-pins?chatroom_id=room%40chatroom&limit=10', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.synthetic_only, true);
+  assert.equal(result.body.native_schema_supported, false);
+  assert.equal(result.body.complete, false);
+  assert.equal(result.body.writer, false);
+  assert.equal(result.body.schema, '__alpha_group_pins_v1');
+  assert.equal(result.body.source_table, '__alpha_group_pins_v1');
+  assert.equal(result.body.items[0].sender_id, 'wxid_alpha');
+  assert.equal(result.body.items[0].server_id, '9223372036854775808');
+  assert.equal(result.body.items[0].preview, '合成置顶第一条');
   result = await request(base, '/api/v1/records?category=friend_requests', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.category, 'friend_requests');
@@ -345,9 +357,10 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   const headers = { Authorization: `Bearer ${token}`, 'content-type': 'application/json' };
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 59);
+  assert.equal(result.body.result.tools.length, 60);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
+  assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.resolve_search_hit'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.get_source'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha.analysis.start'));
@@ -580,6 +593,13 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   result = await request(base, '/api/v1/contact-directory?categories=friend', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.directory.items[0].category, 'friend');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 501, method: 'tools/call', params: { name: 'alpha-independent.groups.list_pinned_messages', arguments: { chatroom_id: 'room@chatroom', limit: 10 } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.synthetic_only, true);
+  assert.equal(result.body.result.structuredContent.native_schema_supported, false);
+  assert.equal(result.body.result.structuredContent.schema, '__alpha_group_pins_v1');
+  assert.equal(result.body.result.structuredContent.items[0].server_id, '9223372036854775808');
+  assert.equal(result.body.result.structuredContent.items[0].pinned_by, 'wxid_alpha');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 6, method: 'tools/call', params: { name: 'wechat.chat.export_conversation', arguments: { username: 'wxid_peer', format: 'json', destination_path: '/tmp/alpha-mcp-export.json', include_media: false } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.destination_path, '/tmp/alpha-mcp-export.json');

@@ -178,7 +178,7 @@
         "mediaResolvePath": "/api/v1/favorites/media/:token",
         "mediaSchema": "__alpha_favorite_media_v1"
       },
-      "tools": 59,
+      "tools": 60,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,

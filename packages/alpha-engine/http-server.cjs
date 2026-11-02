@@ -270,6 +270,7 @@ function toolDefinitions() {
     { name: 'wechat.contacts.resolve_contact', description: '按联系人或群名称做有界字面量查询', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, limit: { type: 'integer', minimum: 1, maximum: 20 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.contacts.get_contact_profile', description: '返回已验证联系人的存在性和有限群信息', inputSchema: { type: 'object', required: ['username'], properties: { account_id: string, username: string, common_group_limit: { type: 'integer', minimum: 0, maximum: 20 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.contacts.get_group_members', description: '读取已验证群成员字段', inputSchema: { type: 'object', required: ['chatroom_id'], properties: { account_id: string, chatroom_id: string, limit: { type: 'integer', minimum: 1, maximum: 1000 }, offset: { type: 'integer', minimum: 0 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.groups.list_pinned_messages', description: '读取显式 __alpha_group_pins_v1 synthetic fixture 的群置顶元数据；不兼容原生群置顶 schema 或 writer', inputSchema: { type: 'object', required: ['chatroom_id'], properties: { account_id: string, chatroom_id: string, limit: { type: 'integer', minimum: 1, maximum: 1000 }, offset: { type: 'integer', minimum: 0 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.list_sessions', description: '分页读取已验证会话', inputSchema: { type: 'object', properties: { account_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.resolve_session', description: '按会话名称或 ID 做有界字面量查询', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, limit: { type: 'integer', minimum: 1, maximum: 20 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.get_messages', description: '读取指定会话的已验证消息 DTO', inputSchema: { type: 'object', required: ['username'], properties: { account_id: string, username: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string, ascending: { type: 'boolean' }, after_unix_ms: string, before_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -748,6 +749,36 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const pageResponse = response.response || {};
       return { items: (pageResponse.items || []).map(item => { const fields = Object.fromEntries((item.fields || []).map(field => [field.name, field.value])); return { username: item.actor, group_nickname: fields.groupNickname || '', nickname: fields.nickname || '', remark: fields.remark || '', alias: fields.alias || '', ...(fields.isOwner === 'true' ? { is_owner: true } : {}) }; }), source_database: pageResponse.sourceDatabase || '', source_table: pageResponse.sourceTable || '' };
     }
+    if (pathname === '/api/v1/independent/group-pins') {
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const room = text(oneAlias(params, ['chatroom_id', 'chatroomId', 'username'], 'HTTP_API_CONVERSATION_AMBIGUOUS'), 256, 'HTTP_API_CHATROOM_INVALID');
+      if (!room || !room.endsWith('@chatroom')) throw new HttpAdapterError('HTTP_API_CHATROOM_INVALID', 400);
+      const response = await call('listGeneral', { accountId: account, tableName: '__alpha_group_pins', query: room, limit: integer(params.limit, 1, 1000, 'HTTP_API_LIMIT_INVALID') ?? 100, offset: integer(params.offset, 0, 100000, 'HTTP_API_OFFSET_INVALID') ?? 0, ascending: true });
+      const pageResponse = response.response || {};
+      const items = (pageResponse.items || []).map(item => {
+        const fields = Object.fromEntries((item.fields || []).map(field => [field.name, field.value]));
+        return {
+          id: item.id || '',
+          seq: fields.seq || '',
+          sender_id: fields.senderId || item.actor || '',
+          server_id: fields.serverId || '',
+          local_type: fields.localType || '',
+          preview: fields.preview || item.content || '',
+          pinned_by: fields.pinnedBy || ''
+        };
+      });
+      return {
+        chatroom_id: room,
+        items,
+        source_database: pageResponse.sourceDatabase || '',
+        source_table: '__alpha_group_pins_v1',
+        schema: '__alpha_group_pins_v1',
+        synthetic_only: true,
+        native_schema_supported: false,
+        complete: false,
+        writer: false
+      };
+    }
     if (pathname === '/api/v1/records' || pathname === '/api/v1/independent/records') {
       if (pathname === '/api/v1/independent/records' && method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
       const category = text(params.category, 32, 'HTTP_API_RECORD_CATEGORY_INVALID');
@@ -864,7 +895,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     const allowedArguments = {
       'wechat.core.get_status': [], 'wechat.core.list_tools': ['package'], 'wechat.core.list_accounts': [], 'wechat.core.get_account_info': ['account_id'],
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'],
-      'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
+      'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'alpha-independent.groups.list_pinned_messages': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
       'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'],
       'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
       'alpha-independent.records.list_candidates': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'], 'alpha-independent.records.list_recall_candidates': ['account_id', 'conversation_id', 'cursor', 'limit'],
@@ -917,6 +948,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
     }
     else if (name === 'wechat.contacts.get_group_members') { pathName = '/api/v1/group-members'; params.chatroom_id = args.chatroom_id; }
+    else if (name === 'alpha-independent.groups.list_pinned_messages') { pathName = '/api/v1/independent/group-pins'; params.chatroom_id = args.chatroom_id; }
     else if (name === 'wechat.chat.list_sessions') pathName = '/api/v1/sessions';
     else if (name === 'wechat.chat.resolve_session') pathName = '/api/v1/sessions';
     else if (name === 'wechat.chat.get_messages') { pathName = '/api/v1/messages'; params.username = args.username; params.after_unix_ms = args.after_unix_ms; params.before_unix_ms = args.before_unix_ms; }

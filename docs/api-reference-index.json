@@ -322,6 +322,26 @@
         "methods": [
           "GET"
         ],
+        "path": "/api/v1/independent/group-pins",
+        "status": "synthetic-only",
+        "scope": "alpha-independent-group-pins",
+        "nativeSchemaSupported": false,
+        "writer": false,
+        "sourceDatabase": "contact/contact.db",
+        "sourceTable": "__alpha_group_pins_v1",
+        "fields": [
+          "seq",
+          "sender_id",
+          "server_id",
+          "local_type",
+          "preview",
+          "pinned_by"
+        ]
+      },
+      {
+        "methods": [
+          "GET"
+        ],
         "path": "/api/v1/independent/records",
         "status": "independent-adapter-extension",
         "scope": "alpha-independent-message-derived-candidates",
@@ -534,6 +554,24 @@
         ],
         "partial": true,
         "candidate": true
+      },
+      {
+        "name": "alpha-independent.groups.list_pinned_messages",
+        "status": "synthetic-only",
+        "nativeSchemaSupported": false,
+        "writer": false,
+        "scope": "alpha-independent-group-pins",
+        "sourceMethod": "listGeneral",
+        "sourceDatabase": "contact/contact.db",
+        "sourceTable": "__alpha_group_pins_v1",
+        "fields": [
+          "seq",
+          "sender_id",
+          "server_id",
+          "local_type",
+          "preview",
+          "pinned_by"
+        ]
       }
     ],
     "nativeMomentsSchemasSupported": [],
