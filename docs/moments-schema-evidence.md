@@ -2,6 +2,16 @@
 
 本页记录 Alpha 0.3.5 中朋友圈读取入口的静态证据。它只使用恢复后的 JavaScript、随包 runtime manifest 和随包原生二进制中的可读字符串；没有打开用户微信目录，也没有把未确认的列或空结果接入独立后端。
 
+## 独立 fixture 的实现边界
+
+为让恢复项目可以继续开发和测试，bridge 现在只接受一个自有、显式命名的合成 schema：`moments.db` 中必须存在 `__alpha_moments_v1`，列为 `id`、`username`、`nickname`、`created_at_unix_ms`、`type`、`text`、`raw_xml` 和 `fields_json`。该 schema 提供 `moments.list`、`moments.authors` 和 `moments.dayCounts` 三个只读操作，并在响应中保留 `sourceDatabase`/`sourceTable`。它用于独立引擎的 synthetic fixture 和后续字段映射开发，不宣称兼容真实微信 moments 数据库。
+
+如果 `moments.db` 缺少这个表，或者数据集只有 `SnsTimeLine`、`snsmessage` 等原生候选表，bridge 会返回 `SCHEMA_UNSUPPORTED`/`CAPABILITY_UNAVAILABLE`，不会扫描候选列、转换 XML 或返回空朋友圈页。对应 synthetic fixture 和拒绝测试见 `packages/alpha-data-bridge/moments_test.go`。
+
+独立桌面 renderer 也按账号 capability fail-closed：只有 `moments`、`moment-authors`、`moment-day-counts` 三项同时存在时，才在现有朋友圈页面显示这个 fixture。该页面只读取文字、作者和日期统计，并在每条卡片和顶部 banner 标注 `synthetic-only`/`__alpha_moments_v1`；媒体、点赞评论、导出和防删除写入入口保持关闭。没有这些 capability 的独立账号继续显示“独立模式暂不支持朋友圈”，不会把消息表内容当作动态。
+
+官方 `wechat.moments.*` 工具目前不会别名到这些自有工具。官方结果还要求媒体、地点、点赞和评论等字段，而 synthetic schema 没有足够证据提供这些语义；保持独立命名可以避免把 fixture 误报为官方兼容实现。
+
 ## 已确认的 Alpha 接口形状
 
 - `src/main/index.js` 的 `NativeMomentRecord` 包含 `id`、`username`、`nickname`、`createdAtUnixMs`、`type`、`text`、`rawXml`、`sourceTable` 和 `fields`。
@@ -70,4 +80,4 @@ REA 对 `_alpha_moments_project_row_v1` 还给出了一个低置信度的四参�
 4. `content`、`raw_xml`、`content_xml` 的 SQLite 类型、压缩/编码和 XML 版本。
 5. `username`/`user_name` 对作者、发布者和回复对象的语义，以及 `type`/`local_type` 的取值。
 
-因此，当前独立 Go bridge 仍只发现并验证 contact/session/message 数据库，`listMoments`、`listMomentAuthors` 和 `getMomentDayCounts` 不应被映射为空页或猜测性 SQL。要实现只读读取，至少需要一个授权的明文 moments fixture（包含 `sqlite_master` 和代表性行）或受控的 native host 请求/响应捕获；取得上游源码/头文件也可以替代样本。测试仍应使用合成 SQLite fixture，不访问真实微信目录。
+因此，真实微信 moments schema 仍未得到验证，原生 `listMoments`、`listMomentAuthors` 和 `getMomentDayCounts` 不应被映射为空页或猜测性 SQL。当前实现仅服务于自有 `__alpha_moments_v1` fixture；要扩展到真实只读读取，仍至少需要一个授权的明文 moments fixture（包含 `sqlite_master` 和代表性行）或受控的 native host 请求/响应捕获；取得上游源码/头文件也可以替代样本。测试继续使用合成 SQLite fixture，不访问真实微信目录。

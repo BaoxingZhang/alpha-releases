@@ -22,7 +22,7 @@ Alpha 的“其他资料”页面和导出入口仍保留在恢复的界面中�
 - `session.db`：`SessionTable`；
 - `message*.db`：已验证的 `Name2Id` 和 `Msg_<md5>` 消息表及固定消息列。
 
-`listGeneral` 对 `tableName=__alpha_group_members` 读取 `chat_room.ext_buffer`，解析群成员并补充联系人字段；对 `__alpha_general_payments`、`__alpha_general_friend_requests` 和 `__alpha_general_revokes` 以及 `__alpha_general_calls` 只扫描可验证的消息 XML，并标记候选来源。好友申请只接受 `local_type=37` 且 XML `sysmsg` 类型为 `VerifyMsg`/`friend`/`friendmsg` 的行，未匹配内容会被省略。其他表名立即返回 `UNSUPPORTED_OPERATION`。这些限制在 [`packages/alpha-data-bridge/groups.go`](../packages/alpha-data-bridge/groups.go) 和 [`packages/alpha-data-bridge/records.go`](../packages/alpha-data-bridge/records.go) 中明确执行。
+`listGeneral` 对 `tableName=__alpha_group_members` 读取 `chat_room.ext_buffer`，解析群成员并补充联系人字段；对 `__alpha_general_payments`、`__alpha_general_friend_requests` 和 `__alpha_general_revokes` 以及 `__alpha_general_calls` 只扫描可验证的消息 XML，并标记候选来源。好友申请只接受 `local_type=37` 且 XML `sysmsg` 类型为 `VerifyMsg`/`friend`/`friendmsg` 的行，未匹配内容会被省略。四类候选记录现在支持最多 512 字节、无控制字符和首尾空白的大小写不敏感字面 `query`，匹配已生成记录的 ID、时间、发送者、内容、字段名和值；`ascending` 可选择稳定升序或降序，分页仍是有界全量扫描后的 offset/limit。其他表名立即返回 `UNSUPPORTED_OPERATION`。这些限制在 [`packages/alpha-data-bridge/groups.go`](../packages/alpha-data-bridge/groups.go) 和 [`packages/alpha-data-bridge/records.go`](../packages/alpha-data-bridge/records.go) 中明确执行。
 
 消息表可以提供 `local_type`、时间、发送者、正文和来源标识，但这些字段不足以证明下面的完整业务字段：
 

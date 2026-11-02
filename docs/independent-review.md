@@ -4,7 +4,7 @@
 
 ## 已确认的接入边界
 
-- `src/main/index.js` 的 `EngineClient.startOnce()` 仅在开发模式且显式选择 `ALPHA_RECOVERY_BACKEND=independent` 时调用自有运行器；原模式继续保留原启动和校验流程。
+- `src/main/index.js` 的 `EngineClient.startOnce()` 在开发模式接受显式 `ALPHA_RECOVERY_BACKEND=independent`，在独立 packaged flavor 中由 `Resources/alpha-backend-mode.json` 受控选择自有运行器；普通 packaged flavor 继续保留原启动和校验流程。
 - 独立引擎使用自己的组件标识 `alpha-independent-engine`，协议为 1.0。桌面启动会验证协议和身份。账号就绪来自实际 Go 进程对显式 SQLite 副本的检查，不使用固定的假账号。
 - `getCapabilities()` 不提供原产品 entitlement；原桌面映射结果为 `null`。独立实现不签发原作者许可，不修改原二进制、签名或策略。
 - 无数据源配置时账号列表确实为空。未锁定的明文源缺失或无效时握手失败；新增加密模式的 Hello 只确认服务，首次账号查询再验证来源并报告等待密钥或错误，不能变成空列表成功。重启后已配置密码锁处于锁定状态时，Hello 仅确认独立 Node 服务初始化，不初始化数据源；数据请求返回 `APP_LOCK_LOCKED`。

@@ -18,7 +18,7 @@
 
 ## 当前 bridge 的边界
 
-`packages/alpha-data-bridge` 目前只接收 `contact.db`、`session.db` 和 `message[_数字].db`，启动时会拒绝不满足这些核心 schema 的数据库，但对目录中的未知文件不建立媒体连接。`account.info` 也不会声明媒体索引或语音能力。Node 层的 `browseConversationMessages`/`browseAccountMedia` 因而只返回消息 DTO 中明确声明的 `refs`、`display` 和来源身份；它不会使用上表推断本地路径、读取 `.dat`、读取 `voice_data`、解码、播放或生成 `media1_...` token。
+`packages/alpha-data-bridge` 的常规账号读取仍只接收 `contact.db`、`session.db` 和 `message[_数字].db`，启动时会拒绝不满足这些核心 schema 的数据库。独立 `media.probe` 是一个显式、无参数的只读探针：它在已打开的数据目录下另外枚举 `hardlink.db` 和 `media_*.db`，验证 SQLite `mode=ro&immutable=1&_query_only=1`、拒绝 sidecar/WAL/符号链接，限制单库 512 MiB、单项 1 TiB、最多 4096 项，并为每个源库记录相对路径、大小和 SHA-256。它只读取 hardlink 行的元数据和 `VoiceInfo` 的 `length(voice_data)`，不读取媒体内容。返回始终标记 `nativeSchemaSupported=false`、`metadataOnly=true`、`mediaReady=false`；没有候选库时返回 `status=unavailable`，不会伪造空的“ready”媒体索引。Node 层的 `browseConversationMessages`/`browseAccountMedia` 因而仍只返回消息 DTO 中明确声明的 `refs`、`display` 和来源身份；它不会使用该探针生成 `media1_...` token、读取 `.dat`、解码、播放或联网下载。
 
 ## 原生 `resolveMessageMedia` 与独立索引解析的边界
 

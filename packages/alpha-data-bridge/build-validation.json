@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-11-02T02:29:31.117Z",
+  "startedAt": "2026-11-02T02:52:02.439Z",
   "status": "passed",
   "sourceKind": "Original Go implementation; no Chatlog internal packages or binaries are imported",
   "sourceFiles": {
@@ -17,8 +17,8 @@
     "media-probe_test.go": "7d8a81b0f687356c812e00ca6bfcf4b2cacad71175ba51870192647611214eab",
     "message_display.go": "aef1cae67058eeb156dfee82111ba93fb0589bd5435e8445fbd341979aefcd27",
     "message_display_test.go": "52afa9e51cd010c935cc2d1627b179ffc68117f420302fa1b0e27cbf2f937cd9",
-    "moments.go": "1ad08d282f2a3e3150bec6698e78edd176973769488aaec20992178521665218",
-    "moments_test.go": "221db2c5257a870330475feab3aef37887e3a5c0e8ecfd249e6dc44b369fc2dd",
+    "moments.go": "efbb2e8bad3734253745d7dc1454e920fb2bb5d5f167bdc1c64345d024962b9c",
+    "moments_test.go": "547832bd1f180a162e36c4ba3387659e2810366569984ba9ff1b8d3e30b17e06",
     "records.go": "e429f4ba84f411be7f82d4930f3fef39c4df531916a6453665e4f1cf1a4d2017",
     "records_test.go": "b1380575a6e1e6c1dbbe2fb14ca79e6c83bf40d91261f7b71b3f295c167615fd",
     "search.go": "c7840c476693d5d84790e928c526d2323fe2bb816c4cc762919118b83f7b79b2",
@@ -39,9 +39,9 @@
   "artifact": {
     "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge",
     "bytes": 8566546,
-    "sha256": "e82416951e039f137902d132045b38e3590f39d16cc6c10953d782e8808834b4",
+    "sha256": "6fe838b119f90a8628198386df6c2ee3ca8254ec4faae4f4b7131fbf8a64c55f",
     "file": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge: Mach-O 64-bit executable arm64",
-    "buildInfo": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge: go1.24.13\n\tpath\talpha.local/data-bridge\n\tmod\talpha.local/data-bridge\tv0.0.0-20261102004528-fcd76a689184+dirty\t\n\tdep\tgithub.com/klauspost/compress\tv1.18.0\th1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=\n\tdep\tgithub.com/mattn/go-sqlite3\tv1.14.32\th1:JD12Ag3oLy1zQA+BNn74xRgaBbdhbNIDYvQUEuuErjs=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=1\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=fcd76a689184b1fff2129484696e111fa5844633\n\tbuild\tvcs.time=2026-11-02T00:45:28Z\n\tbuild\tvcs.modified=true"
+    "buildInfo": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge: go1.24.13\n\tpath\talpha.local/data-bridge\n\tmod\talpha.local/data-bridge\tv0.0.0-20261102025131-8f1a4b215cf5\t\n\tdep\tgithub.com/klauspost/compress\tv1.18.0\th1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=\n\tdep\tgithub.com/mattn/go-sqlite3\tv1.14.32\th1:JD12Ag3oLy1zQA+BNn74xRgaBbdhbNIDYvQUEuuErjs=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=1\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=8f1a4b215cf593bbef8cfd4f66d7f7d6d7542d62\n\tbuild\tvcs.time=2026-11-02T02:51:31Z\n\tbuild\tvcs.modified=false"
   },
-  "finishedAt": "2026-11-02T02:29:32.897Z"
+  "finishedAt": "2026-11-02T02:52:06.430Z"
 }

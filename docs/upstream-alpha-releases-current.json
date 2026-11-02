@@ -1,6 +1,6 @@
 {
   "evidence_type": "read_only_public_repository_audit",
-  "observed_at": "2026-11-01",
+  "observed_at": "2026-11-02",
   "repository": {
     "url": "https://github.com/xunchahaha/alpha-releases",
     "api_url": "https://api.github.com/repos/xunchahaha/alpha-releases",
@@ -44,15 +44,15 @@
     "root_tree_observed": [
       "README.md",
       "assets/",
-      "docs/api/http-api.md",
-      "docs/api/mcp.md",
-      "update/stable.json"
+      "docs/",
+      "update/"
     ],
     "source_boundary": {
       "observed_source_files": [],
       "observed_build_files": [],
       "interpretation": "The public repository is release, documentation, screenshot, and update-policy material. This audit did not find Alpha TypeScript, JavaScript application source, Rust, C, C++, Cargo, CMake, or native component source. This is an observation about the repository contents, not proof that no private source exists."
-    }
+    },
+    "readme_sha256": "dfdf1d2156f6d45150ff3a2f8158c08505c0eb11e6c504c411714496cc9734a0"
   },
   "readme_feature_summary": {
     "url": "https://raw.githubusercontent.com/xunchahaha/alpha-releases/main/README.md",
@@ -125,7 +125,8 @@
       "alg": "Ed25519",
       "kid": "release-1"
     },
-    "interpretation": "This is the public update-policy metadata observed at audit time; it is not a source or entitlement proof."
+    "interpretation": "This is the public update-policy metadata observed at audit time; it is not a source or entitlement proof.",
+    "raw_sha256": "9847351c02acede1967aba64c0d744749c8ccb29c8b79ba598b9c3dafd5baa3b"
   },
   "public_issue_cross_checks": [
     {
@@ -171,8 +172,16 @@
     }
   ],
   "audit_boundary": [
-    "Observed facts come from GitHub repository/API/raw README/docs/stable metadata at the URLs above on 2026-11-01.",
     "Issue reports are public user reports and cross-checks, not proof of a universal failure mode or internal implementation details.",
-    "No source code, private repositories, credentials, real WeChat data, or unredacted native secrets were accessed in this audit."
-  ]
+    "No source code, private repositories, credentials, real WeChat data, or unredacted native secrets were accessed in this audit.",
+    "Observed facts come from GitHub repository/API/raw README/docs/stable metadata at the URLs above on 2026-11-02.",
+    "The audit does not download release binaries; a local artifact is checked only when --artifact is supplied.",
+    "No source code, private repositories, credentials, real WeChat data, or unredacted native secrets are accessed by this audit."
+  ],
+  "artifact_verification": {
+    "path": "/Users/baoxingzhang/Downloads/Alpha-0.3.5-arm64.dmg",
+    "bytes": 183712520,
+    "sha256": "53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004",
+    "matchesRelease": true
+  }
 }

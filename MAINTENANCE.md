@@ -4,6 +4,8 @@
 
 当前起点是用户提供的 macOS arm64 0.3.5 包。原作者的[停更公告](https://github.com/xunchahaha/alpha-releases/blob/main/README.md)说明 0.3.5 大概率为最后版本，可能继续提供底层延期和安全修复。公开仓库主要是发行材料和接口文档，不能当成完整源码仓库。
 
+上游基线通过 `npm run audit:upstream` 维护：命令只读获取公开仓库、release、文件树和更新策略，必要时校验本地 DMG；默认不写文件，只有显式 `--write` 才会更新 [`docs/upstream-alpha-releases-current.json`](docs/upstream-alpha-releases-current.json)。这使后续发行检查可重复，同时不会自动替换原生运行时、签名或授权配置。
+
 ## 本轮实际推进
 
 新增自有 Go 只读桥接、Node 协议服务和密码应用锁，已经通过原 UI 的首次设置、合成数据库聊天显示及锁定前后读取验证。本阶段进一步加入显式加密微信 v4 离线副本和已有密钥的导入，逐页认证解密后生成可复用明文快照；尚未接入自动取钥或验证真实账号。原功能入口和以下全部领域仍保留；新后端未实现的请求明确返回不可用。
@@ -23,7 +25,7 @@
 | 私聊、群聊、消息类型、引用 | UI、消息展示逻辑、请求响应编解码 | 对应真实数据读取与语义解析 | 分页无漏重，时间/64位ID精度正确，引用可定位 |
 | 搜索、日期跳转、上下文 | UI、IPC、协议；新增自有字面搜索、过滤、稳定游标、精确上下文和日历计数 | 大库索引与性能、更多消息编码/语义、真实数据完整验收 | 跨页结果稳定，过滤正确，可回到原消息；部分覆盖明确说明 |
 | 通讯录、群成员、公告 | UI、IPC、协议；新增联系人字面量查询、friend/group directory 分页与计数、有限 profile 存在性读取、真实 RoomData 共同群计数/列表、群成员读取和 CSV/JSON/VCF/HTML/XLSX 只读导出，群成员另支持 CSV/JSON/HTML/XLSX 导出，群 profile 可返回真实成员数和唯一群主；独立模式 UI 会禁用未验证分类和头像导出 | 高级通讯录分类、完整资料、头像导出、群公告和管理员身份；企微/公众号/服务号/曾经好友/黑名单分类保持不可用 | 备注/昵称/群身份与实际记录一致；查询结果有分页且 `%`/`_` 按字面量处理，未验证分类请求失败关闭 |
-| 收藏、其他资料 | UI、IPC、协议；独立后端已从消息 XML 提供 payments/revokes/calls 的 partial/candidate 读取，并支持 xlsx/csv/json 只读导出 | 嵌套收藏、好友验证/朋友圈互动/搜索记录、完整支付字段和通话语义和原始 Alpha 记录库 | 原始与结构化内容可对照，候选和来源字段明确标记，未知类型不伪造 |
+| 收藏、其他资料 | UI、IPC、协议；独立后端仅对显式 `favorite.db` 或 `favorites.db` 中的 `__alpha_favorites_v1` synthetic fixture 接入 `listFavorites`，支持有界分页、类型/关键字/标签过滤和类型计数；另从消息 XML 提供 payments/friend_requests/revokes/calls 的 partial/candidate 读取及 xlsx/csv/json 只读导出 | 真实收藏库 schema、收藏 source lookup、媒体槽位/解析、收藏 UI、真实收藏库 HTTP/MCP 语义、好友验证/朋友圈互动/搜索记录、完整支付字段和通话语义和原始 Alpha 记录库 | synthetic fixture 与原始/结构化候选内容可对照并明确来源；真实 schema、媒体和未知类型继续失败关闭，不伪造 native parity |
 | 图片、视频、语音、实况照片 | UI、缓存/协议部分 JS、FFmpeg；独立后端可读取消息中的真实 refs 与媒体类型元数据；另有只接受调用方字节的独立 DAT 图片解码模块（v4 需显式 AES/XOR key，旧式 DAT 按 magic 推断），以及由调用方明确列出文件后生成 `media-index.v1.json` 的安全写入器，见 [`docs/media-decoder-evidence.md`](docs/media-decoder-evidence.md) 和 [`docs/media-index-foundation.md`](docs/media-index-foundation.md) | 原生媒体定位、key 获取、解密接入、SILK、WXGF、附件定位 | decoder 和显式索引写入器的合成测试通过；独立 `resolveMessageMedia` 已支持显式索引绑定的图片读取；它不兼容原生 `media1_`、不自动扫描目录，DAT/AES、语音/视频解码和 UI 播放仍不可用 |
 | 媒体墙与图片查看器 | UI、分页及窗口逻辑；独立 `browseConversationMessages`/`browseAccountMedia` 已支持真实消息的 media/file/link 与 media/image/video 元数据筛选、时间范围和分页，并可通过 `window.alpha.messages.exportMediaMetadata` 导出 metadata-only JSON/CSV | 媒体索引与服务实现、文件路径/下载/token | 全账号扫描基于可发现 session index；导出明确标记 `metadataOnly=true`、`mediaReady=false`；本地文件读取、解密、缩略图、原图和播放仍未实现 |
 | 语音转文字 | UI、任务接口、模型目录 | 运行引擎、模型文件、取消与缓存 | 有模型时真实产出，无模型时明确不可用 |
@@ -31,13 +33,13 @@
 | 定时导出及任务历史 | 调度 UI、IPC、独立 stateDir 计划与 bounded scheduler | Alpha 完整调度冲突/增量语义、派生第三方格式兼容、后台任务跨进程租约 | 当前独立 runner 支持单一无媒体 JSON/Markdown/HTML/TXT/XLSX/派生格式；XLSX 不支持自定义列；重启最多补一条到期 run，失败可追踪并手工重试 |
 | 数据变化监控 | UI、IPC、协议；独立后端字段 106 返回显式离线数据源根目录并由主进程 watcher 使用 | 在线微信变化、自动数据发现、切号/重启后的实时监控语义 | 只监控授权且显式选择的源，源失效时停止并报告错误 |
 | 统计、足迹、年度/双人报告 | UI、图表/报告组件、协议；独立后端已支持基于可发现会话和消息的年度基础聚合及指定会话关系基础统计 | 完整统计语义、足迹、回复速度、口头禅、朋友圈互动、双人报告和图片导出 | 合成样本的年度/会话基础计数正确，并明确报告覆盖边界 |
-| 朋友圈浏览、日历、导出 | UI、IPC、协议 | SNS 读取、媒体与互动解析 | 时间线分页、筛选、媒体、导出一致 |
+| 朋友圈浏览、日历、导出 | UI、IPC、协议；只有账号具备 `moments`、`moment-authors`、`moment-day-counts` 时，朋友圈页才读取 `moments.db`/`__alpha_moments_v1` synthetic fixture，展示文字、作者筛选和本地日计数并标明 synthetic-only；engine 另提供 JSON/Markdown/TXT/HTML metadata-only 导出任务，媒体请求明确拒绝；HTTP `/api/v1/sns/timeline`、`/api/v1/sns/usernames`、`/api/v1/sns/day-counts` 和 MCP `alpha-independent.moments.*` 只读适配器保留来源字段并标记 synthetic-only | 真实微信 `SnsTimeLine`/`snsmessage` schema、媒体与互动解析、synthetic UI 导出入口和防删除写入 | synthetic fixture 时间线分页、作者聚合、日计数、engine 导出任务和页面只读展示正确；真实 schema/无 capability 账号继续 fail-closed |
 | 防撤回、朋友圈防删除 | UI、策略接口、原 retention 库 | 可维护的保留机制及可恢复写入 | 只在明确开启后作用，有备份/恢复验证 |
 | AI 助手、会话总结 | 多服务适配/worker JS、线程 UI、IPC | 数据工具、gateway、持久状态及端到端对接 | 真实工具结果、审批、取消、重试、上下文压缩均正确 |
 | AI 记忆、人格、外部 MCP | JS、UI、协议、原 server | 记忆存储、工具权限与完整 gateway | 账号/线程隔离、审批和删除行为可验证 |
-| HTTP API、MCP、CLI | main 网关/代理部分、公开契约；独立后端新增本机受控 HTTP/MCP 适配器，当前声明 24 个工具，覆盖状态、账号、会话、消息、搜索、联系人和群成员，以及 profile、消息原始 DTO、上下文/日期辅助查询、scope 1–4 聚合分析，并支持受控会话文件导出 | 官方其余 HTTP/MCP 路径、媒体/朋友圈/收藏/发送语义、完整兼容测试 | 已接入路径在合成 DTO 上通过鉴权、边界、字段和错误测试；分析报告是独立算法结果且有界，官方列出的24个HTTP路径、60个MCP工具仍需逐项验证 |
+| HTTP API、MCP、CLI | main 网关/代理部分、公开契约；独立后端新增本机受控 HTTP/MCP 适配器，当前声明 45 个工具，覆盖状态、账号（含只读工具目录）、会话、消息、搜索、联系人和群成员，以及 profile、消息原始 DTO、上下文/日期辅助查询、独立消息命中定位、独立消息来源文本、独立年度/会话关系基础统计、会话/账号媒体元数据浏览、显式 v4 `media.probe` 元数据探针、合成语音播放解析、synthetic moments 时间线/作者/日计数和 metadata-only 导出、synthetic favorites 列表和媒体槽位/解析、导出能力/统计、scope 1–4 聚合分析，并支持受控会话文件导出和媒体 metadata 导出 | 官方其余 HTTP/MCP 路径、真实朋友圈 `SnsTimeLine`/`snsmessage`、媒体/朋友圈互动/真实收藏库/发送语义、完整兼容测试 | 已接入路径在合成 DTO 上通过鉴权、边界、字段和错误测试；独立消息命中定位及 analytics/媒体浏览工具明确标记 `native_schema_supported:false`；`media.probe` 只返回显式 v4 媒体库元数据并固定标记 metadata-only，不生成原生 token 或播放媒体；`alpha-independent.records.list_candidates` 与 `/api/v1/independent/records` 明确标记消息派生候选记录，不冒充官方 `alpha.messages.resolve_search_hit` 或 `wechat.analytics.*`；`wechat.core.list_tools` 明确只返回独立适配器只读子集并标记 `complete:false`；moments/favorites/voice synthetic 路由固定标记 synthetic-only 且真实 schema fail-closed；官方列出的24个HTTP路径、60个MCP工具仍需逐项验证 |
 | 应用锁及凭据保存 | UI、IPC、原 security host | 自有可维护安全存储及锁实现 | 锁住时数据访问被阻止，凭据加密且不串账号 |
-| 更新与发布 | JS更新逻辑、公钥/配置 | 自有构建、签名、发布服务及版本迁移 | 安装/升级/回滚真实通过，不依赖作者发行身份 |
+| 更新与发布 | JS更新逻辑、公钥/配置；新增原生 flavor 与独立 flavor 的显式打包入口及 backend marker；独立 flavor 默认关闭原作者更新通道，配置由 `provenance/independent-update-mode.json` 管理 | 自有构建、签名、公证、发布服务及版本迁移 | 两种 flavor 的 backend 选择和独立更新 marker 可审计；安装/升级/回滚和签名发布仍需在自有发行环境真实通过，不依赖作者发行身份 |
 | 消息编辑 | UI、IPC、实验性Mac入口 | 受控写入组件及合法开发接口或自有实现 | 对副本验证编辑/恢复、一致性与故障恢复 |
 | 发送文字、公众号文章导出 | UI/IPC/部分协调、原 sidecar | 原服务与组件或自有实现；另需Windows环境 | 去重、结果确认、失败恢复及真实业务验收 |
 | CDN媒体补齐 | UI/IPC/部分协调 | 平台协议实现、合法登录态及下载组件 | 原图/视频/附件完整且认证/失败状态正确 |

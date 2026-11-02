@@ -1,6 +1,6 @@
 {
   "source": "official release documentation, declarations only; not runtime verified",
-  "checkedAt": "2026-11-01",
+  "checkedAt": "2026-11-02",
   "references": [
     {
       "url": "https://github.com/xunchahaha/alpha-releases/blob/main/docs/api/http-api.md",
@@ -317,6 +317,68 @@
         "status": "synthetic-only",
         "sourceDatabase": "favorite.db",
         "sourceTable": "__alpha_favorite_media_v1"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/records",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-message-derived-candidates",
+        "nativeSchemaSupported": false,
+        "sourceMethods": [
+          "listGeneral"
+        ],
+        "categories": [
+          "payments",
+          "friend_requests",
+          "revokes",
+          "calls"
+        ]
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/message-source",
+        "status": "independent-adapter-extension",
+        "scope": "verified-message-text",
+        "nativeSchemaSupported": false,
+        "sourceMethod": "getMessageSource",
+        "rawAvailable": false,
+      "mediaReady": false,
+      "tokenPrefix": "independent1_",
+      "tokenEncoding": "canonical-base64url"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/media/voice-playback",
+        "status": "synthetic-only",
+        "scope": "synthetic-voice-playback",
+        "nativeSchemaSupported": false,
+        "sourceMethod": "decodeVoicePlayback",
+        "sourceTable": "__alpha_voice_playback_v1",
+        "media": "verified-WAV-only"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/media/probe",
+        "status": "independent-adapter-extension",
+        "scope": "explicit-v4-media-database-probe",
+        "nativeSchemaSupported": false,
+        "metadataOnly": true,
+        "mediaReady": false,
+        "sourceMethod": "media.probe",
+        "sourceFiles": [
+          "hardlink.db",
+          "media_*.db"
+        ],
+        "mediaBytesRead": false,
+        "alphaMedia1Tokens": false
       }
     ],
     "mcp": [
@@ -340,6 +402,17 @@
         "nativeSchemaSupported": false,
         "sourceMethod": "locateMessage",
         "media": "not returned"
+      },
+      {
+        "name": "alpha-independent.messages.get_source",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "sourceMethod": "getMessageSource",
+        "scope": "verified-message-text",
+        "rawAvailable": false,
+      "mediaReady": false,
+      "tokenPrefix": "independent1_",
+      "tokenEncoding": "canonical-base64url"
       },
       {
         "name": "alpha-independent.analytics.analyze_annual",
@@ -377,6 +450,29 @@
         "sourceMethod": "browseAccountMedia",
         "coverage": "discoverable-session-message-metadata",
         "mediaReady": false
+      },
+      {
+        "name": "alpha-independent.media.probe",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "metadataOnly": true,
+        "mediaReady": false,
+        "sourceMethod": "media.probe",
+        "scope": "explicit-v4-media-database-probe",
+        "sourceFiles": [
+          "hardlink.db",
+          "media_*.db"
+        ],
+        "mediaBytesRead": false,
+        "alphaMedia1Tokens": false
+      },
+      {
+        "name": "alpha-independent.media.decode_voice_playback",
+        "status": "synthetic-only",
+        "nativeSchemaSupported": false,
+        "sourceMethod": "decodeVoicePlayback",
+        "sourceTable": "__alpha_voice_playback_v1",
+        "mediaReady": true
       },
       {
         "name": "alpha-independent.moments.list_timeline",
@@ -423,6 +519,21 @@
         "name": "alpha-independent.favorites.resolve_media",
         "status": "synthetic-only",
         "sourceTable": "__alpha_favorite_media_v1"
+      },
+      {
+        "name": "alpha-independent.records.list_candidates",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "scope": "alpha-independent-message-derived-candidates",
+        "sourceMethod": "listGeneral",
+        "categories": [
+          "payments",
+          "friend_requests",
+          "revokes",
+          "calls"
+        ],
+        "partial": true,
+        "candidate": true
       }
     ],
     "nativeMomentsSchemasSupported": [],

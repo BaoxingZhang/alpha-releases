@@ -12,6 +12,6 @@
 
 ## 明确限制
 
-bridge 没有经过验证的媒体索引、`.dat`/语音/视频文件路径或解密密钥，因此浏览结果是消息元数据。vendor/chatlog v4 中出现的 `hardlink.db`、`media_*.db`、`VoiceInfo` 和候选相对路径只作为待验证证据记录在 [media-schema-evidence.md](media-schema-evidence.md)，当前 bridge 不打开这些库。实现不会读取文件、联网下载、播放媒体、生成 Alpha `media1_...` 解析 token 或写入数据库。正文不可解码时，仍可能保留真实语音 `serverId` ref；图片/视频 ref 只有在消息正文明确提供 ID/URI 时才出现。
+消息媒体浏览仍然只返回消息元数据。对于调用方明确选择的、已解密且稳定的 v4 副本，bridge 新增独立 `media.probe`，只读打开 `hardlink.db`/`media_*.db` 的已验证表，返回相对路径、大小、修改时间、源库 SHA-256 和语音数据长度；它不读取媒体字节、不联网、不播放、不生成 Alpha `media1_...` 解析 token 或写入数据库。没有显式媒体库时返回 unavailable；schema、路径组件、符号链接、sidecar、并发变化和资源上限都会 fail-closed。正文不可解码时，仍可能保留真实语音 `serverId` ref；图片/视频 ref 只有在消息正文明确提供 ID/URI 时才出现。vendor/chatlog v4 的表名和路径线索仍只作为来源证据，独立探针不声称 Alpha native schema parity。
 
-`music`、`mini-program`、`transaction` 尚无安全的 v4 字段语义，返回 `TYPE_BROWSE_CATEGORY_UNSUPPORTED`。账号范围只覆盖 `sessions.list` 能发现的会话和其 `messages.list` 结果，不能宣称包含已从 session index 移除的历史表。收藏、朋友圈和其他媒体 token/下载接口仍保持 `UNIMPLEMENTED`。
+`music`、`mini-program`、`transaction` 尚无安全的 v4 字段语义，返回 `TYPE_BROWSE_CATEGORY_UNSUPPORTED`。账号范围只覆盖 `sessions.list` 能发现的会话和其 `messages.list` 结果，不能宣称包含已从 session index 移除的历史表。真实收藏媒体、朋友圈媒体和其他媒体 token/下载接口仍保持不可用；独立 `listFavorites` 只读取 synthetic 收藏 fixture，不属于媒体浏览能力。独立收藏媒体槽位/解析另有单独的 `__alpha_favorite_media_v1` + `media-index.v1.json` synthetic 链路，仍不兼容真实收藏媒体。

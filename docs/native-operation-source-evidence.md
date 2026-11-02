@@ -85,7 +85,7 @@ Ghidra/REA 观察到的调用约定候选是四个参数：`param_1` 为内部 r
 ## 对当前缺口的影响
 
 - 朋友圈读取、作者列表和年度朋友圈统计仍保持 `UNIMPLEMENTED`；见 [朋友圈 schema 证据](moments-schema-evidence.md)。
-- 收藏读取、收藏媒体和收藏导出仍保持 `UNIMPLEMENTED`；见 [收藏 schema 证据](favorites-schema-evidence.md)。
+- 原生收藏读取、原生收藏媒体和收藏导出仍保持不可用；独立实现提供自有 `__alpha_favorites_v1` fixture 的 `listFavorites`，以及在另有 `__alpha_favorite_media_v1` 与自有 `media-index.v1.json` 时的 synthetic 媒体槽位/解析，见 [收藏 schema 证据](favorites-schema-evidence.md)。这些分支不证明真实收藏 schema 或 native token 兼容。
 - 原生图片定位、语音 blob 读取和媒体 key 获取仍没有可验证的 locator/schema/授权语义。
 - 朋友圈防删除 operation 只证明原包存在控制面，不能证明独立 writer 可以安全写入；独立实现继续报告 writer disabled。
 

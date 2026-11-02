@@ -1,6 +1,21 @@
-> 后续进展：新增独立后端已实现离线微信 v4 数据副本的核心读取、密码应用锁、已有密钥的加密快照导入及搜索/日期导航。下文原包缺口仍成立；新的实现范围见 [independent-backend.md](independent-backend.md)、[encrypted-import.md](encrypted-import.md) 和 [search-navigation.md](search-navigation.md)。
+> 后续进展：新增独立后端已实现离线微信 v4 数据副本的核心读取、密码应用锁、已有密钥的加密快照导入、搜索/日期导航，以及显式 synthetic moments/favorites fixture 的只读列表、作者/日计数和收藏媒体索引边界。当前独立协议支持 72/128 个请求分支；下文原包缺口仍成立，真实 native schema 不因 synthetic fixture 而闭合。新的实现范围见 [independent-backend.md](independent-backend.md)、[encrypted-import.md](encrypted-import.md) 和 [search-navigation.md](search-navigation.md)。
 
 补充：独立后端已按 [`telemetry-recovery.md`](telemetry-recovery.md) 接通 field 21/22/23 的本地同意状态管理；该实现明确停用发送并不补齐原包缺失的遥测服务端、事件队列或上传协议。
+
+## 上游功能声明与当前恢复范围
+
+公开发行仓库的 README 同时列出产品功能和高级功能。下表把这些声明与当前独立工程的证据边界对齐，避免把“界面入口、协议字段或原包二进制存在”当成已经恢复。`synthetic-only` 只适用于显式 `__alpha_*_v1` 测试表，不能代表真实微信 schema。
+
+| 上游声明 | 当前可复用或独立实现 | 仍缺少的证据/实现 |
+| --- | --- | --- |
+| 聊天浏览、搜索、日期跳转、多格式导出和定时导出 | 离线 v4 副本的会话/消息读取、字面搜索、日期计数、JSON/Markdown/HTML/TXT/XLSX 及 ChatLab/SQL/WeClone 派生导出；任务状态、取消、重试和有限重启恢复 | 更多真实消息编码、附件打包、第三方格式的完整兼容语义、增量/冲突规则和大库性能 |
+| 通讯录、群成员和其他资料导出 | 联系人/群成员只读查询与导出；支付、好友申请、撤回、通话为带来源标识的 partial/candidate 记录 | 真实资料库 schema、完整字段语义、好友验证/互动/搜索记录及原始 Alpha 记录库 |
+| 朋友圈、日历、媒体、导出和防删除 | 仅显式 synthetic moments fixture 的文字、作者、日计数和 metadata-only 导出；bridge 另有显式 v4 `media.probe` 元数据探针；防删除控制面保持 writer-disabled | 真实 `SnsTimeLine`/`snsmessage` schema、互动/媒体解析、原生导出语义和可恢复写入 |
+| 收藏、媒体墙、原图/媒体访问 | synthetic favorites fixture 的分页/过滤/类型计数及显式媒体槽位索引；消息媒体可浏览 metadata；显式 v4 `media.probe` 可读取 hardlink/VoiceInfo metadata | 真实收藏库、source lookup、`media1_` token、路径/密钥定位、解密、缩略图和播放 |
+| 语音播放与语音转文字 | 合成 `__alpha_voice_playback_v1` 映射 + 自有 WAV media-index 的 `decodeVoicePlayback`；`media.probe` 只返回显式 `VoiceInfo` 的数据长度；保留转写 UI/任务协议和模型目录声明 | 真实 VoiceInfo/SILK/FFmpeg/native media cache、转写 worker、模型权重、取消、缓存和输出未恢复 |
+| AI 助手、多模型、ChatGPT 登录、总结和分享图 | 原 AI host bundle 可编辑；独立模式仅有显式 opt-in 的本地 fixture worker | gateway/provider 登录、凭据与权限、真实模型调用、工具审批、上下文压缩和分享图生成 |
+| HTTP API、MCP、推送与发送 | 独立本机适配器覆盖已验证只读 DTO、导出/统计、analytics、媒体 metadata 和 synthetic moments/favorites 路由 | 官方其余路径、真实媒体/朋友圈/收藏 schema、推送、发送和写入结果确认 |
+| 高级：文字发送、公众号文章导出、消息编辑、CDN 媒体补齐 | 原包 UI/协调代码与协议字段保留；未修改完整性、授权或平台限制 | 合法写入/登录态、公众号文章服务、编辑一致性、Windows CDN 组件和失败恢复 |
 
 # Alpha 0.3.5 源码恢复范围与缺口
 
