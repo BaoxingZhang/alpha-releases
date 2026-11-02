@@ -12,6 +12,19 @@ ALPHA_INDEPENDENT_ACCOUNT_ID=<account-id> \
 npm run mcp:independent
 ```
 
+也可以让项目生成 Codex 配置 JSON，避免手工填写绝对路径：
+
+```sh
+npm run mcp:config -- \
+  --state-dir /absolute/project/.runtime/codex-state \
+  --data-dir /absolute/project/authorized-data-copy \
+  --bridge-path /absolute/project/build/candidates/alpha-data-bridge \
+  --account-id synthetic-account \
+  --output /absolute/project/.runtime/codex-mcp.json
+```
+
+生成的 JSON 可粘贴到 Codex 的 MCP 配置中。命令只生成配置，不读取数据目录，也不启动 engine。
+
 Codex 的 MCP 配置应把 `command` 指向项目使用的 Node.js，把 `args` 设为 `packages/alpha-engine/mcp-stdio.cjs`，并在 `env` 中提供上述变量。`ALPHA_INDEPENDENT_DATA_DIR` 必须是调用方明确授权的离线副本；不要指向真实微信目录，除非已经完成单独的备份、授权和 schema 验证。`ALPHA_INDEPENDENT_STATE_DIR` 应使用独立的 0700 目录。
 
 stdio 每行接收一个 JSON-RPC 对象，支持 `initialize`、`ping`、`tools/list` 和 `tools/call`。`notifications/initialized` 等通知不返回响应；EOF 后进程会关闭 adapter 和 engine。协议错误会返回 JSON-RPC 错误对象，业务工具错误会保留适配器的 `isError` 结果。
