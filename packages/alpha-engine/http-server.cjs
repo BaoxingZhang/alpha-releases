@@ -1333,7 +1333,10 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     async start() { if (server) return { host, port: actualPort }; server = http.createServer((req, res) => { handle(req, res).catch(error => fail(res, error)); }); server.requestTimeout = 30000; server.headersTimeout = 10000; await new Promise((resolve, reject) => { server.once('error', reject); server.listen({ host, port }, () => { server.removeListener('error', reject); actualPort = server.address().port; resolve(); }); }); return { host, port: actualPort }; },
     async close() { if (!server) return; const current = server; server = null; await new Promise(resolve => current.close(() => resolve())); },
     address() { return server?.address() ?? null; },
-    call
+    call,
+    // The stdio transport uses the same MCP dispatcher as /mcp, but does not
+    // bind a network socket or weaken the HTTP host/token checks.
+    mcpCall
   };
 }
 

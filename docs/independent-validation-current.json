@@ -1,16 +1,16 @@
 {
   "recordedAt": "2026-11-03",
-  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch and explicit opt-in key-helper experiment, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, message-derived recall candidate pagination, moments anti-delete status boundary, offline SQLite schema diagnostics, native WCDB ABI artifact audit, and reproducible packaging; optional third-party WCDB compatibility probe boundary; not full Alpha parity",
+  "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, opaque official plan intent storage, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch and explicit opt-in key-helper experiment, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, message-derived recall candidate pagination, moments anti-delete status boundary, offline SQLite schema diagnostics, native WCDB ABI artifact audit, and reproducible packaging; optional third-party WCDB compatibility probe boundary; not full Alpha parity; standalone Codex MCP stdio transport",
   "protocol": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 75,
-    "unsupportedRequestBranches": 53,
+    "implementedRequestBranches": 78,
+    "unsupportedRequestBranches": 50,
     "source": "packages/alpha-engine/index.cjs:SUPPORTED"
   },
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 256,
+      "passed": 259,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -678,8 +678,8 @@
       "status": "passed",
       "record": "docs/independent-support-matrix.json",
       "totalRequestBranches": 128,
-      "implementedRequestBranches": 75,
-      "unsupportedRequestBranches": 53,
+      "implementedRequestBranches": 78,
+      "unsupportedRequestBranches": 50,
       "unsupportedBehavior": "UNIMPLEMENTED"
     },
     "packagedApp": {
@@ -733,14 +733,19 @@
         "app.isPackaged=true",
         "Resources/app and Resources/independent loaded from generated .app",
         "renderer loaded through packaged Electron executable",
-        "renderer → preload → main IPC read synthetic-account and fixture messages"
+        "renderer → preload → main IPC read synthetic-account and fixture messages",
+        "packaged renderer → preload → main IPC read an explicitly indexed PNG and render its preview",
+        "packaged renderer → preload → main IPC copy an explicitly indexed file attachment"
       ],
       "checks": [
         "independentPackagedMarker",
         "electronPackagedMode",
         "packagedRendererLoaded",
         "independentBackendReady",
-        "fixtureReadThroughRendererIpc"
+        "fixtureReadThroughRendererIpc",
+        "packagedImageReadThroughRendererIpc",
+        "packagedImagePreviewRendered",
+        "packagedFileAttachmentThroughRendererIpc"
       ],
       "nativeBackend": "not exercised",
       "appPath": ".runtime/release-artifacts/Alpha Recovered Independent.app",
@@ -886,6 +891,22 @@
       "alphaNativeReplacement": false,
       "realThirdPartyLibrary": "not validated; WeFlow1 library requires its matching WCDB.framework",
       "stubEndToEnd": "passed outside repository with arm64 stub dylib; no third-party binary committed"
+    },
+    "mcpStdio": {
+      "command": "node --test tests/mcp-stdio.test.mjs tests/http-server.test.mjs",
+      "status": "passed",
+      "tests": 6,
+      "transport": "newline-delimited JSON-RPC over local stdio",
+      "methods": [
+        "initialize",
+        "ping",
+        "tools/list",
+        "tools/call"
+      ],
+      "notifications": "no response",
+      "eof": "clean adapter and engine shutdown",
+      "nativeEngine": false,
+      "httpListener": false
     }
   },
   "featureBoundary": {

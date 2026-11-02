@@ -367,6 +367,10 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   t.after(() => service.close());
   const base = `http://${address.host}:${address.port}`;
   const headers = { Authorization: `Bearer ${token}`, 'content-type': 'application/json' };
+  const directInitialize = await service.mcpCall({ jsonrpc: '2.0', id: 0, method: 'initialize', params: {} });
+  assert.equal(directInitialize.result.serverInfo.name, 'alpha-independent-readonly');
+  const directNotification = await service.mcpCall({ jsonrpc: '2.0', method: 'notifications/initialized' });
+  assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.tools.length, 62);

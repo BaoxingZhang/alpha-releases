@@ -2,6 +2,8 @@ import { _electron as electron } from 'playwright-core';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import { DatabaseSync } from 'node:sqlite';
 import { createFixture } from './data-bridge-fixture.mjs';
 import { root, launchEnvironment } from '../scripts/environment.mjs';
 
@@ -18,6 +20,45 @@ const packagedRuntime = path.join(appPath, 'Contents', '.runtime', session);
 const report = { schema: 'alpha-recovered.packaged-independent-smoke.v1', session, checks: {} };
 let app;
 
+async function installMediaFixture(fixture) {
+  const imageId = '0123456789abcdef0123456789abcdef';
+  const imageBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+  const fileBytes = Buffer.from('synthetic packaged attachment\n', 'utf8');
+  const fileId = crypto.createHash('sha256').update(fileBytes).digest('hex');
+  const messageTable = 'Msg_' + crypto.createHash('md5').update(fixture.conversationId).digest('hex');
+  const messageDatabase = path.join(fixture.directory, 'message', 'message_0.db');
+  const imageRelativePath = 'media/packaged-smoke.png';
+  const fileRelativePath = `media/files/${fileId}.zip`;
+  await fs.mkdir(path.join(fixture.directory, 'media', 'files'), { recursive: true, mode: 0o700 });
+  await fs.writeFile(path.join(fixture.directory, imageRelativePath), imageBytes, { mode: 0o600 });
+  await fs.writeFile(path.join(fixture.directory, fileRelativePath), fileBytes, { mode: 0o600 });
+  const db = new DatabaseSync(messageDatabase);
+  db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+    6, 400, 400, 3, 1700000005, 1, 1, `<msg md5="${imageId}"/> packaged image`, Buffer.alloc(0)
+  );
+  db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+    7, 401, 401, 25769803825, 1700000006, 1, 1, `<msg sha256="${fileId}"><appmsg><type>6</type><title>packaged.zip</title><appattach><totallen>${fileBytes.length}</totallen><fileext>zip</fileext></appattach></appmsg></msg>`, Buffer.alloc(0)
+  );
+  db.close();
+  const imageMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({ accountId: fixture.accountId, database: 'message/message_0.db', table: messageTable, localId: '6' })).digest('hex')}`;
+  const fileMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({ accountId: fixture.accountId, database: 'message/message_0.db', table: messageTable, localId: '7' })).digest('hex')}`;
+  await fs.writeFile(path.join(fixture.directory, 'media-index.v1.json'), JSON.stringify({
+    version: 1,
+    accountId: fixture.accountId,
+    entries: [{
+      kind: 'image', id: imageId, rendition: 'source', relativePath: imageRelativePath,
+      sha256: crypto.createHash('sha256').update(imageBytes).digest('hex'), sizeBytes: imageBytes.length,
+      mimeType: 'image/png', accountId: fixture.accountId, conversationId: fixture.conversationId,
+      messageId: imageMessageId, sentAtUnixMs: '1700000005000'
+    }, {
+      kind: 'file', id: fileId, rendition: 'source', relativePath: fileRelativePath,
+      sha256: fileId, sizeBytes: fileBytes.length, mimeType: 'application/zip',
+      accountId: fixture.accountId, conversationId: fixture.conversationId, messageId: fileMessageId
+    }]
+  }, null, 2) + '\n', { mode: 0o600 });
+  return { imageBytes, imageSha256: crypto.createHash('sha256').update(imageBytes).digest('hex'), fileBytes, fileId };
+}
+
 await fs.mkdir(runtime, { recursive: true, mode: 0o700 });
 try {
   const executableStat = await fs.stat(executablePath).catch(() => null);
@@ -27,6 +68,7 @@ try {
   report.checks.independentPackagedMarker = true;
 
   const fixture = await createFixture(path.join(runtime, 'fixture'));
+  const media = await installMediaFixture(fixture);
   const environment = launchEnvironment(session, {
     backend: 'independent',
     dataDir: fixture.directory,
@@ -78,6 +120,45 @@ try {
   report.accounts = accountResult.accounts;
   report.messageCount = accountResult.messages.length;
   report.checks.fixtureReadThroughRendererIpc = true;
+
+  // Complete the real packaged onboarding path before exercising media grants.
+  // The account/message query above intentionally proves DTO reads only; image
+  // and file bytes require the selected-account and renderer grant checks.
+  await page.getByText('已明确绑定索引的图片预览已可用', { exact: false }).waitFor({ timeout: 15000 });
+  await page.getByRole('checkbox', { name: '我已了解，开始连接本地数据' }).click();
+  await page.locator('.setup-footer').getByRole('button', { name: '打开数据副本', exact: true }).click({ timeout: 20000 });
+  await page.locator('.setup-footer').getByRole('button', { name: '暂时跳过', exact: true }).click({ timeout: 20000 });
+  await page.locator('.setup-footer').getByRole('button', { name: '继续', exact: true }).click();
+  await page.locator('.setup-footer').getByRole('button', { name: '进入 Alpha', exact: true }).click();
+  await page.locator('main[data-surface="workspace"]').waitFor();
+  await page.getByText('合成联系人甲', { exact: true }).first().click({ timeout: 15000 });
+  await page.getByText('first source', { exact: true }).first().waitFor({ timeout: 15000 });
+  const selectedMessages = await page.evaluate(async ({ accountId, conversationId }) => window.alpha.messages.list(accountId, conversationId, 100, true), {
+    accountId: fixture.accountId,
+    conversationId: fixture.conversationId
+  });
+  assert.ok(selectedMessages.some(message => message.text.includes('packaged image')), JSON.stringify(selectedMessages));
+  const image = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.readImage(accountId, opaqueId), {
+    accountId: fixture.accountId,
+    opaqueId: media.imageSha256
+  });
+  assert.deepEqual(image, { mimeType: 'image/png', dataBase64: media.imageBytes.toString('base64') });
+  report.checks.packagedImageReadThroughRendererIpc = true;
+  await page.locator('.message-media img').first().waitFor({ timeout: 15000 });
+  assert.equal(await page.locator('.message-media img').first().evaluate((element) => element.complete && element.naturalWidth > 0), true);
+  report.checks.packagedImagePreviewRendered = true;
+  const attachment = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.openAttachment(accountId, opaqueId, 'reveal'), {
+    accountId: fixture.accountId,
+    opaqueId: media.fileId
+  });
+  assert.deepEqual(attachment, { fileName: 'packaged.zip' });
+  const attachmentRoot = path.join(packagedRuntime, 'temp', 'alpha-attachment-open');
+  const attachmentFiles = (await fs.readdir(attachmentRoot, { recursive: true, withFileTypes: true }))
+    .filter(entry => entry.isFile() && entry.name === 'packaged.zip')
+    .map(entry => path.join(entry.parentPath, entry.name));
+  assert.equal(attachmentFiles.length, 1);
+  assert.deepEqual(await fs.readFile(attachmentFiles[0]), media.fileBytes);
+  report.checks.packagedFileAttachmentThroughRendererIpc = true;
 } finally {
   if (app) {
     const closeTimer = setTimeout(() => app.process().kill('SIGKILL'), 8000);

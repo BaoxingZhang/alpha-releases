@@ -10,4 +10,4 @@
 
 当前 Go bridge 只在 bounded `type=6` display envelope 已验证且正文带显式 `sha256` synthetic marker 时生成 `kind=file` ref；这条 marker 不是原生 `filemd5` 或路径语义。主进程 fallback 仍不会从任意文件 XML 或本地目录猜测附件。现有测试覆盖 bridge marker gate、索引读取、哈希、路径、账号和 grant 边界；真实 file message schema 和原生 token 仍列为后续缺口。
 
-打包验证还确认独立版 `.app` 的 packaged resources 含有该模块。组装器会把 Electron 模板的可执行文件重命名为 `AlphaRecoveredIndependent` 并同步更新 `CFBundleExecutable`，因此从生成的 `.app` 二进制启动时 `app.isPackaged=true`，实际走 `Resources/independent`。`tests/packaged-independent-smoke.mjs` 进一步通过 packaged renderer→preload→main IPC 读取一次性 fixture，检查 marker、`alpha-independent-engine` ready、账号和消息；这只证明自有独立 fixture 链路，不扩大真实微信/native 能力边界。
+打包验证还确认独立版 `.app` 的 packaged resources 含有该模块。组装器会把 Electron 模板的可执行文件重命名为 `AlphaRecoveredIndependent` 并同步更新 `CFBundleExecutable`，因此从生成的 `.app` 二进制启动时 `app.isPackaged=true`，实际走 `Resources/independent`。`tests/packaged-independent-smoke.mjs` 进一步通过 packaged renderer→preload→main IPC 读取一次性 fixture，检查 marker、`alpha-independent-engine` ready、账号和消息，并在完成真实离线向导后读取已绑定图片、渲染图片预览和打开文件附件；这只证明自有独立 fixture 链路，不扩大真实微信/native 能力边界。

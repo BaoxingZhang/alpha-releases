@@ -38,6 +38,7 @@
     "prepare:public-source": "node scripts/prepare-public-source.mjs",
     "bundle:recovery": "node scripts/recovery-bundle.mjs",
     "start:independent": "node scripts/launch.mjs --independent",
+    "mcp:independent": "node packages/alpha-engine/mcp-stdio.cjs",
     "test:security": "node --test tests/security.test.mjs tests/independent-boundary-security.test.cjs",
     "test:bridge": "node --test tests/data-bridge.test.mjs",
     "test:engine": "node --test tests/engine*.test.mjs",
