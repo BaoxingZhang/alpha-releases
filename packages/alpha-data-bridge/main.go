@@ -251,6 +251,11 @@ func openBridge(root, accountID string) (_ *bridge, err error) {
 					return err
 				}
 			}
+			if d.tables[groupPinsFixtureTable] {
+				if err := validateColumns(d.db, groupPinsFixtureTable, []string{"chatroom_id", "seq", "sender_id", "server_id", "local_type", "preview", "pinned_by"}); err != nil {
+					return err
+				}
+			}
 			b.contactDB = d
 		case "session.db":
 			if b.sessionDB != nil {
@@ -506,6 +511,9 @@ func (b *bridge) info() any {
 		capabilities = append(capabilities, "contacts.list")
 		if b.contactDB.tables["chat_room"] {
 			capabilities = append(capabilities, "groups.members")
+		}
+		if b.contactDB.tables[groupPinsFixtureTable] {
+			capabilities = append(capabilities, "groups.pinnedMessages")
 		}
 	}
 	if b.sessionDB != nil {

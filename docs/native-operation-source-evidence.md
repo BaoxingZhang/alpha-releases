@@ -82,6 +82,12 @@ Ghidra/REA 观察到的调用约定候选是四个参数：`param_1` 为内部 r
 
 这两个入口均未在本轮执行未知 ABI 调用，也没有向独立 bridge 注入返回的函数表。没有对应头文件、版本匹配的调用方或受控 fixture 前，不应仅凭 `size`/`version` 条件通过 `dlsym` 调用；否则无法判定崩溃、内存所有权或结果错误来自调用方还是原生组件。
 
+### 群置顶静态线索（2026-11-03）
+
+REA 对 `vendor/runtime/native/wcdb/libalpha_native.dylib`（SHA-256 `be2407e9e928cdf8ced0593834c680d3d49bf90926d2ebbe3abde82fdc5c011c`）的只读字符串和引用检查确认了 `wcdb.group_pins` 错误族：`table_missing`、`columns_missing`、`room_ambiguous`、`buffer_not_blob`、`buffer_unreadable`、`decode_failed` 和 `limit_exceeded`。同时观察到 `ext_buffer_` 字符串位于 `0x1d9f65`，唯一静态引用位于 `0x878c4`。REA Evidence：`ev_79d7198833c7dfb1c56cfbbb98214639d9dc09efbd0d4c59d858bf137f20cb69`、`ev_d3ea968de11c1e2220388ee2331251b4c10883a66d3f7da89aedf57ec2a37a5d` 和 `ev_3c4d2c179c71f5efdc1afce2f72fdf3097892b9bde7ddc01a1186d16378410d9`。
+
+进一步的函数级静态分析只能把引用归入合并函数 `FUN_000841a4`（约 316,561 个 code units、1,660 个 blocks、67 个已解析 callees 和 38 个 unresolved calls），没有分离出可以复用的群置顶 handler 或 ABI。当前仍缺少 `ext_buffer_` 的群置顶字段/编码、`__alpha_group_pins` 的真实数据库 schema、请求/响应边界、排序/分页规则和成功运行回放。因此这些字符串只能作为后续授权 probe 的定位线索；独立 Go bridge 现在只接受项目自有的显式 `__alpha_group_pins_v1` synthetic fixture，并将其投影为带 `__alpha_group_pins` 表名的只读记录；原生形状或缺少该 marker 的数据库仍返回 `CAPABILITY_UNAVAILABLE`，不会被视为 native 群置顶已恢复。
+
 ## 对当前缺口的影响
 
 - 朋友圈读取、作者列表和年度朋友圈统计仍保持 `UNIMPLEMENTED`；见 [朋友圈 schema 证据](moments-schema-evidence.md)。

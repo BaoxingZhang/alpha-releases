@@ -1,6 +1,6 @@
 > 后续进展：新增独立后端已实现离线微信 v4 数据副本的核心读取、密码应用锁、已有密钥的加密快照导入、搜索/日期导航，以及显式 synthetic moments/favorites fixture 的只读列表、作者/日计数、合成表情解析和收藏媒体索引边界。当前独立协议支持 74/128 个请求分支；其中 `listMessageRecallRecords` 只从 `__alpha_general_revokes` 派生消息撤回候选，保留 `partial/candidate` 边界，不兼容原生 recall store 或 writer。下文原包缺口仍成立，真实 native schema 不因 synthetic fixture 而闭合。新的实现范围见 [independent-backend.md](independent-backend.md)、[encrypted-import.md](encrypted-import.md) 和 [search-navigation.md](search-navigation.md)。
 
-补充：独立后端已按 [`telemetry-recovery.md`](telemetry-recovery.md) 接通 field 21/22/23 的本地同意状态管理；该实现明确停用发送并不补齐原包缺失的遥测服务端、事件队列或上传协议。
+补充：独立后端已按 [`telemetry-recovery.md`](telemetry-recovery.md) 接通 field 21/22/23 的本地同意状态管理；该实现明确停用发送并不补齐原包缺失的遥测服务端、事件队列或上传协议。REA 还确认原生 `libalpha_native.dylib` 存在 `wcdb.group_pins.*` 错误族及 `ext_buffer_` 引用，但尚未恢复原生群置顶 schema、编码或 ABI；独立模式现在仅支持显式自有 `__alpha_group_pins_v1` synthetic fixture，并固定标记为离线只读能力。原生形状仍保持 fail-closed，静态线索只记录在 [原生 operation 证据](native-operation-source-evidence.md)。
 
 ## 上游功能声明与当前恢复范围
 
@@ -9,7 +9,7 @@
 | 上游声明 | 当前可复用或独立实现 | 仍缺少的证据/实现 |
 | --- | --- | --- |
 | 聊天浏览、搜索、日期跳转、多格式导出和定时导出 | 离线 v4 副本的会话/消息读取、字面搜索、日期计数、JSON/Markdown/HTML/TXT/XLSX 及 ChatLab/SQL/WeClone 派生导出；任务状态、取消、重试和有限重启恢复 | 更多真实消息编码、附件打包、第三方格式的完整兼容语义、增量/冲突规则和大库性能 |
-| 通讯录、群成员和其他资料导出 | 联系人/群成员只读查询与导出；支付、好友申请、撤回、通话为带来源标识的 partial/candidate 记录 | 真实资料库 schema、完整字段语义、好友验证/互动/搜索记录及原始 Alpha 记录库 |
+| 通讯录、群成员和其他资料导出 | 联系人/群成员只读查询与导出；显式 `__alpha_group_pins_v1` synthetic fixture 可投影为有界群置顶记录；支付、好友申请、撤回、通话为带来源标识的 partial/candidate 记录 | 原生资料库 schema、原生群置顶 `__alpha_group_pins` 的字段/分页语义、完整字段语义、好友验证/互动/搜索记录及原始 Alpha 记录库 |
 | 朋友圈、日历、媒体、导出和防删除 | 仅显式 synthetic moments fixture 的文字、作者、日计数和 metadata-only 导出；`__alpha_moment_details` 中显式 projection 的评论可显示经 `__alpha_moment_emoji_v1` 与自有 media-index 校验的合成表情，导出只保留有界 projection 和已验证表情 SHA-256/大小/MIME，不输出 raw XML、原生 token 或 URL；bridge 另有显式 v4 `media.probe` 元数据探针；防删除控制面保持 writer-disabled | 真实 `SnsTimeLine`/`snsmessage` schema、评论 XML、完整互动/媒体解析、原生导出语义和可恢复写入 |
 | 收藏、媒体墙、原图/媒体访问 | synthetic favorites fixture 的分页/过滤/类型计数及显式媒体槽位索引；消息媒体可浏览 metadata；显式 `kind=file` media-index 可复用附件保存/打开 IPC 的只读 SHA-256 fallback；显式 v4 `media.probe` 可读取 hardlink/VoiceInfo metadata | 真实收藏库、source lookup、`media1_` token、路径/密钥定位、解密、缩略图和播放 |
 | 语音播放与语音转文字 | 合成 `__alpha_voice_playback_v1` 映射 + 自有 WAV media-index 的 `decodeVoicePlayback`；`media.probe` 只返回显式 `VoiceInfo` 的数据长度；保留转写 UI/任务协议和模型目录声明 | 真实 VoiceInfo/SILK/FFmpeg/native media cache、转写 worker、模型权重、取消、缓存和输出未恢复 |

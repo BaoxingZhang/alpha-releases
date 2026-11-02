@@ -155,10 +155,17 @@ func validateOperationParams(op string, p *params) error {
 		if p.Cursor != "" || p.TableName == "" || p.Offset < 0 || p.Offset > maxGeneralRecords || p.ConversationID != "" || p.UsernameExact != "" || p.AfterTime != "" || p.BeforeTime != "" || p.Sender != "" || p.GroupByConversation || p.ServerID != "" || p.FromUnixMs != "" || p.ToUnixMs != "" || p.UTCOffsetMinutes != nil {
 			return fail("INVALID_PARAMS", "Invalid general record parameters")
 		}
-		if p.TableName != groupMembersTable && !verifiedGeneralRecordTable(p.TableName) {
+		if p.TableName != groupMembersTable && p.TableName != groupPinsTable && !verifiedGeneralRecordTable(p.TableName) {
 			return fail("UNSUPPORTED_OPERATION", "This general record table is not implemented")
 		}
-		if verifiedGeneralRecordTable(p.TableName) {
+		if p.TableName == groupPinsTable {
+			if p.Query == "" {
+				return fail("INVALID_PARAMS", "Synthetic group pin records require a chatroom query")
+			}
+			if p.Ascending == nil || !*p.Ascending {
+				return fail("INVALID_PARAMS", "Synthetic group pin records require ascending order")
+			}
+		} else if verifiedGeneralRecordTable(p.TableName) {
 			if p.Ascending == nil {
 				return fail("INVALID_PARAMS", "General record tables require an explicit sort order")
 			}

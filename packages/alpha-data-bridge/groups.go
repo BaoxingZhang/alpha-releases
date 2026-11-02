@@ -225,6 +225,9 @@ func roomField(name, value string) generalField {
 }
 
 func (b *bridge) general(ctx context.Context, p params) (any, error) {
+	if p.TableName == groupPinsTable {
+		return b.groupPins(ctx, p)
+	}
 	if verifiedGeneralRecordTable(p.TableName) {
 		return b.generalMessageRecords(ctx, p, p.TableName)
 	}

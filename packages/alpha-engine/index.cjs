@@ -221,7 +221,7 @@ const CONTACT_DIRECTORY_MAX_ITEMS = 100000;
 const CONTACT_DIRECTORY_MAX_PAGES = 256;
 const TYPE_BROWSE_CATEGORIES = new Set(['media', 'file', 'link']);
 const ACCOUNT_MEDIA_CATEGORIES = new Set(['media', 'image', 'video']);
-const GENERAL_RECORD_TABLES = new Set(['__alpha_group_members', '__alpha_general_payments', '__alpha_general_friend_requests', '__alpha_general_revokes', '__alpha_general_calls']);
+const GENERAL_RECORD_TABLES = new Set(['__alpha_group_members', '__alpha_group_pins', '__alpha_general_payments', '__alpha_general_friend_requests', '__alpha_general_revokes', '__alpha_general_calls']);
 const BROWSE_PAGE_MAX = 120;
 const BROWSE_BRIDGE_PAGE = 120;
 const BROWSE_CURSOR_MAX_BYTES = 1024;
@@ -1218,7 +1218,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
   function account(value) {
     const selected = selectedId === accountId && selectedPath === configuredSourcePath;
     if (!value) return { id: accountId, sourceProfile: 'alpha-independent-encrypted-v4', subjectId: selfUsername, displayName: `加密数据源 · ${accountId}`, dataSourcePath: encryptedDir, schemaProfile: 'wechat-v4-encrypted', state: 1, handleState: 3, handleGeneration: 0n, activeHandleGeneration: 0n, selected, capabilities: ['offline-encrypted'], detected: true, usable: false, enabled: false, verified: false, ready: false };
-    const capabilities = ['offline-readonly', ...Object.entries({ 'contacts.list': 'contacts', 'groups.members': 'group-members', 'sessions.list': 'conversations', 'messages.list': 'messages', 'messages.voicePlayback': 'voice-playback', 'moments.list': 'moments', 'moments.authors': 'moment-authors', 'moments.dayCounts': 'moment-day-counts', 'moments.emoji': 'moment-emoji', 'favorites.list': 'favorites', 'favorites.media': 'favorite-media' }).filter(([operation]) => value.capabilities.includes(operation)).map(([, capability]) => capability)];
+  const capabilities = ['offline-readonly', ...Object.entries({ 'contacts.list': 'contacts', 'groups.members': 'group-members', 'groups.pinnedMessages': 'group-pins', 'sessions.list': 'conversations', 'messages.list': 'messages', 'messages.voicePlayback': 'voice-playback', 'moments.list': 'moments', 'moments.authors': 'moment-authors', 'moments.dayCounts': 'moment-day-counts', 'moments.emoji': 'moment-emoji', 'favorites.list': 'favorites', 'favorites.media': 'favorite-media' }).filter(([operation]) => value.capabilities.includes(operation)).map(([, capability]) => capability)];
     return { id: accountId, sourceProfile: 'alpha-independent-offline-v4', subjectId: selfUsername, displayName: `离线数据源 · ${accountId}`, dataSourcePath: configuredSourcePath, schemaProfile: 'wechat-v4-offline', state: 2, handleState: 4, handleGeneration: 1n, activeHandleGeneration: 1n, selected, capabilities, detected: true, usable: true, enabled: true, verified: true, ready: true };
   }
   async function contactName(username) {
@@ -2659,11 +2659,13 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', enc
       } } };
     },
     async listGeneral(request) {
-      await requireAccount(request.accountId);
+      const accountInfo = await requireAccount(request.accountId);
       if (!GENERAL_RECORD_TABLES.has(request.tableName)) throw error('UNIMPLEMENTED');
+      if (request.tableName === '__alpha_group_pins' && !accountInfo.capabilities?.includes('groups.pinnedMessages')) throw error('CAPABILITY_UNAVAILABLE');
       const recordTable = request.tableName !== '__alpha_group_members';
       if (recordTable) {
         if (typeof request.query !== 'string' || Buffer.byteLength(request.query, 'utf8') > 512 || /[\u0000-\u001f\u007f]/.test(request.query) || request.query !== request.query.trim() || request.ascending === undefined || (request.ascending !== true && request.ascending !== false)) throw error('GENERAL_RECORDS_REQUEST_INVALID');
+        if (request.tableName === '__alpha_group_pins' && (!request.query || !request.query.endsWith('@chatroom') || request.query.length > 256)) throw error('GROUP_PINS_REQUEST_INVALID');
       } else if (typeof request.query !== 'string' || request.query !== request.query.trim() || request.query.length <= 9 || request.query.length > 256 || !request.query.endsWith('@chatroom') || /[\u0000-\u001f\u007f]/.test(request.query) || request.ascending !== true) throw error('GROUP_MEMBERS_REQUEST_INVALID');
       const limit = request.limit || 1000, offset = request.offset || 0;
       if (!Number.isInteger(limit) || limit < 1 || limit > 1000 || !Number.isInteger(offset) || offset < 0 || offset > 20000) throw error(recordTable ? 'GENERAL_RECORDS_REQUEST_INVALID' : 'GROUP_MEMBERS_REQUEST_INVALID');

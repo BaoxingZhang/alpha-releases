@@ -38,6 +38,10 @@ db=sqlite3.connect(sys.argv[1] + '/contact/contact.db')
 db.execute('CREATE TABLE chat_room (id INTEGER PRIMARY KEY, username TEXT, owner TEXT, ext_buffer BLOB)')
 db.execute('INSERT INTO chat_room(username,owner,ext_buffer) VALUES (?,?,?)', ('room@chatroom','wxid_alpha',base64.b64decode(sys.argv[2])))
 db.execute('INSERT INTO chat_room(username,owner,ext_buffer) VALUES (?,?,?)', ('room2@chatroom','wxid_beta',base64.b64decode(sys.argv[3])))
+db.execute('CREATE TABLE __alpha_group_pins_v1 (chatroom_id TEXT NOT NULL, seq TEXT NOT NULL, sender_id TEXT NOT NULL, server_id TEXT NOT NULL, local_type INTEGER NOT NULL, preview TEXT NOT NULL, pinned_by TEXT NOT NULL)')
+db.executemany('INSERT INTO __alpha_group_pins_v1 VALUES (?,?,?,?,?,?,?)', [
+ ('room@chatroom','1','wxid_alpha','9223372036854775808',1,'合成置顶第一条','wxid_alpha'),
+ ('room@chatroom','2','wxid_beta','9',49,'合成置顶第二条','wxid_alpha')])
 db.execute('INSERT INTO contact VALUES (?,?,?,?,?)', ('room@chatroom',2,'','合成群聊',''))
 db.commit(); db.close()
 db=sqlite3.connect(sys.argv[1] + '/session/session.db')
