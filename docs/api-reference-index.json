@@ -366,9 +366,9 @@
         "nativeSchemaSupported": false,
         "sourceMethod": "getMessageSource",
         "rawAvailable": false,
-      "mediaReady": false,
-      "tokenPrefix": "independent1_",
-      "tokenEncoding": "canonical-base64url"
+        "mediaReady": false,
+        "tokenPrefix": "independent1_",
+        "tokenEncoding": "canonical-base64url"
       },
       {
         "methods": [
@@ -398,6 +398,30 @@
           "media_*.db"
         ],
         "mediaBytesRead": false,
+        "alphaMedia1Tokens": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/media/indexed/<sha256>",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-indexed-media",
+        "complete": false,
+        "nativeSchemaSupported": false,
+        "sourceMethod": "readIndexedMedia",
+        "media": "verified media-index bytes only",
+        "binding": [
+          "account_id",
+          "conversation_id",
+          "message_id",
+          "media_id",
+          "kind",
+          "rendition",
+          "sha256"
+        ],
+        "sha256": "lowercase 64-hex",
+        "mediaBytesRead": true,
         "alphaMedia1Tokens": false
       }
     ],
@@ -430,9 +454,9 @@
         "sourceMethod": "getMessageSource",
         "scope": "verified-message-text",
         "rawAvailable": false,
-      "mediaReady": false,
-      "tokenPrefix": "independent1_",
-      "tokenEncoding": "canonical-base64url"
+        "mediaReady": false,
+        "tokenPrefix": "independent1_",
+        "tokenEncoding": "canonical-base64url"
       },
       {
         "name": "alpha-independent.analytics.analyze_annual",
@@ -572,6 +596,27 @@
           "preview",
           "pinned_by"
         ]
+      },
+      {
+        "name": "alpha-independent.media.read_indexed",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-indexed-media",
+        "complete": false,
+        "nativeSchemaSupported": false,
+        "sourceMethod": "readIndexedMedia",
+        "media": "verified media-index bytes as bounded base64",
+        "binding": [
+          "account_id",
+          "conversation_id",
+          "message_id",
+          "media_id",
+          "kind",
+          "rendition",
+          "sha256"
+        ],
+        "sha256": "lowercase 64-hex",
+        "mediaBytesRead": true,
+        "alphaMedia1Tokens": false
       }
     ],
     "nativeMomentsSchemasSupported": [],
