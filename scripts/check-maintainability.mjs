@@ -177,7 +177,7 @@ const requiredFiles = [
   'packages/alpha-desktop/backend-mode.cjs', 'packages/alpha-desktop/update-mode.cjs', 'packages/alpha-desktop/recovery-runtime.cjs', 'vendor/chatlog/go.mod',
   'provenance/go-toolchain.json', 'provenance/recovered-files.json', 'provenance/maintenance-changes.json', 'provenance/project-metadata.json', 'provenance/independent-update-mode.json',
   'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', 'docs/maintainer-playbook.md',
-  'docs/local-build-and-run.md', 'docs/native-runtime-provenance.json', 'docs/http-readonly-adapter-recovery.md', 'docs/optional-asr.md', 'docs/media-decoder-evidence.md', 'docs/media-index-foundation.md', 'docs/file-attachment-recovery.md', 'docs/media-schema-evidence.md',
+  'docs/local-build-and-run.md', 'docs/native-runtime-provenance.json', 'docs/http-readonly-adapter-recovery.md', 'docs/optional-asr.md', 'docs/cross-platform-release-evidence.json', 'docs/media-decoder-evidence.md', 'docs/media-index-foundation.md', 'docs/file-attachment-recovery.md', 'docs/media-schema-evidence.md',
   'docs/independent-validation-current.json', 'docs/independent-support-matrix.json', 'docs/native-smoke-validation.json', 'docs/native-abi-validation.json'
 ];
 for (const relativePath of requiredFiles) await exists(relativePath);

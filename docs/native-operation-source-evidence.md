@@ -104,6 +104,14 @@ REA 对 `vendor/runtime/native/wcdb/libalpha_native.dylib`（SHA-256 `be2407e9e9
 
 ## 对当前缺口的影响
 
+### v0.3.5 Linux 发布包的跨平台静态证据
+
+为了检查 macOS arm64 包是否只是缺少平台资源，另外审查了上游 v0.3.5 的 Linux x64 `.deb`。Linux 包的 `app.asar` 解包后与 macOS 包逐文件比较，均为 373 个文件，提取清单摘要为 `680e4e80c073f8f658e4d280a04042014f22799f9bb50742eec7399628d117c7`；因此没有在 Linux 包中发现额外的 JavaScript/TypeScript 应用源码。发布包、关键 ELF 哈希和扫描到的静态线索见 [`cross-platform-release-evidence.json`](cross-platform-release-evidence.json)。
+
+Linux `alpha-data-host`、`alpha-engine`、`alpha-key-worker` 及三个 WCDB `.so` 只作为 shipped-artifact 静态证据，补充了 `CdnMediaTransferRequest/Response`、`ReadImageMedia*`、`ReadVoiceBlobResponse`、`PeekCachedMedia*`、`ResolveImageMediaRequest`、`MessageMutation*`、`OperationPermitClaims`、`VoiceInfo`、`favorite-locator`、`moment_interaction`、`persona` 和 `NATIVE_CDN_MEDIA` 等符号/字符串线索；`alpha-key-worker` 还暴露了 `KEY_PROVIDER_AUTH_FAILED`、`KEY_SCAN_NO_MATCH` 和 `IMAGE_KEY_*` 错误族。这些线索能帮助未来在获得 ABI 或受控回放后定位入口，但没有提供字段布局、授权票据、真实数据库 fixture、调用约定或 macOS 可替换实现。
+
+Linux 二进制不会复制到 macOS flavor，也不会被当前独立 backend 加载。它们不能证明原生 operation 成功、不能替代源码或许可证，也不改变下面各项 `UNIMPLEMENTED`/writer-disabled 的边界。
+
 - 朋友圈读取、作者列表和年度朋友圈统计仍保持 `UNIMPLEMENTED`；见 [朋友圈 schema 证据](moments-schema-evidence.md)。
 - 原生收藏读取、原生收藏媒体和收藏导出仍保持不可用；独立实现提供自有 `__alpha_favorites_v1` fixture 的 `listFavorites`，以及在另有 `__alpha_favorite_media_v1` 与自有 `media-index.v1.json` 时的 synthetic 媒体槽位/解析，见 [收藏 schema 证据](favorites-schema-evidence.md)。这些分支不证明真实收藏 schema 或 native token 兼容。
 - 原生图片定位、语音 blob 读取和媒体 key 获取仍没有可验证的 locator/schema/授权语义。

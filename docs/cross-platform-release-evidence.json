@@ -1,0 +1,102 @@
+{
+  "schema": "alpha.cross-platform-release-evidence.v1",
+  "observedAt": "2026-11-03",
+  "source": {
+    "repository": "https://github.com/xunchahaha/alpha-releases",
+    "release": "v0.3.5",
+    "asset": "Alpha-0.3.5-x64.deb",
+    "assetUrl": "https://github.com/xunchahaha/alpha-releases/releases/download/v0.3.5/Alpha-0.3.5-x64.deb",
+    "assetSizeBytes": 140303892,
+    "assetSha256": "e9398fc7e61300c743592d83a38820fc84524864921c0b1df3ef9a0e97137d48",
+    "platform": "linux-x64"
+  },
+  "applicationComparison": {
+    "linuxAppAsarPath": "opt/Alpha/resources/app.asar",
+    "linuxAppAsarSha256": "0a5e37f08c121061459a10aa23f8af2d879561d98913c70194b09995240219d1",
+    "macosAndLinuxFileCount": 373,
+    "extractedManifestDigest": "680e4e80c073f8f658e4d280a04042014f22799f9bb50742eec7399628d117c7",
+    "comparison": "identical-within-extracted-app-asar-manifests",
+    "method": "Electron asar extraction followed by per-file SHA-256 comparison",
+    "limitation": "This compares packaged app JavaScript/resources; it does not prove native binary equivalence or source availability."
+  },
+  "linuxNativeArtifacts": [
+    {
+      "path": "opt/Alpha/resources/bin/alpha-data-host",
+      "sha256": "df6a024ac7f58f9d1436477d177a12bdf5b65807481e06510fa2c7b195db426b"
+    },
+    {
+      "path": "opt/Alpha/resources/bin/alpha-engine",
+      "sha256": "97dcb09ce06c4fe06e05256944867ebfef801dd23bf1131fc8e495cd873623af"
+    },
+    {
+      "path": "opt/Alpha/resources/bin/alpha-key-worker",
+      "sha256": "692d8e62e001b4bf3f03610bfc4b93715f7b4307ae094e6448aeb4d7c6b52c88"
+    },
+    {
+      "path": "opt/Alpha/resources/native/wcdb/libalpha_native.so",
+      "sha256": "9b3826501d40f2b23e61dbbc016cc2bb4d68ca57231300639616c99498d6fbf8"
+    },
+    {
+      "path": "opt/Alpha/resources/native/wcdb/libalpha_sqlcipher_readonly.so",
+      "sha256": "7a1d66582b2d833c510983175cad713c8942b7a34921d780624a2048b700e00f"
+    },
+    {
+      "path": "opt/Alpha/resources/native/wcdb/libalpha_sqlcipher_retention_writer.so",
+      "sha256": "7c77123dc2c20a3223307845f89fa8166d9369aa593ab31dc1b4d10b65621bb0"
+    }
+  ],
+  "staticOperationSignals": [
+    "native.list_messages",
+    "native.list_moment_authors",
+    "native.authorize_operation",
+    "alpha.wcdb-mutation",
+    "CdnMediaTransferRequest/Response",
+    "ReadImageMediaRequest/Response",
+    "ReadVoiceBlobResponse",
+    "PeekCachedMedia*",
+    "ResolveImageMediaRequest",
+    "MessageMutation*",
+    "OperationPermitClaims",
+    "appMsgSourceName",
+    "cdn-v1",
+    "VoiceInfo",
+    "favorite-locator",
+    "moment_interaction",
+    "persona",
+    "NATIVE_CDN_MEDIA"
+  ],
+  "nativeFunctionSignals": [
+    "alpha_data_host::native_core::NativeCore::read_image_media",
+    "alpha_data_host::native_core::NativeCore::read_voice_blob_bounded",
+    "alpha_data_host::native_core::NativeCore::read_voice_blob_impl",
+    "alpha_data_host::native_core::NativeCore::lookup_image_hardlink",
+    "alpha_data_host::native_core::NativeCore::resolve_image_media_with_preference",
+    "alpha_data_host::native_core::NativeCore::resolve_favorite_image_media",
+    "alpha_data_host::native_core::NativeCore::resolve_favorite_object_media",
+    "alpha_data_host::native_core::NativeCore::lookup_favorite_source",
+    "alpha_data_host::native_core::NativeCore::locate_favorite_media",
+    "alpha_data_host::native_core::NativeCore::list_favorites",
+    "alpha_data_host::native_core::NativeCore::list_moments",
+    "alpha_data_host::native_core::NativeCore::list_general",
+    "alpha_data_host::native_core::cdn_media_calls::{mint_plan,plan_message,cdn_already_local,cdn_append}",
+    "alpha_data_host::native_core::message_mutation_calls::{configure,configure_private,clear}",
+    "alpha_data_host::native_core::mutation_locator::{Target::signed_resource,verify_resource_binding,Cache::mint_with,resolve_inner}",
+    "alpha_data_host::native_core::cached_media_peek::{peek,peek_one}",
+    "alpha_data_host::native_core::media_jobs::{start,poll,outcome,work}",
+    "alpha_data_host::native_core::emoji_media::{Source::fetch,fetch_with,complete,parse,merge_catalog}",
+    "alpha_data_host::native_core::chat_export_jobs"
+  ],
+  "keyHelperSignals": [
+    "KEY_PROVIDER_AUTH_FAILED",
+    "KEY_SCAN_NO_MATCH",
+    "IMAGE_KEY_*",
+    "ALPHA_XKEY_*"
+  ],
+  "interpretation": "Linux native artifacts provide additional shipped-artifact symbols and error taxonomy for future ABI work. They are platform-specific binaries and static observations only; they do not provide source, field layouts, authorization tickets, database fixtures, or a safe macOS ABI replacement.",
+  "notUsedAs": [
+    "macOS runtime replacement",
+    "native schema proof",
+    "successful real-data operation proof",
+    "license or source authorization"
+  ]
+}
