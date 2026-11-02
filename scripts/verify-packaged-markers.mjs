@@ -19,7 +19,7 @@ async function readJson(filename, code) {
   }
 }
 
-async function verifyFlavor({ appName, backend, bundleIdentifier }) {
+async function verifyFlavor({ appName, backend, bundleIdentifier, executableName }) {
   const appPath = path.join(artifacts, `${appName}.app`);
   const manifestPath = `${appPath}.manifest.json`;
   const markerPath = path.join(appPath, markerRelativePath);
@@ -32,8 +32,15 @@ async function verifyFlavor({ appName, backend, bundleIdentifier }) {
   if (marker.schema !== 'alpha.recovered.backend-mode.v1' || marker.backend !== backend) {
     fail('PACKAGED_MARKER_FLAVOR_MISMATCH', appName);
   }
+  const executableRelativePath = `Contents/MacOS/${executableName}`;
   if (!Array.isArray(manifest.files) || !manifest.files.some(file => file.path === markerRelativePath && file.mode === '644')) {
     fail('PACKAGED_MARKER_MISSING_FROM_MANIFEST', appName);
+  }
+  if (!manifest.files.some(file => file.path === executableRelativePath && file.mode && Number.parseInt(file.mode, 8) & 0o111)) {
+    fail('PACKAGED_EXECUTABLE_MISSING_FROM_MANIFEST', appName);
+  }
+  if (manifest.files.some(file => file.path === 'Contents/MacOS/Electron')) {
+    fail('PACKAGED_TEMPLATE_EXECUTABLE_RETAINED', appName);
   }
   let updateMode;
   if (backend === 'independent') {
@@ -48,12 +55,12 @@ async function verifyFlavor({ appName, backend, bundleIdentifier }) {
     updateMode = { path: updateMarkerRelativePath, mode: updateMarker.mode, reason: updateMarker.reason ?? null };
   }
   const plist = await fs.readFile(plistPath, 'utf8').catch(() => fail('PACKAGED_PLIST_MISSING', appName));
-  for (const value of [appName, bundleIdentifier]) if (!plist.includes(`<string>${value}</string>`)) fail('PACKAGED_IDENTITY_MISMATCH', `${appName}:${value}`);
-  return { appName, backend, marker: markerRelativePath, ...(updateMode ? { updateMode } : {}), manifest: path.relative(root, manifestPath).split(path.sep).join('/'), fileCount: manifest.fileCount, artifactDigest: manifest.artifactDigest };
+  for (const value of [appName, bundleIdentifier, executableName]) if (!plist.includes(`<string>${value}</string>`)) fail('PACKAGED_IDENTITY_MISMATCH', `${appName}:${value}`);
+  return { appName, backend, marker: markerRelativePath, executable: executableRelativePath, ...(updateMode ? { updateMode } : {}), manifest: path.relative(root, manifestPath).split(path.sep).join('/'), fileCount: manifest.fileCount, artifactDigest: manifest.artifactDigest };
 }
 
 const results = await Promise.all([
-  verifyFlavor({ appName: 'Alpha Recovered', backend: 'original', bundleIdentifier: 'local.alpha.recovered' }),
-  verifyFlavor({ appName: 'Alpha Recovered Independent', backend: 'independent', bundleIdentifier: 'local.alpha.recovered.independent' })
+  verifyFlavor({ appName: 'Alpha Recovered', backend: 'original', bundleIdentifier: 'local.alpha.recovered', executableName: 'AlphaRecovered' }),
+  verifyFlavor({ appName: 'Alpha Recovered Independent', backend: 'independent', bundleIdentifier: 'local.alpha.recovered.independent', executableName: 'AlphaRecoveredIndependent' })
 ]);
 console.log(JSON.stringify({ schema: 'alpha-recovered.packaged-markers.v1', flavors: results }, null, 2));

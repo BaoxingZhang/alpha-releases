@@ -34,6 +34,24 @@ test('independent app flavor gets a distinct display name and bundle identifier'
   assert.match(result, /CFBundleIdentifier<\/key>\s*<string>local\.alpha\.recovered\.independent<\/string>/);
 });
 
+test('generated app can opt into Electron packaged mode with its recovered executable', () => {
+  const source = '<key>CFBundleDisplayName</key>\n\t<string>Electron</string>\n'
+    + '<key>CFBundleName</key>\n\t<string>Electron</string>\n'
+    + '<key>CFBundleIdentifier</key>\n\t<string>com.github.Electron</string>\n'
+    + '<key>CFBundleExecutable</key>\n\t<string>Electron</string>';
+  const result = rewriteElectronInfoPlist(source, { executableName: 'AlphaRecoveredIndependent' });
+  assert.match(result, /CFBundleExecutable<\/key>\s*<string>AlphaRecoveredIndependent<\/string>/);
+});
+
+test('packaging rejects a template without CFBundleExecutable when strict mode is enabled', () => {
+  assert.throws(() => rewriteElectronInfoPlist(
+    '<key>CFBundleDisplayName</key>\n\t<string>Electron</string>\n'
+      + '<key>CFBundleName</key>\n\t<string>Electron</string>\n'
+      + '<key>CFBundleIdentifier</key>\n\t<string>com.github.Electron</string>',
+    { executableName: 'AlphaRecovered', strictExecutable: true }
+  ), /MACOS_APP_INFO_PLIST_EXECUTABLE_MISSING/);
+});
+
 test('independent update mode fails closed until the project ships its own policy', async () => {
   const projectConfig = JSON.parse(await fs.readFile(path.join(path.dirname(path.dirname(new URL(import.meta.url).pathname)), 'provenance', 'independent-update-mode.json'), 'utf8'));
   assert.equal(updateMode.normalizeIndependentUpdateMode(projectConfig).mode, 'disabled');

@@ -12,6 +12,13 @@ export const DEFAULT_OUTPUT = path.join(root, '.runtime', 'release-artifacts', '
 export const DEFAULT_INDEPENDENT_OUTPUT = path.join(root, '.runtime', 'release-artifacts', 'Alpha Recovered Independent.app');
 const APP_NAME = 'Alpha Recovered';
 const INDEPENDENT_APP_NAME = 'Alpha Recovered Independent';
+// The Electron template uses `Electron` as its executable name. Keeping that
+// name makes an unpacked Resources/app directory look like a development
+// launch to Electron (`app.isPackaged === false`) even when it lives inside a
+// .app bundle. Give each recovered flavor its own executable so the packaged
+// runtime takes the same branch that users get from the generated app.
+const EXECUTABLE_NAME = 'AlphaRecovered';
+const INDEPENDENT_EXECUTABLE_NAME = 'AlphaRecoveredIndependent';
 const REQUIRED_INDEPENDENT_DEPENDENCY = path.join('node_modules', '@bufbuild', 'protobuf', 'dist', 'commonjs', 'wire', 'index.js');
 export const UPDATE_MODE_MARKER = 'Contents/Resources/alpha-update-mode.json';
 const UPDATE_MODE_CONFIG = path.join(root, 'provenance', 'independent-update-mode.json');
@@ -55,15 +62,31 @@ export async function copyDirectoryContents(source, destination, { allowSymlinks
   }
 }
 
-export function rewriteElectronInfoPlist(source, { appName = APP_NAME, bundleIdentifier = 'local.alpha.recovered' } = {}) {
+export function rewriteElectronInfoPlist(source, {
+  appName = APP_NAME,
+  bundleIdentifier = 'local.alpha.recovered',
+  executableName = 'Electron',
+  strictExecutable = false
+} = {}) {
   const replacements = [
     ['<key>CFBundleDisplayName</key>\n\t<string>Electron</string>', `<key>CFBundleDisplayName</key>\n\t<string>${appName}</string>`],
     ['<key>CFBundleName</key>\n\t<string>Electron</string>', `<key>CFBundleName</key>\n\t<string>${appName}</string>`],
     ['<key>CFBundleIdentifier</key>\n\t<string>com.github.Electron</string>', `<key>CFBundleIdentifier</key>\n\t<string>${bundleIdentifier}</string>`]
   ];
+  if (strictExecutable || source.includes('<key>CFBundleExecutable</key>\n\t<string>Electron</string>')) {
+    replacements.push(['<key>CFBundleExecutable</key>\n\t<string>Electron</string>', `<key>CFBundleExecutable</key>\n\t<string>${executableName}</string>`]);
+  }
   let output = source;
-  for (const [before, after] of replacements) output = output.replace(before, after);
-  for (const [, after] of replacements) if (!output.includes(after)) fail('MACOS_APP_INFO_PLIST_REWRITE_FAILED');
+  for (const [before, after] of replacements) {
+    const present = output.includes(before);
+    if (!present && before.startsWith('<key>CFBundleExecutable</key>')) {
+      if (strictExecutable) fail('MACOS_APP_INFO_PLIST_EXECUTABLE_MISSING');
+      continue;
+    }
+    if (!present) fail('MACOS_APP_INFO_PLIST_REWRITE_FAILED');
+    output = output.replace(before, after);
+    if (!output.includes(after)) fail('MACOS_APP_INFO_PLIST_REWRITE_FAILED');
+  }
   return output;
 }
 
@@ -142,6 +165,10 @@ export async function packageMacosApp({ output, createDmg = false, independent =
   await fs.rm(destination, { recursive: true, force: true });
   await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
   await copyDirectoryContents(electronApp, destination, { allowSymlinks: true, sourceRoot: electronApp });
+  const executableName = independent ? INDEPENDENT_EXECUTABLE_NAME : EXECUTABLE_NAME;
+  const templateExecutable = path.join(destination, 'Contents', 'MacOS', 'Electron');
+  const executable = path.join(destination, 'Contents', 'MacOS', executableName);
+  await fs.rename(templateExecutable, executable);
   const resources = path.join(destination, 'Contents', 'Resources');
   await copyDirectoryContents(recoveredApp, path.join(resources, 'app'));
   await copyDirectoryContents(runtime, resources);
@@ -157,8 +184,12 @@ export async function packageMacosApp({ output, createDmg = false, independent =
   }
   const plistPath = path.join(destination, 'Contents', 'Info.plist');
   const plist = await fs.readFile(plistPath, 'utf8');
-  await fs.writeFile(plistPath, rewriteElectronInfoPlist(plist, { appName: productName, bundleIdentifier: independent ? 'local.alpha.recovered.independent' : 'local.alpha.recovered' }), { mode: 0o644 });
-  const executable = path.join(destination, 'Contents', 'MacOS', 'Electron');
+  await fs.writeFile(plistPath, rewriteElectronInfoPlist(plist, {
+    appName: productName,
+    bundleIdentifier: independent ? 'local.alpha.recovered.independent' : 'local.alpha.recovered',
+    executableName,
+    strictExecutable: true
+  }), { mode: 0o644 });
   const executableStat = await fs.stat(executable);
   await fs.chmod(executable, executableStat.mode | 0o111);
   const files = await buildFileManifest(destination, { allowSymlinks: true, sourceRoot: destination });
@@ -173,7 +204,7 @@ export async function packageMacosApp({ output, createDmg = false, independent =
     projectSigned: false,
     notarized: false,
     backendMode: independent ? 'independent' : 'original',
-    source: { recoveredApp: 'dist/app', originalRuntime: 'build/runtime-bundle', independentResources: 'build/packaged-resources/independent', backendModeMarker: 'Contents/Resources/alpha-backend-mode.json', ...(independent ? { updateModeConfig: 'provenance/independent-update-mode.json', updateModeMarker: UPDATE_MODE_MARKER } : {}) },
+    source: { recoveredApp: 'dist/app', originalRuntime: 'build/runtime-bundle', independentResources: 'build/packaged-resources/independent', backendModeMarker: 'Contents/Resources/alpha-backend-mode.json', executable: `Contents/MacOS/${executableName}`, ...(independent ? { updateModeConfig: 'provenance/independent-update-mode.json', updateModeMarker: UPDATE_MODE_MARKER } : {}) },
     gitCommit: await gitCommit(),
     artifactDigest: manifestDigest(files),
     fileCount: files.length,

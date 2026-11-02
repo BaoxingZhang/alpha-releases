@@ -39,6 +39,7 @@
     "test:bridge": "node --test tests/data-bridge.test.mjs",
     "test:engine": "node --test tests/engine*.test.mjs",
     "test:independent": "node tests/independent-smoke.mjs",
+    "test:packaged-independent": "node tests/packaged-independent-smoke.mjs",
     "test:encrypted": "node tests/encrypted-smoke.mjs",
     "test:search": "node tests/search-smoke.mjs",
     "demo": "node scripts/demo.mjs",
