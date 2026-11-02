@@ -209,6 +209,48 @@ test('removeAccount clears independent state, preserves the source, and requires
   assert.equal(await fs.stat(tombstone).then(() => true, () => false), false);
 });
 
+test('official plan creation intent stores opaque ciphertext with idempotent CAS semantics', async t => {
+  const f = await fixture(t), c = f.start(); await handshake(c);
+  const scheduleId = '11111111-1111-4111-8111-111111111111';
+  const generation = '22222222-2222-4222-8222-222222222222';
+  const ciphertext = Uint8Array.from([0, 1, 2, 250, 255]);
+  const entry = { accountId, scheduleId, generation, ciphertext };
+  assert.deepEqual(ok(await c.send('putPendingOfficialPlanCreate', { entry }), 'putPendingOfficialPlanCreate'), { inserted: true });
+  const stored = ok(await c.send('getPendingOfficialPlanCreate', { accountId }), 'getPendingOfficialPlanCreate').entry;
+  assert.equal(stored.accountId, accountId);
+  assert.equal(stored.scheduleId, scheduleId);
+  assert.equal(stored.generation, generation);
+  assert.deepEqual(Buffer.from(stored.ciphertext), Buffer.from(ciphertext));
+  assert.equal((await fs.stat(path.join(f.stateDir, 'official-plan-intent.v1.json'))).mode & 0o077, 0);
+  assert.deepEqual(ok(await c.send('putPendingOfficialPlanCreate', { entry }), 'putPendingOfficialPlanCreate'), { inserted: false });
+  assert.equal((await c.send('putPendingOfficialPlanCreate', { entry: { ...entry, ciphertext: Uint8Array.from([9]) } })).error.code, 'OFFICIAL_SCHEDULE_INTENT_CONFLICT');
+  assert.equal((await c.send('getPendingOfficialPlanCreate', { accountId: 'other-account' })).error.code, 'ACCOUNT_NOT_FOUND');
+  assert.deepEqual(ok(await c.send('clearPendingOfficialPlanCreate', { accountId, scheduleId, generation: '33333333-3333-4333-8333-333333333333' }), 'clearPendingOfficialPlanCreate'), { removed: false });
+  await c.close();
+
+  const reopened = f.start(); await handshake(reopened);
+  const persisted = ok(await reopened.send('getPendingOfficialPlanCreate', { accountId }), 'getPendingOfficialPlanCreate').entry;
+  assert.deepEqual(Buffer.from(persisted.ciphertext), Buffer.from(ciphertext));
+  assert.deepEqual(ok(await reopened.send('clearPendingOfficialPlanCreate', { accountId, scheduleId, generation }), 'clearPendingOfficialPlanCreate'), { removed: true });
+  assert.equal(ok(await reopened.send('getPendingOfficialPlanCreate', { accountId }), 'getPendingOfficialPlanCreate').entry, undefined);
+
+  const secondGeneration = '44444444-4444-4444-8444-444444444444';
+  assert.deepEqual(ok(await reopened.send('putPendingOfficialPlanCreate', { entry: { accountId, scheduleId, generation: secondGeneration, ciphertext } }), 'putPendingOfficialPlanCreate'), { inserted: true });
+  assert.deepEqual(ok(await reopened.send('removeAccount', { accountId }), 'removeAccount'), { removed: true, selectedAccountId: '' });
+  assert.equal(await fs.stat(path.join(f.stateDir, 'official-plan-intent.v1.json')).then(() => true, () => false), false);
+  assert.equal((await reopened.send('getPendingOfficialPlanCreate', { accountId })).error.code, 'ACCOUNT_NOT_FOUND');
+  assert.equal(ok(await reopened.send('discoverAccounts', { sourceLocation: f.dataDir }), 'discoverAccounts').accounts.length, 1);
+  await reopened.close();
+  await fs.writeFile(path.join(f.stateDir, 'official-plan-intent.v1.json'), '{"version":1,"entry":null}\n', { mode: 0o600 });
+  const corrupted = f.start(); await handshake(corrupted);
+  assert.equal((await corrupted.send('getPendingOfficialPlanCreate', { accountId })).error.code, 'OFFICIAL_SCHEDULE_INTENT_CORRUPT');
+  await corrupted.close();
+  await fs.rm(path.join(f.stateDir, 'official-plan-intent.v1.json'));
+  await fs.symlink(path.join(f.directory, 'outside-intent.json'), path.join(f.stateDir, 'official-plan-intent.v1.json'));
+  const linked = f.start(); await handshake(linked);
+  assert.equal((await linked.send('getPendingOfficialPlanCreate', { accountId })).error.code, 'OFFICIAL_SCHEDULE_INTENT_CORRUPT');
+});
+
 test('read-only contact export uses verified contact fields and rejects unsupported classifications/media', async t => {
   const f = await fixture(t), c = f.start(); await handshake(c);
   const destination = path.join(f.directory, 'contacts.json');

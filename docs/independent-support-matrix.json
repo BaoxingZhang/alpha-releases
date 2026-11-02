@@ -8,8 +8,8 @@
   },
   "counts": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 75,
-    "unsupportedRequestBranches": 53
+    "implementedRequestBranches": 78,
+    "unsupportedRequestBranches": 50
   },
   "supported": [
     {
@@ -135,6 +135,18 @@
     {
       "name": "removeAccount",
       "fieldNumber": 70
+    },
+    {
+      "name": "putPendingOfficialPlanCreate",
+      "fieldNumber": 86
+    },
+    {
+      "name": "getPendingOfficialPlanCreate",
+      "fieldNumber": 87
+    },
+    {
+      "name": "clearPendingOfficialPlanCreate",
+      "fieldNumber": 88
     },
     {
       "name": "listChatExportSchedules",
@@ -363,10 +375,6 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "clearPendingOfficialPlanCreate",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "closeMessageSession",
       "status": "UNIMPLEMENTED"
     },
@@ -399,10 +407,6 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "getPendingOfficialPlanCreate",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "listMaterialOfficialExports",
       "status": "UNIMPLEMENTED"
     },
@@ -428,10 +432,6 @@
     },
     {
       "name": "provisionApplicationLock",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "putPendingOfficialPlanCreate",
       "status": "UNIMPLEMENTED"
     },
     {

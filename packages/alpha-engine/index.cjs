@@ -24,7 +24,7 @@ const { loadMediaIndex, readMediaEntry } = require('./media-index.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, acquireDatabaseKey: 69, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, listMessageRecallRecords: 100, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, acquireDatabaseKey: 69, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, listMessageRecallRecords: 100, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23, putPendingOfficialPlanCreate: 86, getPendingOfficialPlanCreate: 87, clearPendingOfficialPlanCreate: 88 });
 // These enum values are recovered from the Alpha protocol. The independent
 // engine can report the local package boundary, but it cannot start or claim
 // a dynamically entitled native component. Keep this status explicit and
@@ -61,6 +61,18 @@ function telemetryCategories(value) {
     seen.add(category);
     return category;
   });
+}
+function officialPlanIntentUuid(value) {
+  if (typeof value !== 'string' || value === '00000000-0000-0000-0000-000000000000' || !OFFICIAL_PLAN_INTENT_UUID.test(value)) throw error('OFFICIAL_SCHEDULE_INTENT_INVALID');
+  return value;
+}
+function officialPlanIntentAccount(value) {
+  if (typeof value !== 'string' || !value || value.length > 256 || value !== value.trim() || /[\u0000-\u001f\u007f]/.test(value)) throw error('OFFICIAL_SCHEDULE_INTENT_INVALID');
+  return value;
+}
+function officialPlanIntentCiphertext(value) {
+  if (!(value instanceof Uint8Array) || value.length < 1 || value.length > OFFICIAL_PLAN_INTENT_MAX_CIPHERTEXT) throw error('OFFICIAL_SCHEDULE_INTENT_INVALID');
+  return Buffer.from(value);
 }
 function uint32(value) {
   const n = decimal(value);
@@ -270,6 +282,10 @@ const TELEMETRY_STATE_MAX_BYTES = 16 * 1024;
 const TELEMETRY_DEFAULT_CONSENT_VERSION = 'telemetry-v1';
 const TELEMETRY_DISABLED_ERROR = 'INDEPENDENT_TELEMETRY_DISABLED';
 const TELEMETRY_DECISIONS = new Set(['granted', 'revoked']);
+const OFFICIAL_PLAN_INTENT_VERSION = 1;
+const OFFICIAL_PLAN_INTENT_MAX_BYTES = 384 * 1024;
+const OFFICIAL_PLAN_INTENT_MAX_CIPHERTEXT = 262144;
+const OFFICIAL_PLAN_INTENT_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const IMPORT_EVENT_HISTORY_LIMIT = 64;
 const IMPORT_EVENT_TOTAL_STEPS = 5;
 const IMPORT_EVENT_PHASES = Object.freeze({ discovering: 1, scanning: 2, capturing: 3, verifying: 4, sealing: 5, completed: 6 });
@@ -867,6 +883,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
   const selectionFile = path.join(stateDir, 'selected-source.v1.json');
   const removedAccountFile = path.join(stateDir, 'removed-account.v1.json');
   const telemetryFile = path.join(stateDir, 'telemetry-consent.v1.json');
+  const officialPlanIntentFile = path.join(stateDir, 'official-plan-intent.v1.json');
   let selectedId = '', selectedPath = '', accountRemoved = false, accountRemovalInProgress = false, bridge = null, info = null, helloDone = false;
   let telemetryStateLoaded = false;
   let telemetryState = { decision: '', categories: [], consentVersion: TELEMETRY_DEFAULT_CONSENT_VERSION };
@@ -934,6 +951,87 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       nextAttemptUnixMs: 0n,
       lastErrorCode: state.decision === 'granted' ? TELEMETRY_DISABLED_ERROR : ''
     };
+  }
+  function parseOfficialPlanIntentState(parsed) {
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || parsed.version !== OFFICIAL_PLAN_INTENT_VERSION || !parsed.entry || typeof parsed.entry !== 'object' || Array.isArray(parsed.entry)) throw error('OFFICIAL_SCHEDULE_INTENT_CORRUPT');
+    const entry = parsed.entry;
+    const entryAccountId = officialPlanIntentAccount(entry.accountId);
+    if (entryAccountId !== accountId) throw error('OFFICIAL_SCHEDULE_INTENT_CORRUPT');
+    const scheduleId = officialPlanIntentUuid(entry.scheduleId);
+    const generation = officialPlanIntentUuid(entry.generation);
+    if (typeof entry.ciphertext !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(entry.ciphertext)) throw error('OFFICIAL_SCHEDULE_INTENT_CORRUPT');
+    let ciphertext;
+    try {
+      ciphertext = Buffer.from(entry.ciphertext, 'base64');
+      if (!ciphertext.length || ciphertext.length > OFFICIAL_PLAN_INTENT_MAX_CIPHERTEXT || ciphertext.toString('base64') !== entry.ciphertext) throw new Error('invalid ciphertext');
+    } catch { throw error('OFFICIAL_SCHEDULE_INTENT_CORRUPT'); }
+    return { accountId: entryAccountId, scheduleId, generation, ciphertext };
+  }
+  function loadOfficialPlanIntent() {
+    let fd;
+    try {
+      fd = fs.openSync(officialPlanIntentFile, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+      const stat = fs.fstatSync(fd);
+      if (!stat.isFile() || stat.size > OFFICIAL_PLAN_INTENT_MAX_BYTES || (stat.mode & 0o077)) throw error('OFFICIAL_SCHEDULE_INTENT_CORRUPT');
+      let parsed;
+      try { parsed = JSON.parse(fs.readFileSync(fd, 'utf8')); } catch { throw error('OFFICIAL_SCHEDULE_INTENT_CORRUPT'); }
+      return parseOfficialPlanIntentState(parsed);
+    } catch (failure) {
+      if (failure.code === 'ENOENT') return null;
+      if (failure.code === 'ELOOP' || failure.code === 'EISDIR') throw error('OFFICIAL_SCHEDULE_INTENT_CORRUPT');
+      if (failure.message === 'OFFICIAL_SCHEDULE_INTENT_CORRUPT') throw failure;
+      throw error('OFFICIAL_SCHEDULE_INTENT_IO');
+    } finally {
+      if (fd !== undefined) fs.closeSync(fd);
+    }
+  }
+  function saveOfficialPlanIntent(entry) {
+    safeStateDirectory(stateDir);
+    const temporary = path.join(stateDir, `.official-plan-intent-${crypto.randomUUID()}`);
+    const serialized = JSON.stringify({
+      version: OFFICIAL_PLAN_INTENT_VERSION,
+      entry: {
+        accountId: entry.accountId,
+        scheduleId: entry.scheduleId,
+        generation: entry.generation,
+        ciphertext: Buffer.from(entry.ciphertext).toString('base64')
+      }
+    }) + '\n';
+    if (Buffer.byteLength(serialized, 'utf8') > OFFICIAL_PLAN_INTENT_MAX_BYTES) throw error('OFFICIAL_SCHEDULE_INTENT_INVALID');
+    try {
+      fs.writeFileSync(temporary, serialized, { flag: 'wx', mode: 0o600 });
+      fs.chmodSync(temporary, 0o600);
+      fs.renameSync(temporary, officialPlanIntentFile);
+    } catch (failure) {
+      throw failure.message === 'OFFICIAL_SCHEDULE_INTENT_INVALID' ? failure : error('OFFICIAL_SCHEDULE_INTENT_IO');
+    } finally {
+      fs.rmSync(temporary, { force: true });
+    }
+  }
+  function removeOfficialPlanIntent() {
+    try {
+      const stat = fs.lstatSync(officialPlanIntentFile);
+      if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) throw error('OFFICIAL_SCHEDULE_INTENT_CORRUPT');
+      fs.unlinkSync(officialPlanIntentFile);
+    } catch (failure) {
+      if (failure.code !== 'ENOENT') throw failure.message === 'OFFICIAL_SCHEDULE_INTENT_CORRUPT' ? failure : error('OFFICIAL_SCHEDULE_INTENT_IO');
+    }
+  }
+  function requireOfficialPlanIntentAccount(value) {
+    const requested = officialPlanIntentAccount(value);
+    if (!accountId || requested !== accountId || accountRemoved || accountRemovalInProgress) throw error('ACCOUNT_NOT_FOUND');
+    return requested;
+  }
+  function normalizeOfficialPlanIntentEntry(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw error('OFFICIAL_SCHEDULE_INTENT_INVALID');
+    const entryAccountId = requireOfficialPlanIntentAccount(value.accountId);
+    const scheduleId = officialPlanIntentUuid(value.scheduleId);
+    const generation = officialPlanIntentUuid(value.generation);
+    const ciphertext = officialPlanIntentCiphertext(value.ciphertext);
+    return { accountId: entryAccountId, scheduleId, generation, ciphertext };
+  }
+  function sameOfficialPlanIntent(left, right) {
+    return left && right && left.accountId === right.accountId && left.scheduleId === right.scheduleId && left.generation === right.generation && Buffer.from(left.ciphertext).equals(Buffer.from(right.ciphertext));
   }
   try {
     const fd = fs.openSync(selectionFile, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
@@ -1976,6 +2074,33 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       loadTelemetryState();
       return { outcome: 'disabled', acceptedCount: 0n, duplicateCount: 0n, queuedCount: 0n, nextAttemptUnixMs: 0n };
     },
+    async putPendingOfficialPlanCreate(request) {
+      guard();
+      const entry = normalizeOfficialPlanIntentEntry(request?.entry);
+      const existing = loadOfficialPlanIntent();
+      if (existing) {
+        if (sameOfficialPlanIntent(existing, entry)) return { inserted: false };
+        throw error('OFFICIAL_SCHEDULE_INTENT_CONFLICT');
+      }
+      saveOfficialPlanIntent(entry);
+      return { inserted: true };
+    },
+    async getPendingOfficialPlanCreate(request) {
+      guard();
+      requireOfficialPlanIntentAccount(request?.accountId);
+      const entry = loadOfficialPlanIntent();
+      return entry ? { entry: { ...entry, ciphertext: Buffer.from(entry.ciphertext) } } : {};
+    },
+    async clearPendingOfficialPlanCreate(request) {
+      guard();
+      requireOfficialPlanIntentAccount(request?.accountId);
+      const scheduleId = officialPlanIntentUuid(request?.scheduleId);
+      const generation = officialPlanIntentUuid(request?.generation);
+      const existing = loadOfficialPlanIntent();
+      if (!existing || existing.scheduleId !== scheduleId || existing.generation !== generation) return { removed: false };
+      removeOfficialPlanIntent();
+      return { removed: true };
+    },
     async getAdvancedComponentStatus(request) {
       if (!Number.isInteger(request?.component) || !ADVANCED_COMPONENT_KINDS.has(request.component)) throw error('ADVANCED_COMPONENT_REQUEST_INVALID');
       // This is a static diagnostic for the independent backend. It reflects
@@ -2233,6 +2358,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
         await recordExportJobs.removeAccount(accountId);
         await aggregateAnalysisJobs.removeAccount(accountId);
         await dropBridge();
+        removeOfficialPlanIntent();
         removeSelection();
         saveRemovedAccount();
         accountRemoved = true;
