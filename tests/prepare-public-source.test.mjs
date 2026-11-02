@@ -38,6 +38,8 @@ test('prepares a nested candidate tree and applies default exclusions', async t 
   await fs.writeFile(path.join(root, 'src', 'two', 'same.txt'), 'two\n');
   await fs.writeFile(path.join(root, 'docs', 'README.md'), 'public documentation\n');
   await fs.writeFile(path.join(root, 'docs', 'capture.log'), 'private log\n');
+  await fs.writeFile(path.join(root, 'docs', 'native-runtime-provenance.json'), '{"source":"/Users/alice/Downloads/Alpha.dmg"}\n');
+  await fs.writeFile(path.join(root, 'docs', 'local-run.json'), '{"userData":"/Users/alice/private"}\n');
   await fs.writeFile(path.join(root, 'docs', 'native-diagnosis-evidence', 'trace.json'), '{"private":true}\n');
   await fs.writeFile(path.join(root, 'vendor', 'runtime', 'bin', 'runtime.dylib'), 'binary\n');
   await fs.writeFile(path.join(root, 'vendor', 'runtime', 'bin', 'runtime.LICENSE'), 'license\n');
@@ -58,6 +60,8 @@ test('prepares a nested candidate tree and applies default exclusions', async t 
   assert.equal(await fs.readFile(path.join(output, 'vendor', 'runtime', 'manifests', 'runtime.json'), 'utf8'), '{}\n');
   for (const relative of [
     'docs/capture.log',
+    'docs/native-runtime-provenance.json',
+    'docs/local-run.json',
     'docs/native-diagnosis-evidence/trace.json',
     'vendor/runtime/bin/runtime.dylib',
     '.git/private.txt',

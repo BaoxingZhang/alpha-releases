@@ -6,7 +6,7 @@
 
 [xunchahaha/WeFlow1](https://github.com/xunchahaha/WeFlow1) 是 Alpha 作者账号下的公开 WeFlow fork，页面显示它 fork 自 [hicccc77/WeFlow](https://github.com/hicccc77/WeFlow)，当前浅克隆包含 1,819 个提交和完整的 `electron/`、`src/`、`shared/`、`resources/` 目录。
 
-本次复核固定在提交 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73`，只读副本位于工作区外的 `/Users/baoxingzhang/Desktop/temp/research/WeFlow1`（同一提交的临时副本为 `/Users/baoxingzhang/Desktop/temp/WeFlow1-research`）。它提供了若干可用于交叉核对的接口名称和字段模型，例如：
+本次复核固定在提交 `916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73`，只读副本位于工作区外的 `<external-research-root>/WeFlow1`（同一提交的临时副本为 `<external-research-root>/WeFlow1-research`）。它提供了若干可用于交叉核对的接口名称和字段模型，例如：
 
 - `wcdb_get_sns_timeline`、`wcdb_get_sns_annual_stats`、`wcdb_get_sns_usernames`、`wcdb_get_sns_export_stats`；
 - `wcdb_get_messages_by_type`、媒体扫描、语音读取和图片/视频硬链接解析；
@@ -40,5 +40,5 @@
 
 ## 对本工程的处理
 
-相关仓库已经放在工作区外的只读研究目录 `/Users/baoxingzhang/Desktop/temp/research/WeFlow1`，没有导入构建、没有修改许可证声明、没有替换 Alpha runtime。复核中没有找到收藏功能、收藏表名或收藏 API 的证据，因此收藏不能从 WeFlow1 推导实现。后续若要利用其中的代码，必须先单独确认许可证、署名、非商业和相同方式共享义务，并重新验证 ABI、微信版本、平台和数据安全边界。
+相关仓库已经放在工作区外的只读研究目录 `<external-research-root>/WeFlow1`，没有导入构建、没有修改许可证声明、没有替换 Alpha runtime。复核中没有找到收藏功能、收藏表名或收藏 API 的证据，因此收藏不能从 WeFlow1 推导实现。后续若要利用其中的代码，必须先单独确认许可证、署名、非商业和相同方式共享义务，并重新验证 ABI、微信版本、平台和数据安全边界。
 

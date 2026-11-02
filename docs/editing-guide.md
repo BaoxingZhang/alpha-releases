@@ -77,7 +77,7 @@ rg 'ChatPage|SettingsPage|AppShell' docs/recovered-components.tsv
 
 ```sh
 node tools/index-recovered-code.mjs \
-  --original /Users/baoxingzhang/Desktop/temp/rea-alpha-0.3.5-20261101/extracted/out
+  --original /path/to/rea-alpha-0.3.5/extracted/out
 ```
 
 只有相对路径匹配且整个文件 SHA256 相同，索引器才会标注原始行号。任何修改都会使该文件标为 `changed: original line mapping not asserted`，仍保留当前 `src/` 行号；不会把改动后的行号冒充原始位置。`agent-host/index.cjs` 不在这个 `extracted/out` 对照根中，因此其原始位置为空。重新运行不带 `--original` 的命令时，会更新当前代码导航信息并清空原包位置字段。
