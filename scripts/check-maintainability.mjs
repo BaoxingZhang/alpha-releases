@@ -170,7 +170,7 @@ const requiredFiles = [
   'scripts/build.mjs', 'scripts/build-packaged-resources.mjs', 'scripts/package-macos-app.mjs', 'scripts/environment.mjs', 'scripts/launch.mjs', 'scripts/verify-vendor.mjs', 'scripts/verify-packaged-markers.mjs', 'scripts/release-manifest.mjs', 'scripts/verify-release-manifest.mjs', 'scripts/audit-upstream-release.mjs', 'scripts/audit-public-release.mjs', 'scripts/prepare-public-source.mjs',
   'scripts/setup-go.mjs', 'scripts/recovery-bundle.mjs', 'scripts/check-maintainability.mjs', 'scripts/verify-independent-support.mjs', 'scripts/verify-dependencies.mjs',
   'src/main/index.js', 'src/agent-host/index.cjs', 'src/renderer/index.html',
-  'src/renderer/assets/index-DPCwIOAb.js', 'src/renderer/assets/export-policy.mjs',
+  'src/renderer/assets/index-DPCwIOAb.js', 'src/renderer/assets/export-policy.mjs', 'src/renderer/assets/media-metadata-export.mjs',
   'packages/alpha-protocol/index.cjs', 'packages/alpha-engine/README.md', 'packages/alpha-engine/index.cjs', 'packages/alpha-engine/http-server.cjs', 'packages/alpha-engine/media-decoder.cjs', 'packages/alpha-engine/media-index.cjs', 'packages/alpha-engine/file-attachment.cjs', 'packages/alpha-engine/generic-jobs.cjs',
   'packages/alpha-data-bridge/go.mod', 'packages/alpha-data-bridge/go.sum', 'packages/alpha-data-bridge/media-probe.go', 'packages/alpha-data-bridge/media-probe_test.go',
   'packages/alpha-snapshot-import/go.mod', 'packages/alpha-snapshot-import/go.sum',

@@ -1,12 +1,14 @@
 path	format	lines	bytes	sha256	original
 agent-host/index.cjs	commonjs	7183	269724	f3ca767b4c58a3fbf98ef3bc95d3333d3c515c357e93502a0cc4aaf844c50555	byte-identical: line numbers preserved
-main/index.js	commonjs	76130	3185519	1bffea70913862adc7036c2888cc49fd90e3cf4b0d563e0d5551833130445952	changed: original line mapping not asserted
+main/index.js	commonjs	76334	3197062	de09e4888bd52a42ff76235983cef8b3b508938c566765bbf1a4cf0e3bf964ea	changed: original line mapping not asserted
 preload/image-viewer.js	commonjs	42	1838	c1c25e455edd7eb9d6c8d1e85a8bb670d1c1a07fa7e888c6b6dab72fef96c728	byte-identical: line numbers preserved
-preload/index.js	commonjs	762	52648	3dda505f7afc673cbf476f1d040b12f7e8613f29c225ba78d8e413e7e48d8068	byte-identical: line numbers preserved
+preload/index.js	commonjs	766	53037	f56851c481e2fc7e68ca9e31c3c322066f659aceb082bb9fb5a82dd9f7ec69e7	changed: original line mapping not asserted
 preload/notification.js	commonjs	44	1805	521b7c93fd7d408e57f5644c9df500321a39c573996a2089d4d23228fcf42533	byte-identical: line numbers preserved
 renderer/assets/client-Bg2hQ5uk.js	esm	12464	554778	59968640056a2fe659d14f43f59a5f273fc92729911e477d2fa15d569c86084a	byte-identical: line numbers preserved
+renderer/assets/export-policy.mjs	esm	15	891	1ef2fe937860cf04939d41611788918e1f56f9062f6f7b2e4e6a14a2a8283e87	not supplied/matched
 renderer/assets/image-viewer-BiP1Iv4A.js	esm	1010	50044	6a17d1256b05892d3da5424718411e6da4bbbdfb4d6868f6e9d8d4da6a72b84e	byte-identical: line numbers preserved
-renderer/assets/index-DPCwIOAb.js	esm	53044	2866935	40b73bd20e396a8422391f22435c9e9585b96b1dccaef885f375dd2a6b5fef49	changed: original line mapping not asserted
+renderer/assets/index-DPCwIOAb.js	esm	53183	2884481	087325e48c35d9bb1fb9329e0407a8f490e4109bd5a99ab1ab2c86cddab46581	changed: original line mapping not asserted
+renderer/assets/media-metadata-export.mjs	esm	19	1198	c7ba7e018b35ddecde1ba9ab3286eacb94b9721f04602715671e8ddf311127f8	not supplied/matched
 renderer/assets/message-images-Dl-McHRQ.js	esm	4298	145330	ce904108976b2ab13691e9d5f23e63f00e67eba3630c4d6eaf6bb961cf0ef0a2	byte-identical: line numbers preserved
 renderer/assets/notification-BiBtnUUc.js	esm	221	10427	a9039a97248d39f00d975c0fed9ea33225bfb05154852023b5eb78e9b4237fe7	byte-identical: line numbers preserved
 renderer/assets/segments-CBPICGMn.js	esm	170	13667	c71f1cbc9d80763fbda747bb3afe2b65370420cc19035978c02fedd55b6a54e4	byte-identical: line numbers preserved
