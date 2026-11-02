@@ -80,6 +80,8 @@ Ghidra/REA 观察到的调用约定候选是四个参数：`param_1` 为内部 r
 
 `vendor/runtime/manifests/alpha-wcdb.component.json` 只声明这两个 API 入口的 version 1 能力；manifest 名称和版本字段不等于完整 C ABI 签名，也不能替代随包当前复制范围内缺失的头文件正文。
 
+2026-11-03 对 `libalpha_native.dylib` 做了补充取证。REA 的 Mach-O 视图目前只返回 `_alpha_native_get_api` 这一条可见导出（来源覆盖仍标记为非 exhaustive）；对该入口的 Ghidra 引用检查没有发现来自已解析代码函数的直接调用，只保留了一个位于 `0x1f98aa` 的数据引用。REA 重新确认入口地址为 `0x1cb0`、函数体范围为 `0x1cb0..0x1e17`，边界推断仍是低置信度的 `(int version, uint32_t size, void *out_api)`，返回类型仍为未定宽的 `undefined8`。相关 Evidence：导出视图 `ev_dcf8d5fa68f3d826d71b5666cd8d85ee0745c7ce08f9e65053e7d659d85c7748`，引用检查 `ev_a88993cc4abd15e42f20df9222763141f727cb69f774fada2385458060df2592`，入口边界 `ev_5133c0bdd5470c2a4c34135580db8464e99ca3747d30d6be032a6aba6168ce68`。这进一步说明 API 表的真实调用方位于其他组件或动态装载路径中；它没有提供函数表字段顺序、函数签名或可安全的调用 ABI，也没有改变独立后端的 fail-closed 决策。
+
 这两个入口均未在本轮执行未知 ABI 调用，也没有向独立 bridge 注入返回的函数表。没有对应头文件、版本匹配的调用方或受控 fixture 前，不应仅凭 `size`/`version` 条件通过 `dlsym` 调用；否则无法判定崩溃、内存所有权或结果错误来自调用方还是原生组件。
 
 ### 群置顶静态线索（2026-11-03）
