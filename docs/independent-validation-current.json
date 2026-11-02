@@ -491,13 +491,13 @@
       "nativeRecompiled": false,
       "projectSigned": false,
       "artifactCount": 991,
-      "artifactDigest": "bae88ae3ac93868c341246a11f09e7238007f17fd1fdebbe12764bee35f34028"
+      "artifactDigest": "3dda92160deec6102b057eedca7484c54a9665046c57ee79ffa727aca28181ad"
     },
     "releaseManifestVerification": {
       "command": "npm run verify:release-manifest",
       "status": "passed",
       "artifactCount": 991,
-      "artifactDigest": "bae88ae3ac93868c341246a11f09e7238007f17fd1fdebbe12764bee35f34028",
+      "artifactDigest": "3dda92160deec6102b057eedca7484c54a9665046c57ee79ffa727aca28181ad",
       "checks": [
         "path",
         "symlink",
@@ -520,11 +520,11 @@
       "status": "passed",
       "appPath": ".runtime/release-artifacts/Alpha Recovered Independent.app",
       "dmgPath": ".runtime/release-artifacts/Alpha Recovered Independent.dmg",
-      "appArtifactDigest": "c74469e66fcf23dd4dc2b889dd181b5f21b12de97a15a5c1a4250ad0c430610d",
+      "appArtifactDigest": "b9e71f8d5f14bf3e255e681eaa309335963c7c3cfe72220b347a2754e1499b6e",
       "appFileCount": 1640,
-      "appTotalBytes": 528067402,
-      "dmgBytes": 253241792,
-      "dmgSha256": "83d09a20930feca3df4783bb5ea9b0e726498d0073c479909f0bc06d539f97f7",
+      "appTotalBytes": 528068464,
+      "dmgBytes": 253242028,
+      "dmgSha256": "88021d02b794ebc0995582c3881ef625f868afd3108cb828baff3f3a347edaf2",
       "projectSigned": false,
       "notarized": false,
       "nativeRecompiled": false,
@@ -673,7 +673,7 @@
           "bundleIdentifier": "local.alpha.recovered.independent",
           "executable": "Contents/MacOS/AlphaRecoveredIndependent",
           "fileCount": 1640,
-          "artifactDigest": "c74469e66fcf23dd4dc2b889dd181b5f21b12de97a15a5c1a4250ad0c430610d",
+          "artifactDigest": "b9e71f8d5f14bf3e255e681eaa309335963c7c3cfe72220b347a2754e1499b6e",
           "updateMode": {
             "path": "Contents/Resources/alpha-update-mode.json",
             "mode": "disabled",
