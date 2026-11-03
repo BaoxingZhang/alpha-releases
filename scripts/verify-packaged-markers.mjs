@@ -23,6 +23,33 @@ async function readJson(filename, code) {
   }
 }
 
+function decodeXmlText(value, appName) {
+  const entities = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+  if (/&(?!amp;|lt;|gt;|quot;|apos;)/.test(value) || /[<>]/.test(value)) {
+    fail('PACKAGED_PLIST_XML_INVALID', appName);
+  }
+  const decoded = value.replace(/&(amp|lt|gt|quot|apos);/g, (_whole, name) => {
+    return entities[name] ?? whole;
+  });
+  return decoded;
+}
+
+export function parsePlistIdentity(plist, appName = 'unknown') {
+  if (typeof plist !== 'string') fail('PACKAGED_PLIST_XML_INVALID', appName);
+  const values = {};
+  for (const [field, key] of [
+    ['productName', 'CFBundleDisplayName'],
+    ['bundleIdentifier', 'CFBundleIdentifier'],
+    ['executableName', 'CFBundleExecutable']
+  ]) {
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const matches = [...plist.matchAll(new RegExp(`<key>${escapedKey}</key>\\s*<string>([\\s\\S]*?)</string>`, 'g'))];
+    if (matches.length !== 1) fail('PACKAGED_PLIST_IDENTITY_KEY_INVALID', `${appName}:${key}`);
+    values[field] = decodeXmlText(matches[0][1], appName);
+  }
+  return values;
+}
+
 async function verifyFlavor({ productName, backend, bundleIdentifier, executableName }) {
   const appName = productName;
   const appPath = path.join(artifacts, `${appName}.app`);
@@ -60,12 +87,17 @@ async function verifyFlavor({ productName, backend, bundleIdentifier, executable
     updateMode = { path: updateMarkerRelativePath, mode: updateMarker.mode, reason: updateMarker.reason ?? null };
   }
   const plist = await fs.readFile(plistPath, 'utf8').catch(() => fail('PACKAGED_PLIST_MISSING', appName));
-  for (const value of [appName, bundleIdentifier, executableName]) if (!plist.includes(`<string>${value}</string>`)) fail('PACKAGED_IDENTITY_MISMATCH', `${appName}:${value}`);
+  const plistIdentity = parsePlistIdentity(plist, appName);
+  if (plistIdentity.productName !== appName || plistIdentity.bundleIdentifier !== bundleIdentifier || plistIdentity.executableName !== executableName) {
+    fail('PACKAGED_IDENTITY_MISMATCH', appName);
+  }
   return { appName, backend, marker: markerRelativePath, executable: executableRelativePath, ...(updateMode ? { updateMode } : {}), manifest: path.relative(root, manifestPath).split(path.sep).join('/'), fileCount: manifest.fileCount, artifactDigest: manifest.artifactDigest };
 }
 
-const results = await Promise.all([
-  verifyFlavor({ ...flavorIdentity(identity, 'original'), backend: 'original' }),
-  verifyFlavor({ ...flavorIdentity(identity, 'independent'), backend: 'independent' })
-]);
-console.log(JSON.stringify({ schema: 'alpha-recovered.packaged-markers.v1', flavors: results }, null, 2));
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
+  const results = await Promise.all([
+    verifyFlavor({ ...flavorIdentity(identity, 'original'), backend: 'original' }),
+    verifyFlavor({ ...flavorIdentity(identity, 'independent'), backend: 'independent' })
+  ]);
+  console.log(JSON.stringify({ schema: 'alpha-recovered.packaged-markers.v1', flavors: results }, null, 2));
+}

@@ -75,6 +75,12 @@ export async function buildReleaseManifest({ packagePath = path.join(root, 'pack
     schema: 'alpha-recovered.release-manifest.v1',
     version: packageJson.version,
     productName: identity.productName,
+    identity: {
+      productName: identity.productName,
+      bundleIdentifier: identity.bundleIdentifier,
+      executableName: identity.executableName,
+      independent: identity.independent
+    },
     gitCommit: await gitCommit(),
     target: { platform: 'darwin', arch: 'arm64', nativeRecompiled: false, projectSigned: false },
     source: {

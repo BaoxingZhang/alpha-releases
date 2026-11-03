@@ -2,8 +2,11 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const require = createRequire(import.meta.url);
+const { readProjectIdentity } = require('../packages/alpha-desktop/project-identity.cjs');
 export const DEFAULT_MANIFEST = path.join(root, '.runtime', 'release-manifest.json');
 
 function fail(code, detail = '') {
@@ -25,6 +28,14 @@ function digestFiles(files) {
       .map(file => `${file.path}\0${file.bytes}\0${file.sha256}\0${file.mode}\n`)
       .join(''))
     .digest('hex');
+}
+
+function sameIdentity(actual, expected) {
+  if (!expected) return actual === expected;
+  return actual?.productName === expected.productName
+    && actual?.bundleIdentifier === expected.bundleIdentifier
+    && actual?.executableName === expected.executableName
+    && sameIdentity(actual?.independent, expected.independent);
 }
 
 async function inspectFile(relativePath) {
@@ -51,6 +62,18 @@ export async function verifyReleaseManifest(manifestPath = DEFAULT_MANIFEST) {
   catch (error) { fail('RELEASE_PACKAGE_VERSION_INVALID', error.code === 'ENOENT' ? 'package.json' : error.message); }
   if (typeof packageJson?.version !== 'string' || !packageJson.version || manifest.version !== packageJson.version) {
     fail('RELEASE_MANIFEST_VERSION_MISMATCH', `${manifest.version ?? 'missing'} != ${packageJson?.version ?? 'missing'}`);
+  }
+  let identity;
+  try { identity = readProjectIdentity(packageJson); }
+  catch (error) { fail('RELEASE_MANIFEST_IDENTITY_INVALID', error.message); }
+  const expectedIdentity = {
+    productName: identity.productName,
+    bundleIdentifier: identity.bundleIdentifier,
+    executableName: identity.executableName,
+    independent: identity.independent
+  };
+  if (manifest.productName !== identity.productName || !sameIdentity(manifest.identity, expectedIdentity)) {
+    fail('RELEASE_MANIFEST_IDENTITY_MISMATCH');
   }
   if (manifest.target?.platform !== 'darwin' || manifest.target?.arch !== 'arm64') fail('RELEASE_MANIFEST_TARGET_INVALID');
   if (manifest.artifactCount !== manifest.artifacts.length) fail('RELEASE_MANIFEST_COUNT_MISMATCH');

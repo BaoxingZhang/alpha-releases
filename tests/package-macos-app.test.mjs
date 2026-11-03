@@ -34,6 +34,26 @@ test('independent app flavor gets a distinct display name and bundle identifier'
   assert.match(result, /CFBundleIdentifier<\/key>\s*<string>local\.alpha\.recovered\.independent<\/string>/);
 });
 
+test('macOS identity values are XML escaped before writing Info.plist', async () => {
+  const source = '<key>CFBundleDisplayName</key>\n\t<string>Electron</string>\n'
+    + '<key>CFBundleName</key>\n\t<string>Electron</string>\n'
+    + '<key>CFBundleIdentifier</key>\n\t<string>com.github.Electron</string>\n'
+    + '<key>CFBundleExecutable</key>\n\t<string>Electron</string>';
+  const result = rewriteElectronInfoPlist(source, { appName: 'A & B <test>', bundleIdentifier: 'local.a', executableName: 'AB', strictExecutable: true });
+  assert.match(result, /<string>A &amp; B &lt;test&gt;<\/string>/);
+  if (process.platform === 'darwin') {
+    const { execFile } = await import('node:child_process');
+    const { promisify } = await import('node:util');
+    const filename = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-plist-')), 'Info.plist');
+    try {
+      await fs.writeFile(filename, result);
+      await promisify(execFile)('/usr/bin/plutil', ['-lint', filename]);
+    } finally {
+      await fs.rm(path.dirname(filename), { recursive: true, force: true });
+    }
+  }
+});
+
 test('generated app can opt into Electron packaged mode with its recovered executable', () => {
   const source = '<key>CFBundleDisplayName</key>\n\t<string>Electron</string>\n'
     + '<key>CFBundleName</key>\n\t<string>Electron</string>\n'

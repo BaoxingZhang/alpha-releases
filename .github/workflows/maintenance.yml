@@ -104,7 +104,6 @@ jobs:
             .runtime/release-manifest.json
             .runtime/public-release-audit.json
             .runtime/packaged-independent-smoke.log
-            .runtime/release-artifacts/Alpha Recovered.app.manifest.json
-            .runtime/release-artifacts/Alpha Recovered Independent.app.manifest.json
+            .runtime/release-artifacts/*.app.manifest.json
             .runtime/recovery-bundles/alpha-recovered-source.tar.gz
             .runtime/recovery-bundles/alpha-recovered-source.tar.gz.manifest.json

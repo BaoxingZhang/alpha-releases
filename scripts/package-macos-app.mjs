@@ -46,6 +46,18 @@ async function installedElectronVersion() {
 
 function fail(message) { throw new Error(message); }
 
+// Info.plist is XML, so identity values must be escaped before they are
+// interpolated into the template. The project identity validator deliberately
+// permits human-readable punctuation (for example `&`) in product names.
+export function escapeXmlText(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
+}
+
 function assertTarget() {
   if (process.platform !== 'darwin' || process.arch !== 'arm64') fail('MACOS_APP_TARGET_UNSUPPORTED');
 }
@@ -92,12 +104,12 @@ export function rewriteElectronInfoPlist(source, {
 } = {}) {
   let output = source;
   const replacements = [
-    ['<key>CFBundleDisplayName</key>\n\t<string>Electron</string>', `<key>CFBundleDisplayName</key>\n\t<string>${appName}</string>`],
-    ['<key>CFBundleName</key>\n\t<string>Electron</string>', `<key>CFBundleName</key>\n\t<string>${appName}</string>`],
-    ['<key>CFBundleIdentifier</key>\n\t<string>com.github.Electron</string>', `<key>CFBundleIdentifier</key>\n\t<string>${bundleIdentifier}</string>`]
+    ['<key>CFBundleDisplayName</key>\n\t<string>Electron</string>', `<key>CFBundleDisplayName</key>\n\t<string>${escapeXmlText(appName)}</string>`],
+    ['<key>CFBundleName</key>\n\t<string>Electron</string>', `<key>CFBundleName</key>\n\t<string>${escapeXmlText(appName)}</string>`],
+    ['<key>CFBundleIdentifier</key>\n\t<string>com.github.Electron</string>', `<key>CFBundleIdentifier</key>\n\t<string>${escapeXmlText(bundleIdentifier)}</string>`]
   ];
   if (strictExecutable || source.includes('<key>CFBundleExecutable</key>\n\t<string>Electron</string>')) {
-    replacements.push(['<key>CFBundleExecutable</key>\n\t<string>Electron</string>', `<key>CFBundleExecutable</key>\n\t<string>${executableName}</string>`]);
+    replacements.push(['<key>CFBundleExecutable</key>\n\t<string>Electron</string>', `<key>CFBundleExecutable</key>\n\t<string>${escapeXmlText(executableName)}</string>`]);
   }
   if (appVersion !== undefined) {
     if (typeof appVersion !== 'string' || !/^\d+\.\d+\.\d+$/.test(appVersion)) fail('PROJECT_VERSION_INVALID');
