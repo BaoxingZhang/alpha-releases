@@ -29,7 +29,7 @@ function decodeXmlText(value, appName) {
     fail('PACKAGED_PLIST_XML_INVALID', appName);
   }
   const decoded = value.replace(/&(amp|lt|gt|quot|apos);/g, (_whole, name) => {
-    return entities[name] ?? whole;
+    return entities[name] ?? _whole;
   });
   return decoded;
 }
@@ -39,6 +39,7 @@ export function parsePlistIdentity(plist, appName = 'unknown') {
   const values = {};
   for (const [field, key] of [
     ['productName', 'CFBundleDisplayName'],
+    ['bundleName', 'CFBundleName'],
     ['bundleIdentifier', 'CFBundleIdentifier'],
     ['executableName', 'CFBundleExecutable']
   ]) {
@@ -88,7 +89,7 @@ async function verifyFlavor({ productName, backend, bundleIdentifier, executable
   }
   const plist = await fs.readFile(plistPath, 'utf8').catch(() => fail('PACKAGED_PLIST_MISSING', appName));
   const plistIdentity = parsePlistIdentity(plist, appName);
-  if (plistIdentity.productName !== appName || plistIdentity.bundleIdentifier !== bundleIdentifier || plistIdentity.executableName !== executableName) {
+  if (plistIdentity.productName !== appName || plistIdentity.bundleName !== appName || plistIdentity.bundleIdentifier !== bundleIdentifier || plistIdentity.executableName !== executableName) {
     fail('PACKAGED_IDENTITY_MISMATCH', appName);
   }
   return { appName, backend, marker: markerRelativePath, executable: executableRelativePath, ...(updateMode ? { updateMode } : {}), manifest: path.relative(root, manifestPath).split(path.sep).join('/'), fileCount: manifest.fileCount, artifactDigest: manifest.artifactDigest };

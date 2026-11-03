@@ -59,3 +59,13 @@ test('independent settings do not advertise the native desktop MCP gateway', () 
   assert.match(source, /当前独立后端不提供桌面 HTTP API\/MCP 入口，也不支持发送、推送或原生完整目录/);
   assert.match(source, /McpConnectionGuide, \{ status: httpApiStatus, independent: isIndependentEngineStatus\(status\) \}/);
 });
+
+test('independent official schedule UI stays metadata-only', () => {
+  assert.match(source, /function SchedulePlans\(\{ accountId, bundleId, active: active2, independent = false \}\)/);
+  assert.match(source, /独立后端只保存公众号计划元数据，不执行公众号任务；真实执行仍不可用。/);
+  assert.match(source, /disabled: independent \|\| locked \|\| !selected\.enabled/);
+  assert.match(source, /children: independent \? "执行不可用" : "现在执行一次"/);
+  assert.match(source, /function OfficialExportView\(\{[^}]*independent = false \}\)/);
+  assert.match(source, /SchedulePlans, \{ accountId, bundleId, active: visible && tab === "schedule" && scheduleTab === "plans", independent \}/);
+  assert.match(source, /const independent = isIndependentEngineStatus\(status\);/);
+});

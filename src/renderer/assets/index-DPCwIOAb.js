@@ -39872,7 +39872,7 @@ function useOfficialSchedulePlans({ accountId, bundleId, active: active2 }) {
     showPendingDraft
   };
 }
-function SchedulePlans({ accountId, bundleId, active: active2 }) {
+function SchedulePlans({ accountId, bundleId, active: active2, independent = false }) {
   const {
     includeDisabled,
     setIncludeDisabled,
@@ -39910,7 +39910,7 @@ function SchedulePlans({ accountId, bundleId, active: active2 }) {
         void startNew();
       }, children: "新建计划" })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "pm-muted", children: "独立后端当前支持保存计划和手动执行；文件会保存到每次导出各自的文件夹，可在执行记录里打开。" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "pm-muted", children: independent ? "独立后端只保存公众号计划元数据，不执行公众号任务；真实执行仍不可用。" : "计划会保存到本机，文件会保存到每次导出各自的文件夹，可在执行记录里打开。" }),
     current2.pendingReadState === "loading" && /* @__PURE__ */ jsxRuntimeExports.jsx(SettingsNotice, { tone: "info", children: "正在读取上次保存的状态…" }),
     current2.pendingReadState === "error" && /* @__PURE__ */ jsxRuntimeExports.jsx(SettingsNotice, { tone: "danger", action: /* @__PURE__ */ jsxRuntimeExports.jsx(ActionButton, { size: "sm", disabled: busy, onClick: () => {
       void readPending();
@@ -39934,7 +39934,7 @@ function SchedulePlans({ accountId, bundleId, active: active2 }) {
         children: current2.pendingDurable ? "上次的设置已从本机恢复，没有自动提交。" : "设置保留在当前页面，是否已保存还需要核对。"
       }
     ),
-    current2.plans.length === 0 && !draft ? /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CalendarClock, { size: 22 }), title: "还没有导出计划", description: "新建一个计划并使用“现在执行一次”开始导出。" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "pm-history-list", "aria-label": "定时计划", children: current2.plans.map((plan) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { type: "button", "aria-pressed": plan.scheduleId === selected?.scheduleId, disabled: busy, onClick: () => {
+    current2.plans.length === 0 && !draft ? /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CalendarClock, { size: 22 }), title: "还没有导出计划", description: independent ? "新建一个计划保存公众号计划元数据。真实公众号执行仍不可用。" : "新建一个计划并使用“现在执行一次”开始导出。" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "pm-history-list", "aria-label": "定时计划", children: current2.plans.map((plan) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { type: "button", "aria-pressed": plan.scheduleId === selected?.scheduleId, disabled: busy, onClick: () => {
       void getPlan(plan.scheduleId);
     }, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
@@ -39964,9 +39964,9 @@ function SchedulePlans({ accountId, bundleId, active: active2 }) {
         /* @__PURE__ */ jsxRuntimeExports.jsx(ActionButton, { disabled: busy || current2.pendingReadState !== "ready", onClick: () => {
           void loadSelected();
         }, children: current2.pendingCreate ? "采用这个计划" : "修改" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(ActionButton, { disabled: locked || !selected.enabled, onClick: () => {
+        /* @__PURE__ */ jsxRuntimeExports.jsx(ActionButton, { disabled: independent || locked || !selected.enabled, title: independent ? "独立后端不执行公众号任务" : void 0, onClick: () => {
           void control("run");
-        }, children: "现在执行一次" }),
+        }, children: independent ? "执行不可用" : "现在执行一次" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(ActionButton, { variant: "danger", disabled: locked, onClick: () => {
           void control("delete");
         }, children: "删除…" })
@@ -40474,7 +40474,7 @@ function useOfficialExport({ accountId, bundleId, operationsAllowed }) {
     refreshJob
   };
 }
-function OfficialExportView({ capture, accountId, operationsAllowed, blocked, access, visible, onActivate }) {
+function OfficialExportView({ capture, accountId, operationsAllowed, blocked, access, visible, onActivate, independent = false }) {
   const bundleId = capture.officialBundleId;
   const exporter = useOfficialExport({ accountId, bundleId, operationsAllowed });
   const [tab, setTab] = reactExports.useState("new");
@@ -40529,7 +40529,7 @@ function OfficialExportView({ capture, accountId, operationsAllowed, blocked, ac
             options: [{ value: "plans", label: "计划" }, { value: "records", label: "执行记录" }]
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { hidden: scheduleTab !== "plans", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SchedulePlans, { accountId, bundleId, active: visible && tab === "schedule" && scheduleTab === "plans" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { hidden: scheduleTab !== "plans", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SchedulePlans, { accountId, bundleId, active: visible && tab === "schedule" && scheduleTab === "plans", independent }) }),
         scheduleTab === "records" && /* @__PURE__ */ jsxRuntimeExports.jsx(ScheduleRecords, { accountId, active: visible && tab === "schedule" })
       ] })
     ] })
@@ -40792,6 +40792,7 @@ function PremiumPage({ active: active2 }) {
 }
 function PremiumWorkspace({ active: active2, platform }) {
   const { activeAccountId, hasRemoteAccount, status, applicationLock } = useWorkspace();
+  const independent = isIndependentEngineStatus(status);
   const navigate = useNavigate();
   const back = useNavigationStore().back;
   const requested = usePremiumViewRequest();
@@ -40887,7 +40888,8 @@ function PremiumWorkspace({ active: active2, platform }) {
             blocked,
             access: featureAccess(license.data, "official.export.online", query),
             visible: active2 && view === "official-export",
-            onActivate: toActivation
+            onActivate: toActivation,
+            independent
           }
         ) })
       ] }) })

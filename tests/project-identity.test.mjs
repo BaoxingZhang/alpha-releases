@@ -31,10 +31,11 @@ test('project identity contract rejects malformed or incomplete flavor metadata'
 
 test('packaged marker parser reads XML keys and decodes entities', () => {
   const plist = '<key>CFBundleDisplayName</key><string>A &amp; B</string>'
+    + '<key>CFBundleName</key><string>A &amp; B</string>'
     + '<key>CFBundleIdentifier</key><string>local.a</string>'
     + '<key>CFBundleExecutable</key><string>AB</string>'
     + '<string>unrelated</string>';
-  assert.deepEqual(parsePlistIdentity(plist), { productName: 'A & B', bundleIdentifier: 'local.a', executableName: 'AB' });
+  assert.deepEqual(parsePlistIdentity(plist), { productName: 'A & B', bundleName: 'A & B', bundleIdentifier: 'local.a', executableName: 'AB' });
   assert.throws(() => parsePlistIdentity(plist.replace('<string>AB</string>', '<string>AB</string><key>CFBundleExecutable</key><string>extra</string>')), /PACKAGED_PLIST_IDENTITY_KEY_INVALID/);
   assert.throws(() => parsePlistIdentity(plist.replace('A &amp; B', 'A & B')), /PACKAGED_PLIST_XML_INVALID/);
 });
