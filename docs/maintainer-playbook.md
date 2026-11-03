@@ -14,6 +14,8 @@
 
 接手新机器或新 checkout 时先运行 `npm run doctor`。它只检查 Node.js 24.15–24.x、macOS arm64、`package-lock.json`、`vendor/runtime` 以及 Electron/esbuild 安装；`npm run doctor -- --json` 输出固定的 `alpha-recovery-doctor.v1` 报告。报告的 `dataAccess` 固定为 `none`，不会读取个人微信数据、快照、密钥或 `.runtime` 状态。出现 `blocked` 时，按报告给出的 `nvm use`、`npm ci`、`npm run setup` 顺序修复后再构建。
 
+接入已解密的 v4 副本前，可运行 `npm run inspect:source -- --data-dir /absolute/decrypted-v4 --account-id label --json`。它只对显式目录执行 bridge 的 `schema.inspect`，输出数据库相对路径、表和列元数据；不会读取数据库 key、修改副本或扫描用户目录。诊断始终标记 `complete=false` 与 `native_schema_supported=false`，只能用于决定后续适配工作，不能当作 Alpha 原生 schema 验证。
+
 `npm run check:project` 还会核对 `package.json`、`package-lock.json` 和 `provenance/project-metadata.json` 的项目名称与版本；升级版本时必须同步修改三处，避免锁文件或维护元数据滞后。
 
 需要核对上游是否出现新的发行材料时运行 `npm run audit:upstream`。它默认只打印当前公开仓库、release、更新策略和文件树的审计结果；只有确认结果后才使用 `--write` 更新 [`docs/upstream-alpha-releases-current.json`](upstream-alpha-releases-current.json)。如果本地保留原始 DMG，可额外传入 `--artifact` 做大小和 SHA-256 比对。该流程不会把新的发行包自动接入构建，也不会替换原生 runtime、签名、公钥或授权配置。

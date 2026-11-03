@@ -1,5 +1,10 @@
 # 变更记录
 
+## 0.3.5-recovery 维护增补 — 2026-11-04
+
+- 新增 `npm run doctor` 本地接手诊断，检查 Node.js、macOS arm64、锁文件、原生 runtime、Electron 和 esbuild 是否满足可复现构建前置条件；输出固定的 `alpha-recovery-doctor.v1` 报告，明确不会读取个人微信数据、快照、密钥或 `.runtime` 状态。
+- 将 doctor 纳入只读维护门禁，确保新机器在执行构建前能得到明确的修复步骤。
+
 ## 0.3.5-recovery — 2026-11-01
 
 - 建立可编辑的 Electron 应用层、协议模块、独立只读数据桥接和快照导入工程。
