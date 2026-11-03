@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 316,
+      "passed": 317,
       "failed": 0,
       "testConcurrency": 1,
       "stateBackup": {
@@ -25,6 +25,15 @@
         "atomicPublish": true,
         "symlinkAndTraversalRejected": true,
         "permissions": "0700 directories, 0600 files and archive",
+        "realData": false
+      },
+      "chatlogCandidatePreview": {
+        "command": "node --test tests/chatlog-candidate.test.mjs",
+        "status": "passed",
+        "tests": 5,
+        "cli": "npm run chatlog:preview",
+        "candidateOnly": true,
+        "nativeSchemaSupported": false,
         "realData": false
       }
     },

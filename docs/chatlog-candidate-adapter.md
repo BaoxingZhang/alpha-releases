@@ -18,4 +18,6 @@ Chatlog 的 `server` 命令即使只打开已解密的工作目录，也要求�
 
 启动后的 `ChatlogCandidate` 还提供 `readContacts({keyword, limit, offset})`、`readSessions({keyword, limit, offset})` 和 `readMessages({time, talker, sender, keyword, limit, offset})` 三个便捷读取方法。它们只请求已允许的 JSON 路由，固定使用 `format=json`，限制每页最多 1000 项和 offset 范围，并直接返回上述 candidate 投影；HTTP 非 200、查询值非法或响应校验失败都会失败关闭。它们仍不提供 Alpha 的账号绑定、generation、官方 cursor、native `serverId` 或 writer 语义。
 
+需要在命令行做一次脱敏副本预览时，可以使用 `npm run chatlog:preview -- --binary /absolute/chatlog --work-dir /absolute/decrypted-work --kind messages --limit 100`，`--kind` 也支持 `contacts` 和 `sessions`，消息还可传 `--talker`、`--sender`、`--time`、`--keyword`。CLI 只把上述显式工作目录交给候选适配器，输出同样带 `candidate=true`、`complete=false` 和 `native_schema_supported=false`；参数错误或 Chatlog 返回异常时退出码为 2，不会生成 Alpha Engine DTO、source token 或写回工作目录。
+
 候选源码固定在 `vendor/chatlog`，其构建和许可证证据见 [chatlog-build-results.json](chatlog-build-results.json) 和 [native-backend-candidates.md](native-backend-candidates.md)。本模块不自动把候选二进制打进发行包，避免在没有真实数据验收和依赖许可复核时改变发行边界。

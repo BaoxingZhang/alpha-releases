@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { createChatlogCandidate, normalizeChatlogEnvelope, normalizeChatlogMessage } from '../packages/alpha-engine/chatlog-candidate.cjs';
+
+const execFileAsync = promisify(execFile);
+const root = path.resolve(new URL('..', import.meta.url).pathname);
 
 async function fixture(t, body = {}) {
   const tempRoot = await fs.realpath(os.tmpdir());
@@ -150,4 +155,17 @@ test('chatlog candidate convenience reads return bounded candidate projections',
   assert.equal(messages.items[0].text, 'hello');
   await assert.rejects(candidate.readMessages({ limit: 1001 }), /CHATLOG_CANDIDATE_LIMIT_INVALID/);
   await assert.rejects(candidate.readContacts({ keyword: '\u0000' }), /CHATLOG_CANDIDATE_QUERY_INVALID/);
+});
+
+test('chatlog candidate preview CLI reads an explicit work directory and preserves candidate boundary', async t => {
+  const f = await fixture(t, {
+    messages: [{ seq: 1, time: '2025-08-27T00:00:00+08:00', talker: 'wxid_demo', talkerName: 'Demo', isChatRoom: false, sender: 'wxid_demo', senderName: 'Demo', isSelf: true, type: 1, subType: 0, content: 'hello' }]
+  });
+  const result = await execFileAsync(process.execPath, [path.join(root, 'scripts/chatlog-candidate-preview.mjs'), '--binary', f.fake, '--work-dir', f.work, '--kind', 'messages', '--limit', '1'], { cwd: root, maxBuffer: 1024 * 1024 });
+  const value = JSON.parse(result.stdout);
+  assert.equal(value.candidate, true);
+  assert.equal(value.complete, false);
+  assert.equal(value.native_schema_supported, false);
+  assert.equal(value.items[0].text, 'hello');
+  await assert.rejects(execFileAsync(process.execPath, [path.join(root, 'scripts/chatlog-candidate-preview.mjs'), '--binary', f.fake, '--work-dir', f.work, '--kind', 'messages', '--limit', '1001'], { cwd: root }), error => error.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' || error.stderr.includes('CHATLOG_CANDIDATE_LIMIT_INVALID'));
 });
