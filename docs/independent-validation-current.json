@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 303,
+      "passed": 305,
       "failed": 0,
       "testConcurrency": 1
     },
