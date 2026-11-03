@@ -420,6 +420,21 @@
         "methods": [
           "GET"
         ],
+        "path": "/api/v1/independent/media/image-status",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-image-media-status",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "mediaReady": false,
+        "sourceMethod": "getImageMediaStatus",
+        "verifySample": true,
+        "keysReturned": false,
+        "alphaMedia1Tokens": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
         "path": "/api/v1/independent/media/voice-blob",
         "status": "independent-adapter-extension",
         "scope": "alpha-independent-voice-blob-candidate",
@@ -596,6 +611,18 @@
           "media_*.db"
         ],
         "mediaBytesRead": false,
+        "alphaMedia1Tokens": false
+      },
+      {
+        "name": "alpha-independent.media.get_image_status",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "mediaReady": false,
+        "sourceMethod": "getImageMediaStatus",
+        "scope": "alpha-independent-image-media-status",
+        "verifySample": true,
+        "keysReturned": false,
         "alphaMedia1Tokens": false
       },
       {
