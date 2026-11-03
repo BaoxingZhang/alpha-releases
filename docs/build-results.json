@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-02T20:17:02.164Z",
+  "builtAt": "2026-11-03T00:43:07.102Z",
   "node": "v24.21.0",
   "electron": "44.10.1",
   "esbuild": "0.28.2",
@@ -27,8 +27,8 @@
         "name": "alpha-data-bridge",
         "source": "build/candidates/alpha-data-bridge",
         "path": "independent/bin/alpha-data-bridge",
-        "bytes": 8617074,
-        "sha256": "f1bdc74d69900c439d226247d95f8976ea08184ad1505fa32a42210d6b77ab27",
+        "bytes": 8617154,
+        "sha256": "aba563c0becf3596a5079cae54f3b69d28d94a1411fac81cf05ea389f6d70ff2",
         "mode": "755"
       },
       {
@@ -36,7 +36,7 @@
         "source": "build/candidates/alpha-snapshot-import",
         "path": "independent/bin/alpha-snapshot-import",
         "bytes": 7816610,
-        "sha256": "4de5de57fb8fa9128a094a96d79bb7143f8e411f547ab9bed9023808e2ebd6b3",
+        "sha256": "bec17c740a056a5f17426cd64bf8162272a052456ef67c9af11837037e267db1",
         "mode": "755"
       }
     ],
@@ -46,7 +46,7 @@
     {
       "inputs": {
         "src/main/index.js": {
-          "bytes": 3197782,
+          "bytes": 3199303,
           "imports": [],
           "format": "cjs"
         }
@@ -56,7 +56,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 5366193
+          "bytes": 5368591
         },
         "dist/app/out/main/index.js": {
           "imports": [
@@ -121,6 +121,11 @@
               "external": true
             },
             {
+              "path": "../../packages/alpha-engine/indexed-image.cjs",
+              "kind": "require-call",
+              "external": true
+            },
+            {
               "path": "@bufbuild/protobuf/wire",
               "kind": "require-call",
               "external": true
@@ -145,10 +150,10 @@
           "entryPoint": "src/main/index.js",
           "inputs": {
             "src/main/index.js": {
-              "bytesInOutput": 3216786
+              "bytesInOutput": 3218314
             }
           },
-          "bytes": 3216834
+          "bytes": 3218362
         }
       }
     },
