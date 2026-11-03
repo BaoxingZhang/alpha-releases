@@ -46,6 +46,12 @@ export async function verifyReleaseManifest(manifestPath = DEFAULT_MANIFEST) {
   try { manifest = JSON.parse(await fs.readFile(filename, 'utf8')); }
   catch (error) { fail('RELEASE_MANIFEST_INVALID', error.code === 'ENOENT' ? filename : error.message); }
   if (!manifest || manifest.schema !== 'alpha-recovered.release-manifest.v1' || !Array.isArray(manifest.artifacts)) fail('RELEASE_MANIFEST_INVALID');
+  let packageJson;
+  try { packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8')); }
+  catch (error) { fail('RELEASE_PACKAGE_VERSION_INVALID', error.code === 'ENOENT' ? 'package.json' : error.message); }
+  if (typeof packageJson?.version !== 'string' || !packageJson.version || manifest.version !== packageJson.version) {
+    fail('RELEASE_MANIFEST_VERSION_MISMATCH', `${manifest.version ?? 'missing'} != ${packageJson?.version ?? 'missing'}`);
+  }
   if (manifest.target?.platform !== 'darwin' || manifest.target?.arch !== 'arm64') fail('RELEASE_MANIFEST_TARGET_INVALID');
   if (manifest.artifactCount !== manifest.artifacts.length) fail('RELEASE_MANIFEST_COUNT_MISMATCH');
   const seen = new Set();
