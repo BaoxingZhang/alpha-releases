@@ -38,6 +38,9 @@ function fakeEngine() {
     async getDataSchemaDiagnostics() {
       return { status: 'ready', sourceKind: 'explicit-offline-sqlite-schema', snapshotId: 'a'.repeat(64), readOnly: true, nativeSchemaSupported: false, complete: false, databases: [{ path: 'contact.db', tables: [{ name: 'contact', columns: [{ name: 'username', type: 'TEXT', notNull: true, primaryKey: 1 }] }] }], tableCount: 1, limits: { maxDatabases: 128, maxTables: 4096, maxColumnsPerTable: 256, maxResponseBytes: 4194304 } };
     },
+    async getImageMediaStatus(request) {
+      return { status: { detected: true, usable: request?.verifySample !== false, enabled: true, verified: request?.verifySample !== false, automaticSupported: false, provider: 'independent-dat-index', sampleUri: 'alpha-media://sha256/' + 'a'.repeat(64), errorCode: '', memoryScanSupported: false } };
+    },
     async getAdvancedComponentStatus(request) {
       if (![1, 2, 3, 5, 6].includes(request?.component)) throw new Error('ADVANCED_COMPONENT_REQUEST_INVALID');
       return { component: request.component, target: 'macos-arm64', availability: 1, errorCode: 'INDEPENDENT_ADVANCED_COMPONENT_UNSUPPORTED' };
@@ -76,6 +79,7 @@ function fakeEngine() {
       if (request.exportConversation) return EngineServerFrame.fromPartial({ requestId: request.requestId, exportConversation: { destinationPath: request.exportConversation.destinationPath, format: request.exportConversation.format, itemCount: 1, mediaManifestPath: '', mediaIncluded: 0, mediaFailed: 0 } });
       if (request.getChatExportCapabilities) return EngineServerFrame.fromPartial({ requestId: request.requestId, getChatExportCapabilities: { maxConversations: 500, formats: ['json', 'markdown'], mediaKinds: [], supportsTimeRange: true } });
       if (request.getDataRevision) return EngineServerFrame.fromPartial({ requestId: request.requestId, getDataRevision: { revision: '0123456789abcdef' } });
+      if (request.getImageMediaStatus) return EngineServerFrame.fromPartial({ requestId: request.requestId, getImageMediaStatus: { status: { detected: true, usable: request.getImageMediaStatus.verifySample !== false, enabled: true, verified: request.getImageMediaStatus.verifySample !== false, automaticSupported: false, provider: 'independent-dat-index', sampleUri: 'alpha-media://sha256/' + 'a'.repeat(64), errorCode: '', memoryScanSupported: false } } });
       if (request.getDataWatchTargets) return EngineServerFrame.fromPartial({ requestId: request.requestId, getDataWatchTargets: { directories: ['/tmp/alpha-source'] } });
       if (request.getChatExportStats) return EngineServerFrame.fromPartial({ requestId: request.requestId, getChatExportStats: { items: request.getChatExportStats.conversationIds.map(conversationId => ({ conversationId, total: 2n, firstMessageUnixMs: 1700000000000n, lastMessageUnixMs: 1700000001000n, counts: [{ category: 'text', count: 2n }] })), failedConversationIds: [] } });
       if (request.listChatExportSchedules) return EngineServerFrame.fromPartial({ requestId: request.requestId, listChatExportSchedules: { plans: [schedulePlan()], truncated: false } });
@@ -497,7 +501,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 78);
+  assert.equal(result.body.result.tools.length, 79);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
@@ -509,6 +513,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.analytics.analyze_conversation'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.media.browse_conversation'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.media.browse_account'));
+  assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.media.get_image_status'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.media.read_indexed'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.media.decode_voice_playback'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.media.inspect_asr'));
@@ -580,6 +585,20 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.revision, '0123456789abcdef');
   assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-source-diagnostics');
+  result = await request(base, '/api/v1/independent/media/image-status?verify_sample=true', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-image-media-status');
+  assert.equal(result.body.usable, true);
+  assert.equal(result.body.media_ready, false);
+  assert.equal(result.body.complete, false);
+  assert.equal(result.body.native_schema_supported, false);
+  result = await request(base, '/api/v1/independent/media/image-status?verify_sample=invalid', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.body.error.code, 'HTTP_API_IMAGE_VERIFY_SAMPLE_INVALID');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 225, method: 'tools/call', params: { name: 'alpha-independent.media.get_image_status', arguments: { verify_sample: false } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.usable, false);
+  assert.equal(result.body.result.structuredContent.media_ready, false);
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 220, method: 'tools/call', params: { name: 'alpha-independent.chat.get_incremental_messages', arguments: { conversation_id: 'wxid_peer', since_unix_ms: '1699999999000', end_unix_ms: '1700000001000', limit: 20 } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.schema, 'alpha-independent-chatlab-incremental.v1');
