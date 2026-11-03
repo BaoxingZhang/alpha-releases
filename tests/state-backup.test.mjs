@@ -63,6 +63,9 @@ test('backup fails closed for unknown or sensitive state and never publishes an 
   await assert.rejects(createStateBackup({ sourceDir: f.source, targetFile: f.archive }), /STATE_SENSITIVE_FILE_DENIED/);
   await assert.rejects(fs.access(f.archive), { code: 'ENOENT' });
   await fs.rm(path.join(f.source, 'password-lock.v1.json'));
+  await put(f.source, 'official-plan-intent.v1.json', '{"ciphertext":"opaque"}');
+  await assert.rejects(createStateBackup({ sourceDir: f.source, targetFile: f.archive }), /STATE_SENSITIVE_FILE_DENIED/);
+  await fs.rm(path.join(f.source, 'official-plan-intent.v1.json'));
   await put(f.source, 'database-key.txt', 'secret');
   await assert.rejects(createStateBackup({ sourceDir: f.source, targetFile: f.archive }), /STATE_SENSITIVE_FILE_DENIED/);
   await fs.rm(path.join(f.source, 'database-key.txt'));
