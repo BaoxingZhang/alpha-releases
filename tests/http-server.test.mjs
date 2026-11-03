@@ -32,6 +32,9 @@ function fakeEngine() {
   return {
     get calls() { return calls; },
     get lastMomentDayCountRequest() { return lastMomentDayCountRequest; },
+    async getApplicationLockStatus() {
+      return { status: { detected: true, usable: true, enabled: true, verified: false, locked: true, availability: 4, provider: 'alpha-independent-password-v1', passwordConfigured: true, passwordRetryAfterMs: 123n, passwordFailedAttempts: 9 } };
+    },
     async getDataSchemaDiagnostics() {
       return { status: 'ready', sourceKind: 'explicit-offline-sqlite-schema', snapshotId: 'a'.repeat(64), readOnly: true, nativeSchemaSupported: false, complete: false, databases: [{ path: 'contact.db', tables: [{ name: 'contact', columns: [{ name: 'username', type: 'TEXT', notNull: true, primaryKey: 1 }] }] }], tableCount: 1, limits: { maxDatabases: 128, maxTables: 4096, maxColumnsPerTable: 256, maxResponseBytes: 4194304 } };
     },
@@ -112,6 +115,9 @@ function fakeEngine() {
 
 function richMcpEngine() {
   return {
+    async getApplicationLockStatus() {
+      return { status: { detected: true, usable: true, enabled: false, verified: false, locked: false, availability: 3, provider: 'alpha-independent-password-v1', passwordConfigured: false, passwordRetryAfterMs: 0n, passwordFailedAttempts: 0 } };
+    },
     async getDataSchemaDiagnostics() {
       return { status: 'ready', sourceKind: 'explicit-offline-sqlite-schema', snapshotId: 'b'.repeat(64), readOnly: true, nativeSchemaSupported: false, complete: false, databases: [{ path: 'session.db', tables: [{ name: 'SessionTable', columns: [{ name: 'username', type: 'TEXT', notNull: false, primaryKey: 0 }] }] }], tableCount: 1, limits: { maxDatabases: 128, maxTables: 4096, maxColumnsPerTable: 256, maxResponseBytes: 4194304 } };
     },
@@ -175,6 +181,13 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   result = await request(base, '/api/v1/accounts', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.accounts[0].id, 'acct-1');
+  result = await request(base, '/api/v1/security/lock-status', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-lock-status');
+  assert.equal(result.body.locked, true);
+  assert.equal(result.body.provider, 'alpha-independent-password-v1');
+  assert.equal(Object.hasOwn(result.body, 'password_failed_attempts'), false);
+  assert.equal(Object.hasOwn(result.body, 'password_retry_after_ms'), false);
   result = await request(base, '/api/v1/sessions?limit=20', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.items[0].id, 'wxid_peer');
@@ -442,7 +455,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 73);
+  assert.equal(result.body.result.tools.length, 74);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
@@ -656,6 +669,11 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'wechat.core.list_accounts', arguments: {} } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.accounts[0].id, 'acct-1');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 201, method: 'tools/call', params: { name: 'wechat.core.get_lock_status', arguments: {} } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-lock-status');
+  assert.equal(result.body.result.structuredContent.locked, true);
+  assert.equal(Object.hasOwn(result.body.result.structuredContent, 'password_failed_attempts'), false);
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 25, method: 'tools/call', params: { name: 'alpha-independent.mobile.get_overview', arguments: { limit: 20 } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-verified-dto');

@@ -40,6 +40,8 @@
 
 随包功能还有明确的组件缺口。[component-manifest.json](../vendor/runtime/component-manifest.json) 将 `local_transcription`、`original_image_download`、`alpha_wxproto`、高级组件分发和保护能力标为 `unavailable`。两个语音目录中保存的是模型目录 JSON，没有模型权重；已复制的 `bin/` 中也没有转录 worker。模型名称和下载地址不能替代实际推理引擎与模型文件。
 
+2026-11-03 对原始 DMG 做了只读 REA 清单复核（DMG SHA-256 仍为 `53bb2ba02edf784e77629f80b7330d9b5653cbcbd8e5527849267c5a6f209004`，容器完整覆盖 1710 个成员）。包内 `Contents/Resources/bin/runtime-endpoints.json` 的目标是 `windows-x64`，而 `component-manifest.json` 的目标是 `macos-arm64`；这两个声明不能合并为“macOS 原生服务可直接运行”，也为当前完整性策略拒绝提供了额外的身份/平台不一致证据。`alpha-wxproto.component.json` 还把发布资格标为 `release_qualified=false`，并只携带受 guard 保护的转写 worker 元数据。上述静态材料仍不能替代原生源码、授权服务或真实运行回执。
+
 写入相关能力应逐项看待。顶层 manifest 将通用 `controlled_writer` 标为 `unavailable`；`retention_writer` 已包含，但 `default_enabled` 为 `false`、`message_mutations` 为 `false`。WCDB 组件声明的保留能力包括 `moments.anti_delete` 与 `message.anti_recall`。因此，接口名称、界面入口或消息发送程序的存在，不能证明所有修改、发送和保留操作都已可用。本文没有补写缺失的写入模块，也没有把协议声明作为运行成功的证据。具体声明见 [alpha-wcdb.component.json](../vendor/runtime/manifests/alpha-wcdb.component.json)。
 
 原生文件的签名、peer 身份、许可和有效期策略按原包保留。[alpha-xkey.component.json](../vendor/runtime/manifests/alpha-xkey.component.json) 中的生产策略包含有效期字段；信任配置和 `.ed25519.pub` 文件是公钥材料。重新构建本地 JavaScript 无法据此恢复远端授权服务、生成有效许可或替代签发私钥。本工程不修改这些校验来弥补源码缺口；实际服务可用性和授权行为需要由运行验证单独记录。
