@@ -43,6 +43,38 @@ test('independent HTTP settings cross both desktop environment boundaries', asyn
   }
 });
 
+test('independent runtime never forwards the original Alpha update channel', async () => {
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-update-boundary-'));
+  try {
+    const workspace = path.join(temporary, 'workspace');
+    await fs.mkdir(path.join(workspace, 'dist/app/packages/alpha-engine'), { recursive: true });
+    await fs.mkdir(path.join(workspace, 'build/candidates'), { recursive: true });
+    await fs.writeFile(path.join(workspace, 'dist/app/packages/alpha-engine/cli.cjs'), '#!/usr/bin/env node\n');
+    await fs.writeFile(path.join(workspace, 'build/candidates/alpha-data-bridge'), 'bridge');
+    const child = independentRuntime({
+      workspace,
+      userData: path.join(temporary, 'user-data'),
+      execPath: process.execPath,
+      environment: {
+        ALPHA_UPDATE_ROOT_PUBLIC_KEY_BASE64URL: 'A'.repeat(43),
+        ALPHA_UPDATE_POLICY_URL: 'https://updates.example.invalid/policy.json',
+        ALPHA_UPDATE_POLICY_PATH: '/private/tmp/author-policy.json',
+        ALPHA_UPDATE_MIRROR_BASE_URL: 'https://mirror.example.invalid',
+        ALPHA_UPDATE_CHANNEL: 'nightly'
+      }
+    });
+    for (const name of [
+      'ALPHA_UPDATE_ROOT_PUBLIC_KEY_BASE64URL',
+      'ALPHA_UPDATE_POLICY_URL',
+      'ALPHA_UPDATE_POLICY_PATH',
+      'ALPHA_UPDATE_MIRROR_BASE_URL',
+      'ALPHA_UPDATE_CHANNEL'
+    ]) assert.equal(child.environment[name], undefined, name);
+  } finally {
+    await fs.rm(temporary, { recursive: true, force: true });
+  }
+});
+
 test('explicit key helper path crosses development and packaged desktop boundaries', async () => {
   const previous = process.env.ALPHA_INDEPENDENT_KEY_HELPER_PATH;
   const helper = path.join(os.tmpdir(), 'alpha-key-helper-boundary');
