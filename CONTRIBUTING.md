@@ -30,6 +30,8 @@ npm run check:project
 npm run check:maintainability
 npm test
 npm run test:independent
+npm run test:packaged-independent
+npm run test:packaged-native
 npm run test:smoke
 npm run audit:api
 npm run verify:independent-support
@@ -41,6 +43,19 @@ npm run verify:release-manifest
 npm run verify:dependencies
 git diff --check
 ```
+
+如果改动涉及 `src/`、主进程/preload、独立后端或打包资源，必须在 macOS arm64 上先运行 `npm run build:packaged`，再运行两个 packaged smoke。`test:packaged-independent` 证明独立 app 能从打包资源启动并通过 renderer→preload→main IPC 读取合成副本；`test:packaged-native` 只证明临时 HOME 下原生 engine/native-host 握手成功，不证明真实账号、项目 Seatbelt 或业务功能已恢复。涉及发布产物时还要按顺序运行：
+
+```sh
+npm run verify:reproducible-builds
+npm run package:macos-app:from-build
+npm run package:macos-app:independent:from-build
+npm run verify:packaged-markers
+npm run release:manifest
+npm run verify:release-manifest
+```
+
+打包和 smoke 会更新 `docs/*-run.*`、build 证据和 `.runtime` 产物；提交前恢复无关生成物，只提交源码、测试和必要的维护文档。
 
 如果变更涉及上游版本、原始安装包或更新策略，先运行 `npm run audit:upstream`；确认公开材料和本地 DMG 一致后，才使用 `npm run audit:upstream -- --write` 更新 provenance。该命令不会自动下载或替换运行时。
 
