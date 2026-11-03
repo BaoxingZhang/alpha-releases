@@ -476,6 +476,47 @@
         "tokenEncoding": "canonical-base64url"
       },
       {
+        "name": "alpha-independent.mobile.get_overview",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "sourceMethods": [
+          "listAccounts",
+          "listConversations"
+        ],
+        "scope": "alpha-independent-verified-dto",
+        "coverage": "verified-account-and-session-dto"
+      },
+      {
+        "name": "alpha-independent.mobile.search_chat",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "sourceMethods": [
+          "searchMessages"
+        ],
+        "scope": "alpha-independent-mobile-search",
+        "coverage": "verified-message-dto",
+        "officialAlias": false
+      },
+      {
+        "name": "alpha-independent.mobile.get_chat_context",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "sourceMethods": [
+          "listMessages"
+        ],
+        "scope": "alpha-independent-mobile-context",
+        "coverage": "verified-conversation-messages",
+        "officialAlias": false,
+        "anchorIds": [
+          "id",
+          "serverId",
+          "localId"
+        ]
+      },
+      {
         "name": "alpha-independent.analytics.analyze_annual",
         "status": "independent-adapter-extension",
         "nativeSchemaSupported": false,

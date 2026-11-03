@@ -440,6 +440,8 @@ function toolDefinitions() {
     { name: 'alpha-independent.media.inspect_asr', description: '检查调用方显式提供的 sherpa-onnx ASR runtime/model；不下载模型、不兼容原生 VoiceInfo/SILK', inputSchema: { type: 'object', required: ['model_root'], properties: { model_root: string, model_id: { type: 'string', enum: ['zipformer-zh-small'] } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.media.transcribe_indexed_voice', description: '对调用方显式选择的 WAV media-index 语音运行可选 ASR；不兼容原生 transcribeVoice/VoiceInfo/SILK', inputSchema: { type: 'object', required: ['media_index_root', 'media_id', 'model_root'], properties: { account_id: string, media_index_root: string, media_id: string, model_root: string, model_id: { type: 'string', enum: ['zipformer-zh-small'] } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.mobile.get_overview', description: '组合返回已验证账号状态和会话摘要；不兼容官方 wechat.mobile.get_overview/native mobile snapshot schema', inputSchema: { type: 'object', properties: { account_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.mobile.search_chat', description: '在已验证消息 DTO 上提供独立移动端搜索组合；不兼容官方 wechat.mobile.search_chat schema', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, username: string, sender_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.mobile.get_chat_context', description: '读取已验证会话中指定消息的有界前后文；不兼容官方 wechat.mobile.get_chat_context schema', inputSchema: { type: 'object', required: ['username', 'anchor_id'], properties: { account_id: string, username: string, anchor_id: string, before: { type: 'integer', minimum: 0, maximum: 50 }, after: { type: 'integer', minimum: 0, maximum: 50 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_conversation', description: '将已验证会话导出到本机新文件；ChatLab/SQL/WeClone 为独立后端的派生格式', inputSchema: { type: 'object', required: ['username', 'format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['json', 'markdown', 'html', 'txt', 'xlsx', 'chatlab-json', 'chatlab-jsonl', 'sql', 'weclone'] }, destination_path: string, include_media: { type: 'boolean', const: false }, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_media_metadata', description: '将已验证媒体消息的元数据导出到本机新文件；不读取、解密或播放媒体文件', inputSchema: { type: 'object', required: ['format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['media-json', 'media-csv'] }, destination_path: string, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha.messages.search_page', description: '读取独立后端的跨会话搜索页', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, username: string, sender_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -1148,6 +1150,8 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     const args = rpc.params.arguments || {};
     const name = rpc.params.name;
     const allowedArguments = {
+      'alpha-independent.mobile.search_chat': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'],
+      'alpha-independent.mobile.get_chat_context': ['account_id', 'username', 'anchor_id', 'before', 'after'],
       'wechat.core.get_status': [], 'wechat.core.get_lock_status': [], 'wechat.core.list_tools': ['package'], 'wechat.core.list_accounts': [], 'wechat.core.get_account_info': ['account_id'],
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'],
       'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'alpha-independent.groups.list_pinned_messages': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
@@ -1343,6 +1347,31 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
         }
       };
       return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: overview, content: [{ type: 'text', text: JSON.stringify(overview) }] } };
+    }
+    else if (name === 'alpha-independent.mobile.search_chat') {
+      const account = await selectedAccount(params);
+      const query = text(args.query, 1024, 'MCP_MOBILE_SEARCH_QUERY_INVALID');
+      if (!query) throw new HttpAdapterError('MCP_MOBILE_SEARCH_QUERY_REQUIRED', 400);
+      const username = args.username === undefined ? undefined : text(args.username, 1024, 'MCP_CONVERSATION_INVALID');
+      const senderId = args.sender_id === undefined ? undefined : text(args.sender_id, 256, 'MCP_SENDER_INVALID');
+      const limit = mcpLimit(args.limit, 100, 500, 'MCP_LIMIT_INVALID');
+      const value = snakeKeys(await route('/api/v1/search', { account_id: account, query, ...(username ? { username } : {}), ...(senderId ? { sender_id: senderId } : {}), limit, ...(args.cursor === undefined ? {} : { cursor: args.cursor }) }));
+      const result = { ...value, query, ...(username ? { username } : {}), ...(senderId ? { sender_id: senderId } : {}), scope: 'alpha-independent-mobile-search', coverage: 'verified-message-dto', complete: false, native_schema_supported: false };
+      return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
+    }
+    else if (name === 'alpha-independent.mobile.get_chat_context') {
+      const account = await selectedAccount(params);
+      const username = text(args.username, 1024, 'MCP_CONVERSATION_INVALID');
+      const anchorId = text(args.anchor_id, 1024, 'MCP_ANCHOR_INVALID');
+      if (!username) throw new HttpAdapterError('MCP_CONVERSATION_REQUIRED', 400);
+      if (!anchorId) throw new HttpAdapterError('MCP_ANCHOR_REQUIRED', 400);
+      const before = mcpLimit(args.before, 50, 50, 'MCP_LIMIT_INVALID', 0);
+      const after = mcpLimit(args.after, 50, 50, 'MCP_LIMIT_INVALID', 0);
+      const all = await mcpAllMessages(account, username);
+      const index = all.findIndex(item => item.id === anchorId || item.serverId === anchorId || item.localId?.toString() === anchorId);
+      if (index < 0) throw new HttpAdapterError('MCP_MESSAGE_NOT_FOUND', 404);
+      const result = { username, before: all.slice(Math.max(0, index - before), index).map(item => mcpMessage(item)), anchor: mcpMessage(all[index], true), after: all.slice(index + 1, index + 1 + after).map(item => mcpMessage(item)), scope: 'alpha-independent-mobile-context', coverage: 'verified-conversation-messages', complete: false, native_schema_supported: false };
+      return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
     }
     else if (name === 'alpha-independent.media.browse_conversation' || name === 'alpha-independent.media.browse_account') {
       const account = await selectedAccount(params);
