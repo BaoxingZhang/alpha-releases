@@ -25,8 +25,9 @@ const response = ${JSON.stringify(body)};
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1');
   if (url.pathname === '/health') { res.writeHead(200, {'content-type': 'application/json'}); res.end('{"status":"ok"}'); return; }
-  if (url.pathname === '/api/v1/contact') { res.writeHead(200, {'content-type': 'application/json'}); res.end(JSON.stringify(response)); return; }
-  if (url.pathname === '/api/v1/chatlog') { res.writeHead(200, {'content-type': 'application/json'}); res.end(url.searchParams.has('large') ? 'x'.repeat(1024 * 1024) : JSON.stringify(response)); return; }
+  if (url.pathname === '/api/v1/contact') { res.writeHead(200, {'content-type': 'application/json'}); res.end(JSON.stringify(response.contacts || response)); return; }
+  if (url.pathname === '/api/v1/session') { res.writeHead(200, {'content-type': 'application/json'}); res.end(JSON.stringify(response.sessions || response)); return; }
+  if (url.pathname === '/api/v1/chatlog') { res.writeHead(200, {'content-type': 'application/json'}); res.end(url.searchParams.has('large') ? 'x'.repeat(1024 * 1024) : JSON.stringify(response.messages || response)); return; }
   if (req.url === '/redirect') { res.writeHead(302, {location: '/health'}); res.end(); return; }
   if (req.url === '/large') { res.writeHead(200, {'content-type': 'text/plain'}); res.end('x'.repeat(1024 * 1024)); return; }
   res.writeHead(404); res.end('missing');
@@ -131,4 +132,22 @@ test('chatlog candidate normalizes only bounded candidate envelopes', () => {
   assert.throws(() => normalizeChatlogMessage({ seq: 1, time: '2025-08-27T00:00:00+08:00', talker: 'wxid_demo', talkerName: '', isChatRoom: false, sender: 'wxid_demo', senderName: '', isSelf: false, type: 'text', subType: 0, content: 'x' }), /CHATLOG_CANDIDATE_MESSAGE_TYPE_INVALID/);
   assert.throws(() => normalizeChatlogEnvelope([], 'unknown'), /CHATLOG_CANDIDATE_KIND_INVALID/);
   assert.throws(() => normalizeChatlogEnvelope(new Array(1001).fill({}), 'contact'), /CHATLOG_CANDIDATE_CONTACT_LIST_INVALID/);
+});
+
+test('chatlog candidate convenience reads return bounded candidate projections', async t => {
+  const f = await fixture(t, {
+    contacts: { items: [{ userName: 'wxid_demo', alias: 'demo', remark: 'Demo', nickName: 'Demo', isFriend: true }] },
+    sessions: { items: [{ userName: 'wxid_demo', nickName: 'Demo', content: 'hello', nTime: '2025-08-27T00:00:00+08:00', nOrder: 1 }] },
+    messages: [{ seq: 1, time: '2025-08-27T00:00:00+08:00', talker: 'wxid_demo', talkerName: 'Demo', isChatRoom: false, sender: 'wxid_demo', senderName: 'Demo', isSelf: true, type: 1, subType: 0, content: 'hello' }]
+  });
+  const candidate = await createChatlogCandidate({ binaryPath: f.fake, workDir: f.work });
+  t.after(() => candidate.close());
+  const contacts = await candidate.readContacts({ keyword: 'demo', limit: 1, offset: 0 });
+  assert.equal(contacts.contacts[0].username, 'wxid_demo');
+  const sessions = await candidate.readSessions({ limit: 1 });
+  assert.equal(sessions.sessions[0].last_at_unix_ms, '1756224000000');
+  const messages = await candidate.readMessages({ talker: 'wxid_demo', time: '2025-08-27', limit: 1 });
+  assert.equal(messages.items[0].text, 'hello');
+  await assert.rejects(candidate.readMessages({ limit: 1001 }), /CHATLOG_CANDIDATE_LIMIT_INVALID/);
+  await assert.rejects(candidate.readContacts({ keyword: '\u0000' }), /CHATLOG_CANDIDATE_QUERY_INVALID/);
 });

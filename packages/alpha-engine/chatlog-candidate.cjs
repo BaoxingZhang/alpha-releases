@@ -169,6 +169,29 @@ function normalizeChatlogEnvelope(value, kind) {
   return { schema: `alpha-independent-chatlog-candidate-${kind}s.v1`, scope: 'alpha-independent-chatlog-candidate', candidate: true, complete: false, native_schema_supported: false, source_kind: 'chatlog-http-v1', [key]: items };
 }
 
+function candidateQueryString(value, maximum, code) {
+  if (typeof value !== 'string' || value.length > maximum || value.includes('\u0000') || /[\u0000-\u001f\u007f]/.test(value)) throw failure(code);
+  return value;
+}
+
+function candidatePaging(value, code, maximum = 1000000000) {
+  if (value === undefined) return undefined;
+  if (!Number.isSafeInteger(value) || value < 0 || value > maximum) throw failure(code);
+  return String(value);
+}
+
+function candidateQuery(pathname, values) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(values)) if (value !== undefined && value !== '') query.set(key, value);
+  const suffix = query.toString();
+  return suffix ? `${pathname}?${suffix}` : pathname;
+}
+
+function candidateHttpResult(result) {
+  if (!result || result.status !== 200) throw failure('CHATLOG_CANDIDATE_HTTP_STATUS');
+  return result.json;
+}
+
 async function reserveLoopbackPort() {
   const server = http.createServer();
   await new Promise((resolve, reject) => {
@@ -262,6 +285,32 @@ class ChatlogCandidate {
     } catch {
       throw failure('CHATLOG_CANDIDATE_JSON_INVALID');
     }
+  }
+
+  async readContacts(options = {}) {
+    const keyword = options.keyword === undefined ? '' : candidateQueryString(options.keyword, 1024, 'CHATLOG_CANDIDATE_QUERY_INVALID');
+    const limit = candidatePaging(options.limit, 'CHATLOG_CANDIDATE_LIMIT_INVALID', CANDIDATE_ITEM_MAX);
+    const offset = candidatePaging(options.offset, 'CHATLOG_CANDIDATE_OFFSET_INVALID');
+    const value = candidateHttpResult(await this.json(candidateQuery('/api/v1/contact', { keyword, limit, offset, format: 'json' })));
+    return normalizeChatlogEnvelope(value, 'contact');
+  }
+
+  async readSessions(options = {}) {
+    const keyword = options.keyword === undefined ? '' : candidateQueryString(options.keyword, 1024, 'CHATLOG_CANDIDATE_QUERY_INVALID');
+    const limit = candidatePaging(options.limit, 'CHATLOG_CANDIDATE_LIMIT_INVALID', CANDIDATE_ITEM_MAX);
+    const offset = candidatePaging(options.offset, 'CHATLOG_CANDIDATE_OFFSET_INVALID');
+    const value = candidateHttpResult(await this.json(candidateQuery('/api/v1/session', { keyword, limit, offset, format: 'json' })));
+    return normalizeChatlogEnvelope(value, 'session');
+  }
+
+  async readMessages(options = {}) {
+    const values = {};
+    for (const key of ['time', 'talker', 'sender', 'keyword']) if (options[key] !== undefined) values[key] = candidateQueryString(options[key], 4096, 'CHATLOG_CANDIDATE_QUERY_INVALID');
+    values.limit = candidatePaging(options.limit, 'CHATLOG_CANDIDATE_LIMIT_INVALID', CANDIDATE_ITEM_MAX);
+    values.offset = candidatePaging(options.offset, 'CHATLOG_CANDIDATE_OFFSET_INVALID');
+    values.format = 'json';
+    const value = candidateHttpResult(await this.json(candidateQuery('/api/v1/chatlog', values)));
+    return normalizeChatlogEnvelope(value, 'message');
   }
 
   async close() {

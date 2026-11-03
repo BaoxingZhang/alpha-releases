@@ -16,4 +16,6 @@ Chatlog 的 `server` 命令即使只打开已解密的工作目录，也要求�
 
 模块还导出一个纯 JSON 的候选 normalizer，用于后续对账。它只接受 Chatlog `/api/v1/chatlog` 返回的消息数组，以及 `/api/v1/contact`、`/api/v1/session` 返回的 `items` 数组，执行字段类型、长度、NUL 字符、时间和数量上限校验后，输出带 `schema=alpha-independent-chatlog-candidate-*`、`candidate=true`、`complete=false`、`native_schema_supported=false` 的独立投影。消息保留 `seq`、会话/发送人、毫秒时间、Chatlog `type/subType`、文本和 `isSelf/isChatRoom`；联系人和会话只保留 Chatlog 明确提供的用户名、显示字段和时间/顺序。normalizer 不生成 `EngineClientFrame`、`sourceToken`、`serverId`、Alpha 分页游标或官方 DTO，也不会把 Chatlog 的字段语义计入支持矩阵；非法或超出边界的输入会失败关闭。
 
+启动后的 `ChatlogCandidate` 还提供 `readContacts({keyword, limit, offset})`、`readSessions({keyword, limit, offset})` 和 `readMessages({time, talker, sender, keyword, limit, offset})` 三个便捷读取方法。它们只请求已允许的 JSON 路由，固定使用 `format=json`，限制每页最多 1000 项和 offset 范围，并直接返回上述 candidate 投影；HTTP 非 200、查询值非法或响应校验失败都会失败关闭。它们仍不提供 Alpha 的账号绑定、generation、官方 cursor、native `serverId` 或 writer 语义。
+
 候选源码固定在 `vendor/chatlog`，其构建和许可证证据见 [chatlog-build-results.json](chatlog-build-results.json) 和 [native-backend-candidates.md](native-backend-candidates.md)。本模块不自动把候选二进制打进发行包，避免在没有真实数据验收和依赖许可复核时改变发行边界。
