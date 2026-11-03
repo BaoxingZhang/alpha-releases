@@ -4,7 +4,7 @@
 
 ## 当前基线
 
-当前分支 `recovery/main` 已能在 macOS arm64 从本项目源码构建独立 flavor，并通过 Electron renderer → preload → main → Go bridge → SQLite 的离线读取链路。独立协议支持矩阵为 **82/128**；完整回归为 **307/307**，packaged independent smoke 已通过。原始 flavor 在临时 HOME/TMP、无项目 Seatbelt wrapper 的 disposable smoke 中能完成 `engine` 与 `native-host` 握手，但没有真实账号数据。
+当前分支 `recovery/main` 已能在 macOS arm64 从本项目源码构建独立 flavor，并通过 Electron renderer → preload → main → Go bridge → SQLite 的离线读取链路。独立协议支持矩阵为 **82/128**；完整回归为 **308/308**，packaged independent smoke 已通过。原始 flavor 在临时 HOME/TMP、无项目 Seatbelt wrapper 的 disposable smoke 中能完成 `engine` 与 `native-host` 握手，但没有真实账号数据。
 
 当前可交付的是可维护的独立离线读取版，包含会话、消息、联系人、搜索、只读导出、合成数据边界、媒体 metadata/index、任务调度、HTTP/MCP 和 Codex stdio 接入。原生源码、真实微信数据、写入/发送、真实媒体解码、AI 服务和授权服务仍未恢复。
 

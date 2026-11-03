@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { createChatlogCandidate } from '../packages/alpha-engine/chatlog-candidate.cjs';
+import { createChatlogCandidate, normalizeChatlogEnvelope, normalizeChatlogMessage } from '../packages/alpha-engine/chatlog-candidate.cjs';
 
 async function fixture(t, body = {}) {
   const tempRoot = await fs.realpath(os.tmpdir());
@@ -80,4 +80,55 @@ test('chatlog candidate bounds response bytes and rejects symlink/path inputs', 
   const candidate = await createChatlogCandidate({ binaryPath: f.fake, workDir: f.work, responseLimitBytes: 1024 });
   t.after(() => candidate.close());
   await assert.rejects(candidate.request('/api/v1/chatlog?large=1'), /CHATLOG_CANDIDATE_RESPONSE_TOO_LARGE/);
+});
+
+test('chatlog candidate normalizes only bounded candidate envelopes', () => {
+  const messages = normalizeChatlogEnvelope([
+    {
+      seq: 1756225000000,
+      time: '2025-08-27T00:00:00+08:00',
+      talker: 'wxid_demo',
+      talkerName: 'Demo',
+      isChatRoom: false,
+      sender: 'wxid_demo',
+      senderName: 'Demo',
+      isSelf: true,
+      type: 1,
+      subType: 0,
+      content: 'hello'
+    }
+  ], 'message');
+  assert.equal(messages.schema, 'alpha-independent-chatlog-candidate-messages.v1');
+  assert.equal(messages.candidate, true);
+  assert.equal(messages.complete, false);
+  assert.equal(messages.native_schema_supported, false);
+  assert.deepEqual(messages.items[0], {
+    schema: 'alpha-independent-chatlog-candidate-message.v1',
+    scope: 'alpha-independent-chatlog-candidate',
+    candidate: true,
+    complete: false,
+    native_schema_supported: false,
+    source_kind: 'chatlog-http-v1',
+    id: 'chatlog-seq:1756225000000',
+    sequence: '1756225000000',
+    conversation_id: 'wxid_demo',
+    conversation_name: 'Demo',
+    sender_id: 'wxid_demo',
+    sender_name: 'Demo',
+    sent_at_unix_ms: '1756224000000',
+    kind: 'text',
+    text: 'hello',
+    type: 1,
+    sub_type: 0,
+    is_chat_room: false,
+    is_self: true
+  });
+  const contacts = normalizeChatlogEnvelope({ items: [{ userName: 'wxid_demo', alias: 'demo', remark: 'Demo', nickName: 'Demo', isFriend: true }] }, 'contact');
+  assert.deepEqual(contacts.contacts[0], { username: 'wxid_demo', alias: 'demo', remark: 'Demo', nickname: 'Demo', is_friend: true });
+  const sessions = normalizeChatlogEnvelope({ items: [{ userName: 'wxid_demo', nickName: 'Demo', content: 'hello', nTime: '2025-08-27T00:00:00+08:00', nOrder: 1 }] }, 'session');
+  assert.deepEqual(sessions.sessions[0], { username: 'wxid_demo', nickname: 'Demo', content: 'hello', last_at_unix_ms: '1756224000000', order: 1 });
+  assert.throws(() => normalizeChatlogMessage({ seq: 1, time: '2025-08-27T00:00:00+08:00', talker: 'wxid_demo', talkerName: '', isChatRoom: false, sender: 'wxid_demo', senderName: '', isSelf: false, type: 1, subType: 0, content: '\u0000' }), /CHATLOG_CANDIDATE_MESSAGE_CONTENT_INVALID/);
+  assert.throws(() => normalizeChatlogMessage({ seq: 1, time: '2025-08-27T00:00:00+08:00', talker: 'wxid_demo', talkerName: '', isChatRoom: false, sender: 'wxid_demo', senderName: '', isSelf: false, type: 'text', subType: 0, content: 'x' }), /CHATLOG_CANDIDATE_MESSAGE_TYPE_INVALID/);
+  assert.throws(() => normalizeChatlogEnvelope([], 'unknown'), /CHATLOG_CANDIDATE_KIND_INVALID/);
+  assert.throws(() => normalizeChatlogEnvelope(new Array(1001).fill({}), 'contact'), /CHATLOG_CANDIDATE_CONTACT_LIST_INVALID/);
 });

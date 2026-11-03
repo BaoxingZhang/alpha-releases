@@ -12,6 +12,8 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 10000;
 const DEFAULT_RESPONSE_LIMIT_BYTES = 8 * 1024 * 1024;
 const MAX_QUERY_BYTES = 4096;
 const ALLOWED_PATHS = new Set(['/health', '/api/v1/chatlog', '/api/v1/contact', '/api/v1/chatroom', '/api/v1/session']);
+const CANDIDATE_MESSAGE_MAX_BYTES = 4 * 1024 * 1024;
+const CANDIDATE_ITEM_MAX = 1000;
 
 function failure(code, message = code) {
   const error = new Error(message);
@@ -65,6 +67,106 @@ function validPlatform(value) {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function candidateString(value, maximum, code) {
+  if (typeof value !== 'string' || value.length > maximum || value.includes('\u0000')) throw failure(code);
+  return value;
+}
+
+function candidateBoolean(value, code) {
+  if (typeof value !== 'boolean') throw failure(code);
+  return value;
+}
+
+function candidateInteger(value, code) {
+  if (!Number.isSafeInteger(value)) throw failure(code);
+  return value;
+}
+
+function candidateTime(value) {
+  if (typeof value !== 'string' || value.length > 128 || value.includes('\u0000')) throw failure('CHATLOG_CANDIDATE_TIME_INVALID');
+  const parsed = Date.parse(value);
+  if (!Number.isSafeInteger(parsed)) throw failure('CHATLOG_CANDIDATE_TIME_INVALID');
+  return String(parsed);
+}
+
+function candidateKind(type, subType) {
+  const kinds = new Map([[1, 'text'], [3, 'image'], [34, 'voice'], [42, 'contact'], [43, 'video'], [47, 'sticker'], [48, 'location'], [49, 'share'], [10000, 'system']]);
+  if (!Number.isSafeInteger(type) || type < 0 || type > 1000000 || !Number.isSafeInteger(subType) || subType < 0 || subType > 1000000) throw failure('CHATLOG_CANDIDATE_MESSAGE_TYPE_INVALID');
+  return kinds.get(type) || 'unknown';
+}
+
+function normalizeChatlogMessage(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw failure('CHATLOG_CANDIDATE_MESSAGE_INVALID');
+  const seq = candidateInteger(value.seq, 'CHATLOG_CANDIDATE_MESSAGE_ID_INVALID');
+  if (seq < 0) throw failure('CHATLOG_CANDIDATE_MESSAGE_ID_INVALID');
+  const type = candidateInteger(value.type, 'CHATLOG_CANDIDATE_MESSAGE_TYPE_INVALID');
+  const subType = candidateInteger(value.subType, 'CHATLOG_CANDIDATE_MESSAGE_TYPE_INVALID');
+  const talker = candidateString(value.talker, 1024, 'CHATLOG_CANDIDATE_CONVERSATION_INVALID');
+  const sender = candidateString(value.sender, 1024, 'CHATLOG_CANDIDATE_SENDER_INVALID');
+  const content = candidateString(value.content, CANDIDATE_MESSAGE_MAX_BYTES, 'CHATLOG_CANDIDATE_MESSAGE_CONTENT_INVALID');
+  const talkerName = candidateString(value.talkerName, 4096, 'CHATLOG_CANDIDATE_MESSAGE_INVALID');
+  const senderName = candidateString(value.senderName, 4096, 'CHATLOG_CANDIDATE_MESSAGE_INVALID');
+  const time = candidateTime(value.time);
+  const isChatRoom = candidateBoolean(value.isChatRoom, 'CHATLOG_CANDIDATE_MESSAGE_INVALID');
+  const isSelf = candidateBoolean(value.isSelf, 'CHATLOG_CANDIDATE_MESSAGE_INVALID');
+  return {
+    schema: 'alpha-independent-chatlog-candidate-message.v1',
+    scope: 'alpha-independent-chatlog-candidate',
+    candidate: true,
+    complete: false,
+    native_schema_supported: false,
+    source_kind: 'chatlog-http-v1',
+    id: `chatlog-seq:${seq}`,
+    sequence: String(seq),
+    conversation_id: talker,
+    conversation_name: talkerName,
+    sender_id: sender,
+    sender_name: senderName,
+    sent_at_unix_ms: time,
+    kind: candidateKind(type, subType),
+    text: content,
+    type,
+    sub_type: subType,
+    is_chat_room: isChatRoom,
+    is_self: isSelf
+  };
+}
+
+function normalizeChatlogItems(value, mapper, code) {
+  if (!Array.isArray(value) || value.length > CANDIDATE_ITEM_MAX) throw failure(code);
+  return value.map(mapper);
+}
+
+function normalizeChatlogContact(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw failure('CHATLOG_CANDIDATE_CONTACT_INVALID');
+  return {
+    username: candidateString(value.userName, 1024, 'CHATLOG_CANDIDATE_CONTACT_INVALID'),
+    alias: candidateString(value.alias, 4096, 'CHATLOG_CANDIDATE_CONTACT_INVALID'),
+    remark: candidateString(value.remark, 4096, 'CHATLOG_CANDIDATE_CONTACT_INVALID'),
+    nickname: candidateString(value.nickName, 4096, 'CHATLOG_CANDIDATE_CONTACT_INVALID'),
+    is_friend: candidateBoolean(value.isFriend, 'CHATLOG_CANDIDATE_CONTACT_INVALID')
+  };
+}
+
+function normalizeChatlogSession(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw failure('CHATLOG_CANDIDATE_SESSION_INVALID');
+  return {
+    username: candidateString(value.userName, 1024, 'CHATLOG_CANDIDATE_SESSION_INVALID'),
+    nickname: candidateString(value.nickName, 4096, 'CHATLOG_CANDIDATE_SESSION_INVALID'),
+    content: candidateString(value.content, CANDIDATE_MESSAGE_MAX_BYTES, 'CHATLOG_CANDIDATE_SESSION_INVALID'),
+    last_at_unix_ms: candidateTime(value.nTime),
+    order: candidateInteger(value.nOrder, 'CHATLOG_CANDIDATE_SESSION_INVALID')
+  };
+}
+
+function normalizeChatlogEnvelope(value, kind) {
+  if (!['message', 'contact', 'session'].includes(kind)) throw failure('CHATLOG_CANDIDATE_KIND_INVALID');
+  const key = kind === 'contact' ? 'contacts' : kind === 'session' ? 'sessions' : 'items';
+  const mapper = kind === 'contact' ? normalizeChatlogContact : kind === 'session' ? normalizeChatlogSession : normalizeChatlogMessage;
+  const items = normalizeChatlogItems(kind === 'message' ? value : value?.items, mapper, `CHATLOG_CANDIDATE_${kind.toUpperCase()}_LIST_INVALID`);
+  return { schema: `alpha-independent-chatlog-candidate-${kind}s.v1`, scope: 'alpha-independent-chatlog-candidate', candidate: true, complete: false, native_schema_supported: false, source_kind: 'chatlog-http-v1', [key]: items };
 }
 
 async function reserveLoopbackPort() {
@@ -244,4 +346,12 @@ async function createChatlogCandidate(options = {}) {
   }
 }
 
-module.exports = { ChatlogCandidate, createChatlogCandidate, ALLOWED_PATHS };
+module.exports = {
+  ChatlogCandidate,
+  createChatlogCandidate,
+  ALLOWED_PATHS,
+  normalizeChatlogMessage,
+  normalizeChatlogContact,
+  normalizeChatlogSession,
+  normalizeChatlogEnvelope
+};
