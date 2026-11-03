@@ -43,7 +43,7 @@
 - 独立支持矩阵更新为 82/128；新增显式数据源诊断、合成/候选媒体边界、VoiceInfo 原始字节候选读取和 packaged independent smoke 证据。候选读取仍标记 `complete=false`、`native_schema_supported=false`，不解码 SILK、不生成原生媒体 token。
 - 完成独立 App 从生成的 Electron bundle 实际启动、renderer → preload → main IPC 读取合成副本和媒体索引的验证；普通原生 flavor 与独立 flavor 继续分开记录。
 - 新增 `npm run verify:maintenance` 只读聚合入口，顺序校验项目元数据、维护性、协议绑定、原包 vendor、独立支持矩阵和 HTTP/MCP API 结构；它不构建 App、不读取用户数据，也不扩大原生能力边界。
-- 当前完整回归为 278/278；原生授权、自动取钥、真实微信媒体/朋友圈/收藏 schema、写入能力和云服务仍保持明确未恢复状态。
+- 当前完整回归为 283/283；新增独立 Go 构建的项目级原子锁，避免并行构建覆盖共享临时目录和验证报告；发布清单校验现在拒绝与当前 `package.json` 版本不一致的旧清单。原生授权、自动取钥、真实微信媒体/朋友圈/收藏 schema、写入能力和云服务仍保持明确未恢复状态。
 
 ## 后续版本
 
