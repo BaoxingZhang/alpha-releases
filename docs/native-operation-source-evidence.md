@@ -142,3 +142,9 @@ Rust 符号还保留了 `alpha_protocol::alpha::engine::v1`、`alpha_protocol::a
 机器可校验的哈希、类型清单和边界保存在 [`native-message-send-evidence.json`](native-message-send-evidence.json)；测试会重新计算 sidecar 哈希，防止二进制替换后继续沿用这份静态结论。
 
 这些观察只说明发送 sidecar 编译进了协议类型和编解码代码。它们没有给出字段编号、真实 transport、登录/捕获会话、资源维护 ABI、授权 permit、错误码闭合关系或可重放的发送确认。`alpha-message-send` 也没有被本轮执行，未知 writer/capture 调用没有被触发，原生文件没有修改。因此 `sendMessage`、消息捕获、消息变更和资源维护继续保持 `UNIMPLEMENTED`/writer-disabled；只有在取得授权的 live fixture、完整 schema/ABI 和可重放确认后，才可以把这些线索转换成实现。
+
+### `alpha-message-send` 的 Rust 依赖元数据复核（2026-11-04）
+
+REA 对同一 arm64 sidecar（SHA-256 `3aab88ce1c7e343055d426ae4b3c36bfe8ca0c5fee128a7214396b583ea011ed`）检查了 cargo-auditable 元数据。工件为 3,312,224 字节的 Mach-O arm64 文件，但没有发现 `.dep-v0` 依赖段；只观察到一个从只读 rustc 路径推断出的编译器提交哈希。Evidence：`ev_706d1526f6918d4de116a6b492796155604ced4fee64388bce0b814d664bc579`，其父记录为 `ev_437f7d897b1d4a7f00593560a204dbb8143b4b6a5f1822b1aec3c5c32b10322f`。
+
+这项复核不能恢复 Cargo 包名、版本、来源或完整运行时依赖，也不能证明该 sidecar 的构建 provenance；缺少 `.dep-v0` 不等于没有依赖。因此它没有增加可编译的 Rust 源码、ABI 或发送/捕获实现证据，现有 `UNIMPLEMENTED`/writer-disabled 边界保持不变。
