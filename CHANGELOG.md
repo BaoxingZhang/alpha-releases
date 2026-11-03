@@ -45,6 +45,7 @@
 - 新增 `npm run verify:maintenance` 只读聚合入口，顺序校验项目元数据、维护性、协议绑定、原包 vendor、独立支持矩阵和 HTTP/MCP API 结构；它不构建 App、不读取用户数据，也不扩大原生能力边界。
 - 当前完整回归为 288/288；新增独立 Go 构建的项目级原子锁，避免并行构建覆盖共享临时目录和验证报告；发布清单校验现在拒绝与当前 `package.json` 版本不一致的旧清单。原生授权、自动取钥、真实微信媒体/朋友圈/收藏 schema、写入能力和云服务仍保持明确未恢复状态。
 - 项目版本、macOS bundle 版本、启动页、日志和更新状态统一读取 `package.json`/Electron runtime；构建证据和 App manifest 记录实际安装的 Electron/esbuild 版本，避免维护者升级项目后出现版本漂移。
+- 恢复源码包 manifest 增加项目身份和 `package-lock.json` SHA-256，归档可以追溯到具体依赖锁定状态；归档内容和重复构建校验保持不变。
 
 ## 后续版本
 

@@ -72,6 +72,16 @@ async function sourceDmgSha256() {
   } catch { return ''; }
 }
 
+async function projectIdentity() {
+  let packageJson;
+  try { packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8')); }
+  catch { fail('RECOVERY_BUNDLE_PACKAGE_INVALID'); }
+  if (typeof packageJson.name !== 'string' || !packageJson.name || typeof packageJson.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(packageJson.version)) {
+    fail('RECOVERY_BUNDLE_PROJECT_IDENTITY_INVALID');
+  }
+  return { name: packageJson.name, version: packageJson.version };
+}
+
 async function artifactManifestDigest() {
   try {
     const manifest = JSON.parse(await fs.readFile(path.join(root, '.runtime/release-manifest.json'), 'utf8'));
@@ -102,6 +112,7 @@ export async function buildRecoveryBundle({ output = DEFAULT_OUTPUT, includeVend
     fail('RECOVERY_BUNDLE_OUTPUT_MUST_BE_PROJECT_GENERATED_DIR');
   }
   const files = await collectFiles({ includeVendorRuntime });
+  const project = await projectIdentity();
   await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
   await fs.rm(destination, { force: true });
   const staging = await fs.mkdtemp(path.join(root, '.runtime', 'recovery-bundle-stage-'));
@@ -130,7 +141,9 @@ export async function buildRecoveryBundle({ output = DEFAULT_OUTPUT, includeVend
   const manifest = {
     schema: 'alpha-recovered.source-bundle.v1',
     createdAt: new Date().toISOString(),
+    project,
     gitCommit: await gitCommit(),
+    packageLockSha256: await sha256File(path.join(root, 'package-lock.json')),
     sourceDmgSha256: await sourceDmgSha256(),
     artifactManifestDigest: await artifactManifestDigest(),
     target: { platform: process.platform, arch: process.arch },

@@ -39,6 +39,18 @@
       "privateEvidenceExcluded": true,
       "licenseSelected": false
     },
+    "sourceBundle": {
+      "status": "passed",
+      "command": "npm run bundle:recovery",
+      "manifestRecords": [
+        "project name and semantic version",
+        "package-lock.json SHA-256",
+        "Git commit",
+        "source DMG SHA-256",
+        "artifact manifest digest"
+      ],
+      "includesVendorRuntime": false
+    },
     "nativeAbi": {
       "command": "npm run audit:native-abi",
       "status": "passed",

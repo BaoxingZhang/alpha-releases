@@ -18,6 +18,9 @@ test('recovery source bundle excludes generated outputs and user runtime state',
   assert.equal(result.manifest.includesVendorRuntime, false);
   assert.equal(result.manifest.nativeRecompiled, false);
   assert.equal(result.manifest.projectSigned, false);
+  const packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
+  assert.deepEqual(result.manifest.project, { name: packageJson.name, version: packageJson.version });
+  assert.match(result.manifest.packageLockSha256, /^[a-f0-9]{64}$/);
   assert.ok(result.manifest.files.some(item => item.path === 'README.md'));
   assert.ok(result.manifest.files.some(item => item.path === 'vendor/runtime/manifests/alpha-wcdb.component.json'));
   assert.equal(result.manifest.files.some(item => item.path === 'vendor/runtime/bin/alpha-server'), false);
