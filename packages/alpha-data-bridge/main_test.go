@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -180,6 +181,99 @@ func TestContactCompatibilityAliasesRejectMalformedLocalType(t *testing.T) {
 	_, err = b.dispatch(context.Background(), request{ID: "bad-local-type", Op: "contacts.list", Params: json.RawMessage(`{"limit":10}`)})
 	expectCode(t, err, "ROW_INVALID")
 }
+
+func TestContactsPaginationHandlesLargeSnapshot(t *testing.T) {
+	root := t.TempDir()
+	name := filepath.Join(root, "contact.db")
+	db, err := sql.Open("sqlite3", name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`CREATE TABLE contact (username TEXT, local_type INTEGER, alias TEXT, remark TEXT, nick_name TEXT); CREATE INDEX contact_username_idx ON contact(username)`); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	stmt, err := tx.Prepare(`INSERT INTO contact(username,local_type,alias,remark,nick_name) VALUES(?,?,?,?,?)`)
+	if err != nil {
+		tx.Rollback()
+		db.Close()
+		t.Fatal(err)
+	}
+	const totalRows = 100001
+	for i := 0; i < totalRows; i++ {
+		username := fmt.Sprintf("wxid_large_%06d", i)
+		if _, err := stmt.Exec(username, 1, "", "", username); err != nil {
+			stmt.Close()
+			tx.Rollback()
+			db.Close()
+			t.Fatal(err)
+		}
+	}
+	if err := stmt.Close(); err != nil {
+		tx.Rollback()
+		db.Close()
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	b, err := openBridge(root, "synthetic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.close()
+	const pageSize = 500
+	cursor := ""
+	seen := 0
+	pages := 0
+	for {
+		pages++
+		if pages > (totalRows/pageSize)+2 {
+			t.Fatal("contact pagination did not terminate")
+		}
+		params := map[string]any{"limit": pageSize}
+		if cursor != "" {
+			params["cursor"] = cursor
+		}
+		payload, err := json.Marshal(params)
+		if err != nil {
+			t.Fatal(err)
+		}
+		value, err := b.dispatch(context.Background(), request{ID: fmt.Sprintf("large-%d", pages), Op: "contacts.list", Params: payload})
+		if err != nil {
+			t.Fatal(err)
+		}
+		result, ok := value.(page[contact])
+		if !ok || len(result.Items) > pageSize {
+			t.Fatalf("unexpected large contact page: %#v", value)
+		}
+		seen += len(result.Items)
+		if !result.HasMore {
+			if result.NextCursor != "" {
+				t.Fatal("terminal contact page returned a cursor")
+			}
+			break
+		}
+		if len(result.Items) != pageSize || result.NextCursor == "" {
+			t.Fatalf("invalid continuation page: %#v", result)
+		}
+		cursor = result.NextCursor
+	}
+	if seen != totalRows {
+		t.Fatalf("expected %d contacts through bounded pages, got %d", totalRows, seen)
+	}
+}
+
 func TestStableDatasetAndSidecarBoundary(t *testing.T) {
 	t.Run("new-shard", func(t *testing.T) {
 		root, _ := fixtureDB(t, contactSchema)
