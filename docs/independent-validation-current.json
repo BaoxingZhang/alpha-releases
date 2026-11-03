@@ -10,9 +10,23 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 309,
+      "passed": 316,
       "failed": 0,
-      "testConcurrency": 1
+      "testConcurrency": 1,
+      "stateBackup": {
+        "command": "node --test tests/state-backup.test.mjs",
+        "status": "passed",
+        "tests": 7,
+        "format": "alpha-independent-state-backup.v1",
+        "allowlistedStateOnly": true,
+        "snapshotsExcluded": true,
+        "sensitiveCredentialsExcluded": true,
+        "sha256Manifest": true,
+        "atomicPublish": true,
+        "symlinkAndTraversalRejected": true,
+        "permissions": "0700 directories, 0600 files and archive",
+        "realData": false
+      }
     },
     "versionContract": {
       "status": "passed",

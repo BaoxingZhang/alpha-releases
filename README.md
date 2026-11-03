@@ -16,7 +16,7 @@
 
 上游 [`xunchahaha/alpha-releases`](https://github.com/xunchahaha/alpha-releases) 是发行版、文档和更新策略仓库；本地审计没有发现 Alpha 应用源码，也没有公开许可证声明。版本、安装包摘要、公开功能范围和可复用边界记录在 [上游发行审计](docs/upstream-alpha-releases-current.json)。本工程因此保留原包 provenance，独立实现可维护后端和发布流程，不把上游 README 或安装包当作源码授权。
 
-长期维护以尽量完整保留现有功能为目标，范围与逐项验收条件见 [MAINTENANCE.md](MAINTENANCE.md)；按阶段推进和每轮验收门槛见 [独立维护路线图](docs/maintenance-roadmap.md)。
+长期维护以尽量完整保留现有功能为目标，范围与逐项验收条件见 [MAINTENANCE.md](MAINTENANCE.md)；按阶段推进和每轮验收门槛见 [独立维护路线图](docs/maintenance-roadmap.md)。独立 stateDir 的白名单备份/恢复命令见 [状态备份与恢复](docs/state-backup-recovery.md)，它不会复制快照数据库、数据库 key、密码锁验证器或运行时凭据。
 
 ## 本机使用
 
@@ -146,6 +146,8 @@ npm run test:protocol   # 编解码、分帧边界与来源测试
 npm run verify:vendor   # 核对43个原包运行时文件的SHA256和权限
 npm run audit:native-abi # 只读盘点原生 WCDB dylib 的架构、导出、依赖和签名
 npm run verify:dependencies # 对当前锁定依赖实时运行 npm audit（不含 optional）
+npm run backup:independent-state -- --source /absolute/state --target /absolute/state.alpha-backup
+npm run restore:independent-state -- --source /absolute/state.alpha-backup --target /absolute/new-state
 npm run test:smoke      # 隔离检查、实际Electron界面、IPC与后端状态诊断
 npm run test:smoke:native # 不使用项目Seatbelt wrapper的原生启动链路，只读临时运行时
 npm run check:maintainability # 检查Node/锁文件、源码入口、工具链记录和构建复制边界
