@@ -219,7 +219,13 @@ if (projectMetadata) {
 }
 
 if (currentValidation) {
-  errors.push(...validateCurrentEvidenceRefresh(currentValidation));
+  let httpToolCount;
+  try {
+    httpToolCount = require(path.join(root, 'packages/alpha-engine/http-server.cjs')).toolDefinitions().length;
+  } catch (error) {
+    errors.push(`packages/alpha-engine/http-server.cjs: cannot load for HTTP tool count check (${error.message})`);
+  }
+  errors.push(...validateCurrentEvidenceRefresh(currentValidation, { httpToolCount }));
   try {
     const engine = require(path.join(root, 'packages/alpha-engine/index.cjs'));
     const total = engine.ALL_METHODS.length;

@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 299,
+      "passed": 303,
       "failed": 0,
       "testConcurrency": 1
     },
@@ -240,7 +240,7 @@
         "mediaResolvePath": "/api/v1/favorites/media/:token",
         "mediaSchema": "__alpha_favorite_media_v1"
       },
-      "tools": 73,
+      "tools": 81,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,

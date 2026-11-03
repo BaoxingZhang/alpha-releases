@@ -28,10 +28,10 @@ function compareCountAndDigest(errors, actual, expected, label) {
 
 /**
  * Validate the internal joins in docs/independent-validation-current.json.
- * This intentionally compares recorded evidence only; it does not inspect
- * .runtime artifacts or require a build/package to be present.
+ * This compares recorded evidence with optional checked-in runtime metadata;
+ * it does not inspect .runtime artifacts or require a build/package to be present.
  */
-export function validateCurrentEvidenceRefresh(currentValidation) {
+export function validateCurrentEvidenceRefresh(currentValidation, options = {}) {
   const errors = [];
   const validation = currentValidation?.validation;
   const refresh = validation?.currentEvidenceRefresh;
@@ -40,6 +40,14 @@ export function validateCurrentEvidenceRefresh(currentValidation) {
   if (!DATE.test(refresh.observedAt ?? '')) errors.push('validation.currentEvidenceRefresh.observedAt: expected YYYY-MM-DD');
   if (!Array.isArray(refresh.commands) || refresh.commands.length === 0 || refresh.commands.some(command => typeof command !== 'string' || command.trim() === '')) {
     errors.push('validation.currentEvidenceRefresh.commands: expected a non-empty list of command strings');
+  }
+
+  const httpAdapter = validation.httpAdapter;
+  if (!isRecord(httpAdapter)) {
+    errors.push('validation.httpAdapter: recorded evidence entry is missing');
+  } else {
+    if (!isCount(httpAdapter.tools)) errors.push('validation.httpAdapter.tools: expected a non-negative safe integer');
+    if (isCount(options.httpToolCount)) compareField(errors, httpAdapter.tools, options.httpToolCount, 'validation.httpAdapter.tools vs runtime toolDefinitions');
   }
 
   const source = refresh.publicSourceCandidate;
