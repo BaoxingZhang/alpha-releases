@@ -126,3 +126,17 @@ Linux 二进制不会复制到 macOS flavor，也不会被当前独立 backend �
 3. 原作者提供的对应版本 Rust/C/C++ 源码、生成 schema 或 ABI 头文件。
 
 在获得材料前，项目继续使用 fail-closed 分支，不通过猜测性 SQL、伪造 token 或空结果来宣称功能已恢复。
+
+### `alpha-message-send` 的发送与捕获协议线索（2026-11-03）
+
+REA/Ghidra 对随包 `vendor/runtime/bin/alpha-message-send` 做了只读分析。文件身份为 arm64 Mach-O，SHA-256 为 `3aab88ce1c7e343055d426ae4b3c36bfe8ca0c5fee128a7214396b583ea011ed`；分析到 3,567 个 procedure 和 6,880 个定义字符串。字符串与 Rust 符号中可以确认以下协议类型名称存在于该二进制中：
+
+- `MessageCaptureStartRequest`、`MessageCaptureWatchResponse`、`MessageCaptureCancelResponse`；
+- `SendMessageRequest`、`SendMessageResponse`、`MessageSendWatchRequest`、`MessageSendCancelRequest`；
+- `ApplyMessageMutationRequest`、`ApplyMessageMutationResponse`；
+- `DiscoverPendingMessageResourcesRequest/Response`、`MaintainMessageResourceRequest/Response`；
+- `LoginCaptureEvent`、`MessageRecallRecord` 和 `MessageMutationReceipt`。
+
+Rust 符号还保留了 `alpha_protocol::alpha::engine::v1`、`alpha_protocol::alpha::message::v1` 和 `alpha_protocol::alpha::mutation::v1` 的模块路径；这与已提取的 128 项协议请求目录相互印证。REA Evidence 为 `ev_da5d672431c60e4716f1bf4c2be8da2ae22eae92c831f5fb37cb6f7271f8e259`（工件身份和二进制概览）及 `ev_63ca57615f4413586ceac6d3363f634975710c607957132591d6ee1c5757b18a`（符号库存视图）。
+
+这些观察只说明发送 sidecar 编译进了协议类型和编解码代码。它们没有给出字段编号、真实 transport、登录/捕获会话、资源维护 ABI、授权 permit、错误码闭合关系或可重放的发送确认。`alpha-message-send` 也没有被本轮执行，未知 writer/capture 调用没有被触发，原生文件没有修改。因此 `sendMessage`、消息捕获、消息变更和资源维护继续保持 `UNIMPLEMENTED`/writer-disabled；只有在取得授权的 live fixture、完整 schema/ABI 和可重放确认后，才可以把这些线索转换成实现。
