@@ -1,5 +1,10 @@
 # 变更记录
 
+## 0.3.5-recovery 维护增补 — 2026-11-04（后续）
+
+- 新增 `npm run inspect:source`，对调用方明确选择的已解密 v4 副本执行只读 SQLite schema 诊断；输出固定为独立 source-diagnostics，不读取密钥、不导入快照、不扫描用户目录，也不宣称 native schema 兼容。
+- 增加独立状态备份/恢复 CLI 的真实进程回归，校验白名单文件、权限、manifest/hash、往返恢复和非法参数的 fail-closed 行为。
+
 ## 0.3.5-recovery 维护增补 — 2026-11-04
 
 - 新增 `npm run doctor` 本地接手诊断，检查 Node.js、macOS arm64、锁文件、原生 runtime、Electron 和 esbuild 是否满足可复现构建前置条件；输出固定的 `alpha-recovery-doctor.v1` 报告，明确不会读取个人微信数据、快照、密钥或 `.runtime` 状态。
