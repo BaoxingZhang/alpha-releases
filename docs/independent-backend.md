@@ -36,7 +36,7 @@ npm run start:independent -- --data-dir /absolute/project/.runtime/your-snapshot
 
 加密副本须改用 `--encrypted-dir`，不能与 `--data-dir` 混用；首次打开需要已有密钥。`npm run demo:encrypted` 可演示此路径。固定加密格式和明文快照的存储边界见 [encrypted-import.md](encrypted-import.md)。
 
-原包模式仍使用 `npm start`，当前错误仍为 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`。独立模式使用自己的服务实现，没有修改原二进制 guard、签名、公钥或许可。
+原包模式默认使用 `npm start` 的项目 Seatbelt；该隔离 smoke 会返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`。显式 `npm run start:native` 不使用该 wrapper，`npm run test:smoke:native` 已在临时 HOME/TMP 下验证原生 engine/native-host 启动握手为 ready；两者都没有读取真实微信数据。独立模式使用自己的服务实现，没有修改原二进制 guard、签名、公钥或许可。
 
 原生 ABI 取证仍是单独的证据边界。当前文档记录了 `_alpha_moments_project_row_v1`、`_alpha_native_get_api` 和 `_alpha_sqlite_readonly_get_api` 的静态入口、部分参数检查及残余未知项（见 [`native-operation-source-evidence.md`](native-operation-source-evidence.md)）。这些观察没有执行未知函数表调用，也没有证明朋友圈、收藏或原生媒体能力已可用；独立后端继续使用自有协议和 SQLite 读取实现，并对缺少授权 schema/fixture 的分支 fail-closed。
 

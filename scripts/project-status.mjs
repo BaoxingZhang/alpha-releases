@@ -6,10 +6,11 @@ import { fileURLToPath } from 'node:url';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const readJson = relative => fs.readFile(path.join(root, relative), 'utf8').then(JSON.parse);
 
-const [packageJson, matrix, diagnosis, componentManifest, provenance] = await Promise.all([
+const [packageJson, matrix, diagnosis, nativeSmoke, componentManifest, provenance] = await Promise.all([
   readJson('package.json'),
   readJson('docs/independent-support-matrix.json'),
   readJson('docs/native-startup-diagnosis.json'),
+  readJson('docs/native-smoke-validation.json'),
   readJson('vendor/runtime/component-manifest.json'),
   readJson('provenance/recovered-files.json')
 ]);
@@ -32,6 +33,7 @@ for (const item of matrix.unsupported) {
 }
 
 const observedSmoke = diagnosis.observed_smoke ?? {};
+const nativeSmokePassed = nativeSmoke.status === 'passed' && nativeSmoke.backend?.state === 'ready' && nativeSmoke.nativeFilesModified === false;
 const unavailableComponents = Object.entries(componentManifest.capabilities ?? {})
   .filter(([, value]) => value === 'unavailable' || value?.state === 'unavailable')
   .map(([name]) => name)
@@ -59,8 +61,12 @@ const report = {
     unsupportedByCategory
   },
   native: {
-    state: observedSmoke.backend?.state ?? 'unknown',
-    errorCode: observedSmoke.backend?.errorCode ?? '',
+    state: nativeSmokePassed ? 'ready-disposable' : (observedSmoke.backend?.state ?? 'unknown'),
+    errorCode: nativeSmokePassed ? '' : (observedSmoke.backend?.errorCode ?? ''),
+    isolatedSmoke: nativeSmokePassed ? 'ready' : 'unavailable',
+    customSeatbeltSmoke: observedSmoke.backend?.state ?? 'unknown',
+    customSeatbeltErrorCode: observedSmoke.backend?.errorCode ?? '',
+    realDataValidated: nativeSmoke.realWeChatData === true,
     diagnosisStatus: diagnosis.status,
     unavailableComponents
   },
@@ -81,6 +87,7 @@ if (json) {
   console.log('unsupported branches:');
   for (const [name, count] of Object.entries(unsupportedByCategory).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))) console.log(`  - ${name}: ${count}`);
   console.log(`native package mode: ${report.native.state}${report.native.errorCode ? ` (${report.native.errorCode})` : ''}`);
+  console.log(`custom Seatbelt smoke: ${report.native.customSeatbeltSmoke}${report.native.customSeatbeltErrorCode ? ` (${report.native.customSeatbeltErrorCode})` : ''}`);
   console.log(`native source recovered: ${report.boundary.nativeSourceRecovered}`);
   console.log(`real WeChat data validated: ${report.boundary.realWechatDataValidated}`);
 }

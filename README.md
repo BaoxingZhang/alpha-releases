@@ -10,7 +10,7 @@
 
 公众号计划的 `alpha-independent.official_plans.list_attempts`、`request_attempt`、`get_attempt` 和 `archive_attempt` 只记录本地 blocked-attempt 元数据；接口固定返回 `execution_supported=false` 与 `INDEPENDENT_OFFICIAL_EXECUTION_UNAVAILABLE`，不联网、不抓取、不下载、不执行，也不冒充 Alpha 原生计划运行记录。
 
-原包模式仍保留，启动仍返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，记录见 [local-run.json](docs/local-run.json)。这是恢复后的 JavaScript 工程与新增维护模块，并非作者原始 TypeScript/Rust/C++ 源码仓库。
+原包模式仍保留；项目 Seatbelt smoke 会返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，但在 macOS arm64、临时 HOME/TMP、Electron `--no-sandbox` 且不使用项目 Seatbelt wrapper 的 native smoke 中，原生 engine/native-host 已通过启动握手并返回 ready。两种结果分别记录在 [local-run.json](docs/local-run.json) 和 [native-smoke-validation.json](docs/native-smoke-validation.json)；native smoke 只证明启动和握手，不证明真实微信数据或完整功能。这是恢复后的 JavaScript 工程与新增维护模块，并非作者原始 TypeScript/Rust/C++ 源码仓库。
 
 上游 [`xunchahaha/alpha-releases`](https://github.com/xunchahaha/alpha-releases) 是发行版、文档和更新策略仓库；本地审计没有发现 Alpha 应用源码，也没有公开许可证声明。版本、安装包摘要、公开功能范围和可复用边界记录在 [上游发行审计](docs/upstream-alpha-releases-current.json)。本工程因此保留原包 provenance，独立实现可维护后端和发布流程，不把上游 README 或安装包当作源码授权。
 

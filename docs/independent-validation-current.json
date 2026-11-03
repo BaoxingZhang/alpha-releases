@@ -497,7 +497,10 @@
       "errorCode": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY",
       "smokeCommand": "npm run test:smoke",
       "uiSmokeStatus": "passed",
-      "securityBoundary": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY"
+      "securityBoundary": "SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY",
+      "backendReadyWithoutSeatbelt": true,
+      "nativeSmokeRecord": "native-smoke-validation.json",
+      "seatbeltSmokeStatus": "native-backend-unavailable-in-project-seatbelt"
     },
     "maintenance": {
       "command": "npm run check:maintainability",
@@ -987,6 +990,29 @@
       "complete": false,
       "nativeSchemaSupported": false,
       "readOnly": true
+    },
+    "nativeSmoke": {
+      "command": "npm run test:smoke:native",
+      "status": "passed",
+      "scope": "macOS arm64; temporary HOME/TMP; Electron --no-sandbox; no custom Seatbelt wrapper",
+      "backendReady": true,
+      "components": [
+        "engine",
+        "native-host"
+      ],
+      "realWeChatData": false,
+      "nativeFilesModified": false
+    },
+    "packagedNativeSmoke": {
+      "command": "npm run test:packaged-native",
+      "status": "passed",
+      "flavor": "original",
+      "electronPackagedMode": true,
+      "rendererLoaded": true,
+      "nativeBackendReady": true,
+      "emptyDisposableAccounts": true,
+      "realWeChatData": false,
+      "nativeFilesModified": false
     }
   },
   "featureBoundary": {

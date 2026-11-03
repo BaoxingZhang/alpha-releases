@@ -1,6 +1,6 @@
 {
   "schema": "alpha-recovered.native-smoke-validation.v1",
-  "recordedAt": "2026-11-02T20:08:14Z",
+  "recordedAt": "2026-11-03T08:32:41Z",
   "command": "npm run test:smoke:native",
   "platform": "darwin-arm64",
   "customSeatbelt": false,
@@ -71,5 +71,25 @@
   "limits": [
     "This proves native startup and the engine/native-host handshake only.",
     "It does not prove real account discovery, automatic key acquisition, message reads, media, writes, sending, licensing, or remote services."
-  ]
+  ],
+  "latestRun": {
+    "session": "native-smoke-1793694226144",
+    "command": "npm run test:smoke:native",
+    "status": "passed",
+    "backendReady": true,
+    "rendererLoaded": true,
+    "nativeFilesModified": false,
+    "realWeChatData": false
+  },
+  "packagedNativeSmoke": {
+    "command": "npm run test:packaged-native",
+    "status": "passed",
+    "session": "packaged-native-1793695350988",
+    "backendReady": true,
+    "rendererLoaded": true,
+    "electronPackagedMode": true,
+    "emptyDisposableAccounts": true,
+    "realWeChatData": false,
+    "nativeFilesModified": false
+  }
 }

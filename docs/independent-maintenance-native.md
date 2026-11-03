@@ -4,7 +4,7 @@
 
 **建议保留 Alpha 的桌面界面、交互和全部功能清单，在现有 EngineClient 边界逐项实现可自行编译的后端。WeFlow 可以提供部分应用层源码参考，但当前公开版本不能直接补齐 macOS 数据库和密钥组件。** 全功能保留是最终目标；分阶段验收用于控制依赖和定位问题，不代表把产品范围缩减为离线查看或简单导出。
 
-目前已验证 JavaScript 可以重建、Electron 首次设置界面可以启动。原生 engine 返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，账号与许可查询随后返回 `ENGINE_NOT_STARTED`。这还不是完整业务可用的项目；不能把界面成功、协议能编码或模拟数据通过当成真实聊天功能通过。详见 [本地构建与运行验证](local-build-and-run.md)。
+目前已验证 JavaScript 可以重建、Electron 首次设置界面可以启动。项目 Seatbelt smoke 下原生 engine 会返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`；在 macOS arm64、临时 HOME/TMP、Electron `--no-sandbox` 且不使用该 wrapper 的 native smoke 中，engine/native-host 已返回 ready。native smoke 只证明启动和握手，账号为空，未验证真实微信数据；这还不是完整业务可用的项目，不能把界面启动、协议编码或合成数据通过当成真实聊天功能通过。详见 [本地构建与运行验证](local-build-and-run.md) 和 [native smoke 证据](native-smoke-validation.json)。
 
 ## 1. 维护目标与发行包基线
 

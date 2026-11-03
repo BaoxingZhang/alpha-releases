@@ -18,7 +18,7 @@
 | renderer | 通过 | 首次设置页显示“连接你的微信”，本轮监听未捕获 renderer error；未连接账号 |
 | 隔离检查 | 通过 | 项目内文件可读；项目外临时测试标记读取遭 EPERM；远程 IP 连接遭 Operation not permitted |
 | 钥匙串隔离 | 显式不可用 | `safeStorage.isEncryptionAvailable()` 为 false，加解密调用抛 `RECOVERY_KEYCHAIN_DISABLED`，不读取或保存真实凭据 |
-| 原生 engine（项目 Seatbelt smoke） | **隔离环境不可用** | 原程序在项目 `/usr/bin/sandbox-exec` wrapper 下返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，随后 `application lock is unavailable`；这项结果单独保留，不代表 native 文件损坏 |
+| 原生 engine（项目 Seatbelt smoke） | **隔离环境不可用** | 原程序在项目 `/usr/bin/sandbox-exec` wrapper 下返回 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`，随后 `application lock is unavailable`；这项结果只描述该外层隔离环境，不代表 native 文件损坏。无该 wrapper 的 `npm run test:smoke:native` 已在临时 HOME/TMP 下通过 native engine/native-host 启动握手 |
 | 原生 engine（`test:smoke:native`） | **启动链路通过** | 临时 HOME/userData 下返回 backend `ready`，组件为 `engine` 0.3.5 与 `native-host` 0.1.0；账号为空是 disposable 状态，没有真实账号读取 |
 | 账号与许可 IPC（项目 Seatbelt smoke） | **受阻** | 隔离原生 engine 未启动时，`accounts.list()`、`license.capabilities()` 返回 `ENGINE_NOT_STARTED`，不是返回空账号数组；native smoke 可查询到空 disposable accounts 和无 grants capabilities |
 | 更新服务 | 未配置 | 开发分支 `state=unconfigured`、`download.phase=idle` |
@@ -29,7 +29,7 @@
 
 ### 原生运行时的独立 smoke
 
-项目的 Seatbelt 隔离 smoke 与原生 peer-image 校验存在边界：`test:smoke` 使用 `/usr/bin/sandbox-exec`，原生 `alpha-security-host` 会在该外层沙箱下返回 `RUNTIME_PEER_IMAGE_NOT_ALLOWED`，随后桌面层显示 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`。这项结果保留为“隔离环境下原生不可用”，不等同于原生文件或签名损坏。
+项目的 Seatbelt 隔离 smoke 与原生 peer-image 校验存在边界：`test:smoke` 和默认 `npm start` 使用 `/usr/bin/sandbox-exec`，原生 `alpha-security-host` 会在该外层沙箱下返回 `RUNTIME_PEER_IMAGE_NOT_ALLOWED`，随后桌面层显示 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY`。需要在本机直接验证原生启动时，可显式运行 `npm run start:native`；该入口不使用项目 Seatbelt，仍传递 Electron `--no-sandbox`，不会自动选择个人数据目录。`npm run test:packaged-native` 会对已组装的原始 flavor `.app` 执行同样的临时 HOME/TMP、无真实数据启动握手检查。默认启动保持受控 Seatbelt 行为。
 
 要单独验证原生运行时的启动链路，可运行：
 
@@ -101,7 +101,7 @@ npm run package:macos-dmg:independent
 
 ## 原生阻塞的已知边界
 
-原生文件与 DMG 副本的 SHA256 一致，`alpha-security-host` 的 macOS 代码签名通过磁盘校验。路径软链问题已经排除，原生安全策略仍拒绝当前启动环境。macOS 代码签名通过不等于其内部运行时完整性校验通过。
+原生文件与 DMG 副本的 SHA256 一致，`alpha-security-host` 的 macOS 代码签名通过磁盘校验。路径软链问题已经排除；项目自定义 Seatbelt wrapper 下的原生安全策略仍拒绝启动，但不使用该 wrapper 的 native smoke 已通过。macOS 代码签名通过不等于其内部运行时完整性校验通过。
 
 本轮没有确定 `SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY` 的完整触发条件。原生文件含独立状态目录和 HOME 引用；这些路径并不完全由 Electron `app.setPath()` 控制，沙箱继续阻止实际用户目录内容访问。未使用真实用户状态来满足检查。未发现明确可用的外部策略路径配置项；也没有证据将此错误解释为已过期。组件清单显示的日期、签名和公钥均保持原样。
 

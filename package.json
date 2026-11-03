@@ -19,8 +19,10 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "start": "node scripts/launch.mjs",
+    "start:native": "node scripts/launch.mjs --no-seatbelt",
     "test:smoke": "node tests/smoke.mjs",
     "test:smoke:native": "node tests/native-smoke.mjs",
+    "test:packaged-native": "node tests/packaged-native-smoke.mjs",
     "index": "node tools/index-recovered-code.mjs",
     "verify:vendor": "node scripts/verify-vendor.mjs",
     "audit:native-abi": "node scripts/audit-native-abi.mjs",

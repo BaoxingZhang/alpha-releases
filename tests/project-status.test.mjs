@@ -21,8 +21,12 @@ test('project status reports independent and native boundaries from evidence', a
   assert.equal(status.independent.totalRequestBranches, 128);
   assert.equal(status.independent.implementedRequestBranches, 82);
   assert.equal(status.independent.unsupportedRequestBranches, 46);
-  assert.equal(status.native.state, 'unavailable');
-  assert.equal(status.native.errorCode, 'SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY');
+  assert.equal(status.native.state, 'ready-disposable');
+  assert.equal(status.native.errorCode, '');
+  assert.equal(status.native.isolatedSmoke, 'ready');
+  assert.equal(status.native.customSeatbeltSmoke, 'unavailable');
+  assert.equal(status.native.customSeatbeltErrorCode, 'SECURITY_RUNTIME_POLICY_REJECTED_INTEGRITY');
+  assert.equal(status.native.realDataValidated, false);
   assert.equal(status.boundary.nativeSourceRecovered, false);
   assert.equal(status.boundary.realWechatDataValidated, false);
   assert.equal(status.boundary.syntheticFixturesAreNativeParity, false);
