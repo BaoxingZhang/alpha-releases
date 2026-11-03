@@ -531,9 +531,16 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
   async function call(method, payload = {}) {
     if (!ALLOWED_METHODS.has(method)) throw new HttpAdapterError('HTTP_API_METHOD_UNSUPPORTED', 501);
     if (LOCAL_METHODS.has(method)) {
-      if (typeof engine[method] !== 'function') throw new HttpAdapterError('HTTP_API_METHOD_UNSUPPORTED', 501);
-      try { return await engine[method](payload); } catch (failure) { throw new HttpAdapterError(/^[A-Z][A-Z0-9_]{1,95}$/.test(failure?.message || '') ? failure.message : 'HTTP_API_UPSTREAM_FAILED', 502); }
+      // Some independent methods are exposed as local adapter helpers, while
+      // the protocol engine keeps the same operation behind dispatch().  Use
+      // the helper when present (this preserves lightweight test doubles), but
+      // fall through to the verified protocol frame when the engine does not
+      // duplicate that helper on its public object.
+      if (typeof engine[method] === 'function') {
+        try { return await engine[method](payload); } catch (failure) { throw new HttpAdapterError(/^[A-Z][A-Z0-9_]{1,95}$/.test(failure?.message || '') ? failure.message : 'HTTP_API_UPSTREAM_FAILED', 502); }
+      }
     }
+    if (typeof engine.dispatch !== 'function') throw new HttpAdapterError('HTTP_API_METHOD_UNSUPPORTED', 501);
     const request = EngineClientFrame.fromPartial({ requestId: nextRequestId++, [method]: payload });
     const reply = await engine.dispatch(request);
     return responseJson(reply, method);

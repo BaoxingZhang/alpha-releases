@@ -79,6 +79,13 @@ test('standalone MCP stdio completes initialize/tools/list and exits cleanly at 
   assert.equal(status.id, 3);
   assert.equal(status.result.isError, undefined);
   assert.equal(status.result.structuredContent.status, 'ready');
+  child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'wechat.core.get_lock_status', arguments: {} } })}\n`);
+  const [lockStatus] = await waitFor(1);
+  assert.equal(lockStatus.id, 4);
+  assert.equal(lockStatus.result.isError, undefined);
+  assert.equal(lockStatus.result.structuredContent.scope, 'alpha-independent-lock-status');
+  assert.equal(lockStatus.result.structuredContent.read_only, true);
+  assert.equal(Object.hasOwn(lockStatus.result.structuredContent, 'password_failed_attempts'), false);
   child.stdin.end();
   const [exit] = await once(child, 'exit');
   assert.equal(exit, 0);
