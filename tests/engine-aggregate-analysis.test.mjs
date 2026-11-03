@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createFixture } from './data-bridge-fixture.mjs';
 import { createSearchFixture } from './search-fixture.mjs';
+import { createAnalysisFixture } from './analysis-fixture.mjs';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -107,16 +108,54 @@ test('aggregate annual analysis enforces full local-year bounds and counts all d
   assert.equal(privateJson.algorithm_version, 'alpha-aggregate-v1');
   assert.equal(privateJson.scope, 'private_chats');
 
-  for (const request of [
-    { scope: 0, conversationId: fixture.conversationId },
-    { scope: 5, conversationId: fixture.conversationId },
-    { scope: 6, conversationId: fixture.conversationId }
-  ]) assert.equal((await call('startAggregateAnalysis', request)).error?.code, 'ANALYSIS_SCOPE_UNSUPPORTED');
+  assert.equal((await call('startAggregateAnalysis', { scope: 0, conversationId: fixture.conversationId })).error?.code, 'ANALYSIS_SCOPE_UNSUPPORTED');
   assert.equal((await call('startAggregateAnalysis', { scope: 1, conversationId: fixture.conversationId, fromUnixMs, toUnixMs })).error?.code, 'ANALYSIS_SCOPE_OPTIONS_INVALID');
   assert.equal((await call('startAggregateAnalysis', { scope: 2, conversationId: fixture.conversationId, fromUnixMs })).error?.code, 'ANALYSIS_SCOPE_OPTIONS_UNSUPPORTED');
   assert.equal((await call('startAggregateAnalysis', { scope: 3, fromUnixMs, toUnixMs: undefined })).error?.code, 'ANALYSIS_SCOPE_OPTIONS_INVALID');
   assert.equal((await call('startAggregateAnalysis', { scope: 3, fromUnixMs: fromUnixMs + 1n, toUnixMs })).error?.code, 'ANALYSIS_SCOPE_OPTIONS_INVALID');
   assert.equal((await call('startAggregateAnalysis', { scope: 3, fromUnixMs, toUnixMs, conversationId: fixture.conversationId })).error?.code, 'ANALYSIS_SCOPE_OPTIONS_INVALID');
+});
+
+test('aggregate mention analysis detects only explicit peer mention tokens', async t => {
+  const { fixture, call } = await setupEngine(t, createAnalysisFixture);
+  const started = await call('startAggregateAnalysis', { scope: 5, utcOffsetMinutes: 480 });
+  assert.equal(started.error, undefined, started.error?.code);
+  assert.equal(started.startAggregateAnalysis.conversationsTotal, 1);
+  const completed = await waitForTerminal(call, started.startAggregateAnalysis.analysisId);
+  assert.equal(completed.state, 2);
+  const report = JSON.parse(new TextDecoder().decode(completed.reportJson));
+  assert.equal(report.algorithm_version, 'alpha-mentions-v1');
+  assert.equal(report.complete, false);
+  assert.equal(report.native_schema_supported, false);
+  assert.equal(report.utc_offset_minutes, 480);
+  assert.equal(report.conversations_analyzed, 1);
+  assert.equal(report.mention_total, 1);
+  assert.equal(report.mention_all_total, 1);
+  assert.equal(report.items.length, 2);
+  assert.equal(report.items.some(item => item.is_all), true);
+  assert.equal(report.groups[0].conversation_id, fixture.groupConversationId);
+});
+
+test('aggregate footprint analysis reports private activity and bounded group mentions', async t => {
+  const { fixture, call } = await setupEngine(t, createAnalysisFixture);
+  const started = await call('startAggregateAnalysis', { scope: 6, utcOffsetMinutes: 0 });
+  assert.equal(started.error, undefined, started.error?.code);
+  assert.equal(started.startAggregateAnalysis.conversationsTotal, 2);
+  const completed = await waitForTerminal(call, started.startAggregateAnalysis.analysisId);
+  assert.equal(completed.state, 2);
+  const report = JSON.parse(new TextDecoder().decode(completed.reportJson));
+  assert.equal(report.algorithm_version, 'alpha-footprint-v1');
+  assert.equal(report.complete, false);
+  assert.equal(report.native_schema_supported, false);
+  assert.equal(report.private.conversations_analyzed, 2);
+  assert.equal(report.private.sent_messages > 0, true);
+  assert.equal(report.private.received_messages > 0, true);
+  assert.equal(report.private.people.length, 2);
+  assert.equal(report.sessions.length > 0, true);
+  assert.equal(report.mentions.conversations_analyzed, 1);
+  assert.equal(report.mentions.mention_total, 1);
+  assert.equal(report.mentions.mention_all_total, 1);
+  assert.equal(report.sessions.every(session => /^-?\d{1,20}$/.test(session.anchor_message_id)), true);
 });
 
 test('aggregate analysis job manager cancels running work and rejects malformed reports', async () => {

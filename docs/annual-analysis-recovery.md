@@ -8,4 +8,4 @@
 
 验证：`tests/engine-annual.test.mjs` 使用合成 v4 SQLite fixture，检查年份/时区校验、消息聚合、媒体计数、报告 JSON 和未覆盖会话的明确边界。未访问真实微信目录，也未写入聊天数据库。
 
-聚合分析字段 110–112 复用同一 DTO 扫描边界，提供 bounded 内存任务、状态查询和取消。scope 3 要求本地时区完整年份并输出主进程可校验的 `alpha-annual-v2` 外壳；scope 1 只扫描私聊并输出 `alpha-aggregate-v1` 外壳。任务最多保留 32 个、默认 TTL 10 分钟，进程重启不恢复；scope 5/6 仍明确拒绝。报告外壳中的空值只表示当前没有证据恢复对应算法语义。
+聚合分析字段 110–112 复用同一 DTO 扫描边界，提供 bounded 内存任务、状态查询和取消。scope 3 要求本地时区完整年份并输出主进程可校验的 `alpha-annual-v2` 外壳；scope 1 只扫描私聊并输出 `alpha-aggregate-v1` 外壳；scope 5 统计群聊中消息正文里明确出现的 `@所有人`、`@all` 或账号自身用户名；scope 6 生成私聊会话足迹、回复延迟摘要以及同一组明确 mention。scope 5/6 的报告只基于已验证消息 DTO，固定标记 `complete=false`、`native_schema_supported=false`，不解析 XML `atuserlist`、昵称推断或原生分析表。任务最多保留 32 个、默认 TTL 10 分钟，进程重启不恢复；报告外壳中的空值只表示当前没有证据恢复对应算法语义。

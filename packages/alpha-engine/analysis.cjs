@@ -4,6 +4,8 @@
 // backend. It consumes normalized message DTOs, so it does not guess any
 // SQLite schema or infer fields from opaque payloads.
 const MAX_MESSAGES = 500000;
+const MAX_MENTION_ITEMS = 200;
+const MAX_FOOTPRINT_SESSIONS = 2000;
 
 function localParts(unixMs, offsetMinutes) {
   const shifted = unixMs + BigInt(offsetMinutes) * 60000n;
@@ -275,4 +277,214 @@ async function buildConversationReport({ listMessages, conversationId, maxMessag
   return { report, itemCount: scanned, scannedMessages: scanned, truncated };
 }
 
-module.exports = { buildAnnualReport, buildConversationReport, MAX_MESSAGES };
+function rangeBounds(fromUnixMs, toUnixMs) {
+  if (fromUnixMs !== undefined && (typeof fromUnixMs !== 'bigint' || fromUnixMs < 0n)) throw new Error('ANALYSIS_OPTIONS_INVALID');
+  if (toUnixMs !== undefined && (typeof toUnixMs !== 'bigint' || toUnixMs < 0n || fromUnixMs !== undefined && toUnixMs <= fromUnixMs)) throw new Error('ANALYSIS_OPTIONS_INVALID');
+  return { fromUnixMs, toUnixMs };
+}
+
+function reportMilliseconds(value) {
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number < 0) throw new Error('ANALYSIS_TIME_INVALID');
+  return number;
+}
+
+function reportServerId(message) {
+  if (typeof message?.serverId !== 'bigint' || message.serverId === 0n) return null;
+  const value = message.serverId.toString();
+  return /^-?\d{1,20}$/.test(value) ? value : null;
+}
+
+function reportAnchorId(message) {
+  const value = typeof message?.rawLocalId === 'string' ? message.rawLocalId : Number.isSafeInteger(message?.localId) ? String(message.localId) : '';
+  if (!/^-?\d{1,20}$/.test(value)) throw new Error('BRIDGE_MESSAGE_ID_INVALID');
+  return value;
+}
+
+function messageSide(message) {
+  return message?.direction === 2 ? 'mine' : message?.direction === 1 ? 'peer' : 'unknown';
+}
+
+function addDirection(target, side) {
+  if (side === 'mine') target.sent += 1;
+  else if (side === 'peer') target.received += 1;
+  else target.unknown += 1;
+}
+
+function delaySummary(values) {
+  if (!values.length) return null;
+  const sorted = values.slice().sort((a, b) => a - b);
+  return { count: values.length, average_ms: Math.round(values.reduce((sum, value) => sum + value, 0) / values.length), fastest_ms: sorted[0], slowest_ms: sorted[sorted.length - 1] };
+}
+
+function localDateAndHour(unixMs, offsetMinutes) {
+  return localParts(BigInt(unixMs), offsetMinutes);
+}
+
+function explicitMentionKind(text, selfUsername) {
+  if (typeof text !== 'string' || !text || text.length > 4 * 1024 * 1024) return null;
+  // We only recognize markers present in the independently decoded text. A
+  // display name, XML atuserlist, or arbitrary "@我" text is intentionally not
+  // treated as a mention because it cannot identify the target safely.
+  if (/(?:^|\s)@(所有人|all)(?=\s|$|[，。,.!?！？:：;；])/iu.test(text)) return 'all';
+  if (typeof selfUsername === 'string' && selfUsername && selfUsername.length <= 256) {
+    const escaped = selfUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp(`(?:^|\\s)@${escaped}(?=\\s|$|[，。,.!?！？:：;；])`, 'u').test(text)) return 'self';
+  }
+  return null;
+}
+
+async function collectMessages({ listSessions, listMessages, fromUnixMs, toUnixMs, excludedConversationIds = [], isCanceled = () => false, onConversation }) {
+  if (typeof listSessions !== 'function' || typeof listMessages !== 'function') throw new Error('ANALYSIS_HANDLER_INVALID');
+  const { fromUnixMs: from, toUnixMs: to } = rangeBounds(fromUnixMs, toUnixMs);
+  const sessions = [];
+  let sessionCursor = '';
+  do {
+    if (isCanceled()) throw new Error('ANALYSIS_CANCELED');
+    const page = await listSessions({ limit: 500, cursor: sessionCursor });
+    if (!page || !Array.isArray(page.items) || typeof page.nextCursor !== 'string') throw new Error('BRIDGE_PAGE_INVALID');
+    sessions.push(...page.items);
+    if (sessions.length > 10000) throw new Error('ANALYSIS_SCOPE_TOO_LARGE');
+    sessionCursor = page.nextCursor;
+  } while (sessionCursor);
+
+  let scanned = 0;
+  let selectedCount = 0;
+  let selectedGroupCount = 0;
+  let selectedPrivateCount = 0;
+  let truncated = false;
+  for (const session of sessions) {
+    if (isCanceled()) throw new Error('ANALYSIS_CANCELED');
+    const conversationId = typeof session?.username === 'string' ? session.username : '';
+    if (!conversationId || excludedConversationIds.includes(conversationId)) continue;
+    selectedCount += 1;
+    if (conversationId.endsWith('@chatroom')) selectedGroupCount += 1;
+    else selectedPrivateCount += 1;
+    const messages = [];
+    let cursor = new Uint8Array(0);
+    const seenCursors = new Set();
+    for (;;) {
+      if (isCanceled()) throw new Error('ANALYSIS_CANCELED');
+      if (scanned >= MAX_MESSAGES) { truncated = true; break; }
+      const page = await listMessages({ conversationId, ascending: true, ...(from === undefined ? {} : { afterUnixMs: from - 1n }), ...(to === undefined ? {} : { beforeUnixMs: to }), page: { pageSize: Math.min(500, MAX_MESSAGES - scanned), cursor } });
+      if (!page || !Array.isArray(page.items) || !(page.nextCursor instanceof Uint8Array)) throw new Error('BRIDGE_PAGE_INVALID');
+      for (const message of page.items) {
+        if (isCanceled()) throw new Error('ANALYSIS_CANCELED');
+        if (!message || typeof message.sentAtUnixMs !== 'bigint' || message.conversationId !== conversationId) throw new Error('BRIDGE_MESSAGE_SCOPE_INVALID');
+        if (from !== undefined && message.sentAtUnixMs < from || to !== undefined && message.sentAtUnixMs >= to) continue;
+        if (scanned >= MAX_MESSAGES) { truncated = true; break; }
+        scanned += 1;
+        messages.push(message);
+      }
+      if (truncated || page.nextCursor.length === 0) break;
+      const key = Buffer.from(page.nextCursor).toString('base64url');
+      if (seenCursors.has(key)) throw new Error('BRIDGE_CURSOR_STALLED');
+      seenCursors.add(key); cursor = page.nextCursor;
+    }
+    if (messages.length && typeof onConversation === 'function') await onConversation({ conversationId, displayName: typeof session.displayName === 'string' && session.displayName ? session.displayName : conversationId, messages });
+    if (truncated) break;
+  }
+  return { scanned, truncated, sessionCount: sessions.length, selectedCount, selectedGroupCount, selectedPrivateCount };
+}
+
+function mentionReportMeta(report) {
+  return { ...report, complete: false, native_schema_supported: false, provenance: 'alpha-independent-verified-message-text', mention_detection: 'explicit-text-token-v1' };
+}
+
+async function buildMentionReport({ listSessions, listMessages, selfUsername = '', fromUnixMs, toUnixMs, excludedConversationIds = [], utcOffsetMinutes = 0, isCanceled = () => false }) {
+  const { fromUnixMs: from, toUnixMs: to } = rangeBounds(fromUnixMs, toUnixMs);
+  if (excludedConversationIds.length) throw new Error('ANALYSIS_OPTIONS_INVALID');
+  if (!Number.isInteger(utcOffsetMinutes) || utcOffsetMinutes < -720 || utcOffsetMinutes > 840) throw new Error('ANALYSIS_OPTIONS_INVALID');
+  const groups = new Map(), items = [];
+  let conversationsAnalyzed = 0;
+  const result = await collectMessages({ listSessions, listMessages, fromUnixMs: from, toUnixMs: to, isCanceled, onConversation: async ({ conversationId, displayName, messages }) => {
+    if (!conversationId.endsWith('@chatroom')) return;
+    conversationsAnalyzed += 1;
+    for (const message of messages) {
+      if (messageSide(message) !== 'peer') continue;
+      const kind = explicitMentionKind(message.text, selfUsername);
+      if (!kind) continue;
+      const row = groups.get(conversationId) || { conversation_id: conversationId, display_name: displayName, mentions: 0, mentions_all: 0, latest_unix_ms: 0 };
+      if (kind === 'all') row.mentions_all += 1;
+      else row.mentions += 1;
+      row.latest_unix_ms = Math.max(row.latest_unix_ms, reportMilliseconds(message.sentAtUnixMs));
+      groups.set(conversationId, row);
+      if (items.length < MAX_MENTION_ITEMS) items.push({ conversation_id: conversationId, message_id: reportAnchorId(message), sent_at_unix_ms: reportMilliseconds(message.sentAtUnixMs), sender_id: typeof message.senderId === 'string' ? message.senderId : '', is_all: kind === 'all' });
+    }
+  } });
+  items.sort((a, b) => b.sent_at_unix_ms - a.sent_at_unix_ms || a.message_id.localeCompare(b.message_id));
+  const groupRows = [...groups.values()].sort((a, b) => b.latest_unix_ms - a.latest_unix_ms || a.conversation_id.localeCompare(b.conversation_id));
+  const mentionTotal = groupRows.reduce((sum, row) => sum + row.mentions, 0), mentionAllTotal = groupRows.reduce((sum, row) => sum + row.mentions_all, 0);
+  return mentionReportMeta({ algorithm_version: 'alpha-mentions-v1', utc_offset_minutes: utcOffsetMinutes, from_unix_ms: from === undefined ? null : reportMilliseconds(from), to_unix_ms: to === undefined ? null : reportMilliseconds(to), conversations_analyzed: result.selectedGroupCount, conversations_with_mentions: groupRows.length, conversations_failed: 0, truncated: false, independent_truncated: result.truncated, mention_total: mentionTotal, mention_all_total: mentionAllTotal, groups: groupRows, items, items_truncated: mentionTotal + mentionAllTotal > items.length });
+}
+
+function footprintSessionFromMessages(conversationId, messages) {
+  if (!messages.length) return [];
+  const output = [];
+  let current = null;
+  for (const message of messages) {
+    const sentAtUnixMs = reportMilliseconds(message.sentAtUnixMs);
+    const side = messageSide(message);
+    if (!current || sentAtUnixMs - current.end_unix_ms > 30 * 60 * 1000) {
+      current = { conversation_id: conversationId, start_unix_ms: sentAtUnixMs, end_unix_ms: sentAtUnixMs, received: 0, sent: 0, unknown: 0, first_received_unix_ms: null, first_reply_unix_ms: null, opener: side, anchor_message_id: reportAnchorId(message), anchor_server_id: reportServerId(message) };
+      output.push(current);
+    }
+    current.end_unix_ms = sentAtUnixMs;
+    if (side === 'mine') current.sent += 1;
+    else if (side === 'peer') { current.received += 1; if (current.first_received_unix_ms === null) current.first_received_unix_ms = sentAtUnixMs; }
+    else current.unknown += 1;
+    if (current.first_received_unix_ms !== null && current.first_reply_unix_ms === null && side === 'mine' && sentAtUnixMs >= current.first_received_unix_ms) current.first_reply_unix_ms = sentAtUnixMs;
+  }
+  return output;
+}
+
+async function buildFootprintReport({ listSessions, listMessages, selfUsername = '', fromUnixMs, toUnixMs, excludedConversationIds = [], utcOffsetMinutes = 0, isCanceled = () => false }) {
+  const { fromUnixMs: from, toUnixMs: to } = rangeBounds(fromUnixMs, toUnixMs);
+  if (!Number.isInteger(utcOffsetMinutes) || utcOffsetMinutes < -720 || utcOffsetMinutes > 840) throw new Error('ANALYSIS_OPTIONS_INVALID');
+  const privatePeople = new Map(), sessions = [], daily = new Map(), hourly = Array.from({ length: 24 }, (_, hour) => ({ hour, sent: 0, received: 0, unknown: 0 }));
+  const myReplies = [], peerReplies = [], mentionGroups = new Map(), mentionItems = [];
+  let conversationsAnalyzed = 0, groupConversationsAnalyzed = 0;
+  const result = await collectMessages({ listSessions, listMessages, fromUnixMs: from, toUnixMs: to, excludedConversationIds, isCanceled, onConversation: async ({ conversationId, displayName, messages }) => {
+    conversationsAnalyzed += 1;
+    if (conversationId.endsWith('@chatroom')) groupConversationsAnalyzed += 1;
+    for (const message of messages) {
+      const kind = explicitMentionKind(message.text, selfUsername);
+      if (conversationId.endsWith('@chatroom')) {
+        if (kind && messageSide(message) === 'peer') {
+          const row = mentionGroups.get(conversationId) || { conversation_id: conversationId, display_name: displayName, mentions: 0, mentions_all: 0, latest_unix_ms: 0 };
+          if (kind === 'all') row.mentions_all += 1; else row.mentions += 1;
+          row.latest_unix_ms = Math.max(row.latest_unix_ms, reportMilliseconds(message.sentAtUnixMs)); mentionGroups.set(conversationId, row);
+          if (mentionItems.length < MAX_MENTION_ITEMS) mentionItems.push({ conversation_id: conversationId, message_id: reportAnchorId(message), server_id: reportServerId(message), sent_at_unix_ms: reportMilliseconds(message.sentAtUnixMs), sender_id: typeof message.senderId === 'string' ? message.senderId : '', is_all: kind === 'all' });
+        }
+        continue;
+      }
+      const parts = localDateAndHour(message.sentAtUnixMs, utcOffsetMinutes), date = parts.date, side = messageSide(message);
+      const day = daily.get(date) || { date, sent: 0, received: 0, unknown: 0 }; addDirection(day, side); daily.set(date, day); addDirection(hourly[parts.hour], side);
+    }
+    if (!conversationId.endsWith('@chatroom')) {
+      const privateSessions = footprintSessionFromMessages(conversationId, messages);
+      const person = privatePeople.get(conversationId) || { conversation_id: conversationId, display_name: displayName, sent: 0, received: 0, unknown: 0, first_unix_ms: 0, last_unix_ms: 0, active_days: new Set(), sessions: 0, replied_sessions: 0, opened_mine: 0, opened_peer: 0, my_reply_values: [], peer_reply_values: [] };
+      for (const message of messages) { const side = messageSide(message); if (side === 'mine') person.sent += 1; else if (side === 'peer') person.received += 1; else person.unknown += 1; const stamp = reportMilliseconds(message.sentAtUnixMs); person.first_unix_ms = person.first_unix_ms === 0 ? stamp : Math.min(person.first_unix_ms, stamp); person.last_unix_ms = Math.max(person.last_unix_ms, stamp); person.active_days.add(localDateAndHour(message.sentAtUnixMs, utcOffsetMinutes).date); }
+      person.sessions += privateSessions.length;
+      for (const session of privateSessions) {
+        if (session.opener === 'mine') person.opened_mine += 1; else if (session.opener === 'peer') person.opened_peer += 1;
+        if (session.received > 0 && session.sent > 0) person.replied_sessions += 1;
+        if (session.opener === 'mine' && session.first_received_unix_ms !== null) { const value = session.first_received_unix_ms - session.start_unix_ms; person.peer_reply_values.push(value); peerReplies.push(value); }
+        if (session.opener === 'peer' && session.first_received_unix_ms !== null && session.first_reply_unix_ms !== null) { const value = session.first_reply_unix_ms - session.first_received_unix_ms; person.my_reply_values.push(value); myReplies.push(value); }
+      }
+      sessions.push(...privateSessions);
+      privatePeople.set(conversationId, person);
+    }
+  } });
+  sessions.sort((a, b) => b.start_unix_ms - a.start_unix_ms || a.conversation_id.localeCompare(b.conversation_id));
+  const sessionsTruncated = sessions.length > MAX_FOOTPRINT_SESSIONS;
+  const limitedSessions = sessions.slice(0, MAX_FOOTPRINT_SESSIONS);
+  const allPeople = [...privatePeople.values()].map(person => ({ conversation_id: person.conversation_id, display_name: person.display_name, sent: person.sent, received: person.received, unknown: person.unknown, first_unix_ms: person.first_unix_ms, last_unix_ms: person.last_unix_ms, active_days: person.active_days.size, sessions: person.sessions, replied_sessions: person.replied_sessions, opened_mine: person.opened_mine, opened_peer: person.opened_peer, my_reply: delaySummary(person.my_reply_values), peer_reply: delaySummary(person.peer_reply_values) })).sort((a, b) => b.last_unix_ms - a.last_unix_ms || a.conversation_id.localeCompare(b.conversation_id));
+  const people = allPeople.slice(0, 20000);
+  mentionItems.sort((a, b) => b.sent_at_unix_ms - a.sent_at_unix_ms || a.message_id.localeCompare(b.message_id));
+  const mentionRows = [...mentionGroups.values()].sort((a, b) => b.latest_unix_ms - a.latest_unix_ms || a.conversation_id.localeCompare(b.conversation_id));
+  const mentionTotal = mentionRows.reduce((sum, row) => sum + row.mentions, 0), mentionAllTotal = mentionRows.reduce((sum, row) => sum + row.mentions_all, 0);
+  return mentionReportMeta({ algorithm_version: 'alpha-footprint-v1', utc_offset_minutes: utcOffsetMinutes, from_unix_ms: from === undefined ? null : reportMilliseconds(from), to_unix_ms: to === undefined ? null : reportMilliseconds(to), truncated: false, independent_truncated: result.truncated, private: { conversations_analyzed: result.selectedPrivateCount, conversations_failed: 0, conversations_excluded: excludedConversationIds.length, inbound_people: allPeople.filter(person => person.received > 0).length, replied_people: allPeople.filter(person => person.received > 0 && person.sent > 0).length, outbound_people: allPeople.filter(person => person.sent > 0).length, sent_messages: allPeople.reduce((sum, person) => sum + person.sent, 0), received_messages: allPeople.reduce((sum, person) => sum + person.received, 0), unknown_messages: allPeople.reduce((sum, person) => sum + person.unknown, 0), sessions: sessions.length, replied_sessions: sessions.filter(session => session.received > 0 && session.sent > 0).length, opened_mine: sessions.filter(session => session.opener === 'mine').length, opened_peer: sessions.filter(session => session.opener === 'peer').length, opened_unknown: sessions.filter(session => session.opener === 'unknown').length, my_reply: delaySummary(myReplies), peer_reply: delaySummary(peerReplies), people, hourly, daily: [...daily.values()].sort((a, b) => a.date.localeCompare(b.date)) }, sessions: limitedSessions, sessions_truncated: sessionsTruncated, mentions: { conversations_analyzed: result.selectedGroupCount, conversations_with_mentions: mentionRows.length, conversations_failed: 0, mention_total: mentionTotal, mention_all_total: mentionAllTotal, groups: mentionRows.slice(0, 20000), items: mentionItems, items_truncated: mentionTotal + mentionAllTotal > mentionItems.length } });
+}
+
+module.exports = { buildAnnualReport, buildConversationReport, buildMentionReport, buildFootprintReport, MAX_MESSAGES };

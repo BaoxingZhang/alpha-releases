@@ -108,7 +108,7 @@
     "aggregateAnalysis": {
       "command": "node --test tests/engine-aggregate-analysis.test.mjs",
       "status": "passed",
-      "tests": 3,
+      "tests": 5,
       "methods": [
         "startAggregateAnalysis",
         "watchAggregateAnalysis",
@@ -118,12 +118,11 @@
         "AGGREGATE_ANALYSIS_SCOPE_PRIVATE_CHATS",
         "AGGREGATE_ANALYSIS_SCOPE_GROUP_CHAT",
         "AGGREGATE_ANALYSIS_SCOPE_ANNUAL_REPORT",
-        "AGGREGATE_ANALYSIS_SCOPE_DUAL_REPORT"
-      ],
-      "unsupportedScopes": [
+        "AGGREGATE_ANALYSIS_SCOPE_DUAL_REPORT",
         "AGGREGATE_ANALYSIS_SCOPE_MENTIONS",
         "AGGREGATE_ANALYSIS_SCOPE_FOOTPRINT"
       ],
+      "unsupportedScopes": [],
       "boundedInMemoryJobs": true,
       "restartRecovery": false
     },

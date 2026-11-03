@@ -309,6 +309,8 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   assert.equal(result.response.status, 200);
   assert.equal(result.body.canceled, false);
   result = await request(base, '/api/v1/analysis', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', scope: 5 }) });
+  assert.equal(result.response.status, 200);
+  result = await request(base, '/api/v1/analysis', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', scope: 7 }) });
   assert.equal(result.response.status, 400);
   assert.equal(result.body.error.code, 'HTTP_API_ANALYSIS_SCOPE_INVALID');
   result = await request(base, '/api/v1/records?category=moments', { headers: { Authorization: `Bearer ${token}` } });

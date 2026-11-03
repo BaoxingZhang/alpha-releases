@@ -10,7 +10,7 @@ const protocol = require('../alpha-protocol/index.cjs');
 const { BridgeClient } = require('./bridge-client.cjs');
 const contactCodec = require('./contacts.cjs');
 const { validateMessageDisplay } = require('./message-display.cjs');
-const { buildAnnualReport, buildConversationReport } = require('./analysis.cjs');
+const { buildAnnualReport, buildConversationReport, buildMentionReport, buildFootprintReport } = require('./analysis.cjs');
 const { inspectExportPath, prepareExportPath, cleanupExportDirectories } = require('./export-path.cjs');
 const { createChatExportJobs } = require('./chat-export-jobs.cjs');
 const { createRecordExportJobs } = require('./records-export-jobs.cjs');
@@ -1840,7 +1840,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
   function validateAggregateAnalysisRequest(request) {
     if (!request || typeof request !== 'object' || Array.isArray(request)) throw error('ANALYSIS_REQUEST_INVALID');
     if (typeof request.accountId !== 'string' || !request.accountId.trim() || request.accountId.length > 256 || request.accountId.includes('\0')) throw error('ANALYSIS_REQUEST_INVALID');
-    if (!Number.isInteger(request.scope) || ![1, 2, 3, 4].includes(request.scope)) throw error('ANALYSIS_SCOPE_UNSUPPORTED');
+    if (!Number.isInteger(request.scope) || ![1, 2, 3, 4, 5, 6].includes(request.scope)) throw error('ANALYSIS_SCOPE_UNSUPPORTED');
     const conversationId = request.conversationId === undefined ? '' : requestName(request.conversationId, 'ANALYSIS_REQUEST_INVALID', true);
     const excluded = request.excludedConversationIds === undefined ? [] : request.excludedConversationIds;
     if (!Array.isArray(excluded) || excluded.length > 500 || new Set(excluded).size !== excluded.length) throw error('ANALYSIS_REQUEST_INVALID');
@@ -1856,9 +1856,13 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       if (!conversationId || excluded.length || from !== undefined || to !== undefined) throw error('ANALYSIS_SCOPE_OPTIONS_UNSUPPORTED');
     } else if (request.scope === 4) {
       if (!conversationId || excluded.length) throw error('ANALYSIS_SCOPE_OPTIONS_UNSUPPORTED');
+    } else if (request.scope === 5) {
+      if (conversationId || excluded.length) throw error('ANALYSIS_SCOPE_OPTIONS_INVALID');
     } else if (request.scope === 1) {
       if (conversationId || from === undefined || to === undefined) throw error('ANALYSIS_SCOPE_OPTIONS_INVALID');
-    } else if (from === undefined || to === undefined || conversationId) {
+    } else if (request.scope === 3) {
+      if (from === undefined || to === undefined || conversationId) throw error('ANALYSIS_SCOPE_OPTIONS_INVALID');
+    } else if (conversationId) {
       throw error('ANALYSIS_SCOPE_OPTIONS_INVALID');
     }
     if (request.scope === 3) annualYearFromBounds(from, to, utcOffsetMinutes);
@@ -2083,6 +2087,22 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       });
       const reportJson = request.scope === 2 ? modernAggregateReport(result.report, request) : modernDualReport(result.report, request);
       return { reportJson: Buffer.from(JSON.stringify(reportJson), 'utf8'), conversationsDone: 1, conversationsTotal: 1 };
+    }
+    if (request.scope === 5 || request.scope === 6) {
+      const builder = request.scope === 5 ? buildMentionReport : buildFootprintReport;
+      const report = await builder({
+        listSessions: async ({ limit, cursor }) => {
+          const page = checkedPage(await callData('sessions.list', { limit, cursor }), limit);
+          return page;
+        },
+        listMessages: ({ conversationId, ascending, afterUnixMs, beforeUnixMs, page }) => handlers.listMessages({ accountId: request.accountId, conversationId, ascending, ...(afterUnixMs === undefined ? {} : { afterUnixMs }), ...(beforeUnixMs === undefined ? {} : { beforeUnixMs }), page }),
+        selfUsername,
+        ...(request.fromUnixMs === undefined ? {} : { fromUnixMs: request.fromUnixMs }),
+        ...(request.toUnixMs === undefined ? {} : { toUnixMs: request.toUnixMs }),
+        ...(request.scope === 5 ? { utcOffsetMinutes: request.utcOffsetMinutes } : { excludedConversationIds: request.excludedConversationIds, utcOffsetMinutes: request.utcOffsetMinutes }),
+        isCanceled
+      });
+      return { reportJson: Buffer.from(JSON.stringify(report), 'utf8'), conversationsDone: conversationsTotal, conversationsTotal };
     }
     const year = annualYearFromBounds(request.fromUnixMs, request.toUnixMs, request.utcOffsetMinutes);
     const excluded = new Set(request.excludedConversationIds);
@@ -2487,10 +2507,10 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       await requireAccount(request.accountId);
       const normalized = validateAggregateAnalysisRequest(request);
       let conversationsTotal = 1;
-      if (normalized.scope === 1 || normalized.scope === 3) {
+      if ([1, 3, 5, 6].includes(normalized.scope)) {
         const sessions = await listAnalysisSessions();
         const excluded = new Set(normalized.excludedConversationIds);
-        conversationsTotal = sessions.filter(session => !excluded.has(session.username) && (normalized.scope !== 1 || !session.username.endsWith('@chatroom'))).length;
+        conversationsTotal = sessions.filter(session => !excluded.has(session.username) && (normalized.scope === 5 ? session.username.endsWith('@chatroom') : normalized.scope === 6 ? !session.username.endsWith('@chatroom') : normalized.scope !== 1 || !session.username.endsWith('@chatroom'))).length;
       }
       return aggregateAnalysisJobs.start(normalized, conversationsTotal);
     },
