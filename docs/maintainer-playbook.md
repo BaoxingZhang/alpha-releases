@@ -49,6 +49,8 @@ npm run bundle:recovery
 
 独立 flavor 会根据 [`provenance/independent-update-mode.json`](../provenance/independent-update-mode.json) 生成 `Contents/Resources/alpha-update-mode.json`；默认 `mode=disabled`，不会继承原作者的更新公钥和地址。维护者建立自有更新服务、Ed25519 根公钥和策略后，才可以把 provenance 配置改为 `configured`；修改后必须重新生成 manifest，并验证下载、签名、安装和回滚。
 
+Go 数据桥和快照导入器的构建会显式使用 `-trimpath -buildvcs=false`，避免把本地 Git 时间戳和 dirty 状态写入二进制。维护者可运行 `npm run verify:reproducible-builds`，让两个 Go 产物各自连续构建两次并比较 SHA-256；该命令会刷新构建证据文件，但不接触原生运行时或用户数据。CI 将此检查作为 packaged 构建后的固定门禁。
+
 ## 证据与回滚
 
 每次发布保留 `.runtime/release-manifest.json`、App manifest、恢复源码包 manifest 及 `docs/independent-validation-current.json`。恢复源码包的 archive 内容是可重复的，同一源码状态应产生相同 SHA-256；manifest 的生成时间仅用于记录本次归档。若验证失败，先回到上一个本地 Git 提交，确认 `npm run test:smoke` 的原生错误和 `npm run test:independent` 的独立后端状态分别记录，再定位变更。不要用删除测试、隐藏菜单或返回空数据来恢复绿色状态。

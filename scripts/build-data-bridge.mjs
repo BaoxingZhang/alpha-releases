@@ -27,7 +27,10 @@ try {
   console.log('Testing original read-only bridge against synthetic SQLite fixtures.');
   report.testResults = await command(toolchain.binary, ['test', '-mod=readonly', '-v', './...'], { cwd: buildSource, env, onOutput: text => process.stdout.write(text) });
   await fs.mkdir(path.dirname(output), { recursive: true });
-  await command(toolchain.binary, ['build', '-mod=readonly', '-trimpath', '-o', output + '.building', '.'], { cwd: buildSource, env, onOutput: text => process.stdout.write(text) });
+  // The source is copied into a generated tree that intentionally has no
+  // .git metadata. Keep VCS timestamps and dirty-state markers out of the
+  // binary so repeated builds from the same source produce the same artifact.
+  await command(toolchain.binary, ['build', '-mod=readonly', '-trimpath', '-buildvcs=false', '-o', output + '.building', '.'], { cwd: buildSource, env, onOutput: text => process.stdout.write(text) });
   await fs.rename(output + '.building', output);
   report.artifact = { path: output, bytes: (await fs.stat(output)).size, sha256: await sha256(output), file: (await command('/usr/bin/file', [output])).stdout.trim(), buildInfo: (await command(toolchain.binary, ['version', '-m', output], { env })).stdout.trim() };
   for (const [name, hash] of Object.entries(report.sourceFiles)) {

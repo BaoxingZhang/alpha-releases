@@ -20,7 +20,7 @@ try {
   for (const name of await fs.readdir(source)) { if (!name.endsWith('.go') && !['go.mod','go.sum'].includes(name)) continue; report.sourceFiles[name] = await sha256(path.join(source,name)); await fs.copyFile(path.join(source,name),path.join(buildSource,name)); }
   report.toolchain = { version: toolchain.version, archiveSha256: toolchain.archiveSha256, binary: toolchain.binary };
   await command(toolchain.binary, ['test', '-mod=readonly', './...'], { cwd: buildSource, env, onOutput: text => process.stdout.write(text) });
-  await fs.mkdir(path.dirname(output), { recursive: true }); await command(toolchain.binary, ['build', '-mod=readonly', '-trimpath', '-o', output+'.building', '.'], { cwd: buildSource, env, onOutput: text => process.stdout.write(text) }); await fs.rename(output+'.building',output);
+  await fs.mkdir(path.dirname(output), { recursive: true }); await command(toolchain.binary, ['build', '-mod=readonly', '-trimpath', '-buildvcs=false', '-o', output+'.building', '.'], { cwd: buildSource, env, onOutput: text => process.stdout.write(text) }); await fs.rename(output+'.building',output);
   report.artifact = { path: output, bytes: (await fs.stat(output)).size, sha256: await sha256(output), file: (await command('/usr/bin/file',[output])).stdout.trim(), buildInfo: 'build/snapshot-import-build-info.txt' };
   await fs.writeFile(path.join(projectRoot,'build/snapshot-import-build-info.txt'),(await command(toolchain.binary,['version','-m',output],{env})).stdout+'\n');
   for (const [name,hash] of Object.entries(report.sourceFiles)) if (hash!==await sha256(path.join(source,name))) throw new Error('Snapshot importer source changed during build');

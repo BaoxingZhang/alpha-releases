@@ -41,6 +41,9 @@ jobs:
       - name: Build independent backend, packaged resources, and desktop bundle
         run: npm run build:packaged
 
+      - name: Verify deterministic Go backend artifacts
+        run: npm run verify:reproducible-builds
+
       - name: Assemble unsigned macOS app and verify its manifest
         run: npm run package:macos-app:from-build
 
