@@ -139,4 +139,6 @@ REA/Ghidra 对随包 `vendor/runtime/bin/alpha-message-send` 做了只读分析�
 
 Rust 符号还保留了 `alpha_protocol::alpha::engine::v1`、`alpha_protocol::alpha::message::v1` 和 `alpha_protocol::alpha::mutation::v1` 的模块路径；这与已提取的 128 项协议请求目录相互印证。REA Evidence 为 `ev_da5d672431c60e4716f1bf4c2be8da2ae22eae92c831f5fb37cb6f7271f8e259`（工件身份和二进制概览）及 `ev_63ca57615f4413586ceac6d3363f634975710c607957132591d6ee1c5757b18a`（符号库存视图）。
 
+机器可校验的哈希、类型清单和边界保存在 [`native-message-send-evidence.json`](native-message-send-evidence.json)；测试会重新计算 sidecar 哈希，防止二进制替换后继续沿用这份静态结论。
+
 这些观察只说明发送 sidecar 编译进了协议类型和编解码代码。它们没有给出字段编号、真实 transport、登录/捕获会话、资源维护 ABI、授权 permit、错误码闭合关系或可重放的发送确认。`alpha-message-send` 也没有被本轮执行，未知 writer/capture 调用没有被触发，原生文件没有修改。因此 `sendMessage`、消息捕获、消息变更和资源维护继续保持 `UNIMPLEMENTED`/writer-disabled；只有在取得授权的 live fixture、完整 schema/ABI 和可重放确认后，才可以把这些线索转换成实现。

@@ -1,0 +1,54 @@
+{
+  "schema": "alpha.native-message-send-evidence.v1",
+  "artifact": {
+    "path": "vendor/runtime/bin/alpha-message-send",
+    "sha256": "3aab88ce1c7e343055d426ae4b3c36bfe8ca0c5fee128a7214396b583ea011ed",
+    "architecture": "arm64",
+    "format": "mach-o",
+    "procedureCount": 3567,
+    "definedStringCount": 6880
+  },
+  "observedProtocolTypes": [
+    "MessageCaptureStartRequest",
+    "MessageCaptureWatchResponse",
+    "MessageCaptureCancelResponse",
+    "SendMessageRequest",
+    "SendMessageResponse",
+    "MessageSendWatchRequest",
+    "MessageSendCancelRequest",
+    "ApplyMessageMutationRequest",
+    "ApplyMessageMutationResponse",
+    "DiscoverPendingMessageResourcesRequest",
+    "DiscoverPendingMessageResourcesResponse",
+    "MaintainMessageResourceRequest",
+    "MaintainMessageResourceResponse",
+    "LoginCaptureEvent",
+    "MessageRecallRecord",
+    "MessageMutationReceipt"
+  ],
+  "observedModulePaths": [
+    "alpha_protocol::alpha::engine::v1",
+    "alpha_protocol::alpha::message::v1",
+    "alpha_protocol::alpha::mutation::v1"
+  ],
+  "evidence": [
+    "ev_da5d672431c60e4716f1bf4c2be8da2ae22eae92c831f5fb37cb6f7271f8e259",
+    "ev_63ca57615f4413586ceac6d3363f634975710c607957132591d6ee1c5757b18a"
+  ],
+  "scope": {
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "staticOnly": true,
+    "executed": false,
+    "nativeFilesModified": false,
+    "realDataValidated": false,
+    "nativeSchemaSupported": false,
+    "writerEnabled": false
+  },
+  "limitations": [
+    "Protocol type names and Rust module paths do not provide protobuf field numbers or complete message schemas.",
+    "The artifact does not establish a transport, login/capture session, permit, resource-maintenance ABI, or delivery confirmation.",
+    "Static strings and symbols do not prove that send, capture, mutation, or resource maintenance succeeds in the current runtime.",
+    "The sidecar has not been executed and is not used by the independent backend."
+  ]
+}
