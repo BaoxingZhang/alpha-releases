@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { constants } from 'node:fs';
 import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const src = path.join(root, 'src');
@@ -11,6 +12,9 @@ const independentRequested = process.argv.includes('--independent') || process.e
 const projectPackage = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
 if (typeof projectPackage.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(projectPackage.version)) throw new Error('PROJECT_VERSION_INVALID');
 const projectVersion = projectPackage.version;
+const require = createRequire(import.meta.url);
+const { readProjectIdentity } = require('../packages/alpha-desktop/project-identity.cjs');
+const projectIdentity = readProjectIdentity(projectPackage);
 const electronPackage = JSON.parse(await fs.readFile(path.join(root, 'node_modules/electron/package.json'), 'utf8'));
 const esbuildPackage = JSON.parse(await fs.readFile(path.join(root, 'node_modules/esbuild/package.json'), 'utf8'));
 if (typeof electronPackage.version !== 'string' || typeof esbuildPackage.version !== 'string') throw new Error('BUILD_TOOL_VERSION_INVALID');
@@ -113,7 +117,7 @@ await copyRuntimeDependencies(path.join(app, 'independent'));
 // so a packaged app does not accidentally depend on the developer's
 // node_modules directory.
 await copyRuntimeDependencies(app);
-await fs.writeFile(path.join(app, 'package.json'), JSON.stringify({ name: projectPackage.name, productName: 'Alpha Recovered', version: projectVersion, private: true, main: 'bootstrap.cjs' }, null, 2) + '\n');
+await fs.writeFile(path.join(app, 'package.json'), JSON.stringify({ name: projectPackage.name, productName: projectIdentity.productName, alphaIdentity: { bundleIdentifier: projectIdentity.bundleIdentifier, executableName: projectIdentity.executableName, independent: projectIdentity.independent }, version: projectVersion, private: true, main: 'bootstrap.cjs' }, null, 2) + '\n');
 await fs.mkdir(path.join(root, 'build'), { recursive: true });
 const runtimeBundle = path.join(root, 'build/runtime-bundle');
 // Original validation rejects symlinks anywhere in the resource path.

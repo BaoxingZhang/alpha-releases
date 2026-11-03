@@ -1,8 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const require = createRequire(import.meta.url);
+const { readProjectIdentity, flavorIdentity } = require('../packages/alpha-desktop/project-identity.cjs');
+const identity = readProjectIdentity(JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8')));
 const artifacts = path.join(root, '.runtime', 'release-artifacts');
 const markerRelativePath = 'Contents/Resources/alpha-backend-mode.json';
 const updateMarkerRelativePath = 'Contents/Resources/alpha-update-mode.json';
@@ -19,7 +23,8 @@ async function readJson(filename, code) {
   }
 }
 
-async function verifyFlavor({ appName, backend, bundleIdentifier, executableName }) {
+async function verifyFlavor({ productName, backend, bundleIdentifier, executableName }) {
+  const appName = productName;
   const appPath = path.join(artifacts, `${appName}.app`);
   const manifestPath = `${appPath}.manifest.json`;
   const markerPath = path.join(appPath, markerRelativePath);
@@ -60,7 +65,7 @@ async function verifyFlavor({ appName, backend, bundleIdentifier, executableName
 }
 
 const results = await Promise.all([
-  verifyFlavor({ appName: 'Alpha Recovered', backend: 'original', bundleIdentifier: 'local.alpha.recovered', executableName: 'AlphaRecovered' }),
-  verifyFlavor({ appName: 'Alpha Recovered Independent', backend: 'independent', bundleIdentifier: 'local.alpha.recovered.independent', executableName: 'AlphaRecoveredIndependent' })
+  verifyFlavor({ ...flavorIdentity(identity, 'original'), backend: 'original' }),
+  verifyFlavor({ ...flavorIdentity(identity, 'independent'), backend: 'independent' })
 ]);
 console.log(JSON.stringify({ schema: 'alpha-recovered.packaged-markers.v1', flavors: results }, null, 2));

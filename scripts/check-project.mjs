@@ -2,8 +2,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validatePackageLock } from './project-contract.mjs';
+import { createRequire } from 'node:module';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const require = createRequire(import.meta.url);
+const { readProjectIdentity } = require('../packages/alpha-desktop/project-identity.cjs');
 const errors = [];
 
 async function readJson(relativePath) {
@@ -52,6 +55,12 @@ if (packageJson && metadata) {
   if (packageJson.name !== metadata.packageName) errors.push(`package.json name ${packageJson.name} does not match project metadata ${metadata.packageName}`);
   if (packageJson.version !== metadata.version) errors.push(`package.json version ${packageJson.version} does not match project metadata ${metadata.version}`);
   if (packageJson.private !== true) errors.push('package.json: recovered project must remain private until licensing is selected');
+  try {
+    const identity = readProjectIdentity(packageJson);
+    if (metadata.projectName !== identity.productName) errors.push(`project metadata projectName ${metadata.projectName} does not match package productName ${identity.productName}`);
+  } catch (error) {
+    errors.push(`package.json project identity: ${error.message}`);
+  }
 }
 
 if (packageJson && packageLock) errors.push(...validatePackageLock(packageJson, packageLock));

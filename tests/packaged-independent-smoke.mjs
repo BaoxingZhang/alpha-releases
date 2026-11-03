@@ -6,13 +6,16 @@ import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { createFixture } from './data-bridge-fixture.mjs';
 import { root, launchEnvironment } from '../scripts/environment.mjs';
+import projectPackage from '../package.json' with { type: 'json' };
+import projectIdentity from '../packages/alpha-desktop/project-identity.cjs';
 
 // This smoke starts the generated .app binary itself. Passing an unpacked
 // Resources/app path to Electron exercises the development branch, so this
 // test also asserts app.isPackaged and the packaged Resources path before it
 // reads the disposable fixture through the renderer IPC surface.
-const appPath = path.join(root, '.runtime', 'release-artifacts', 'Alpha Recovered Independent.app');
-const executablePath = path.join(appPath, 'Contents', 'MacOS', 'AlphaRecoveredIndependent');
+const independentIdentity = projectIdentity.readProjectIdentity(projectPackage).independent;
+const appPath = path.join(root, '.runtime', 'release-artifacts', `${independentIdentity.productName}.app`);
+const executablePath = path.join(appPath, 'Contents', 'MacOS', independentIdentity.executableName);
 const resourcesPath = path.join(appPath, 'Contents', 'Resources');
 const session = `packaged-independent-${Date.now()}`;
 const runtime = path.join(root, '.runtime', session);

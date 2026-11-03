@@ -4,9 +4,12 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const execFileAsync = promisify(execFile);
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const require = createRequire(import.meta.url);
+const { readProjectIdentity } = require('../packages/alpha-desktop/project-identity.cjs');
 const DEFAULT_OUTPUT = path.join(root, '.runtime', 'release-manifest.json');
 const ARTIFACTS = [
   ['app', 'dist/app'],
@@ -62,6 +65,7 @@ async function gitCommit() {
 
 export async function buildReleaseManifest({ packagePath = path.join(root, 'package.json'), provenancePath = path.join(root, 'docs/native-runtime-provenance.json') } = {}) {
   const packageJson = JSON.parse(await fs.readFile(packagePath, 'utf8'));
+  const identity = readProjectIdentity(packageJson);
   const provenance = JSON.parse(await fs.readFile(provenancePath, 'utf8'));
   if (typeof packageJson.version !== 'string' || !packageJson.version) fail('RELEASE_PACKAGE_VERSION_INVALID');
   const files = (await Promise.all(ARTIFACTS.map(([label, relativeRoot]) => collectFiles(label, relativeRoot)))).flat();
@@ -70,7 +74,7 @@ export async function buildReleaseManifest({ packagePath = path.join(root, 'pack
   return {
     schema: 'alpha-recovered.release-manifest.v1',
     version: packageJson.version,
-    productName: 'Alpha Recovered',
+    productName: identity.productName,
     gitCommit: await gitCommit(),
     target: { platform: 'darwin', arch: 'arm64', nativeRecompiled: false, projectSigned: false },
     source: {

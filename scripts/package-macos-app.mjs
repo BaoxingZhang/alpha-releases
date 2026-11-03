@@ -4,21 +4,26 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import updateMode from '../packages/alpha-desktop/update-mode.cjs';
+const require = createRequire(import.meta.url);
+const { readProjectIdentity, flavorIdentity } = require('../packages/alpha-desktop/project-identity.cjs');
 
 const execFileAsync = promisify(execFile);
 export const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-export const DEFAULT_OUTPUT = path.join(root, '.runtime', 'release-artifacts', 'Alpha Recovered.app');
-export const DEFAULT_INDEPENDENT_OUTPUT = path.join(root, '.runtime', 'release-artifacts', 'Alpha Recovered Independent.app');
-const APP_NAME = 'Alpha Recovered';
-const INDEPENDENT_APP_NAME = 'Alpha Recovered Independent';
+const projectPackagePath = path.join(root, 'package.json');
+const projectIdentity = readProjectIdentity(JSON.parse(await fs.readFile(projectPackagePath, 'utf8')));
+const APP_NAME = projectIdentity.productName;
+const INDEPENDENT_APP_NAME = projectIdentity.independent.productName;
+export const DEFAULT_OUTPUT = path.join(root, '.runtime', 'release-artifacts', `${APP_NAME}.app`);
+export const DEFAULT_INDEPENDENT_OUTPUT = path.join(root, '.runtime', 'release-artifacts', `${INDEPENDENT_APP_NAME}.app`);
 // The Electron template uses `Electron` as its executable name. Keeping that
 // name makes an unpacked Resources/app directory look like a development
 // launch to Electron (`app.isPackaged === false`) even when it lives inside a
 // .app bundle. Give each recovered flavor its own executable so the packaged
 // runtime takes the same branch that users get from the generated app.
-const EXECUTABLE_NAME = 'AlphaRecovered';
-const INDEPENDENT_EXECUTABLE_NAME = 'AlphaRecoveredIndependent';
+const EXECUTABLE_NAME = projectIdentity.executableName;
+const INDEPENDENT_EXECUTABLE_NAME = projectIdentity.independent.executableName;
 const REQUIRED_INDEPENDENT_DEPENDENCY = path.join('node_modules', '@bufbuild', 'protobuf', 'dist', 'commonjs', 'wire', 'index.js');
 export const UPDATE_MODE_MARKER = 'Contents/Resources/alpha-update-mode.json';
 const UPDATE_MODE_CONFIG = path.join(root, 'provenance', 'independent-update-mode.json');
@@ -80,7 +85,7 @@ export async function copyDirectoryContents(source, destination, { allowSymlinks
 
 export function rewriteElectronInfoPlist(source, {
   appName = APP_NAME,
-  bundleIdentifier = 'local.alpha.recovered',
+  bundleIdentifier = projectIdentity.bundleIdentifier,
   executableName = 'Electron',
   appVersion,
   strictExecutable = false
@@ -169,6 +174,7 @@ async function gitCommit() {
 export async function packageMacosApp({ output, createDmg = false, independent = false } = {}) {
   assertTarget();
   const version = await projectVersion();
+  const flavor = flavorIdentity(projectIdentity, independent ? 'independent' : 'original');
   const electronVersion = await installedElectronVersion();
   const productName = independent ? INDEPENDENT_APP_NAME : APP_NAME;
   const destination = path.resolve(output ?? (independent ? DEFAULT_INDEPENDENT_OUTPUT : DEFAULT_OUTPUT));
@@ -213,7 +219,7 @@ export async function packageMacosApp({ output, createDmg = false, independent =
   const plist = await fs.readFile(plistPath, 'utf8');
   await fs.writeFile(plistPath, rewriteElectronInfoPlist(plist, {
     appName: productName,
-    bundleIdentifier: independent ? 'local.alpha.recovered.independent' : 'local.alpha.recovered',
+    bundleIdentifier: flavor.bundleIdentifier,
     executableName,
     appVersion: version,
     strictExecutable: true

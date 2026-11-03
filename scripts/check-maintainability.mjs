@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const require = createRequire(import.meta.url);
+const { readProjectIdentity } = require('../packages/alpha-desktop/project-identity.cjs');
 const errors = [];
 let checks = 0;
 
@@ -146,6 +147,7 @@ try {
 
 if (packageJson) {
   if (packageJson.name !== 'alpha-recovered-local' || !/^\d+\.\d+\.\d+$/.test(packageJson.version ?? '')) errors.push('package.json: project identity/version drifted');
+  try { readProjectIdentity(packageJson); } catch (error) { errors.push(`package.json: ${error.message}`); }
   if (!packageJson.engines?.node || !nodeVersionInRange(process.version, packageJson.engines.node)) errors.push(`Node ${process.version} does not satisfy package.json engines.node (${packageJson.engines?.node ?? 'missing'})`);
   if (nvmrc && /^\d+\.\d+\.\d+$/.test(nvmrc) && !nodeVersionInRange(`v${nvmrc}`, packageJson.engines.node)) errors.push(`.nvmrc: pinned Node ${nvmrc} does not satisfy package.json engines.node (${packageJson.engines.node ?? 'missing'})`);
   const requiredScripts = ['build', 'build:independent', 'build:packaged', 'package:macos-app', 'package:macos-app:from-build', 'package:macos-dmg', 'package:macos-app:independent', 'package:macos-app:independent:from-build', 'package:macos-dmg:independent', 'test', 'test:independent', 'test:smoke', 'test:smoke:native', 'verify:vendor', 'audit:native-abi', 'verify:protocol', 'verify:packaged-markers', 'verify:release-manifest', 'verify:independent-support', 'verify:dependencies', 'audit:upstream', 'audit:public-release', 'prepare:public-source', 'bundle:recovery', 'check:project', 'check:maintainability', 'verify:maintenance'];
@@ -174,7 +176,7 @@ const requiredFiles = [
   'packages/alpha-protocol/index.cjs', 'packages/alpha-engine/README.md', 'packages/alpha-engine/index.cjs', 'packages/alpha-engine/http-server.cjs', 'packages/alpha-engine/media-decoder.cjs', 'packages/alpha-engine/media-index.cjs', 'packages/alpha-engine/file-attachment.cjs', 'packages/alpha-engine/generic-jobs.cjs', 'packages/alpha-engine/optional-asr.cjs', 'packages/alpha-wcdb-compat/README.md', 'packages/alpha-wcdb-compat/index.cjs', 'packages/alpha-wcdb-compat/probe.c', 'scripts/build-wcdb-compat-probe.mjs', 'tests/wcdb-compat.test.mjs', 'tests/optional-asr.test.mjs',
   'packages/alpha-data-bridge/go.mod', 'packages/alpha-data-bridge/go.sum', 'packages/alpha-data-bridge/media-probe.go', 'packages/alpha-data-bridge/media-probe_test.go', 'packages/alpha-data-bridge/schema-diagnostics.go', 'packages/alpha-data-bridge/schema-diagnostics_test.go',
   'packages/alpha-snapshot-import/go.mod', 'packages/alpha-snapshot-import/go.sum',
-  'packages/alpha-desktop/backend-mode.cjs', 'packages/alpha-desktop/update-mode.cjs', 'packages/alpha-desktop/recovery-runtime.cjs', 'vendor/chatlog/go.mod',
+  'packages/alpha-desktop/backend-mode.cjs', 'packages/alpha-desktop/project-identity.cjs', 'packages/alpha-desktop/update-mode.cjs', 'packages/alpha-desktop/recovery-runtime.cjs', 'vendor/chatlog/go.mod',
   'provenance/go-toolchain.json', 'provenance/recovered-files.json', 'provenance/maintenance-changes.json', 'provenance/project-metadata.json', 'provenance/independent-update-mode.json',
   'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', 'docs/maintainer-playbook.md',
   'docs/local-build-and-run.md', 'docs/native-runtime-provenance.json', 'docs/http-readonly-adapter-recovery.md', 'docs/optional-asr.md', 'docs/cross-platform-release-evidence.json', 'docs/media-decoder-evidence.md', 'docs/media-index-foundation.md', 'docs/file-attachment-recovery.md', 'docs/media-schema-evidence.md',
