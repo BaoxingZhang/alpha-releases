@@ -32,7 +32,7 @@
     },
     "publicSourceCandidate": {
       "status": "ready-for-license-and-review",
-      "fileCount": 2372,
+      "fileCount": 2380,
       "auditFindings": 0,
       "strictAudit": "passed",
       "candidateCreatedOutsideRepository": true,
@@ -171,13 +171,13 @@
       "command": "npm run bundle:recovery",
       "status": "passed",
       "schema": "alpha-recovered.source-bundle.v1",
-      "fileCount": 691,
+      "fileCount": 2455,
       "includesVendorRuntime": false,
       "nativeRecompiled": false,
       "projectSigned": false,
-      "archiveBytes": 3939362,
-      "archiveSha256": "695ead1bc8ed898c196b5796b7770c6795f1f5fa7e1c44b9b789f3224267ad36",
-      "artifactManifestDigest": "ba7ad3ec2bd455345883804ca3e392ff282825f0a5ed9325a68a00f3ef851e1f"
+      "archiveBytes": 107331996,
+      "archiveSha256": "c2f990c41568daa0a6f457922ecd63a892223a3b9b6961bd873620ef069c3a0c",
+      "artifactManifestDigest": "b5d01457e587f5c33b39f55f81be4815b56354ed17bfcbb1e1219580657b4b1f"
     },
     "desktopIndependent": {
       "record": "independent-run.json",
@@ -587,14 +587,14 @@
       "target": "darwin-arm64",
       "nativeRecompiled": false,
       "projectSigned": false,
-      "artifactCount": 1387,
-      "artifactDigest": "66310b54a27a2b6e19f08e52bee42c21541a86eea77c5ec34f0f19f5a292808d"
+      "artifactCount": 1389,
+      "artifactDigest": "b5d01457e587f5c33b39f55f81be4815b56354ed17bfcbb1e1219580657b4b1f"
     },
     "releaseManifestVerification": {
       "command": "npm run verify:release-manifest",
       "status": "passed",
-      "artifactCount": 1387,
-      "artifactDigest": "66310b54a27a2b6e19f08e52bee42c21541a86eea77c5ec34f0f19f5a292808d",
+      "artifactCount": 1389,
+      "artifactDigest": "b5d01457e587f5c33b39f55f81be4815b56354ed17bfcbb1e1219580657b4b1f",
       "checks": [
         "path",
         "symlink",
@@ -617,11 +617,11 @@
       "status": "passed",
       "appPath": ".runtime/release-artifacts/Alpha Recovered Independent.app",
       "dmgPath": ".runtime/release-artifacts/Alpha Recovered Independent.dmg",
-      "appArtifactDigest": "61917a38e3bbbf207f069960919a569d2747ddd0ad0d0312b92d480e245516a0",
-      "appFileCount": 1658,
-      "appTotalBytes": 528510192,
-      "dmgBytes": 253012471,
-      "dmgSha256": "17ab56d77a48ba6c23041acf6e10e17a96fe3437b5f8956bed9e5bab72d12694",
+      "appArtifactDigest": "07eae1d6e26f68c832e2cf32ea78947becd22104b331de645763cb2859b84abe",
+      "appFileCount": 1660,
+      "appTotalBytes": 528666222,
+      "dmgBytes": 253051288,
+      "dmgSha256": "9f94c17402ccca8735c66c36d5cb8dc7a49fda4467bd86eb5717960045eb5eae",
       "projectSigned": false,
       "notarized": false,
       "nativeRecompiled": false,
@@ -743,9 +743,9 @@
       "status": "passed",
       "manifest": ".runtime/release-artifacts/Alpha Recovered.app.manifest.json",
       "electronVersion": "44.10.1",
-      "fileCount": 1657,
-      "totalBytes": 528510015,
-      "artifactDigest": "a3627b50ebb097115120924b3685c0cd26a50b14c3aa6e53cb6bad9d5889eb68",
+      "fileCount": 1659,
+      "totalBytes": 528666045,
+      "artifactDigest": "0664f981ef749fa64209853c18bec0e8370ef8033dc8528fc05db7958b378c3b",
       "signed": false,
       "notarized": false,
       "independentResources": "Resources/independent",
@@ -761,16 +761,16 @@
           "backendMode": "original",
           "bundleIdentifier": "local.alpha.recovered",
           "executable": "Contents/MacOS/AlphaRecovered",
-          "fileCount": 1657,
-          "artifactDigest": "a3627b50ebb097115120924b3685c0cd26a50b14c3aa6e53cb6bad9d5889eb68"
+          "fileCount": 1659,
+          "artifactDigest": "0664f981ef749fa64209853c18bec0e8370ef8033dc8528fc05db7958b378c3b"
         },
         {
           "appName": "Alpha Recovered Independent",
           "backendMode": "independent",
           "bundleIdentifier": "local.alpha.recovered.independent",
           "executable": "Contents/MacOS/AlphaRecoveredIndependent",
-          "fileCount": 1658,
-          "artifactDigest": "61917a38e3bbbf207f069960919a569d2747ddd0ad0d0312b92d480e245516a0",
+          "fileCount": 1660,
+          "artifactDigest": "07eae1d6e26f68c832e2cf32ea78947becd22104b331de645763cb2859b84abe",
           "updateMode": {
             "path": "Contents/Resources/alpha-update-mode.json",
             "mode": "disabled",
@@ -1013,6 +1013,34 @@
       "emptyDisposableAccounts": true,
       "realWeChatData": false,
       "nativeFilesModified": false
+    },
+    "currentEvidenceRefresh": {
+      "observedAt": "2026-11-04",
+      "publicSourceCandidate": {
+        "fileCount": 2380,
+        "auditFindings": 0
+      },
+      "releaseManifest": {
+        "artifactCount": 1389,
+        "artifactDigest": "b5d01457e587f5c33b39f55f81be4815b56354ed17bfcbb1e1219580657b4b1f"
+      },
+      "packagedFlavors": {
+        "original": {
+          "fileCount": 1659,
+          "artifactDigest": "0664f981ef749fa64209853c18bec0e8370ef8033dc8528fc05db7958b378c3b"
+        },
+        "independent": {
+          "fileCount": 1660,
+          "artifactDigest": "07eae1d6e26f68c832e2cf32ea78947becd22104b331de645763cb2859b84abe"
+        }
+      },
+      "commands": [
+        "npm run prepare:public-source -- --output /tmp/alpha-public-source-candidate-20261104 --report /tmp/alpha-public-source-report-20261104.json --manifest /tmp/alpha-public-source-manifest-20261104.json",
+        "npm run package:macos-dmg:independent",
+        "npm run package:macos-app:from-build",
+        "npm run release:manifest",
+        "npm run verify:release-manifest"
+      ]
     }
   },
   "featureBoundary": {
@@ -1035,7 +1063,7 @@
     "messageRecall": "message-derived-candidate-only; native recall store, captured/confirmed retention evidence, and writers remain unimplemented"
   },
   "buildArtifact": {
-    "artifactDigest": "ba7ad3ec2bd455345883804ca3e392ff282825f0a5ed9325a68a00f3ef851e1f",
+    "artifactDigest": "b5d01457e587f5c33b39f55f81be4815b56354ed17bfcbb1e1219580657b4b1f",
     "target": "darwin-arm64",
     "nativeRecompiled": false,
     "projectSigned": false
