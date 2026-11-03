@@ -78,6 +78,9 @@ jobs:
       - name: Audit independent API coverage
         run: npm run audit:api
 
+      - name: Audit original native ABI boundaries
+        run: npm run audit:native-abi
+
       - name: Prepare and enforce public source release audit
         # The checked-in repository contains private reverse-engineering
         # evidence. Build the publishable candidate outside the repository;
