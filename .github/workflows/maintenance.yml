@@ -50,6 +50,12 @@ jobs:
       - name: Assemble unsigned independent macOS app and verify its marker
         run: npm run package:macos-app:independent:from-build
 
+      - name: Assemble unsigned original DMG from the verified build
+        run: npm run package:macos-dmg:from-build
+
+      - name: Assemble unsigned independent DMG from the verified build
+        run: npm run package:macos-dmg:independent:from-build
+
       - name: Verify packaged backend markers and identities
         run: npm run verify:packaged-markers
 
@@ -122,5 +128,6 @@ jobs:
             .runtime/packaged-independent-smoke.log
             .runtime/packaged-native-smoke.log
             .runtime/release-artifacts/*.app.manifest.json
+            .runtime/release-artifacts/*.dmg
             .runtime/recovery-bundles/alpha-recovered-source.tar.gz
             .runtime/recovery-bundles/alpha-recovered-source.tar.gz.manifest.json

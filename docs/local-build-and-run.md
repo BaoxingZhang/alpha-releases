@@ -83,6 +83,8 @@ npm run package:macos-app:independent
 npm run package:macos-dmg:independent
 ```
 
+如果已经运行过 `npm run build:packaged`，可改用 `npm run package:macos-dmg:from-build` 和 `npm run package:macos-dmg:independent:from-build` 复用同一套构建资源；它们只组装 DMG，不重复编译 Go 桥接、快照导入器或 Electron packaged 资源。
+
 该 flavor 只选择 `Resources/independent` 下已验证的本项目后端；它仍然需要用户导入或选择离线数据副本，不能读取真实微信目录，也不代表完整 Alpha parity。
 
 ## 本次补齐的工程部分
