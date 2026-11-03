@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validatePackageLock } from './project-contract.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const errors = [];
@@ -25,6 +26,7 @@ async function requireFile(relativePath) {
 
 const metadata = await readJson('provenance/project-metadata.json');
 const packageJson = await readJson('package.json');
+const packageLock = await readJson('package-lock.json');
 const requiredFiles = [
   'CONTRIBUTING.md',
   'SECURITY.md',
@@ -33,6 +35,7 @@ const requiredFiles = [
   'docs/maintainer-playbook.md',
   'docs/source-gaps.md'
 ];
+requiredFiles.push('package-lock.json');
 for (const file of requiredFiles) await requireFile(file);
 
 if (metadata) {
@@ -50,6 +53,8 @@ if (packageJson && metadata) {
   if (packageJson.version !== metadata.version) errors.push(`package.json version ${packageJson.version} does not match project metadata ${metadata.version}`);
   if (packageJson.private !== true) errors.push('package.json: recovered project must remain private until licensing is selected');
 }
+
+if (packageJson && packageLock) errors.push(...validatePackageLock(packageJson, packageLock));
 
 if (errors.length) {
   console.error(`Project checks failed (${errors.length} issue${errors.length === 1 ? '' : 's'}):`);

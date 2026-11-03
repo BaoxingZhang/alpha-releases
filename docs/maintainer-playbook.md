@@ -10,6 +10,8 @@
 4. 对离线数据功能只使用 `npm run demo`、`npm run demo:encrypted` 或经授权的副本。默认启动器不会自动寻找个人微信目录。
 5. 提交前先运行 `npm run verify:maintenance`，再按变更范围执行 [CONTRIBUTING.md](../CONTRIBUTING.md) 的完整检查清单。
 
+`npm run check:project` 还会核对 `package.json`、`package-lock.json` 和 `provenance/project-metadata.json` 的项目名称与版本；升级版本时必须同步修改三处，避免锁文件或维护元数据滞后。
+
 需要核对上游是否出现新的发行材料时运行 `npm run audit:upstream`。它默认只打印当前公开仓库、release、更新策略和文件树的审计结果；只有确认结果后才使用 `--write` 更新 [`docs/upstream-alpha-releases-current.json`](upstream-alpha-releases-current.json)。如果本地保留原始 DMG，可额外传入 `--artifact` 做大小和 SHA-256 比对。该流程不会把新的发行包自动接入构建，也不会替换原生 runtime、签名、公钥或授权配置。
 
 公开源码或发行材料前，使用 `npm run audit:public-release -- --root <sanitized-tree> --report <external-audit-report> --strict`。它扫描 `docs/` 和 `provenance/` 中的用户目录、临时目录、私钥块和常见访问令牌；取证材料需要显式 `--exclude`，不会自动认为它们安全，也不会改写原文件。
