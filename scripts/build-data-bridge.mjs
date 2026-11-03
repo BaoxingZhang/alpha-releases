@@ -1,12 +1,14 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { projectRoot, setupGo, command, sha256 } from './setup-go.mjs';
+import { acquireBuildLock } from './build-lock.mjs';
 
 const source = path.join(projectRoot, 'packages/alpha-data-bridge');
 const buildSource = path.join(projectRoot, 'build/data-bridge-source');
 const output = path.join(projectRoot, 'build/candidates/alpha-data-bridge');
 const reportPath = path.join(projectRoot, 'build/candidates/data-bridge-build.json');
 const report = { startedAt: new Date().toISOString(), status: 'in_progress', sourceKind: 'Original Go implementation; no Chatlog internal packages or binaries are imported', sourceFiles: {}, testResults: null };
+const releaseBuildLock = await acquireBuildLock({ name: 'build-data-bridge' });
 try {
   const toolchain = await setupGo();
   const cacheRoot = path.join(projectRoot, '.runtime/chatlog-go');
@@ -44,9 +46,13 @@ try {
   console.error(error.message);
   process.exitCode = 1;
 } finally {
-  report.finishedAt = new Date().toISOString();
-  await fs.mkdir(path.dirname(reportPath), { recursive: true });
-  await fs.writeFile(reportPath, JSON.stringify(report, null, 2) + '\n');
-  await fs.writeFile(path.join(source, 'build-validation.json'), JSON.stringify(report, null, 2) + '\n');
-  console.log(`Data bridge build ${report.status}: ${reportPath}`);
+  try {
+    report.finishedAt = new Date().toISOString();
+    await fs.mkdir(path.dirname(reportPath), { recursive: true });
+    await fs.writeFile(reportPath, JSON.stringify(report, null, 2) + '\n');
+    await fs.writeFile(path.join(source, 'build-validation.json'), JSON.stringify(report, null, 2) + '\n');
+    console.log(`Data bridge build ${report.status}: ${reportPath}`);
+  } finally {
+    await releaseBuildLock();
+  }
 }

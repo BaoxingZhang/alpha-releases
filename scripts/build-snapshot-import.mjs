@@ -1,12 +1,14 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { projectRoot, setupGo, command, sha256 } from './setup-go.mjs';
+import { acquireBuildLock } from './build-lock.mjs';
 
 const source = path.join(projectRoot, 'packages/alpha-snapshot-import');
 const buildSource = path.join(projectRoot, 'build/snapshot-import-source');
 const output = path.join(projectRoot, 'build/candidates/alpha-snapshot-import');
 const reportPath = path.join(projectRoot, 'build/candidates/snapshot-import-build.json');
 const report = { startedAt: new Date().toISOString(), status: 'in_progress', sourceFiles: {}, scope: 'Build only; no key, decrypt, or real-data operation is executed.' };
+const releaseBuildLock = await acquireBuildLock({ name: 'build-snapshot-import' });
 try {
   const toolchain = await setupGo();
   const cacheRoot = path.join(projectRoot, '.runtime/chatlog-go');
@@ -26,4 +28,4 @@ try {
   for (const [name,hash] of Object.entries(report.sourceFiles)) if (hash!==await sha256(path.join(source,name))) throw new Error('Snapshot importer source changed during build');
   report.status='passed';
 } catch (error) { report.status='failed'; report.error=error.message; console.error(error.message); process.exitCode=1; }
-finally { report.finishedAt=new Date().toISOString(); await fs.mkdir(path.dirname(reportPath),{recursive:true}); await fs.writeFile(reportPath,JSON.stringify(report,null,2)+'\n'); console.log(`Snapshot importer build ${report.status}: ${reportPath}`); }
+finally { try { report.finishedAt=new Date().toISOString(); await fs.mkdir(path.dirname(reportPath),{recursive:true}); await fs.writeFile(reportPath,JSON.stringify(report,null,2)+'\n'); console.log(`Snapshot importer build ${report.status}: ${reportPath}`); } finally { await releaseBuildLock(); } }
