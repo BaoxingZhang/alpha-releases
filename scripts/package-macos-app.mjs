@@ -31,6 +31,14 @@ async function projectVersion() {
   return packageJson.version;
 }
 
+async function installedElectronVersion() {
+  let packageJson;
+  try { packageJson = JSON.parse(await fs.readFile(path.join(root, 'node_modules', 'electron', 'package.json'), 'utf8')); }
+  catch { fail('ELECTRON_PACKAGE_INVALID'); }
+  if (typeof packageJson.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(packageJson.version)) fail('ELECTRON_VERSION_INVALID');
+  return packageJson.version;
+}
+
 function fail(message) { throw new Error(message); }
 
 function assertTarget() {
@@ -161,6 +169,7 @@ async function gitCommit() {
 export async function packageMacosApp({ output, createDmg = false, independent = false } = {}) {
   assertTarget();
   const version = await projectVersion();
+  const electronVersion = await installedElectronVersion();
   const productName = independent ? INDEPENDENT_APP_NAME : APP_NAME;
   const destination = path.resolve(output ?? (independent ? DEFAULT_INDEPENDENT_OUTPUT : DEFAULT_OUTPUT));
   if (!destination.startsWith(`${path.join(root, '.runtime')}${path.sep}`) && !destination.startsWith(`${path.join(root, 'build')}${path.sep}`)) fail('MACOS_APP_OUTPUT_MUST_BE_PROJECT_GENERATED_DIR');
@@ -218,7 +227,7 @@ export async function packageMacosApp({ output, createDmg = false, independent =
     version,
     appPath: path.relative(root, destination).split(path.sep).join('/'),
     target: { platform: 'darwin', arch: 'arm64' },
-    electronVersion: '44.10.1',
+    electronVersion,
     nativeRecompiled: false,
     projectSigned: false,
     notarized: false,

@@ -11,6 +11,9 @@ const independentRequested = process.argv.includes('--independent') || process.e
 const projectPackage = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
 if (typeof projectPackage.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(projectPackage.version)) throw new Error('PROJECT_VERSION_INVALID');
 const projectVersion = projectPackage.version;
+const electronPackage = JSON.parse(await fs.readFile(path.join(root, 'node_modules/electron/package.json'), 'utf8'));
+const esbuildPackage = JSON.parse(await fs.readFile(path.join(root, 'node_modules/esbuild/package.json'), 'utf8'));
+if (typeof electronPackage.version !== 'string' || typeof esbuildPackage.version !== 'string') throw new Error('BUILD_TOOL_VERSION_INVALID');
 
 const runtimeDependencies = ['@bufbuild/protobuf'];
 
@@ -116,5 +119,5 @@ const runtimeBundle = path.join(root, 'build/runtime-bundle');
 // Original validation rejects symlinks anywhere in the resource path.
 await fs.rm(runtimeBundle, { recursive: true, force: true });
 await fs.cp(path.join(root, 'vendor/runtime'), runtimeBundle, { recursive: true, preserveTimestamps: true, mode: constants.COPYFILE_FICLONE });
-await fs.writeFile(path.join(root, 'docs/build-results.json'), JSON.stringify({ builtAt: new Date().toISOString(), node: process.version, electron: '44.10.1', esbuild: '0.28.2', sourceKind: 'recovered emitted JavaScript; not original TypeScript', nativeRecompiled: false, runtimeDependencies, independentRuntime: independentManifest, outputs: outputs.map(x => x.metafile) }, null, 2) + '\n');
+await fs.writeFile(path.join(root, 'docs/build-results.json'), JSON.stringify({ builtAt: new Date().toISOString(), node: process.version, electron: electronPackage.version, esbuild: esbuildPackage.version, sourceKind: 'recovered emitted JavaScript; not original TypeScript', nativeRecompiled: false, runtimeDependencies, independentRuntime: independentManifest, outputs: outputs.map(x => x.metafile) }, null, 2) + '\n');
 console.log(`Built recovered JavaScript (${independentManifest.status} independent runtime). Original native binaries remain unchanged.`);
