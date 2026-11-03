@@ -10,9 +10,25 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 278,
+      "passed": 288,
       "failed": 0,
       "testConcurrency": 1
+    },
+    "versionContract": {
+      "status": "passed",
+      "checks": [
+        "project package version drives generated app and independent runtime metadata",
+        "macOS CFBundleShortVersionString and CFBundleVersion follow package.json",
+        "installed Electron and esbuild versions are recorded in build evidence and app manifest",
+        "development log, update status and splash use Electron runtime version"
+      ],
+      "tests": "tests/package-macos-app.test.mjs",
+      "verification": [
+        "npm test",
+        "npm run build:packaged",
+        "npm run test:packaged-independent",
+        "npm run verify:release-manifest"
+      ]
     },
     "nativeAbi": {
       "command": "npm run audit:native-abi",
