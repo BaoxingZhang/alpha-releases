@@ -19,8 +19,8 @@ const PRINTABLE_TOKEN = /^[\x21-\x7e]{32,256}$/;
 // Conversation export only writes a new file through the engine's bounded,
 // non-overwriting exporter. It does not mutate the source database, but it is
 // kept separate from the ordinary DTO reads so the route remains explicit.
-const ALLOWED_METHODS = new Set(['listAccounts', 'listConversations', 'listMessages', 'searchMessages', 'listContacts', 'listMoments', 'listFavorites', 'listFavoriteMediaSlots', 'resolveFavoriteMedia', 'listMomentAuthors', 'getMomentDayCounts', 'getContactProfile', 'listGeneral', 'listMessageRecallRecords', 'getMessageAntiRecallStatuses', 'getConversationDayCounts', 'getChatExportStats', 'getChatExportCapabilities', 'exportConversation', 'startMomentExport', 'watchChatExport', 'cancelChatExport', 'startAggregateAnalysis', 'watchAggregateAnalysis', 'cancelAggregateAnalysis', 'locateMessage', 'getMessageSource', 'decodeVoicePlayback', 'getImageMediaStatus', 'analyzeAnnual', 'analyzeConversation', 'browseConversationMessages', 'browseAccountMedia', 'listChatExportSchedules', 'getChatExportSchedule', 'saveChatExportSchedule', 'deleteChatExportSchedule', 'runChatExportScheduleNow', 'listChatExportRuns', 'getChatExportRun', 'listChatExportAttempts', 'getChatExportAttempt', 'retryChatExportAttempt', 'listOfficialSchedulePlans', 'getOfficialSchedulePlan', 'saveOfficialSchedulePlan', 'deleteOfficialSchedulePlan', 'listOfficialPlanAttempts', 'getOfficialPlanAttempt', 'requestOfficialPlanAttempt', 'archiveOfficialPlanAttempt', 'getDataRevision', 'getDataWatchTargets', 'getDataSchemaDiagnostics', 'getApplicationLockStatus', 'getAdvancedComponentStatus']);
-const LOCAL_METHODS = new Set(['getDataSchemaDiagnostics', 'getApplicationLockStatus', 'getAdvancedComponentStatus', 'listOfficialPlanAttempts', 'getOfficialPlanAttempt', 'requestOfficialPlanAttempt', 'archiveOfficialPlanAttempt']);
+const ALLOWED_METHODS = new Set(['listAccounts', 'listConversations', 'listMessages', 'searchMessages', 'listContacts', 'listMoments', 'listFavorites', 'listFavoriteMediaSlots', 'resolveFavoriteMedia', 'listMomentAuthors', 'getMomentDayCounts', 'getContactProfile', 'listGeneral', 'listMessageRecallRecords', 'getMessageAntiRecallStatuses', 'getConversationDayCounts', 'getChatExportStats', 'getChatExportCapabilities', 'exportConversation', 'startMomentExport', 'watchChatExport', 'cancelChatExport', 'startAggregateAnalysis', 'watchAggregateAnalysis', 'cancelAggregateAnalysis', 'locateMessage', 'getMessageSource', 'decodeVoicePlayback', 'getImageMediaStatus', 'getTelemetryStatus', 'analyzeAnnual', 'analyzeConversation', 'browseConversationMessages', 'browseAccountMedia', 'listChatExportSchedules', 'getChatExportSchedule', 'saveChatExportSchedule', 'deleteChatExportSchedule', 'runChatExportScheduleNow', 'listChatExportRuns', 'getChatExportRun', 'listChatExportAttempts', 'getChatExportAttempt', 'retryChatExportAttempt', 'listOfficialSchedulePlans', 'getOfficialSchedulePlan', 'saveOfficialSchedulePlan', 'deleteOfficialSchedulePlan', 'listOfficialPlanAttempts', 'getOfficialPlanAttempt', 'requestOfficialPlanAttempt', 'archiveOfficialPlanAttempt', 'getDataRevision', 'getDataWatchTargets', 'getDataSchemaDiagnostics', 'getApplicationLockStatus', 'getAdvancedComponentStatus']);
+const LOCAL_METHODS = new Set(['getDataSchemaDiagnostics', 'getApplicationLockStatus', 'getAdvancedComponentStatus', 'getTelemetryStatus', 'listOfficialPlanAttempts', 'getOfficialPlanAttempt', 'requestOfficialPlanAttempt', 'archiveOfficialPlanAttempt']);
 const MCP_SCAN_MAX_PAGES = 128;
 const MCP_SCAN_MAX_ITEMS = 10000;
 
@@ -227,6 +227,20 @@ function independentIncrementalMessages(value, { accountId, conversationId, sinc
 }
 function schemaDiagnostics(value) {
   return { ...snakeKeys(value || {}), scope: 'alpha-independent-schema-diagnostics', complete: false, native_schema_supported: false, read_only: true };
+}
+function telemetryDiagnostics(value) {
+  const status = snakeKeys(value?.status || value || {});
+  for (const field of ['queued_count', 'queued_bytes', 'next_attempt_unix_ms']) {
+    if (typeof status[field] === 'bigint') status[field] = status[field].toString();
+  }
+  return {
+    ...status,
+    scope: 'alpha-independent-telemetry-status',
+    complete: false,
+    native_schema_supported: false,
+    upload_supported: false,
+    read_only: true
+  };
 }
 function imageMediaDiagnostics(value) {
   const status = snakeKeys(value?.status || value || {});
@@ -453,6 +467,7 @@ function toolDefinitions() {
   return [
     { name: 'wechat.core.get_status', description: '返回独立离线后端的状态摘要', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.core.get_lock_status', description: '返回独立应用锁的只读状态；不返回密码、失败计数或重试时间，也不提供解锁和配置操作', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.telemetry.get_status', description: '返回独立遥测同意和停用状态；不上传、不读取事件队列、不修改状态', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.components.get_status', description: '返回独立后端高级组件的静态可用性诊断；不包含授权、设备密钥、下载或 native ready 证明', inputSchema: { type: 'object', required: ['component'], properties: { component: { type: 'integer', enum: [1, 2, 3, 5, 6] } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.core.list_tools', description: '列出当前独立适配器声明的只读工具，可按 package 前缀过滤；不代表原 Alpha/native 完整工具目录', inputSchema: { type: 'object', properties: { package: { type: 'string', maxLength: 64, pattern: '^[A-Za-z][A-Za-z0-9_-]*(?:\\.[A-Za-z][A-Za-z0-9_-]*)*$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.core.list_accounts', description: '列出已验证的离线账号', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -684,6 +699,10 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     if (pathname === '/api/v1/security/lock-status') {
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
       return lockStatus(await call('getApplicationLockStatus'));
+    }
+    if (pathname === '/api/v1/independent/telemetry/status') {
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      return telemetryDiagnostics(await call('getTelemetryStatus'));
     }
     if (pathname === '/api/v1/independent/components/status') {
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
@@ -1288,7 +1307,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     const allowedArguments = {
       'alpha-independent.mobile.search_chat': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'],
       'alpha-independent.mobile.get_chat_context': ['account_id', 'username', 'anchor_id', 'before', 'after'],
-      'wechat.core.get_status': [], 'wechat.core.get_lock_status': [], 'alpha-independent.components.get_status': ['component'], 'wechat.core.list_tools': ['package'], 'wechat.core.list_accounts': [], 'wechat.core.get_account_info': ['account_id'],
+      'wechat.core.get_status': [], 'wechat.core.get_lock_status': [], 'alpha-independent.telemetry.get_status': [], 'alpha-independent.components.get_status': ['component'], 'wechat.core.list_tools': ['package'], 'wechat.core.list_accounts': [], 'wechat.core.get_account_info': ['account_id'],
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'], 'alpha-independent.messages.get_anti_recall_status': ['account_id', 'conversation_ids'],
       'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'alpha-independent.groups.list_pinned_messages': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
       'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'], 'alpha-independent.chat.get_incremental_messages': ['account_id', 'conversation_id', 'since_unix_ms', 'end_unix_ms', 'limit', 'cursor', 'ascending'],
@@ -1318,6 +1337,9 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: { status: rows.length ? 'ready' : 'empty', account_count: rows.length, selected_account_id: accounts.selected_account_id || '' }, content: [{ type: 'text', text: JSON.stringify({ status: rows.length ? 'ready' : 'empty', account_count: rows.length, selected_account_id: accounts.selected_account_id || '' }) }] } };
     } else if (name === 'wechat.core.get_lock_status') {
       const result = lockStatus(await call('getApplicationLockStatus'));
+      return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
+    } else if (name === 'alpha-independent.telemetry.get_status') {
+      const result = telemetryDiagnostics(await call('getTelemetryStatus'));
       return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
     } else if (name === 'alpha-independent.components.get_status') {
       const component = integer(args.component, 1, 6, 'MCP_COMPONENT_INVALID');

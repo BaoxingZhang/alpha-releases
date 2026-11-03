@@ -35,6 +35,9 @@ function fakeEngine() {
     async getApplicationLockStatus() {
       return { status: { detected: true, usable: true, enabled: true, verified: false, locked: true, availability: 4, provider: 'alpha-independent-password-v1', passwordConfigured: true, passwordRetryAfterMs: 123n, passwordFailedAttempts: 9 } };
     },
+    async getTelemetryStatus() {
+      return { configured: true, consentDecision: 'granted', consentCategories: ['crash', 'usage'], queuedCount: 0n, queuedBytes: 0n, nextAttemptUnixMs: 0n, lastErrorCode: 'INDEPENDENT_TELEMETRY_DISABLED' };
+    },
     async getDataSchemaDiagnostics() {
       return { status: 'ready', sourceKind: 'explicit-offline-sqlite-schema', snapshotId: 'a'.repeat(64), readOnly: true, nativeSchemaSupported: false, complete: false, databases: [{ path: 'contact.db', tables: [{ name: 'contact', columns: [{ name: 'username', type: 'TEXT', notNull: true, primaryKey: 1 }] }] }], tableCount: 1, limits: { maxDatabases: 128, maxTables: 4096, maxColumnsPerTable: 256, maxResponseBytes: 4194304 } };
     },
@@ -304,6 +307,14 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   assert.equal(result.body.writer, false);
   assert.equal(result.body.statuses[0].conversation_id, 'wxid_peer');
   assert.equal(result.body.statuses[0].status.error_code, 'MESSAGE_ANTI_RECALL_WRITER_DISABLED');
+  result = await request(base, '/api/v1/independent/telemetry/status', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-telemetry-status');
+  assert.equal(result.body.configured, true);
+  assert.equal(result.body.consent_decision, 'granted');
+  assert.deepEqual(result.body.consent_categories, ['crash', 'usage']);
+  assert.equal(result.body.upload_supported, false);
+  assert.equal(result.body.read_only, true);
   result = await request(base, '/api/v1/independent/anti-recall/status?account_id=acct-1', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 400);
   assert.equal(result.body.error.code, 'HTTP_API_ANTI_RECALL_CONVERSATIONS_REQUIRED');
@@ -513,11 +524,12 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 80);
+  assert.equal(result.body.result.tools.length, 81);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.resolve_search_hit'));
+  assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.telemetry.get_status'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.get_source'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.official_plans.list'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha.analysis.start'));
@@ -565,6 +577,11 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-message-anti-recall-status');
   assert.equal(result.body.result.structuredContent.writer, false);
   assert.equal(result.body.result.structuredContent.statuses[1].status.error_code, 'MESSAGE_ANTI_RECALL_WRITER_DISABLED');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 227, method: 'tools/call', params: { name: 'alpha-independent.telemetry.get_status', arguments: {} } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-telemetry-status');
+  assert.equal(result.body.result.structuredContent.upload_supported, false);
+  assert.equal(result.body.result.structuredContent.read_only, true);
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 12, method: 'tools/call', params: { name: 'wechat.core.list_tools', arguments: {} } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.package, '');

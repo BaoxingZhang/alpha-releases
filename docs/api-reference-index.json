@@ -484,6 +484,19 @@
         "writer": false,
         "readOnly": true,
         "sourceMethod": "getMessageAntiRecallStatuses"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/telemetry/status",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-telemetry-status",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "uploadSupported": false,
+        "readOnly": true,
+        "sourceMethod": "getTelemetryStatus"
       }
     ],
     "mcp": [
@@ -769,6 +782,16 @@
         "writer": false,
         "readOnly": true,
         "sourceMethod": "getMessageAntiRecallStatuses"
+      },
+      {
+        "name": "alpha-independent.telemetry.get_status",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-telemetry-status",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "uploadSupported": false,
+        "readOnly": true,
+        "sourceMethod": "getTelemetryStatus"
       }
     ],
     "nativeMomentsSchemasSupported": [],
