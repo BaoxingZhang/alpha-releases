@@ -1,5 +1,9 @@
 # 变更记录
 
+## 0.3.5-recovery 维护增补 — 2026-11-04（公开候选审计）
+
+- 将 Chatlog candidate 文档和维护验证记录中的机器临时目录改为公开占位符；`prepare:public-source` 当前可生成 `ready-for-license-and-review` 候选，严格审计为 0 findings。
+
 ## 0.3.5-recovery 维护增补 — 2026-11-04（后续）
 
 - 新增 `npm run inspect:source`，对调用方明确选择的已解密 v4 副本执行只读 SQLite schema 诊断；输出固定为独立 source-diagnostics，不读取密钥、不导入快照、不扫描用户目录，也不宣称 native schema 兼容。

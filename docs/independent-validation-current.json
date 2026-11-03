@@ -1073,7 +1073,7 @@
         }
       },
       "commands": [
-        "npm run prepare:public-source -- --output /tmp/alpha-public-source-candidate-20261104 --report /tmp/alpha-public-source-report-20261104.json --manifest /tmp/alpha-public-source-manifest-20261104.json",
+        "npm run prepare:public-source -- --output <external-temp>/alpha-public-source-candidate --report <external-temp>/alpha-public-source-report.json --manifest <external-temp>/alpha-public-source-manifest.json",
         "npm run package:macos-dmg:independent",
         "npm run package:macos-app:from-build",
         "npm run release:manifest",
