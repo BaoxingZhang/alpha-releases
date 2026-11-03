@@ -58,6 +58,11 @@ jobs:
           set -o pipefail
           npm run test:packaged-independent 2>&1 | tee .runtime/packaged-independent-smoke.log
 
+      - name: Run packaged original native Electron smoke
+        run: |
+          set -o pipefail
+          npm run test:packaged-native 2>&1 | tee .runtime/packaged-native-smoke.log
+
       - name: Run complete test suite
         run: npm test
 
@@ -112,6 +117,7 @@ jobs:
             .runtime/public-release-audit.json
             .runtime/public-source-candidate.manifest.json
             .runtime/packaged-independent-smoke.log
+            .runtime/packaged-native-smoke.log
             .runtime/release-artifacts/*.app.manifest.json
             .runtime/recovery-bundles/alpha-recovered-source.tar.gz
             .runtime/recovery-bundles/alpha-recovered-source.tar.gz.manifest.json
