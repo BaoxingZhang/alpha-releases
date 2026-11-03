@@ -201,13 +201,12 @@ func parseRoomData(data []byte) ([]roomUser, error) {
 }
 
 func boundedRoomContact(ctx context.Context, d *database, username string) (contact, bool, error) {
+	if d.contactColumns == nil {
+		return contact{}, false, fail("SCHEMA_UNSUPPORTED", "Contact column mapping is unavailable")
+	}
 	var item contact
 	var kind int64
-	const query = `SELECT local_type,
-COALESCE(CASE WHEN length(CAST(alias AS BLOB))<=1024 THEN alias ELSE '' END,''),
-COALESCE(CASE WHEN length(CAST(remark AS BLOB))<=1024 THEN remark ELSE '' END,''),
-COALESCE(CASE WHEN length(CAST(nick_name AS BLOB))<=1024 THEN nick_name ELSE '' END,'')
-FROM contact WHERE username COLLATE BINARY=? LIMIT 1`
+	query := `SELECT CAST(COALESCE(` + quoteIdentifier(d.contactColumns.localType) + `,0) AS INTEGER),` + contactTextExpr(d.contactColumns.alias, 1024) + `,` + contactTextExpr(d.contactColumns.remark, 1024) + `,` + contactTextExpr(d.contactColumns.nickName, 1024) + ` FROM "contact" WHERE ` + quoteIdentifier(d.contactColumns.username) + ` COLLATE BINARY=? LIMIT 1`
 	err := d.db.QueryRowContext(ctx, query, username).Scan(&kind, &item.Alias, &item.Remark, &item.NickName)
 	if err == sql.ErrNoRows {
 		return contact{}, false, nil

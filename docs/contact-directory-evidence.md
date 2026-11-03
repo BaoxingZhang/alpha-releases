@@ -16,7 +16,9 @@ REA 对 Alpha 0.3.5 包的静态证据只确认“原生数据组件声明了联
 | `vendor/chatlog/internal/model/contact_v4.go:3-25` | `contact` 表包含 `username`、`local_type`、`alias`、`remark`、`nick_name`，以及模型注释列出的头像、flag、verify、extra buffer 等字段 | 只读查询基础联系人字段；未使用的列不能假定已经被 bridge 读取 |
 | `vendor/chatlog/internal/model/contact_v4.go:32` | 注释明确 `local_type=2` 为群聊、`3` 为群聊成员（非好友）、`5/6` 为企业微信 | 识别这些原始类型并保留到 DTO；不能从该注释推导 Alpha 的全部分类 |
 | `vendor/chatlog/internal/model/contact_v4.go:35-42` | `Wrap` 仅把 `local_type != 3` 归为 `IsFriend` | 说明 Chatlog 的好友布尔值不是 Alpha 的八分类；不能把它直接当作 `friend`/`former_friend`/`blocked` |
-| `packages/alpha-data-bridge/main.go:330-344` | 独立 bridge 对 `contact.db` 只要求五列：`username`、`local_type`、`alias`、`remark`、`nick_name` | 缺列时明确失败；当前 bridge 没有 directory 分类所需的已验证辅助表契约 |
+| `packages/alpha-data-bridge/main.go` | 独立 bridge 对显式 `contact.db`/`contact` 表通过固定 `PRAGMA table_info` 白名单解析联系人列；`username`/`local_type` 接受已在兼容探针中观察到的别名，展示列缺失时返回空字符串 | 缺少身份列、无 SQLite rowid 或出现被显式 shadow 的 `rowid` 时明确失败；SQL 标识符不来自请求，也没有扩大到任意表 |
+
+兼容读取器接受的列别名是：`username`、`user_name`、`WCDB_CT_username`；`local_type`、`localType`、`WCDB_CT_local_type`、`type`；以及 `alias`/`WCDB_CT_alias`、`remark`/`WCDB_CT_remark`、`nick_name`/`nickname`/`WCDB_CT_nick_name`。这些别名只扩大离线只读副本的列名兼容性，不证明它们来自同一 native schema，也不改变 `82/128` 协议支持计数。
 | `packages/alpha-data-bridge/main.go:535-578` | `contacts.list` 只查询上述五列并保留 `local_type` 与来源 rowid | 支持精确 username、字面量查询和分页；不产生 category/counts |
 
 ## Alpha 契约要求

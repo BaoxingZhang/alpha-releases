@@ -90,6 +90,69 @@ func TestSchemaValidatedBeforeAccountInfo(t *testing.T) {
 		expectCode(t, err, "SCHEMA_UNSUPPORTED")
 	})
 }
+
+func TestContactCompatibilityAliasesRemainReadOnlyAndBounded(t *testing.T) {
+	root := t.TempDir()
+	name := filepath.Join(root, "contact.db")
+	db, err := sql.Open("sqlite3", name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`CREATE TABLE contact (user_name TEXT, localType INTEGER, WCDB_CT_remark TEXT)`); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO contact(user_name,localType,WCDB_CT_remark) VALUES('wxid_alias',1,'Alias Remark')`); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	b, err := openBridge(root, "synthetic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.close()
+	value, err := b.dispatch(context.Background(), request{ID: "alias-list", Op: "contacts.list", Params: json.RawMessage(`{"limit":10}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, ok := value.(page[contact])
+	if !ok || len(result.Items) != 1 {
+		t.Fatalf("unexpected alias page: %#v", value)
+	}
+	if result.Items[0].Username != "wxid_alias" || result.Items[0].LocalType != "1" || result.Items[0].Remark != "Alias Remark" || result.Items[0].Alias != "" || result.Items[0].NickName != "" {
+		t.Fatalf("unexpected alias projection: %#v", result.Items[0])
+	}
+	lookup, err := b.dispatch(context.Background(), request{ID: "alias-lookup", Op: "contacts.lookup", Params: json.RawMessage(`{"usernames":["wxid_alias"]}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	lookupResult, ok := lookup.(contactLookupResult)
+	if !ok || len(lookupResult.Items) != 1 || lookupResult.Items[0].Remark != "Alias Remark" {
+		t.Fatalf("unexpected alias lookup: %#v", lookup)
+	}
+	if _, err := b.contactDB.db.Exec("CREATE TABLE denied (id INTEGER)"); err == nil {
+		t.Fatal("compatibility reader allowed a write")
+	}
+}
+
+func TestContactCompatibilityAliasesRequireIdentityColumns(t *testing.T) {
+	root := t.TempDir()
+	name := filepath.Join(root, "contact.db")
+	db, err := sql.Open("sqlite3", name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`CREATE TABLE contact (nickname TEXT, remark TEXT)`); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	db.Close()
+	_, err = openBridge(root, "synthetic")
+	expectCode(t, err, "SCHEMA_UNSUPPORTED")
+}
 func TestStableDatasetAndSidecarBoundary(t *testing.T) {
 	t.Run("new-shard", func(t *testing.T) {
 		root, _ := fixtureDB(t, contactSchema)

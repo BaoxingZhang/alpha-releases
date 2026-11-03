@@ -32,14 +32,23 @@ func (b *bridge) contactsLookup(ctx context.Context, usernames []string) (any, e
 		placeholders[i] = "?"
 		args[i] = username
 	}
+	columns := d.contactColumns
+	if columns == nil {
+		return nil, fail("SCHEMA_UNSUPPORTED", "Contact column mapping is unavailable")
+	}
+	textExpr := func(column string) string {
+		if column == "" {
+			return `''`
+		}
+		quoted := quoteIdentifier(column)
+		return `CASE WHEN ` + quoted + ` IS NULL OR length(CAST(` + quoted + ` AS BLOB))<=4096 THEN COALESCE(CAST(` + quoted + ` AS TEXT),'') ELSE NULL END`
+	}
+	usernameColumn := quoteIdentifier(columns.username)
 	// Bound all text before SQLite materializes it. A NULL from any CASE is a
 	// malformed oversized row and is rejected below rather than silently
 	// truncating the contact DTO.
-	query := fmt.Sprintf(`SELECT rowid,username,local_type,
-CASE WHEN alias IS NULL OR length(CAST(alias AS BLOB))<=4096 THEN COALESCE(alias,'') ELSE NULL END,
-CASE WHEN remark IS NULL OR length(CAST(remark AS BLOB))<=4096 THEN COALESCE(remark,'') ELSE NULL END,
-CASE WHEN nick_name IS NULL OR length(CAST(nick_name AS BLOB))<=4096 THEN COALESCE(nick_name,'') ELSE NULL END
-FROM contact WHERE username COLLATE BINARY IN (%s) ORDER BY rowid ASC`, strings.Join(placeholders, ","))
+	query := fmt.Sprintf(`SELECT rowid,CASE WHEN %s IS NULL OR length(CAST(%s AS BLOB))<=1024 THEN COALESCE(CAST(%s AS TEXT),'') ELSE NULL END,CAST(COALESCE(%s,0) AS INTEGER),%s,%s,%s
+FROM "contact" WHERE %s COLLATE BINARY IN (%s) ORDER BY rowid ASC`, usernameColumn, usernameColumn, usernameColumn, quoteIdentifier(columns.localType), textExpr(columns.alias), textExpr(columns.remark), textExpr(columns.nickName), usernameColumn, strings.Join(placeholders, ","))
 	rows, err := d.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fail("SCHEMA_UNSUPPORTED", "Cannot query expected contact schema")

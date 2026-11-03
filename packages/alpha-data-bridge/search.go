@@ -546,10 +546,13 @@ func (b *bridge) conversationNames(ctx context.Context) (map[string]string, erro
 		}{d, "SELECT user_name FROM Name2Id WHERE user_name IS NOT NULL AND length(CAST(user_name AS BLOB))<=1024"})
 	}
 	if b.contactDB != nil {
+		if b.contactDB.contactColumns == nil {
+			return nil, fail("SCHEMA_UNSUPPORTED", "Contact column mapping is unavailable")
+		}
 		inputs = append(inputs, struct {
 			d     *database
 			query string
-		}{b.contactDB, "SELECT username FROM contact WHERE username IS NOT NULL AND length(CAST(username AS BLOB))<=1024"})
+		}{b.contactDB, "SELECT " + quoteIdentifier(b.contactDB.contactColumns.username) + " FROM \"contact\" WHERE " + quoteIdentifier(b.contactDB.contactColumns.username) + " IS NOT NULL AND length(CAST(" + quoteIdentifier(b.contactDB.contactColumns.username) + " AS BLOB))<=1024"})
 	}
 	if b.sessionDB != nil {
 		inputs = append(inputs, struct {

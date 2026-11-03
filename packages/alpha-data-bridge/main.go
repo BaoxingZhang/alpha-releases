@@ -139,6 +139,15 @@ type database struct {
 	info           os.FileInfo
 	db             *sql.DB
 	tables         map[string]bool
+	contactColumns *contactColumnSet
+}
+
+// contactColumnSet records only column aliases observed in the read-only
+// compatibility reader.  It is populated from PRAGMA table_info for the
+// explicit contact.db table; callers never accept SQL identifiers from a
+// request.
+type contactColumnSet struct {
+	username, localType, alias, remark, nickName string
 }
 type directoryStamp struct {
 	path string
@@ -378,7 +387,11 @@ func openDatabase(root, relative string, optionalFavorites ...bool) (_ *database
 	}
 	switch filepath.Base(relative) {
 	case "contact.db":
-		required["contact"] = []string{"username", "local_type", "alias", "remark", "nick_name"}
+		columns, resolveErr := resolveContactColumns(db)
+		if resolveErr != nil {
+			return nil, resolveErr
+		}
+		d.contactColumns = columns
 	case "session.db":
 		required["SessionTable"] = []string{"username", "summary", "last_timestamp", "sort_timestamp", "last_msg_sender", "last_sender_display_name"}
 	case "moments.db":
@@ -408,6 +421,75 @@ func openDatabase(root, relative string, optionalFavorites ...bool) (_ *database
 		return nil, e
 	}
 	return d, nil
+}
+
+func quoteIdentifier(name string) string {
+	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
+}
+
+func contactTextExpr(column string, maxBytes int) string {
+	if column == "" {
+		return `''`
+	}
+	quoted := quoteIdentifier(column)
+	return `CASE WHEN ` + quoted + ` IS NULL OR length(CAST(` + quoted + ` AS BLOB))<=` + strconv.Itoa(maxBytes) + ` THEN COALESCE(CAST(` + quoted + ` AS TEXT),'') ELSE NULL END`
+}
+
+// resolveContactColumns accepts the aliases documented by the earlier
+// read-only Alpha contact compatibility probe.  Username and local type are
+// required; display fields may be absent and are represented as empty text.
+// The table itself remains fixed to contact.db/contact and SQLite rowid is
+// required, so this does not broaden access to arbitrary schemas.
+func resolveContactColumns(db *sql.DB) (*contactColumnSet, error) {
+	rows, err := db.Query(`PRAGMA table_info("contact")`)
+	if err != nil {
+		return nil, fail("SCHEMA_UNSUPPORTED", "Cannot inspect contact table")
+	}
+	defer rows.Close()
+	present := map[string]bool{}
+	rowIDShadowed := false
+	for rows.Next() {
+		var cid, notnull, pk int
+		var name, kind string
+		var defaultValue any
+		if err := rows.Scan(&cid, &name, &kind, &notnull, &defaultValue, &pk); err != nil {
+			return nil, fail("SCHEMA_UNSUPPORTED", "Invalid contact column metadata")
+		}
+		present[name] = true
+		if strings.EqualFold(name, "rowid") {
+			rowIDShadowed = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fail("SCHEMA_UNSUPPORTED", "Cannot finish inspecting contact table")
+	}
+	if rowIDShadowed {
+		return nil, fail("SCHEMA_UNSUPPORTED", "Expected SQLite rowid is shadowed")
+	}
+	probe, err := db.Query(`SELECT rowid FROM "contact" LIMIT 0`)
+	if err != nil {
+		return nil, fail("SCHEMA_UNSUPPORTED", "Expected SQLite rowid is unavailable")
+	}
+	probe.Close()
+	choose := func(names ...string) string {
+		for _, name := range names {
+			if present[name] {
+				return name
+			}
+		}
+		return ""
+	}
+	result := &contactColumnSet{
+		username:  choose("username", "user_name", "WCDB_CT_username"),
+		localType: choose("local_type", "localType", "WCDB_CT_local_type", "type"),
+		alias:     choose("alias", "WCDB_CT_alias"),
+		remark:    choose("remark", "WCDB_CT_remark"),
+		nickName:  choose("nick_name", "nickname", "WCDB_CT_nick_name"),
+	}
+	if result.username == "" || result.localType == "" {
+		return nil, fail("SCHEMA_UNSUPPORTED", "Contact table is missing required identity columns")
+	}
+	return result, nil
 }
 
 func validateColumns(db *sql.DB, table string, required []string) error {
@@ -613,23 +695,35 @@ func (b *bridge) contacts(ctx context.Context, p params, key string, c *cursor) 
 	if d == nil {
 		return nil, fail("CAPABILITY_UNAVAILABLE", "contact.db is not present")
 	}
-	query := `SELECT rowid,username,local_type,COALESCE(alias,''),COALESCE(remark,''),COALESCE(nick_name,'') FROM contact WHERE 1=1`
+	columns := d.contactColumns
+	if columns == nil {
+		return nil, fail("SCHEMA_UNSUPPORTED", "Contact column mapping is unavailable")
+	}
+	username := quoteIdentifier(columns.username)
+	localType := quoteIdentifier(columns.localType)
+	textExpr := func(column string) string {
+		if column == "" {
+			return `''`
+		}
+		return `CASE WHEN ` + quoteIdentifier(column) + ` IS NULL OR length(CAST(` + quoteIdentifier(column) + ` AS BLOB))<=4096 THEN COALESCE(CAST(` + quoteIdentifier(column) + ` AS TEXT),'') ELSE NULL END`
+	}
+	query := `SELECT rowid,CASE WHEN ` + username + ` IS NULL OR length(CAST(` + username + ` AS BLOB))<=1024 THEN COALESCE(CAST(` + username + ` AS TEXT),'') ELSE NULL END,CAST(COALESCE(` + localType + `,0) AS INTEGER),` + textExpr(columns.alias) + `,` + textExpr(columns.remark) + `,` + textExpr(columns.nickName) + ` FROM "contact" WHERE 1=1`
 	args := []any{}
 	if p.UsernameExact != "" {
-		query += ` AND username COLLATE BINARY=?`
+		query += ` AND ` + username + ` COLLATE BINARY=?`
 		args = append(args, p.UsernameExact)
 	}
 	if p.Query != "" {
 		// instr() keeps the user's text literal; unlike LIKE it does not treat
 		// '%' or '_' as wildcards. Matching remains deterministic across pages.
-		query += ` AND (instr(username,?)>0 OR instr(COALESCE(alias,''),?)>0 OR instr(COALESCE(remark,''),?)>0 OR instr(COALESCE(nick_name,''),?)>0)`
+		query += ` AND (instr(CAST(` + username + ` AS TEXT),?)>0 OR instr(` + textExpr(columns.alias) + `,?)>0 OR instr(` + textExpr(columns.remark) + `,?)>0 OR instr(` + textExpr(columns.nickName) + `,?)>0)`
 		args = append(args, p.Query, p.Query, p.Query, p.Query)
 	}
 	if c != nil {
-		query += ` AND (username COLLATE BINARY>? OR (username COLLATE BINARY=? AND rowid>?))`
+		query += ` AND (` + username + ` COLLATE BINARY>? OR (` + username + ` COLLATE BINARY=? AND rowid>?))`
 		args = append(args, c.Name, c.Name, c.RowID)
 	}
-	query += ` ORDER BY username COLLATE BINARY ASC,rowid ASC LIMIT ?`
+	query += ` ORDER BY ` + username + ` COLLATE BINARY ASC,rowid ASC LIMIT ?`
 	args = append(args, p.Limit+1)
 	rows, err := d.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -640,9 +734,14 @@ func (b *bridge) contacts(ctx context.Context, p params, key string, c *cursor) 
 	for rows.Next() {
 		var item contact
 		var row, kind int64
-		if err := rows.Scan(&row, &item.Username, &kind, &item.Alias, &item.Remark, &item.NickName); err != nil {
+		var usernameValue, alias, remark, nickName sql.NullString
+		if err := rows.Scan(&row, &usernameValue, &kind, &alias, &remark, &nickName); err != nil {
 			return nil, fail("ROW_INVALID", "Invalid contact record")
 		}
+		if !usernameValue.Valid || !validConversation(strings.TrimSpace(usernameValue.String)) || strings.TrimSpace(usernameValue.String) != usernameValue.String || !alias.Valid || !remark.Valid || !nickName.Valid {
+			return nil, fail("ROW_INVALID", "Invalid contact record")
+		}
+		item.Username, item.Alias, item.Remark, item.NickName = usernameValue.String, alias.String, remark.String, nickName.String
 		item.LocalType = number(kind)
 		item.Source = sourceRef{Database: d.relative, Table: "contact", RowID: number(row)}
 		result.Items = append(result.Items, item)
