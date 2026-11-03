@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateCurrentEvidenceRefresh } from './current-evidence-consistency.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const require = createRequire(import.meta.url);
@@ -150,7 +151,7 @@ if (packageJson) {
   try { readProjectIdentity(packageJson); } catch (error) { errors.push(`package.json: ${error.message}`); }
   if (!packageJson.engines?.node || !nodeVersionInRange(process.version, packageJson.engines.node)) errors.push(`Node ${process.version} does not satisfy package.json engines.node (${packageJson.engines?.node ?? 'missing'})`);
   if (nvmrc && /^\d+\.\d+\.\d+$/.test(nvmrc) && !nodeVersionInRange(`v${nvmrc}`, packageJson.engines.node)) errors.push(`.nvmrc: pinned Node ${nvmrc} does not satisfy package.json engines.node (${packageJson.engines.node ?? 'missing'})`);
-  const requiredScripts = ['build', 'build:independent', 'build:packaged', 'package:macos-app', 'package:macos-app:from-build', 'package:macos-dmg', 'package:macos-app:independent', 'package:macos-app:independent:from-build', 'package:macos-dmg:independent', 'test', 'test:independent', 'test:smoke', 'test:smoke:native', 'test:packaged-native', 'start:native', 'verify:vendor', 'audit:native-abi', 'verify:protocol', 'verify:packaged-markers', 'verify:release-manifest', 'verify:independent-support', 'status', 'verify:dependencies', 'audit:upstream', 'audit:public-release', 'prepare:public-source', 'bundle:recovery', 'check:project', 'check:maintainability', 'verify:maintenance'];
+  const requiredScripts = ['build', 'build:independent', 'build:packaged', 'package:macos-app', 'package:macos-app:from-build', 'package:macos-dmg', 'package:macos-app:independent', 'package:macos-app:independent:from-build', 'package:macos-dmg:independent', 'test', 'test:independent', 'test:smoke', 'test:smoke:native', 'test:packaged-native', 'start:native', 'verify:vendor', 'audit:native-abi', 'verify:protocol', 'verify:packaged-markers', 'verify:release-manifest', 'verify:independent-support', 'status', 'verify:dependencies', 'audit:upstream', 'audit:public-release', 'prepare:public-source', 'bundle:recovery', 'check:project', 'check:maintainability', 'verify:maintenance', 'mcp:independent', 'mcp:config'];
   for (const name of requiredScripts) if (typeof packageJson.scripts?.[name] !== 'string') errors.push(`package.json: missing script ${name}`);
 }
 
@@ -170,7 +171,8 @@ const requiredFiles = [
   'AGENTS.md', 'README.md', 'MAINTENANCE.md', '.gitignore', '.gitattributes',
   '.github/workflows/maintenance.yml',
   'scripts/build.mjs', 'scripts/build-packaged-resources.mjs', 'scripts/package-macos-app.mjs', 'scripts/environment.mjs', 'scripts/launch.mjs', 'scripts/verify-vendor.mjs', 'scripts/verify-packaged-markers.mjs', 'scripts/release-manifest.mjs', 'scripts/verify-release-manifest.mjs', 'scripts/audit-upstream-release.mjs', 'scripts/audit-public-release.mjs', 'scripts/prepare-public-source.mjs',
-  'scripts/setup-go.mjs', 'scripts/build-lock.mjs', 'scripts/project-contract.mjs', 'scripts/recovery-bundle.mjs', 'scripts/check-maintainability.mjs', 'scripts/verify-maintenance.mjs', 'scripts/audit-native-abi.mjs', 'scripts/verify-independent-support.mjs', 'scripts/project-status.mjs', 'scripts/verify-dependencies.mjs', 'tests/packaged-native-smoke.mjs',
+  'scripts/setup-go.mjs', 'scripts/build-lock.mjs', 'scripts/project-contract.mjs', 'scripts/recovery-bundle.mjs', 'scripts/check-maintainability.mjs', 'scripts/verify-maintenance.mjs', 'scripts/audit-native-abi.mjs', 'scripts/verify-independent-support.mjs', 'scripts/project-status.mjs', 'scripts/verify-dependencies.mjs', 'scripts/codex-mcp-config.mjs', 'tests/packaged-native-smoke.mjs', 'tests/codex-mcp-config.test.mjs',
+  'scripts/current-evidence-consistency.mjs',
   'src/main/index.js', 'src/agent-host/index.cjs', 'src/renderer/index.html',
   'src/renderer/assets/index-DPCwIOAb.js', 'src/renderer/assets/export-policy.mjs', 'src/renderer/assets/media-metadata-export.mjs',
   'packages/alpha-protocol/index.cjs', 'packages/alpha-engine/README.md', 'packages/alpha-engine/index.cjs', 'packages/alpha-engine/http-server.cjs', 'packages/alpha-engine/media-decoder.cjs', 'packages/alpha-engine/media-index.cjs', 'packages/alpha-engine/file-attachment.cjs', 'packages/alpha-engine/generic-jobs.cjs', 'packages/alpha-engine/optional-asr.cjs', 'packages/alpha-wcdb-compat/README.md', 'packages/alpha-wcdb-compat/index.cjs', 'packages/alpha-wcdb-compat/probe.c', 'scripts/build-wcdb-compat-probe.mjs', 'tests/wcdb-compat.test.mjs', 'tests/optional-asr.test.mjs',
@@ -178,7 +180,7 @@ const requiredFiles = [
   'packages/alpha-snapshot-import/go.mod', 'packages/alpha-snapshot-import/go.sum',
   'packages/alpha-desktop/backend-mode.cjs', 'packages/alpha-desktop/project-identity.cjs', 'packages/alpha-desktop/update-mode.cjs', 'packages/alpha-desktop/recovery-runtime.cjs', 'vendor/chatlog/go.mod',
   'provenance/go-toolchain.json', 'provenance/recovered-files.json', 'provenance/maintenance-changes.json', 'provenance/project-metadata.json', 'provenance/independent-update-mode.json',
-  'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', 'docs/maintainer-playbook.md',
+  'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', 'docs/maintainer-playbook.md', 'docs/codex-mcp.md',
   'docs/local-build-and-run.md', 'docs/native-runtime-provenance.json', 'docs/http-readonly-adapter-recovery.md', 'docs/optional-asr.md', 'docs/cross-platform-release-evidence.json', 'docs/media-decoder-evidence.md', 'docs/media-index-foundation.md', 'docs/file-attachment-recovery.md', 'docs/media-schema-evidence.md',
   'docs/independent-validation-current.json', 'docs/independent-support-matrix.json', 'docs/native-smoke-validation.json', 'docs/native-abi-validation.json'
 ];
@@ -217,6 +219,7 @@ if (projectMetadata) {
 }
 
 if (currentValidation) {
+  errors.push(...validateCurrentEvidenceRefresh(currentValidation));
   try {
     const engine = require(path.join(root, 'packages/alpha-engine/index.cjs'));
     const total = engine.ALL_METHODS.length;
