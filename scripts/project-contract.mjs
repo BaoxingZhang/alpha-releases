@@ -20,3 +20,15 @@ export function validatePackageLock(packageJson, packageLock) {
   }
   return errors;
 }
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function validateChangelogVersion(packageJson, changelogText) {
+  const version = packageJson?.version;
+  if (!/^\d+\.\d+\.\d+$/.test(String(version ?? ''))) return ['package.json version is invalid for CHANGELOG validation'];
+  if (typeof changelogText !== 'string') return ['CHANGELOG.md: text is missing'];
+  const heading = new RegExp(`^##\\s+${escapeRegExp(version)}(?:[-\\s]|$)`, 'm');
+  return heading.test(changelogText) ? [] : [`CHANGELOG.md: missing heading for package version ${version}`];
+}

@@ -57,6 +57,30 @@ async function inspectFile(relativePath) {
   return { bytes: bytes.byteLength, sha256, mode: (stat.mode & 0o777).toString(8) };
 }
 
+async function collectArtifactPaths(relativeRoot) {
+  const absoluteRoot = path.join(root, relativeRoot);
+  const paths = [];
+  async function walk(directory, relativeDirectory) {
+    let entries;
+    try { entries = await fs.readdir(directory, { withFileTypes: true }); }
+    catch (error) {
+      if (error.code === 'ENOENT') fail('RELEASE_MANIFEST_ARTIFACT_ROOT_MISSING', relativeRoot);
+      throw error;
+    }
+    entries.sort((left, right) => left.name.localeCompare(right.name));
+    for (const entry of entries) {
+      const relativePath = path.posix.join(relativeRoot, relativeDirectory, entry.name);
+      const absolutePath = path.join(directory, entry.name);
+      if (entry.isSymbolicLink()) fail('RELEASE_MANIFEST_SYMLINK_REJECTED', relativePath);
+      if (entry.isDirectory()) await walk(absolutePath, path.posix.join(relativeDirectory, entry.name));
+      else if (entry.isFile()) paths.push(relativePath);
+      else fail('RELEASE_MANIFEST_ENTRY_INVALID', relativePath);
+    }
+  }
+  await walk(absoluteRoot, '');
+  return paths;
+}
+
 export async function verifyReleaseManifest(manifestPath = DEFAULT_MANIFEST) {
   const filename = path.resolve(manifestPath);
   let manifest;
@@ -103,6 +127,12 @@ export async function verifyReleaseManifest(manifestPath = DEFAULT_MANIFEST) {
   }
   for (const artifact of ARTIFACT_ROOTS.keys()) {
     if (!seenArtifacts.has(artifact)) fail('RELEASE_MANIFEST_ARTIFACT_MISSING', artifact);
+  }
+  const actualPaths = (await Promise.all([...ARTIFACT_ROOTS.values()].map(collectArtifactPaths))).flat().sort();
+  const listedPaths = [...seen].sort();
+  if (actualPaths.length !== listedPaths.length || actualPaths.some((value, index) => value !== listedPaths[index])) {
+    const unlisted = actualPaths.find(value => !seen.has(value));
+    fail('RELEASE_MANIFEST_UNLISTED_FILE', unlisted || 'manifest-entry-missing');
   }
   if (!/^[0-9a-f]{64}$/.test(manifest.artifactDigest ?? '') || digestFiles(checked) !== manifest.artifactDigest) fail('RELEASE_MANIFEST_DIGEST_MISMATCH');
   return { manifestPath: filename, artifactCount: checked.length, artifactDigest: manifest.artifactDigest };

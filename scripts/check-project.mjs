@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validatePackageLock } from './project-contract.mjs';
+import { validateChangelogVersion, validatePackageLock } from './project-contract.mjs';
 import { createRequire } from 'node:module';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -27,9 +27,18 @@ async function requireFile(relativePath) {
   }
 }
 
+async function readText(relativePath) {
+  try {
+    return await fs.readFile(path.join(root, relativePath), 'utf8');
+  } catch {
+    return null;
+  }
+}
+
 const metadata = await readJson('provenance/project-metadata.json');
 const packageJson = await readJson('package.json');
 const packageLock = await readJson('package-lock.json');
+const changelogText = await readText('CHANGELOG.md');
 const requiredFiles = [
   'CONTRIBUTING.md',
   'SECURITY.md',
@@ -64,6 +73,7 @@ if (packageJson && metadata) {
 }
 
 if (packageJson && packageLock) errors.push(...validatePackageLock(packageJson, packageLock));
+if (packageJson) errors.push(...validateChangelogVersion(packageJson, changelogText));
 
 if (errors.length) {
   console.error(`Project checks failed (${errors.length} issue${errors.length === 1 ? '' : 's'}):`);

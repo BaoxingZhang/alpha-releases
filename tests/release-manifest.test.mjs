@@ -108,3 +108,18 @@ test('release manifest verifier rejects traversal and duplicate entries', async 
     await assert.rejects(() => verifyReleaseManifest(destination), /RELEASE_MANIFEST_DUPLICATE_PATH/);
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });
+
+test('release manifest verifier rejects files added after manifest creation', async () => {
+  const extra = path.join(process.cwd(), 'dist', 'app', `.release-manifest-extra-${process.pid}-${Date.now()}`);
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-release-extra-'));
+  try {
+    const source = await buildReleaseManifest();
+    const destination = path.join(directory, 'manifest.json');
+    await fs.writeFile(destination, JSON.stringify(source));
+    await fs.writeFile(extra, 'unlisted artifact\n', { flag: 'wx', mode: 0o600 });
+    await assert.rejects(() => verifyReleaseManifest(destination), /RELEASE_MANIFEST_UNLISTED_FILE/);
+  } finally {
+    await fs.rm(extra, { force: true });
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});

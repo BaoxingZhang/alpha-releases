@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validatePackageLock } from '../scripts/project-contract.mjs';
+import { validateChangelogVersion, validatePackageLock } from '../scripts/project-contract.mjs';
 
 const packageJson = { name: 'alpha-recovered-local', version: '0.3.5' };
 
@@ -24,5 +24,12 @@ test('project contract rejects a stale package lock identity or lockfile format'
 test('project contract rejects a missing lock root package', () => {
   assert.deepEqual(validatePackageLock(packageJson, { lockfileVersion: 3, packages: {} }), [
     'package-lock.json: root package metadata is missing'
+  ]);
+});
+
+test('project contract requires a changelog heading for the package version', () => {
+  assert.deepEqual(validateChangelogVersion(packageJson, '# Changes\n\n## 0.3.5-recovery — current\n'), []);
+  assert.deepEqual(validateChangelogVersion(packageJson, '# Changes\n\n## 0.3.4\n'), [
+    'CHANGELOG.md: missing heading for package version 0.3.5'
   ]);
 });
