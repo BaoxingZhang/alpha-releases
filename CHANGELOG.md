@@ -27,8 +27,8 @@
 
 ## 0.3.5-recovery 维护增补 — 2026-11-03
 
-- 当前独立协议支持矩阵为 74/128，剩余 54 个请求分支明确返回 `UNIMPLEMENTED`；校验来源为 `npm run verify:independent-support` 生成的 `docs/independent-support-matrix.json`。
-- 当前本机 HTTP/MCP 适配器由 `toolDefinitions()` 声明 60 个工具，`docs/api-reference-index.json` 的独立适配器索引同步为 60 个；工具存在不代表原生 schema、真实数据或写入能力已恢复。
+- 该 checkpoint 的独立协议支持矩阵为 74/128，剩余 54 个请求分支明确返回 `UNIMPLEMENTED`；校验来源为当时生成的 `docs/independent-support-matrix.json`。
+- 该 checkpoint 的本机 HTTP/MCP 适配器由 `toolDefinitions()` 声明 60 个工具，工具存在不代表原生 schema、真实数据或写入能力已恢复。
 - CI 维护基线继续要求普通与独立 packaged app、独立 Electron smoke、原生 smoke、依赖/API/public-release 审计、发布清单和恢复源码包检查；原生 smoke 仍单独记录完整性错误，不能改写为 ready。
 
 ## 0.3.5-recovery 维护增补 — 2026-11-03（后续）
