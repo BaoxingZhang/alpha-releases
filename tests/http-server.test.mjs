@@ -69,6 +69,7 @@ function fakeEngine() {
       if (request.listGeneral?.tableName === '__alpha_group_pins') return EngineServerFrame.fromPartial({ requestId: request.requestId, listGeneral: { response: { items: [{ id: 'room@chatroom:1:9223372036854775808:1', actor: 'wxid_alpha', content: '合成置顶第一条', fields: [{ name: 'seq', value: '1' }, { name: 'senderId', value: 'wxid_alpha' }, { name: 'serverId', value: '9223372036854775808' }, { name: 'localType', value: '1' }, { name: 'preview', value: '合成置顶第一条' }, { name: 'pinnedBy', value: 'wxid_alpha' }] }], sourceDatabase: 'contact/contact.db', sourceTable: '__alpha_group_pins' } } });
       if (request.listGeneral) return EngineServerFrame.fromPartial({ requestId: request.requestId, listGeneral: { response: { items: [{ actor: 'wxid_peer', fields: [{ name: 'groupNickname', value: '群昵称' }, { name: 'isOwner', value: 'true' }] }], sourceDatabase: 'contact/contact.db', sourceTable: 'chat_room' } } });
       if (request.listMessageRecallRecords) return EngineServerFrame.fromPartial({ requestId: request.requestId, listMessageRecallRecords: { records: [{ recordId: `rcl_${'a'.repeat(64)}`, conversationId: request.listMessageRecallRecords.conversationId, originalLocalId: 7n, originalServerId: '8', originalSentAtUnixMs: 1700000000000n, originalSourceType: 10000n, originalSender: 'wxid_peer', originalText: '候选撤回', capturedAtUnixMs: 0n, confirmedAtUnixMs: 0n, confirmation: 'unverified-candidate', provenance: 'alpha-independent-message-derived-candidate', compressedContentRetained: false, packedInfoRetained: false, decodeErrorCode: 'NATIVE_RECALL_SCHEMA_UNSUPPORTED' }], nextCursor: 'next-recall' } });
+      if (request.getMessageAntiRecallStatuses) return EngineServerFrame.fromPartial({ requestId: request.requestId, getMessageAntiRecallStatuses: { statuses: request.getMessageAntiRecallStatuses.conversationIds.map(conversationId => ({ conversationId, status: { detected: false, usable: false, enabled: false, verified: false, knownTables: 0, protectedTables: 0, retainedRows: 0n, confirmedRows: 0n, droppedRows: 0n, partial: false, errorCode: 'MESSAGE_ANTI_RECALL_WRITER_DISABLED', externalProtection: '', externalTables: 0, writerErrorCode: 'MESSAGE_ANTI_RECALL_WRITER_DISABLED' } })) } });
       if (request.startAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, startAggregateAnalysis: { analysisId, conversationsTotal: 1, expiresAtUnixMs: BigInt(Date.now() + 600000) } });
       if (request.watchAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, watchAggregateAnalysis: { analysisId, state: 2, conversationsDone: 1, conversationsTotal: 1, conversationsFailed: 0, reportJson: new Uint8Array(Buffer.from(JSON.stringify({ algorithm_version: 'alpha-aggregate-v1', scope: 'group_chat', total_messages: 1 }), 'utf8')) } });
       if (request.cancelAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, cancelAggregateAnalysis: { canceled: false } });
@@ -295,6 +296,17 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   assert.equal(result.body.records[0].provenance, 'alpha-independent-message-derived-candidate');
   assert.equal(result.body.records[0].decode_error_code, 'NATIVE_RECALL_SCHEMA_UNSUPPORTED');
   assert.equal(result.body.next_cursor, 'next-recall');
+  result = await request(base, '/api/v1/independent/anti-recall/status?account_id=acct-1&conversation_ids=wxid_peer,wxid_other', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-message-anti-recall-status');
+  assert.equal(result.body.complete, false);
+  assert.equal(result.body.native_schema_supported, false);
+  assert.equal(result.body.writer, false);
+  assert.equal(result.body.statuses[0].conversation_id, 'wxid_peer');
+  assert.equal(result.body.statuses[0].status.error_code, 'MESSAGE_ANTI_RECALL_WRITER_DISABLED');
+  result = await request(base, '/api/v1/independent/anti-recall/status?account_id=acct-1', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.body.error.code, 'HTTP_API_ANTI_RECALL_CONVERSATIONS_REQUIRED');
   result = await request(base, '/api/v1/independent/recall-records?account_id=acct-1&conversation_id=wxid_peer&cursor=bad%2Bcursor', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 400);
   assert.equal(result.body.error.code, 'HTTP_API_MESSAGE_RECALL_CURSOR_INVALID');
@@ -501,7 +513,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 79);
+  assert.equal(result.body.result.tools.length, 80);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
@@ -546,6 +558,13 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.deepEqual(independentRecordsTool.inputSchema.properties.category.enum, ['payments', 'friend_requests', 'revokes', 'calls']);
   const recallCandidatesTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.records.list_recall_candidates');
   assert.deepEqual(recallCandidatesTool.inputSchema.required, ['conversation_id']);
+  const antiRecallStatusTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.messages.get_anti_recall_status');
+  assert.deepEqual(antiRecallStatusTool.inputSchema.required, ['conversation_ids']);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 226, method: 'tools/call', params: { name: 'alpha-independent.messages.get_anti_recall_status', arguments: { conversation_ids: ['wxid_peer', 'wxid_other'] } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-message-anti-recall-status');
+  assert.equal(result.body.result.structuredContent.writer, false);
+  assert.equal(result.body.result.structuredContent.statuses[1].status.error_code, 'MESSAGE_ANTI_RECALL_WRITER_DISABLED');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 12, method: 'tools/call', params: { name: 'wechat.core.list_tools', arguments: {} } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.package, '');
