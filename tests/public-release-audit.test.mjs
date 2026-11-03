@@ -79,3 +79,11 @@ test('documentation placeholders and ordinary hashes are not credentials', async
   assert.equal(report.status, 'passed');
   assert.equal(report.findingCount, 0);
 });
+
+test('maintenance workflow enforces the strict audit on the prepared public candidate', async () => {
+  const workflow = await fs.readFile(new URL('../.github/workflows/maintenance.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /npm run prepare:public-source -- --output "\$RUNNER_TEMP\/alpha-public-source-candidate"/);
+  assert.match(workflow, /--report "\$RUNNER_TEMP\/alpha-public-release-audit\.json"/);
+  assert.match(workflow, /--manifest "\$RUNNER_TEMP\/alpha-public-source-candidate\.manifest\.json"/);
+  assert.match(workflow, /cp "\$RUNNER_TEMP\/alpha-public-release-audit\.json" \.runtime\/public-release-audit\.json/);
+});

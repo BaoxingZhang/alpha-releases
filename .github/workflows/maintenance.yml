@@ -73,8 +73,15 @@ jobs:
       - name: Audit independent API coverage
         run: npm run audit:api
 
-      - name: Report public release privacy findings
-        run: npm run audit:public-release -- --report .runtime/public-release-audit.json
+      - name: Prepare and enforce public source release audit
+        # The checked-in repository contains private reverse-engineering
+        # evidence. Build the publishable candidate outside the repository;
+        # prepare-public-source applies the documented exclusions and runs the
+        # strict audit against exactly that candidate tree.
+        run: |
+          npm run prepare:public-source -- --output "$RUNNER_TEMP/alpha-public-source-candidate" --report "$RUNNER_TEMP/alpha-public-release-audit.json" --manifest "$RUNNER_TEMP/alpha-public-source-candidate.manifest.json"
+          cp "$RUNNER_TEMP/alpha-public-release-audit.json" .runtime/public-release-audit.json
+          cp "$RUNNER_TEMP/alpha-public-source-candidate.manifest.json" .runtime/public-source-candidate.manifest.json
 
       - name: Generate unsigned artifact manifest and recovery source bundle
         run: |
@@ -103,6 +110,7 @@ jobs:
             packages/alpha-snapshot-import/build-validation.json
             .runtime/release-manifest.json
             .runtime/public-release-audit.json
+            .runtime/public-source-candidate.manifest.json
             .runtime/packaged-independent-smoke.log
             .runtime/release-artifacts/*.app.manifest.json
             .runtime/recovery-bundles/alpha-recovered-source.tar.gz
