@@ -43,6 +43,17 @@ test('generated app can opt into Electron packaged mode with its recovered execu
   assert.match(result, /CFBundleExecutable<\/key>\s*<string>AlphaRecoveredIndependent<\/string>/);
 });
 
+test('packaging can stamp the project version into both macOS bundle version fields', () => {
+  const source = '<key>CFBundleDisplayName</key>\n\t<string>Electron</string>\n'
+    + '<key>CFBundleName</key>\n\t<string>Electron</string>\n'
+    + '<key>CFBundleIdentifier</key>\n\t<string>com.github.Electron</string>\n'
+    + '<key>CFBundleShortVersionString</key>\n\t<string>44.10.1</string>\n'
+    + '<key>CFBundleVersion</key>\n\t<string>44.10.1</string>';
+  const result = rewriteElectronInfoPlist(source, { appVersion: '1.2.3' });
+  assert.match(result, /CFBundleShortVersionString<\/key>\s*<string>1\.2\.3<\/string>/);
+  assert.match(result, /CFBundleVersion<\/key>\s*<string>1\.2\.3<\/string>/);
+});
+
 test('packaging rejects a template without CFBundleExecutable when strict mode is enabled', () => {
   assert.throws(() => rewriteElectronInfoPlist(
     '<key>CFBundleDisplayName</key>\n\t<string>Electron</string>\n'

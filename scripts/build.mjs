@@ -8,6 +8,9 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const src = path.join(root, 'src');
 const app = path.join(root, 'dist/app');
 const independentRequested = process.argv.includes('--independent') || process.env.ALPHA_BUILD_INDEPENDENT === '1';
+const projectPackage = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
+if (typeof projectPackage.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(projectPackage.version)) throw new Error('PROJECT_VERSION_INVALID');
+const projectVersion = projectPackage.version;
 
 const runtimeDependencies = ['@bufbuild/protobuf'];
 
@@ -52,7 +55,7 @@ async function copyIndependentRuntime() {
   const manifest = {
     schema: 'alpha-recovered.independent-runtime.v1',
     status,
-    version: '0.3.5',
+    version: projectVersion,
     platform: process.platform,
     arch: process.arch,
     entry: 'packages/alpha-engine/cli.cjs',
@@ -107,7 +110,7 @@ await copyRuntimeDependencies(path.join(app, 'independent'));
 // so a packaged app does not accidentally depend on the developer's
 // node_modules directory.
 await copyRuntimeDependencies(app);
-await fs.writeFile(path.join(app, 'package.json'), JSON.stringify({ name: 'alpha-recovered-local', productName: 'Alpha Recovered', version: '0.3.5', private: true, main: 'bootstrap.cjs' }, null, 2) + '\n');
+await fs.writeFile(path.join(app, 'package.json'), JSON.stringify({ name: projectPackage.name, productName: 'Alpha Recovered', version: projectVersion, private: true, main: 'bootstrap.cjs' }, null, 2) + '\n');
 await fs.mkdir(path.join(root, 'build'), { recursive: true });
 const runtimeBundle = path.join(root, 'build/runtime-bundle');
 // Original validation rejects symlinks anywhere in the resource path.

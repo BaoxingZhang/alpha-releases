@@ -145,7 +145,7 @@ try {
 }
 
 if (packageJson) {
-  if (packageJson.name !== 'alpha-recovered-local' || packageJson.version !== '0.3.5') errors.push('package.json: project identity/version drifted');
+  if (packageJson.name !== 'alpha-recovered-local' || !/^\d+\.\d+\.\d+$/.test(packageJson.version ?? '')) errors.push('package.json: project identity/version drifted');
   if (!packageJson.engines?.node || !nodeVersionInRange(process.version, packageJson.engines.node)) errors.push(`Node ${process.version} does not satisfy package.json engines.node (${packageJson.engines?.node ?? 'missing'})`);
   if (nvmrc && /^\d+\.\d+\.\d+$/.test(nvmrc) && !nodeVersionInRange(`v${nvmrc}`, packageJson.engines.node)) errors.push(`.nvmrc: pinned Node ${nvmrc} does not satisfy package.json engines.node (${packageJson.engines.node ?? 'missing'})`);
   const requiredScripts = ['build', 'build:independent', 'build:packaged', 'package:macos-app', 'package:macos-app:from-build', 'package:macos-dmg', 'package:macos-app:independent', 'package:macos-app:independent:from-build', 'package:macos-dmg:independent', 'test', 'test:independent', 'test:smoke', 'test:smoke:native', 'verify:vendor', 'audit:native-abi', 'verify:protocol', 'verify:packaged-markers', 'verify:release-manifest', 'verify:independent-support', 'verify:dependencies', 'audit:upstream', 'audit:public-release', 'prepare:public-source', 'bundle:recovery', 'check:project', 'check:maintainability', 'verify:maintenance'];

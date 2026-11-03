@@ -73322,7 +73322,7 @@ function registerImageRefs(event, accountId2, messages, generation) {
 }
 const engine = new EngineClient();
 const appLog = new AppLog(node_path.join(electron.app.getPath("userData"), "logs"), node_path.join(electron.app.getPath("userData"), "settings", "app-log-v1.json"), {
-  banner: `Alpha ${resolveApplicationVersion(electron.app.isPackaged, electron.app.getVersion(), "0.3.5")} ${process.platform}-${process.arch}`
+  banner: `Alpha ${resolveApplicationVersion(electron.app.isPackaged, electron.app.getVersion(), electron.app.getVersion())} ${process.platform}-${process.arch}`
 });
 const imageKeyDiagnostics = new ImageKeyDiagnostics(node_path.join(electron.app.getPath("userData"), "logs"));
 engine.imageKeyDiagnostics = imageKeyDiagnostics;
@@ -73718,7 +73718,7 @@ function refreshUpdateStatus() {
   return operation;
 }
 async function refreshUpdateStatusOnce() {
-  const currentVersion = resolveApplicationVersion(electron.app.isPackaged, electron.app.getVersion(), "0.3.5");
+  const currentVersion = resolveApplicationVersion(electron.app.isPackaged, electron.app.getVersion(), electron.app.getVersion());
   const config = updateConfiguration();
   if (config.disabled) {
     updateStatus = { state: "unconfigured", currentVersion, download: downloadStatus };
@@ -73995,7 +73995,7 @@ if (primaryInstance) electron.app.whenReady().then(async () => {
   windowStateStore = new MainWindowStateStore(node_path.join(electron.app.getPath("userData"), "settings", "window-state-v1.json"));
   lastWindowState = await windowStateStore.load();
   const splashTheme = lastWindowState.theme ?? (electron.nativeTheme.shouldUseDarkColors ? "dark" : "light");
-  splash = openSplashWindow({ theme: splashTheme, version: "0.3.5", logo: await brandLogo(splashTheme) });
+  splash = openSplashWindow({ theme: splashTheme, version: electron.app.getVersion(), logo: await brandLogo(splashTheme) });
   if (electron.app.isPackaged) cacheDirectory.importInstallerChoice(node_path.join(process.resourcesPath, "cache-directory-selection.txt"));
   try {
     process.env.ALPHA_MEDIA_CACHE_ROOT = await cacheDirectory.applyPending();

@@ -23,6 +23,14 @@ const REQUIRED_INDEPENDENT_DEPENDENCY = path.join('node_modules', '@bufbuild', '
 export const UPDATE_MODE_MARKER = 'Contents/Resources/alpha-update-mode.json';
 const UPDATE_MODE_CONFIG = path.join(root, 'provenance', 'independent-update-mode.json');
 
+async function projectVersion() {
+  let packageJson;
+  try { packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8')); }
+  catch { fail('PROJECT_PACKAGE_INVALID'); }
+  if (typeof packageJson.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(packageJson.version)) fail('PROJECT_VERSION_INVALID');
+  return packageJson.version;
+}
+
 function fail(message) { throw new Error(message); }
 
 function assertTarget() {
@@ -66,8 +74,10 @@ export function rewriteElectronInfoPlist(source, {
   appName = APP_NAME,
   bundleIdentifier = 'local.alpha.recovered',
   executableName = 'Electron',
+  appVersion,
   strictExecutable = false
 } = {}) {
+  let output = source;
   const replacements = [
     ['<key>CFBundleDisplayName</key>\n\t<string>Electron</string>', `<key>CFBundleDisplayName</key>\n\t<string>${appName}</string>`],
     ['<key>CFBundleName</key>\n\t<string>Electron</string>', `<key>CFBundleName</key>\n\t<string>${appName}</string>`],
@@ -76,7 +86,14 @@ export function rewriteElectronInfoPlist(source, {
   if (strictExecutable || source.includes('<key>CFBundleExecutable</key>\n\t<string>Electron</string>')) {
     replacements.push(['<key>CFBundleExecutable</key>\n\t<string>Electron</string>', `<key>CFBundleExecutable</key>\n\t<string>${executableName}</string>`]);
   }
-  let output = source;
+  if (appVersion !== undefined) {
+    if (typeof appVersion !== 'string' || !/^\d+\.\d+\.\d+$/.test(appVersion)) fail('PROJECT_VERSION_INVALID');
+    for (const key of ['CFBundleShortVersionString', 'CFBundleVersion']) {
+      const pattern = new RegExp(`(<key>${key}<\\/key>\\s*\\n?\\s*<string>)[^<]*(<\\/string>)`);
+      if (!pattern.test(output)) fail(`MACOS_APP_INFO_PLIST_${key}_MISSING`);
+      output = output.replace(pattern, `$1${appVersion}$2`);
+    }
+  }
   for (const [before, after] of replacements) {
     const present = output.includes(before);
     if (!present && before.startsWith('<key>CFBundleExecutable</key>')) {
@@ -143,6 +160,7 @@ async function gitCommit() {
 
 export async function packageMacosApp({ output, createDmg = false, independent = false } = {}) {
   assertTarget();
+  const version = await projectVersion();
   const productName = independent ? INDEPENDENT_APP_NAME : APP_NAME;
   const destination = path.resolve(output ?? (independent ? DEFAULT_INDEPENDENT_OUTPUT : DEFAULT_OUTPUT));
   if (!destination.startsWith(`${path.join(root, '.runtime')}${path.sep}`) && !destination.startsWith(`${path.join(root, 'build')}${path.sep}`)) fail('MACOS_APP_OUTPUT_MUST_BE_PROJECT_GENERATED_DIR');
@@ -188,6 +206,7 @@ export async function packageMacosApp({ output, createDmg = false, independent =
     appName: productName,
     bundleIdentifier: independent ? 'local.alpha.recovered.independent' : 'local.alpha.recovered',
     executableName,
+    appVersion: version,
     strictExecutable: true
   }), { mode: 0o644 });
   const executableStat = await fs.stat(executable);
@@ -196,7 +215,7 @@ export async function packageMacosApp({ output, createDmg = false, independent =
   const manifest = {
     schema: 'alpha-recovered.macos-app.v1',
     productName,
-    version: '0.3.5',
+    version,
     appPath: path.relative(root, destination).split(path.sep).join('/'),
     target: { platform: 'darwin', arch: 'arm64' },
     electronVersion: '44.10.1',
