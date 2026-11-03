@@ -79,6 +79,7 @@
     "verify:reproducible-builds": "node scripts/verify-reproducible-builds.mjs",
     "verify:independent-support": "node scripts/verify-independent-support.mjs",
     "status": "node scripts/project-status.mjs",
+    "doctor": "node scripts/doctor.mjs",
     "verify:dependencies": "node scripts/verify-dependencies.mjs"
   },
   "dependencies": {

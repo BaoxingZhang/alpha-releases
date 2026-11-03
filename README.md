@@ -22,6 +22,8 @@
 
 ## 本机使用
 
+接手一台新机器时，先运行 `npm run doctor`。它只检查 Node.js 版本、macOS arm64 平台、锁文件、原生运行时目录和 Electron/esbuild 安装，不扫描个人微信目录、快照、密钥或运行时状态；`--json` 可供 CI 或脚本读取。状态为 `ready` 后，再按下面的构建和合成数据演示步骤操作。
+
 可选的独立 WAV 语音转写见 [optional-asr.md](docs/optional-asr.md)。它只读取调用方明确选择的 `media-index.v1.json` 语音条目，并要求维护者自行安装哈希匹配的 sherpa-onnx 运行时和模型；未安装时会明确报告不可用，不改变原生转写分支。
 
 当前依赖、Electron 和项目内 Go 工具链已安装。先运行合成数据演示：
