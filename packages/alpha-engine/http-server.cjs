@@ -162,6 +162,31 @@ function snakeKeys(value) {
   if (!value || typeof value !== 'object') return value;
   return Object.fromEntries(Object.entries(value).map(([key, child]) => [snakeKey(key), snakeKeys(child)]));
 }
+const CONTACT_DIRECTORY_CATEGORIES = Object.freeze([
+  'friend', 'group', 'enterprise_friend', 'enterprise_group',
+  'official', 'service', 'former_friend', 'blocked'
+]);
+function contactDirectoryJson(value) {
+  const result = snakeKeys(value || {});
+  if (!result || typeof result !== 'object' || Array.isArray(result)) return result;
+  const directory = result.directory && typeof result.directory === 'object' && !Array.isArray(result.directory)
+    ? result.directory : result;
+  const counts = new Map();
+  if (Array.isArray(directory.counts)) {
+    for (const item of directory.counts) {
+      if (!item || typeof item.category !== 'string' || counts.has(item.category)) continue;
+      // Proto3 JSON omits scalar zeroes. Restore an explicit zero so every
+      // category has a stable count field for HTTP, MCP, and non-protobuf
+      // clients that validate the directory response shape.
+      counts.set(item.category, item.count === undefined ? 0 : item.count);
+    }
+  }
+  directory.counts = CONTACT_DIRECTORY_CATEGORIES.map(category => ({
+    category,
+    count: counts.get(category) ?? 0
+  }));
+  return result;
+}
 function exportCapabilitiesJson(value) {
   const result = snakeKeys(value || {});
   // Proto3 omits empty repeated fields in JSON. Keep the independent adapter
@@ -1015,7 +1040,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const rawCategories = params.categories === undefined || params.categories === '' ? [] : String(params.categories).split(',').filter(Boolean);
       if (rawCategories.length > 2 || rawCategories.some(category => !['friend', 'group'].includes(category)) || new Set(rawCategories).size !== rawCategories.length) throw new HttpAdapterError('HTTP_API_DIRECTORY_CATEGORY_INVALID', 400);
       const response = await call('listContacts', { accountId: account, ascending: true, query: text(params.query ?? params.keyword, 1024, 'HTTP_API_QUERY_INVALID') || '', limit: integer(params.limit, 1, 500, 'HTTP_API_LIMIT_INVALID') ?? 100, offset: integer(params.offset, 0, 100000, 'HTTP_API_OFFSET_INVALID') ?? 0, directory: { categories: rawCategories } });
-      return snakeKeys(response.response || response);
+      return contactDirectoryJson(response.response || response);
     }
     if (pathname === '/api/v1/group-members') {
       const room = text(oneAlias(params, ['chatroom_id', 'chatroomId', 'username'], 'HTTP_API_CONVERSATION_AMBIGUOUS'), 256, 'HTTP_API_CHATROOM_INVALID');

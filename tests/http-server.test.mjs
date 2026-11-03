@@ -766,9 +766,11 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'wechat.contacts.list_directory', arguments: { categories: ['friend'] } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.directory.items[0].category, 'friend');
+  assert.equal(result.body.result.structuredContent.directory.counts.find(item => item.category === 'group').count, 0);
   result = await request(base, '/api/v1/contact-directory?categories=friend', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.directory.items[0].category, 'friend');
+  assert.equal(result.body.directory.counts.find(item => item.category === 'group').count, 0);
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 501, method: 'tools/call', params: { name: 'alpha-independent.groups.list_pinned_messages', arguments: { chatroom_id: 'room@chatroom', limit: 10 } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.synthetic_only, true);
