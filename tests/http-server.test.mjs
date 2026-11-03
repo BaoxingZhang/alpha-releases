@@ -38,6 +38,10 @@ function fakeEngine() {
     async getDataSchemaDiagnostics() {
       return { status: 'ready', sourceKind: 'explicit-offline-sqlite-schema', snapshotId: 'a'.repeat(64), readOnly: true, nativeSchemaSupported: false, complete: false, databases: [{ path: 'contact.db', tables: [{ name: 'contact', columns: [{ name: 'username', type: 'TEXT', notNull: true, primaryKey: 1 }] }] }], tableCount: 1, limits: { maxDatabases: 128, maxTables: 4096, maxColumnsPerTable: 256, maxResponseBytes: 4194304 } };
     },
+    async getAdvancedComponentStatus(request) {
+      if (![1, 2, 3, 5, 6].includes(request?.component)) throw new Error('ADVANCED_COMPONENT_REQUEST_INVALID');
+      return { component: request.component, target: 'macos-arm64', availability: 1, errorCode: 'INDEPENDENT_ADVANCED_COMPONENT_UNSUPPORTED' };
+    },
     async dispatch(request) {
       calls += 1;
       if (request.hello) return EngineServerFrame.fromPartial({ requestId: request.requestId, hello: { negotiatedProtocol: { major: 1, minor: 0 }, components: [], serverNonce: new Uint8Array(0), supportedMethodIds: [] } });
@@ -188,6 +192,21 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   assert.equal(result.body.provider, 'alpha-independent-password-v1');
   assert.equal(Object.hasOwn(result.body, 'password_failed_attempts'), false);
   assert.equal(Object.hasOwn(result.body, 'password_retry_after_ms'), false);
+  result = await request(base, '/api/v1/independent/components/status?component=5', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-component-status');
+  assert.equal(result.body.component, 5);
+  assert.equal(result.body.target, 'macos-arm64');
+  assert.equal(result.body.availability, 1);
+  assert.equal(result.body.error_code, 'INDEPENDENT_ADVANCED_COMPONENT_UNSUPPORTED');
+  assert.equal(result.body.complete, false);
+  assert.equal(result.body.native_schema_supported, false);
+  result = await request(base, '/api/v1/independent/components/status?component=4', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.body.error.code, 'HTTP_API_COMPONENT_INVALID');
+  result = await request(base, '/api/v1/independent/components/status?component=5', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 405);
+  assert.equal(result.body.error.code, 'HTTP_API_METHOD_INVALID');
   result = await request(base, '/api/v1/sessions?limit=20', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.items[0].id, 'wxid_peer');
@@ -478,7 +497,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 77);
+  assert.equal(result.body.result.tools.length, 78);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
@@ -513,6 +532,9 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.source.get_revision'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.source.get_watch_targets'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.source.get_schema'));
+  const advancedComponentsTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.components.get_status');
+  assert.deepEqual(advancedComponentsTool.inputSchema.required, ['component']);
+  assert.deepEqual(advancedComponentsTool.inputSchema.properties.component.enum, [1, 2, 3, 5, 6]);
   const recordsTool = result.body.result.tools.find(tool => tool.name === 'wechat.forensics.list_records');
   assert.deepEqual(recordsTool.inputSchema.properties.category.enum, ['payments', 'friend_requests', 'revokes', 'calls']);
   const independentRecordsTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.records.list_candidates');
@@ -713,6 +735,18 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-lock-status');
   assert.equal(result.body.result.structuredContent.locked, true);
   assert.equal(Object.hasOwn(result.body.result.structuredContent, 'password_failed_attempts'), false);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 202, method: 'tools/call', params: { name: 'alpha-independent.components.get_status', arguments: { component: 5 } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.isError, undefined);
+  assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-component-status');
+  assert.equal(result.body.result.structuredContent.component, 5);
+  assert.equal(result.body.result.structuredContent.error_code, 'INDEPENDENT_ADVANCED_COMPONENT_UNSUPPORTED');
+  assert.equal(result.body.result.structuredContent.complete, false);
+  assert.equal(result.body.result.structuredContent.native_schema_supported, false);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 203, method: 'tools/call', params: { name: 'alpha-independent.components.get_status', arguments: { component: 4 } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.isError, true);
+  assert.equal(result.body.result.structuredContent.code, 'MCP_COMPONENT_INVALID');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 25, method: 'tools/call', params: { name: 'alpha-independent.mobile.get_overview', arguments: { limit: 20 } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-verified-dto');

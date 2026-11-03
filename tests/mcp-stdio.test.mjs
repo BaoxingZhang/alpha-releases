@@ -73,7 +73,7 @@ test('standalone MCP stdio completes initialize/tools/list and exits cleanly at 
   assert.equal(initialize.id, 1);
   assert.equal(initialize.result.serverInfo.name, 'alpha-independent-readonly');
   assert.equal(tools.id, 2);
-  assert.equal(tools.result.tools.length, 77);
+  assert.equal(tools.result.tools.length, 78);
   child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'wechat.core.get_status', arguments: {} } })}\n`);
   const [status] = await waitFor(1);
   assert.equal(status.id, 3);
@@ -86,6 +86,16 @@ test('standalone MCP stdio completes initialize/tools/list and exits cleanly at 
   assert.equal(lockStatus.result.structuredContent.scope, 'alpha-independent-lock-status');
   assert.equal(lockStatus.result.structuredContent.read_only, true);
   assert.equal(Object.hasOwn(lockStatus.result.structuredContent, 'password_failed_attempts'), false);
+  child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'alpha-independent.components.get_status', arguments: { component: 5 } } })}\n`);
+  const [advancedComponents] = await waitFor(1);
+  assert.equal(advancedComponents.id, 5);
+  assert.equal(advancedComponents.result.isError, undefined);
+  assert.equal(advancedComponents.result.structuredContent.scope, 'alpha-independent-component-status');
+  assert.equal(advancedComponents.result.structuredContent.component, 'ADVANCED_COMPONENT_KIND_WCDB_MUTATION');
+  assert.equal(advancedComponents.result.structuredContent.availability, 'ADVANCED_COMPONENT_AVAILABILITY_UNSUPPORTED_TARGET');
+  assert.equal(advancedComponents.result.structuredContent.error_code, 'INDEPENDENT_ADVANCED_COMPONENT_UNSUPPORTED');
+  assert.equal(advancedComponents.result.structuredContent.complete, false);
+  assert.equal(advancedComponents.result.structuredContent.native_schema_supported, false);
   child.stdin.end();
   const [exit] = await once(child, 'exit');
   assert.equal(exit, 0);
