@@ -44,7 +44,7 @@ function wireInteger(value, field) {
 }
 
 function restoreJob(raw) {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw) || typeof raw.jobId !== 'string' || !raw.jobId || typeof raw.accountId !== 'string' || !raw.accountId || !JOB_STATES.has(raw.state) || !FORMATS.has(raw.format) || typeof raw.directory !== 'string' || !path.isAbsolute(raw.directory) || !Array.isArray(raw.items) || raw.items.length < 1 || raw.items.length > MAX_CONVERSATIONS) fail('CHAT_EXPORT_STATE_INVALID');
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw) || typeof raw.jobId !== 'string' || !raw.jobId || typeof raw.accountId !== 'string' || !raw.accountId || !JOB_STATES.has(raw.state) || !FORMATS.has(raw.format) || typeof raw.directory !== 'string' || !path.isAbsolute(raw.directory) || !Array.isArray(raw.items) || raw.items.length < 1 || raw.items.length > MAX_CONVERSATIONS || (raw.errorCode !== undefined && (typeof raw.errorCode !== 'string' || !/^[A-Z][A-Z0-9_]{1,95}$/.test(raw.errorCode)))) fail('CHAT_EXPORT_STATE_INVALID');
   const job = {
     jobId: raw.jobId,
     accountId: raw.accountId,
@@ -54,6 +54,7 @@ function restoreJob(raw) {
     createdAtUnixMs: wireInteger(raw.createdAtUnixMs, 'createdAtUnixMs'),
     updatedAtUnixMs: wireInteger(raw.updatedAtUnixMs, 'updatedAtUnixMs'),
     ...(raw.finishedAtUnixMs === undefined ? {} : { finishedAtUnixMs: wireInteger(raw.finishedAtUnixMs, 'finishedAtUnixMs') }),
+    ...(raw.errorCode ? { errorCode: raw.errorCode } : {}),
     items: raw.items.map(item => {
       if (!item || typeof item !== 'object' || typeof item.conversationId !== 'string' || !item.conversationId || !ITEM_STATES.has(item.state) || typeof item.phase !== 'string' || typeof item.path !== 'string' || typeof item.errorCode !== 'string') fail('CHAT_EXPORT_STATE_INVALID');
       const result = { ...item };

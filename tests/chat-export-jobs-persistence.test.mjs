@@ -51,6 +51,7 @@ test('chat export job history survives engine restart', async t => {
   assert.equal(listed.length, 1);
   assert.equal(listed[0].jobId, jobId);
   assert.equal(listed[0].items[0].messagesDone, 2n);
+  await reopened.close();
 });
 
 test('restart converts an in-flight persisted job into an explicit failed record', async t => {
@@ -71,4 +72,21 @@ test('restart converts an in-flight persisted job into an explicit failed record
   assert.equal(snapshot.errorCode, 'CHAT_EXPORT_PROCESS_RESTARTED');
   assert.equal(snapshot.items[0].state, 'failed');
   assert.equal(snapshot.items[0].errorCode, 'CHAT_EXPORT_PROCESS_RESTARTED');
+  await jobs.close();
+});
+
+test('restart preserves a durable terminal job error code', async t => {
+  const f = await make(t);
+  await fs.writeFile(path.join(f.stateDir, STATE_FILE), JSON.stringify({
+    version: 1,
+    jobs: [{
+      jobId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', accountId, state: 'failed', format: 'json', directory: f.root,
+      createdAtUnixMs: '1700000000000', updatedAtUnixMs: '1700000000001', finishedAtUnixMs: '1700000000001', errorCode: 'CHAT_EXPORT_ITEM_FAILED',
+      items: [{ conversationId: 'wxid_alpha', name: 'wxid_alpha', state: 'failed', phase: 'reading', messagesDone: '0', messagesTotal: '0', mediaSaved: '0', mediaFailed: '0', path: '', mediaManifestPath: '', errorCode: 'CHAT_EXPORT_ITEM_FAILED', unchanged: false, mediaFound: '0', mediaSettled: '0', mediaIndexing: false }]
+    }]
+  }) + '\n', { mode: 0o600 });
+  const jobs = createChatExportJobs({ stateDir: f.stateDir, runExport: async () => ({ itemCount: 0, destinationPath: '' }) });
+  t.after(async () => jobs.close());
+  assert.equal(jobs.watch('dddddddd-dddd-4ddd-8ddd-dddddddddddd').errorCode, 'CHAT_EXPORT_ITEM_FAILED');
+  await jobs.close();
 });
