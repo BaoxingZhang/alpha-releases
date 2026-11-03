@@ -178,6 +178,28 @@ function sourceDiagnostics(value) {
     native_schema_supported: false
   };
 }
+function independentIncrementalMessages(value, { accountId, conversationId, sinceUnixMs, endUnixMs }) {
+  const page = snakeKeys(value || {});
+  return {
+    schema: 'alpha-independent-chatlab-incremental.v1',
+    compatibility: 'alpha-independent-message-v1',
+    scope: 'alpha-independent-chatlab-incremental',
+    source_kind: 'verified-independent-message-dto',
+    incremental_semantics: 'bounded-exclusive-millisecond-window',
+    account_id: accountId,
+    conversation_id: conversationId,
+    ...(sinceUnixMs === undefined ? {} : { since_unix_ms: sinceUnixMs.toString() }),
+    ...(endUnixMs === undefined ? {} : { end_unix_ms: endUnixMs.toString() }),
+    items: Array.isArray(page.items) ? page.items : [],
+    next_cursor: typeof page.next_cursor === 'string' ? page.next_cursor : '',
+    ...(page.applied_after_unix_ms === undefined ? {} : { applied_after_unix_ms: page.applied_after_unix_ms }),
+    ...(page.applied_before_unix_ms === undefined ? {} : { applied_before_unix_ms: page.applied_before_unix_ms }),
+    complete: false,
+    native_schema_supported: false,
+    chatlab_compatible: false,
+    read_only: true
+  };
+}
 function schemaDiagnostics(value) {
   return { ...snakeKeys(value || {}), scope: 'alpha-independent-schema-diagnostics', complete: false, native_schema_supported: false, read_only: true };
 }
@@ -442,6 +464,7 @@ function toolDefinitions() {
     { name: 'alpha-independent.mobile.get_overview', description: '组合返回已验证账号状态和会话摘要；不兼容官方 wechat.mobile.get_overview/native mobile snapshot schema', inputSchema: { type: 'object', properties: { account_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.mobile.search_chat', description: '在已验证消息 DTO 上提供独立移动端搜索组合；不兼容官方 wechat.mobile.search_chat schema', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, username: string, sender_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.mobile.get_chat_context', description: '读取已验证会话中指定消息的有界前后文；不兼容官方 wechat.mobile.get_chat_context schema', inputSchema: { type: 'object', required: ['username', 'anchor_id'], properties: { account_id: string, username: string, anchor_id: string, before: { type: 'integer', minimum: 0, maximum: 50 }, after: { type: 'integer', minimum: 0, maximum: 50 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.chat.get_incremental_messages', description: '读取独立已验证消息 DTO 的有界毫秒增量窗口；不兼容官方 ChatLab 增量同步 schema 或 nextSince 语义', inputSchema: { type: 'object', required: ['conversation_id'], properties: { account_id: string, conversation_id: string, since_unix_ms: string, end_unix_ms: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string, ascending: { type: 'boolean' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_conversation', description: '将已验证会话导出到本机新文件；ChatLab/SQL/WeClone 为独立后端的派生格式', inputSchema: { type: 'object', required: ['username', 'format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['json', 'markdown', 'html', 'txt', 'xlsx', 'chatlab-json', 'chatlab-jsonl', 'sql', 'weclone'] }, destination_path: string, include_media: { type: 'boolean', const: false }, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.export_media_metadata', description: '将已验证媒体消息的元数据导出到本机新文件；不读取、解密或播放媒体文件', inputSchema: { type: 'object', required: ['format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['media-json', 'media-csv'] }, destination_path: string, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha.messages.search_page', description: '读取独立后端的跨会话搜索页', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, username: string, sender_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -1055,6 +1078,34 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const response = await call('listMessageRecallRecords', { accountId: account, conversationId: conversation, cursor: recallCursor, limit });
       return snakeKeys({ ...response, scope: 'alpha-independent-message-derived-candidates', partial: true, candidate: true, nativeSchemaSupported: false, nativeRecallStore: false, writer: false, sourceTable: '__alpha_general_revokes' });
     }
+    const incrementalSessionMatch = /^\/api\/v1\/independent\/sessions\/([^/]+)\/messages$/.exec(pathname);
+    if (incrementalSessionMatch) {
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      let conversation;
+      try { conversation = decodeURIComponent(incrementalSessionMatch[1]); } catch { throw new HttpAdapterError('HTTP_API_CONVERSATION_INVALID', 400); }
+      conversation = text(conversation, 1024, 'HTTP_API_CONVERSATION_INVALID');
+      if (!conversation) throw new HttpAdapterError('HTTP_API_CONVERSATION_REQUIRED', 400);
+      const queryConversation = oneAlias(params, ['conversation_id', 'conversationId', 'username', 'talker', 'session_id'], 'HTTP_API_CONVERSATION_AMBIGUOUS');
+      if (queryConversation !== undefined && queryConversation !== '') throw new HttpAdapterError('HTTP_API_CONVERSATION_PATH_ONLY', 400);
+      const sinceRaw = oneAlias(params, ['since_unix_ms', 'since'], 'HTTP_API_INCREMENTAL_SINCE_AMBIGUOUS');
+      const endRaw = oneAlias(params, ['end_unix_ms', 'end'], 'HTTP_API_INCREMENTAL_END_AMBIGUOUS');
+      const since = int64(sinceRaw, 'HTTP_API_INCREMENTAL_TIME_INVALID');
+      const end = int64(endRaw, 'HTTP_API_INCREMENTAL_TIME_INVALID');
+      if (since !== undefined && since < 0n || end !== undefined && end < 0n) throw new HttpAdapterError('HTTP_API_INCREMENTAL_TIME_INVALID', 400);
+      if (since !== undefined && end !== undefined && end <= since) throw new HttpAdapterError('HTTP_API_INCREMENTAL_TIME_RANGE_INVALID', 400);
+      const p = page(params, 500);
+      const account = await selectedAccount(params);
+      const ascending = boolean(params.ascending, 'HTTP_API_INCREMENTAL_ORDER_INVALID') ?? true;
+      const response = await call('listMessages', {
+        accountId: account,
+        conversationId: conversation,
+        page: p,
+        ascending,
+        ...(since === undefined ? {} : { afterUnixMs: since }),
+        ...(end === undefined ? {} : { beforeUnixMs: end })
+      });
+      return independentIncrementalMessages(response, { accountId: account, conversationId: conversation, sinceUnixMs: since, endUnixMs: end });
+    }
     throw new HttpAdapterError('HTTP_API_ROUTE_NOT_FOUND', 404);
   }
   function mcpDate(value, code) {
@@ -1155,7 +1206,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       'wechat.core.get_status': [], 'wechat.core.get_lock_status': [], 'wechat.core.list_tools': ['package'], 'wechat.core.list_accounts': [], 'wechat.core.get_account_info': ['account_id'],
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'],
       'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'alpha-independent.groups.list_pinned_messages': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
-      'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'],
+      'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'], 'alpha-independent.chat.get_incremental_messages': ['account_id', 'conversation_id', 'since_unix_ms', 'end_unix_ms', 'limit', 'cursor', 'ascending'],
       'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.read_voice_blob': ['account_id', 'key'], 'alpha-independent.media.read_indexed': ['account_id', 'conversation_id', 'message_id', 'media_id', 'sha256', 'kind', 'rendition'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.media.inspect_asr': ['model_root', 'model_id'], 'alpha-independent.media.transcribe_indexed_voice': ['account_id', 'media_index_root', 'media_id', 'model_root', 'model_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
       'alpha-independent.records.list_candidates': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'], 'alpha-independent.records.list_recall_candidates': ['account_id', 'conversation_id', 'cursor', 'limit'],
       'wechat.chat.list_search_senders': ['account_id', 'query', 'username', 'limit'], 'wechat.chat.get_message_around': ['account_id', 'username', 'anchor_id', 'before', 'after'],
@@ -1213,6 +1264,19 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     else if (name === 'alpha-independent.groups.list_pinned_messages') { pathName = '/api/v1/independent/group-pins'; params.chatroom_id = args.chatroom_id; }
     else if (name === 'wechat.chat.list_sessions') pathName = '/api/v1/sessions';
     else if (name === 'wechat.chat.resolve_session') pathName = '/api/v1/sessions';
+    else if (name === 'alpha-independent.chat.get_incremental_messages') {
+      const conversationId = text(args.conversation_id, 1024, 'MCP_CONVERSATION_INVALID');
+      if (!conversationId) throw new HttpAdapterError('MCP_CONVERSATION_REQUIRED', 400);
+      pathName = `/api/v1/independent/sessions/${encodeURIComponent(conversationId)}/messages`;
+      params = {
+        ...(args.account_id === undefined ? {} : { account_id: args.account_id }),
+        ...(args.since_unix_ms === undefined ? {} : { since_unix_ms: args.since_unix_ms }),
+        ...(args.end_unix_ms === undefined ? {} : { end_unix_ms: args.end_unix_ms }),
+        ...(args.limit === undefined ? {} : { limit: args.limit }),
+        ...(args.cursor === undefined ? {} : { cursor: args.cursor }),
+        ...(args.ascending === undefined ? {} : { ascending: args.ascending })
+      };
+    }
     else if (name === 'wechat.chat.get_messages') { pathName = '/api/v1/messages'; params.username = args.username; params.after_unix_ms = args.after_unix_ms; params.before_unix_ms = args.before_unix_ms; }
     else if (name === 'wechat.chat.search_messages' || name === 'alpha.messages.search_page') { pathName = '/api/v1/search'; params.query = args.query; params.username = args.username; }
     else if (name === 'alpha-independent.messages.resolve_search_hit') {

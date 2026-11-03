@@ -360,6 +360,22 @@
         "methods": [
           "GET"
         ],
+        "path": "/api/v1/independent/sessions/:conversation_id/messages",
+        "status": "independent-adapter-extension",
+        "schema": "alpha-independent-chatlab-incremental.v1",
+        "compatibility": "alpha-independent-message-v1",
+        "scope": "alpha-independent-chatlab-incremental",
+        "sourceMethod": "listMessages",
+        "incrementalSemantics": "bounded-exclusive-millisecond-window",
+        "chatlabCompatible": false,
+        "complete": false,
+        "nativeSchemaSupported": false,
+        "readOnly": true
+      },
+      {
+        "methods": [
+          "GET"
+        ],
         "path": "/api/v1/independent/message-source",
         "status": "independent-adapter-extension",
         "scope": "verified-message-text",
@@ -515,6 +531,20 @@
           "serverId",
           "localId"
         ]
+      },
+      {
+        "name": "alpha-independent.chat.get_incremental_messages",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "chatlabCompatible": false,
+        "schema": "alpha-independent-chatlab-incremental.v1",
+        "compatibility": "alpha-independent-message-v1",
+        "scope": "alpha-independent-chatlab-incremental",
+        "sourceMethod": "listMessages",
+        "incrementalSemantics": "bounded-exclusive-millisecond-window",
+        "readOnly": true,
+        "officialAlias": false
       },
       {
         "name": "alpha-independent.analytics.analyze_annual",
