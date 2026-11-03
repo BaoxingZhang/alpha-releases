@@ -38,6 +38,13 @@
 - 公开候选导出默认隔离机器生成的运行/构建/原生 provenance 证据，并把维护文档中的本机路径改为公开占位符；实测候选为 652 个文件、0 个 public-release audit findings，状态为 `ready-for-license-and-review`。
 - 上游来源审计继续确认公开仓库没有 Alpha 原生源码；被 GitHub DMCA 限制访问的 WeFlow fork 不作为源码、二进制或依赖来源，仍公开的 WeFlow 只作许可证和 ABI 对照材料。
 
+## 0.3.5-recovery 维护增补 — 2026-11-03（当前）
+
+- 独立支持矩阵更新为 82/128；新增显式数据源诊断、合成/候选媒体边界、VoiceInfo 原始字节候选读取和 packaged independent smoke 证据。候选读取仍标记 `complete=false`、`native_schema_supported=false`，不解码 SILK、不生成原生媒体 token。
+- 完成独立 App 从生成的 Electron bundle 实际启动、renderer → preload → main IPC 读取合成副本和媒体索引的验证；普通原生 flavor 与独立 flavor 继续分开记录。
+- 新增 `npm run verify:maintenance` 只读聚合入口，顺序校验项目元数据、维护性、协议绑定、原包 vendor、独立支持矩阵和 HTTP/MCP API 结构；它不构建 App、不读取用户数据，也不扩大原生能力边界。
+- 当前完整回归为 278/278；原生授权、自动取钥、真实微信媒体/朋友圈/收藏 schema、写入能力和云服务仍保持明确未恢复状态。
+
 ## 后续版本
 
 后续版本应先更新 `provenance/project-metadata.json`、本文件和 [维护范围](MAINTENANCE.md)，再提交可验证的代码与测试。未经证据支持的真实朋友圈、真实收藏库/媒体解密、写入、自动取钥和云服务能力保持未实现状态；synthetic favorites 仅限显式 fixture 的 listFavorites 读取。

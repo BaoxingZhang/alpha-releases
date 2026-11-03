@@ -133,6 +133,7 @@ esbuild 会重新处理 13 个 JS 文件并生成调试 source map。这里的�
 
 ```sh
 npm run verify:protocol # 校验独立协议模块仍与恢复源一致
+npm run verify:maintenance # 一次运行只读的项目/协议/vendor/API维护检查
 npm run audit:api       # 对照官方 HTTP/MCP 契约与当前独立适配器覆盖面
 npm run verify:packaged-markers # 校验普通/独立 App 的 backend marker、manifest 和 Bundle ID
 npm run verify:independent-support # 校验128项独立后端支持矩阵未漂移（当前82项已实现）
