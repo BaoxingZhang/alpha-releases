@@ -55,6 +55,7 @@
     "backup:independent-state": "node scripts/backup-independent-state.mjs",
     "restore:independent-state": "node scripts/restore-independent-state.mjs",
     "chatlog:preview": "node scripts/chatlog-candidate-preview.mjs",
+    "test:chatlog:candidate": "node scripts/test-chatlog-candidate-real.mjs",
     "mcp:independent": "node packages/alpha-engine/mcp-stdio.cjs",
     "mcp:config": "node scripts/codex-mcp-config.mjs",
     "asr:inspect": "node scripts/independent-asr.mjs inspect",

@@ -35,6 +35,21 @@
         "candidateOnly": true,
         "nativeSchemaSupported": false,
         "realData": false
+      },
+      "chatlogCandidateRealSmoke": {
+        "command": "npm run test:chatlog:candidate",
+        "status": "passed",
+        "fixture": "synthetic-v4-sqlite",
+        "reads": {
+          "contacts": 1,
+          "sessions": 1,
+          "messages": 1
+        },
+        "binarySha256": "f9c8ac5c137e2da0b05283b7fb1f21ee57fbf996388cb2675001cee0ae82c92a",
+        "binaryBytes": 41953346,
+        "candidateOnly": true,
+        "nativeSchemaSupported": false,
+        "realData": false
       }
     },
     "versionContract": {
