@@ -707,7 +707,7 @@ func (b *bridge) contacts(ctx context.Context, p params, key string, c *cursor) 
 		}
 		return `CASE WHEN ` + quoteIdentifier(column) + ` IS NULL OR length(CAST(` + quoteIdentifier(column) + ` AS BLOB))<=4096 THEN COALESCE(CAST(` + quoteIdentifier(column) + ` AS TEXT),'') ELSE NULL END`
 	}
-	query := `SELECT rowid,CASE WHEN ` + username + ` IS NULL OR length(CAST(` + username + ` AS BLOB))<=1024 THEN COALESCE(CAST(` + username + ` AS TEXT),'') ELSE NULL END,CAST(COALESCE(` + localType + `,0) AS INTEGER),` + textExpr(columns.alias) + `,` + textExpr(columns.remark) + `,` + textExpr(columns.nickName) + ` FROM "contact" WHERE 1=1`
+	query := `SELECT rowid,CASE WHEN ` + username + ` IS NULL OR length(CAST(` + username + ` AS BLOB))<=1024 THEN COALESCE(CAST(` + username + ` AS TEXT),'') ELSE NULL END,` + localType + `,` + textExpr(columns.alias) + `,` + textExpr(columns.remark) + `,` + textExpr(columns.nickName) + ` FROM "contact" WHERE 1=1`
 	args := []any{}
 	if p.UsernameExact != "" {
 		query += ` AND ` + username + ` COLLATE BINARY=?`

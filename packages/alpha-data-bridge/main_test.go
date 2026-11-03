@@ -153,6 +153,33 @@ func TestContactCompatibilityAliasesRequireIdentityColumns(t *testing.T) {
 	_, err = openBridge(root, "synthetic")
 	expectCode(t, err, "SCHEMA_UNSUPPORTED")
 }
+
+func TestContactCompatibilityAliasesRejectMalformedLocalType(t *testing.T) {
+	root := t.TempDir()
+	name := filepath.Join(root, "contact.db")
+	db, err := sql.Open("sqlite3", name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`CREATE TABLE contact (user_name TEXT, localType TEXT, remark TEXT)`); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO contact(user_name,localType,remark) VALUES('wxid_bad','not-a-number','Bad')`); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	b, err := openBridge(root, "synthetic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.close()
+	_, err = b.dispatch(context.Background(), request{ID: "bad-local-type", Op: "contacts.list", Params: json.RawMessage(`{"limit":10}`)})
+	expectCode(t, err, "ROW_INVALID")
+}
 func TestStableDatasetAndSidecarBoundary(t *testing.T) {
 	t.Run("new-shard", func(t *testing.T) {
 		root, _ := fixtureDB(t, contactSchema)

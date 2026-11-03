@@ -206,7 +206,7 @@ func boundedRoomContact(ctx context.Context, d *database, username string) (cont
 	}
 	var item contact
 	var kind int64
-	query := `SELECT CAST(COALESCE(` + quoteIdentifier(d.contactColumns.localType) + `,0) AS INTEGER),` + contactTextExpr(d.contactColumns.alias, 1024) + `,` + contactTextExpr(d.contactColumns.remark, 1024) + `,` + contactTextExpr(d.contactColumns.nickName, 1024) + ` FROM "contact" WHERE ` + quoteIdentifier(d.contactColumns.username) + ` COLLATE BINARY=? LIMIT 1`
+	query := `SELECT ` + quoteIdentifier(d.contactColumns.localType) + `,` + contactTextExpr(d.contactColumns.alias, 1024) + `,` + contactTextExpr(d.contactColumns.remark, 1024) + `,` + contactTextExpr(d.contactColumns.nickName, 1024) + ` FROM "contact" WHERE ` + quoteIdentifier(d.contactColumns.username) + ` COLLATE BINARY=? LIMIT 1`
 	err := d.db.QueryRowContext(ctx, query, username).Scan(&kind, &item.Alias, &item.Remark, &item.NickName)
 	if err == sql.ErrNoRows {
 		return contact{}, false, nil

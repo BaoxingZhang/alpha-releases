@@ -47,7 +47,7 @@ func (b *bridge) contactsLookup(ctx context.Context, usernames []string) (any, e
 	// Bound all text before SQLite materializes it. A NULL from any CASE is a
 	// malformed oversized row and is rejected below rather than silently
 	// truncating the contact DTO.
-	query := fmt.Sprintf(`SELECT rowid,CASE WHEN %s IS NULL OR length(CAST(%s AS BLOB))<=1024 THEN COALESCE(CAST(%s AS TEXT),'') ELSE NULL END,CAST(COALESCE(%s,0) AS INTEGER),%s,%s,%s
+	query := fmt.Sprintf(`SELECT rowid,CASE WHEN %s IS NULL OR length(CAST(%s AS BLOB))<=1024 THEN COALESCE(CAST(%s AS TEXT),'') ELSE NULL END,%s,%s,%s,%s
 FROM "contact" WHERE %s COLLATE BINARY IN (%s) ORDER BY rowid ASC`, usernameColumn, usernameColumn, usernameColumn, quoteIdentifier(columns.localType), textExpr(columns.alias), textExpr(columns.remark), textExpr(columns.nickName), usernameColumn, strings.Join(placeholders, ","))
 	rows, err := d.db.QueryContext(ctx, query, args...)
 	if err != nil {
