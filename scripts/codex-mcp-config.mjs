@@ -9,6 +9,27 @@ function fail(message) {
   throw new Error(`CODEX_MCP_CONFIG_${message}`);
 }
 
+function usage() {
+  return [
+    'Usage: npm run mcp:config -- [options]',
+    '',
+    'Required options:',
+    '  --state-dir <absolute-path>    Isolated persistent state directory',
+    '  --data-dir <absolute-path>     Explicitly authorized offline data copy',
+    '  --bridge-path <absolute-path>  Built alpha-data-bridge executable',
+    '  --account-id <id>              Account identifier exposed to the engine',
+    '',
+    'Optional options:',
+    '  --node <absolute-path>          Node executable (defaults to current Node)',
+    '  --format <json|codex-toml>      Output format (defaults to json)',
+    '  --server-name <name>            Codex server name (TOML only; defaults to alpha)',
+    '  --output <absolute-path>        Write atomically to a file instead of stdout',
+    '  --help                          Show this help',
+    '',
+    'The command only writes configuration. It does not read the data directory or start the engine.'
+  ].join('\n');
+}
+
 function absolute(value, name) {
   if (typeof value !== 'string' || !value || !path.isAbsolute(value) || path.normalize(value) !== value || value.includes('\0')) fail(`${name}_INVALID`);
   return value;
@@ -18,6 +39,7 @@ function parseArgs(argv) {
   const options = { node: process.execPath, output: '', format: 'json', server_name: 'alpha' };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
+    if (argument === '--help' || argument === '-h') return { help: true };
     if (!argument.startsWith('--')) fail('ARGUMENTS_INVALID');
     const name = argument.slice(2);
     if (!['state-dir', 'data-dir', 'bridge-path', 'account-id', 'node', 'output', 'format', 'server-name'].includes(name)) fail('ARGUMENTS_INVALID');
@@ -75,6 +97,10 @@ function tomlDocument(options) {
 }
 
 const options = parseArgs(process.argv.slice(2));
+if (options.help) {
+  process.stdout.write(`${usage()}\n`);
+  process.exit(0);
+}
 const serialized = options.format === 'json'
   ? `${JSON.stringify(document(options), null, 2)}\n`
   : tomlDocument(options);

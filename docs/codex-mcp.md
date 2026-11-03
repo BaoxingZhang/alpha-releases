@@ -12,6 +12,12 @@ ALPHA_INDEPENDENT_ACCOUNT_ID=<account-id> \
 npm run mcp:independent
 ```
 
+查看参数说明：
+
+```sh
+npm run mcp:config -- --help
+```
+
 也可以让项目生成配置，避免手工填写绝对路径。默认 JSON 适合通用 MCP 客户端或插件清单：
 
 ```sh

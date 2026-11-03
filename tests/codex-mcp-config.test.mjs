@@ -28,6 +28,15 @@ test('Codex MCP config generator emits absolute independent stdio settings witho
   await assert.rejects(execute(process.execPath, [script, '--state-dir', 'relative', '--data-dir', dataDir, '--bridge-path', bridgePath, '--account-id', 'synthetic-account']), /CODEX_MCP_CONFIG_STATE_DIR_INVALID/);
 });
 
+test('Codex MCP config generator exposes discoverable help without touching the filesystem', async () => {
+  const { stdout, stderr } = await execute(process.execPath, [script, '--help']);
+  assert.equal(stderr, '');
+  assert.match(stdout, /^Usage: npm run mcp:config -- \[options\]$/m);
+  assert.match(stdout, /--state-dir <absolute-path>/);
+  assert.match(stdout, /--format <json\|codex-toml>/);
+  assert.match(stdout, /does not read the data directory or start the engine/);
+});
+
 test('Codex MCP config generator emits a native config.toml fragment with a safe server name and cwd', async t => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-codex-toml-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
