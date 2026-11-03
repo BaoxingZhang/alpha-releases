@@ -8,7 +8,7 @@
 2. 运行 `nvm use`、`npm ci`；首次准备 Electron 和 esbuild 时运行 `npm run setup`。
 3. 修改 `src/`、`packages/` 或 `scripts/`，同时更新相应测试和文档。
 4. 对离线数据功能只使用 `npm run demo`、`npm run demo:encrypted` 或经授权的副本。默认启动器不会自动寻找个人微信目录。
-5. 提交前执行 [CONTRIBUTING.md](../CONTRIBUTING.md) 的检查清单。
+5. 提交前先运行 `npm run verify:maintenance`，再按变更范围执行 [CONTRIBUTING.md](../CONTRIBUTING.md) 的完整检查清单。
 
 需要核对上游是否出现新的发行材料时运行 `npm run audit:upstream`。它默认只打印当前公开仓库、release、更新策略和文件树的审计结果；只有确认结果后才使用 `--write` 更新 [`docs/upstream-alpha-releases-current.json`](upstream-alpha-releases-current.json)。如果本地保留原始 DMG，可额外传入 `--artifact` 做大小和 SHA-256 比对。该流程不会把新的发行包自动接入构建，也不会替换原生 runtime、签名、公钥或授权配置。
 

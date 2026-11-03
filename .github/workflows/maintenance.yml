@@ -81,11 +81,7 @@ jobs:
 
       - name: Verify maintenance boundaries
         run: |
-          npm run check:project
-          npm run check:maintainability
-          npm run verify:protocol
-          npm run verify:vendor
-          npm run verify:independent-support
+          npm run verify:maintenance
           git diff --check
 
       - name: Upload validation reports

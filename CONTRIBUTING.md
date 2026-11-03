@@ -17,6 +17,14 @@
 
 ## 提交前检查
 
+先运行只读维护检查聚合入口：
+
+```sh
+npm run verify:maintenance
+```
+
+它依次执行项目元数据、维护性、协议绑定、原包 vendor、独立支持矩阵和 HTTP/MCP API 结构检查；它不构建 App、不读取数据目录，也不运行依赖审计。涉及构建、发布、依赖或原生启动的变更仍需继续执行下面的对应检查。
+
 ```sh
 npm run check:project
 npm run check:maintainability

@@ -57,6 +57,7 @@
     "record:maintenance": "node scripts/record-maintenance.mjs",
     "check:project": "node scripts/check-project.mjs",
     "check:maintainability": "node scripts/check-maintainability.mjs",
+    "verify:maintenance": "node scripts/verify-maintenance.mjs",
     "verify:independent-support": "node scripts/verify-independent-support.mjs",
     "verify:dependencies": "node scripts/verify-dependencies.mjs"
   },
