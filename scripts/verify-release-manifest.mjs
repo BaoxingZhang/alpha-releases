@@ -8,6 +8,12 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const require = createRequire(import.meta.url);
 const { readProjectIdentity } = require('../packages/alpha-desktop/project-identity.cjs');
 export const DEFAULT_MANIFEST = path.join(root, '.runtime', 'release-manifest.json');
+const ARTIFACT_ROOTS = new Map([
+  ['app', 'dist/app'],
+  ['runtime-bundle', 'build/runtime-bundle'],
+  ['agent', 'workers/agent/dist'],
+  ['independent-resources', 'build/packaged-resources/independent']
+]);
 
 function fail(code, detail = '') {
   throw new Error(detail ? `${code}:${detail}` : code);
@@ -78,10 +84,14 @@ export async function verifyReleaseManifest(manifestPath = DEFAULT_MANIFEST) {
   if (manifest.target?.platform !== 'darwin' || manifest.target?.arch !== 'arm64') fail('RELEASE_MANIFEST_TARGET_INVALID');
   if (manifest.artifactCount !== manifest.artifacts.length) fail('RELEASE_MANIFEST_COUNT_MISMATCH');
   const seen = new Set();
+  const seenArtifacts = new Set();
   const checked = [];
   for (const entry of manifest.artifacts) {
     if (!entry || typeof entry !== 'object' || typeof entry.artifact !== 'string') fail('RELEASE_MANIFEST_ENTRY_INVALID');
     const relativePath = safeRelativePath(entry.path);
+    const expectedArtifact = [...ARTIFACT_ROOTS.entries()].find(([, artifactRoot]) => relativePath === artifactRoot || relativePath.startsWith(`${artifactRoot}/`))?.[0];
+    if (!expectedArtifact || entry.artifact !== expectedArtifact) fail('RELEASE_MANIFEST_ARTIFACT_LABEL_MISMATCH', relativePath);
+    seenArtifacts.add(expectedArtifact);
     if (seen.has(relativePath)) fail('RELEASE_MANIFEST_DUPLICATE_PATH', relativePath);
     seen.add(relativePath);
     if (!Number.isInteger(entry.bytes) || entry.bytes < 0 || !/^[0-9a-f]{64}$/.test(entry.sha256 ?? '') || !/^[0-7]{3,4}$/.test(entry.mode ?? '')) fail('RELEASE_MANIFEST_ENTRY_INVALID', relativePath);
@@ -90,6 +100,9 @@ export async function verifyReleaseManifest(manifestPath = DEFAULT_MANIFEST) {
     if (actual.sha256 !== entry.sha256) fail('RELEASE_MANIFEST_FILE_HASH_MISMATCH', relativePath);
     if (actual.mode !== entry.mode) fail('RELEASE_MANIFEST_FILE_MODE_MISMATCH', relativePath);
     checked.push({ ...entry });
+  }
+  for (const artifact of ARTIFACT_ROOTS.keys()) {
+    if (!seenArtifacts.has(artifact)) fail('RELEASE_MANIFEST_ARTIFACT_MISSING', artifact);
   }
   if (!/^[0-9a-f]{64}$/.test(manifest.artifactDigest ?? '') || digestFiles(checked) !== manifest.artifactDigest) fail('RELEASE_MANIFEST_DIGEST_MISMATCH');
   return { manifestPath: filename, artifactCount: checked.length, artifactDigest: manifest.artifactDigest };

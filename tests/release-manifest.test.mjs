@@ -62,6 +62,19 @@ test('release manifest verifier re-hashes every artifact and recomputes the aggr
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });
 
+test('release manifest verifier binds each entry to its artifact root', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-release-label-'));
+  try {
+    const source = await buildReleaseManifest();
+    const destination = path.join(directory, 'manifest.json');
+    const tampered = JSON.parse(JSON.stringify(source));
+    const entry = tampered.artifacts.find(item => item.artifact === 'app');
+    entry.artifact = 'agent';
+    await fs.writeFile(destination, JSON.stringify(tampered));
+    await assert.rejects(() => verifyReleaseManifest(destination), /RELEASE_MANIFEST_ARTIFACT_LABEL_MISMATCH/);
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
+});
+
 test('release manifest verifier rejects a stale package version', async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-release-version-'));
   try {
