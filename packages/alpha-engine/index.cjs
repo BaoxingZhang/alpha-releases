@@ -213,6 +213,30 @@ function mediaProbeResponse(value) {
   if (!Number.isSafeInteger(value.itemCount) || value.itemCount !== items.length || !Number.isSafeInteger(value.ambiguousItems) || value.ambiguousItems < 0 || value.ambiguousItems > items.length) throw error('BRIDGE_MEDIA_PROBE_RESPONSE_INVALID');
   return { status: 'ready', sourceKind: value.sourceKind, nativeSchemaSupported: false, metadataOnly: true, mediaReady: false, files, items, itemCount: value.itemCount, ambiguousItems: value.ambiguousItems };
 }
+function voiceBlobResponse(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value.status !== 'ready' || value.sourceKind !== 'explicit-v4-voice-database-candidate' || value.complete !== false || value.nativeSchemaSupported !== false || value.thirdPartyCandidate !== true || value.decoded !== false || value.mediaReady !== false) throw error('BRIDGE_MEDIA_VOICE_RESPONSE_INVALID');
+  const key = mediaProbeText(value.key, 1024);
+  const sourceDatabase = mediaProbeText(value.sourceDatabase, 1024);
+  if (sourceDatabase.startsWith('/') || sourceDatabase.includes('\\') || sourceDatabase.split('/').some(part => part === '..' || !part)) throw error('BRIDGE_MEDIA_VOICE_RESPONSE_INVALID');
+  if (value.sourceTable !== 'VoiceInfo' || value.encoding !== 'unknown-voice-data') throw error('BRIDGE_MEDIA_VOICE_RESPONSE_INVALID');
+  if (!/^[a-f0-9]{64}$/.test(value.sha256)) throw error('BRIDGE_MEDIA_VOICE_RESPONSE_INVALID');
+  if (!Number.isSafeInteger(value.dataBytes) || value.dataBytes < 0 || value.dataBytes > 8 * 1024 * 1024) throw error('BRIDGE_MEDIA_VOICE_RESPONSE_INVALID');
+  let data;
+  if (typeof value.data === 'string') {
+    if (value.data.length > Math.ceil((8 * 1024 * 1024) / 3) * 4 || value.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value.data)) throw error('BRIDGE_MEDIA_VOICE_RESPONSE_INVALID');
+    try { data = Buffer.from(value.data, 'base64'); } catch { throw error('BRIDGE_MEDIA_VOICE_RESPONSE_INVALID'); }
+    if (data.toString('base64') !== value.data) throw error('BRIDGE_MEDIA_VOICE_RESPONSE_INVALID');
+  } else if (value.data instanceof Uint8Array) data = Buffer.from(value.data);
+  else throw error('BRIDGE_MEDIA_VOICE_RESPONSE_INVALID');
+  if (data.length !== value.dataBytes) throw error('BRIDGE_MEDIA_VOICE_RESPONSE_INVALID');
+  if (crypto.createHash('sha256').update(data).digest('hex') !== value.sha256) throw error('BRIDGE_MEDIA_VOICE_RESPONSE_INVALID');
+  return {
+    status: 'ready', sourceKind: value.sourceKind, complete: false, nativeSchemaSupported: false,
+    thirdPartyCandidate: true, decoded: false, mediaReady: false, key, sourceDatabase,
+    sourceTable: 'VoiceInfo', dataBytes: value.dataBytes, sha256: value.sha256,
+    encoding: 'unknown-voice-data', data
+  };
+}
 function schemaDiagnosticText(value, maximum = 4096, allowEmpty = false) {
   if (typeof value !== 'string' || value.length > maximum || value.includes('\0') || !allowEmpty && !value || /[\u0000-\u001f\u007f]/.test(value) || value !== value.trim()) throw error('BRIDGE_SCHEMA_DIAGNOSTICS_RESPONSE_INVALID');
   return value;
@@ -2262,6 +2286,11 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
     async readIndexedMedia(request) {
       return readIndexedMessageMedia(request);
     },
+    async readVoiceBlob(request) {
+      await requireAccount(request?.accountId);
+      if (typeof request?.key !== 'string' || !request.key || request.key.length > 1024 || request.key !== request.key.trim() || /[\u0000-\u001f\u007f]/.test(request.key)) throw error('MEDIA_VOICE_KEY_INVALID');
+      return voiceBlobResponse(await callData('media.read_voice', { key: request.key }));
+    },
     async decodeVoicePlayback(request) {
       const accountInfo = await requireAccount(request.accountId);
       if (!accountInfo.capabilities?.includes('messages.voicePlayback')) throw error('VOICE_PLAYBACK_UNAVAILABLE');
@@ -3242,6 +3271,9 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
     },
     async readIndexedMedia(request) {
       return handlers.readIndexedMedia(request);
+    },
+    async readVoiceBlob(request) {
+      return handlers.readVoiceBlob(request);
     },
     async probeMedia(accountId2) {
       const normalizedAccountId = typeof accountId2 === 'string' ? accountId2.trim() : '';

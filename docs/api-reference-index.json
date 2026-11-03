@@ -404,6 +404,23 @@
         "methods": [
           "GET"
         ],
+        "path": "/api/v1/independent/media/voice-blob",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-voice-blob-candidate",
+        "complete": false,
+        "nativeSchemaSupported": false,
+        "thirdPartyCandidate": true,
+        "sourceMethod": "readVoiceBlob",
+        "sourceTable": "VoiceInfo",
+        "media": "bounded raw voice_data bytes as base64",
+        "decoded": false,
+        "mediaReady": false,
+        "nativeTranscribeVoice": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
         "path": "/api/v1/independent/media/indexed/<sha256>",
         "status": "independent-adapter-extension",
         "scope": "alpha-independent-indexed-media",
@@ -596,6 +613,20 @@
           "preview",
           "pinned_by"
         ]
+      },
+      {
+        "name": "alpha-independent.media.read_voice_blob",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-voice-blob-candidate",
+        "complete": false,
+        "nativeSchemaSupported": false,
+        "thirdPartyCandidate": true,
+        "sourceMethod": "readVoiceBlob",
+        "sourceTable": "VoiceInfo",
+        "media": "bounded raw voice_data bytes as base64",
+        "decoded": false,
+        "mediaReady": false,
+        "nativeTranscribeVoice": false
       },
       {
         "name": "alpha-independent.media.read_indexed",

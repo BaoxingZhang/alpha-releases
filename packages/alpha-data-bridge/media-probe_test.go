@@ -123,3 +123,79 @@ func TestMediaProbeRejectsSymlinkDatabase(t *testing.T) {
 		t.Fatal("expected symlink dataset to be rejected")
 	}
 }
+
+func TestReadVoiceBlobIsExplicitCandidateOnly(t *testing.T) {
+	root := mediaProbeContactFixture(t)
+	createMediaProbeDB(t, filepath.Join(root, "media_01.db"), `
+CREATE TABLE VoiceInfo (svr_id TEXT,voice_data BLOB);
+INSERT INTO VoiceInfo VALUES ('voice-1',X'53494C4B');`)
+	b, err := openBridge(root, "synthetic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.close()
+	value, err := b.dispatch(context.Background(), request{ID: "voice", Op: "media.read_voice", Params: json.RawMessage(`{"key":"voice-1"}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := value.(*voiceBlobResult)
+	if result.Status != "ready" || result.SourceKind != "explicit-v4-voice-database-candidate" || result.Complete || result.NativeSchemaSupported || !result.ThirdPartyCandidate || result.Decoded || result.MediaReady {
+		t.Fatalf("unexpected voice candidate boundary: %#v", result)
+	}
+	if result.Key != "voice-1" || result.SourceDatabase != "media_01.db" || result.SourceTable != "VoiceInfo" || result.DataBytes != 4 || result.Encoding != "unknown-voice-data" || string(result.Data) != "SILK" {
+		t.Fatalf("unexpected voice candidate data: %#v", result)
+	}
+	if result.SHA256 == "" || len(result.SHA256) != 64 {
+		t.Fatalf("missing voice blob digest: %#v", result)
+	}
+}
+
+func TestReadVoiceBlobRejectsAmbiguousKeys(t *testing.T) {
+	root := mediaProbeContactFixture(t)
+	for _, name := range []string{"media_01.db", "media_02.db"} {
+		createMediaProbeDB(t, filepath.Join(root, name), `
+CREATE TABLE VoiceInfo (svr_id TEXT,voice_data BLOB);
+INSERT INTO VoiceInfo VALUES ('voice-1',X'01');`)
+	}
+	b, err := openBridge(root, "synthetic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.close()
+	_, err = b.dispatch(context.Background(), request{ID: "voice", Op: "media.read_voice", Params: json.RawMessage(`{"key":"voice-1"}`)})
+	var bridgeErr *bridgeError
+	if !errors.As(err, &bridgeErr) || bridgeErr.Code != "MEDIA_VOICE_AMBIGUOUS" {
+		t.Fatalf("expected MEDIA_VOICE_AMBIGUOUS, got %v", err)
+	}
+}
+
+func TestReadVoiceBlobRejectsDuplicateRowsInOneDatabase(t *testing.T) {
+	root := mediaProbeContactFixture(t)
+	createMediaProbeDB(t, filepath.Join(root, "media_01.db"), `
+CREATE TABLE VoiceInfo (svr_id TEXT,voice_data BLOB);
+INSERT INTO VoiceInfo VALUES ('voice-1',X'01'),('voice-1',X'02');`)
+	b, err := openBridge(root, "synthetic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.close()
+	_, err = b.dispatch(context.Background(), request{ID: "voice", Op: "media.read_voice", Params: json.RawMessage(`{"key":"voice-1"}`)})
+	var bridgeErr *bridgeError
+	if !errors.As(err, &bridgeErr) || bridgeErr.Code != "MEDIA_VOICE_AMBIGUOUS" {
+		t.Fatalf("expected MEDIA_VOICE_AMBIGUOUS, got %v", err)
+	}
+}
+
+func TestReadVoiceBlobRequiresStrictKey(t *testing.T) {
+	root := mediaProbeContactFixture(t)
+	b, err := openBridge(root, "synthetic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.close()
+	_, err = b.dispatch(context.Background(), request{ID: "voice", Op: "media.read_voice", Params: json.RawMessage(`{"key":"voice-1","path":"outside"}`)})
+	var bridgeErr *bridgeError
+	if !errors.As(err, &bridgeErr) || bridgeErr.Code != "INVALID_REQUEST" {
+		t.Fatalf("expected INVALID_REQUEST, got %v", err)
+	}
+}

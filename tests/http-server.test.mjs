@@ -440,7 +440,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 72);
+  assert.equal(result.body.result.tools.length, 73);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));

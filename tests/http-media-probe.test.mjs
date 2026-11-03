@@ -26,6 +26,11 @@ function probeEngine() {
     async probeMedia(accountId) {
       assert.equal(accountId, 'acct-probe');
       return probe;
+    },
+    async readVoiceBlob({ accountId, key }) {
+      assert.equal(accountId, 'acct-probe');
+      assert.equal(key, 'voice-1');
+      return { status: 'ready', sourceKind: 'explicit-v4-voice-database-candidate', complete: false, nativeSchemaSupported: false, thirdPartyCandidate: true, decoded: false, mediaReady: false, key, sourceDatabase: 'media_0.db', sourceTable: 'VoiceInfo', dataBytes: 4, sha256: 'fe7b365e726ca9d3e76ce2b05576b55b174dcccf116adef81b03edf30d8fbf5e', encoding: 'unknown-voice-data', data: Buffer.from('SILK') };
     }
   };
 }
@@ -63,4 +68,34 @@ test('HTTP and MCP adapters expose metadata-only v4 media probe', async t => {
   assert.equal(mcpBody.result.structuredContent.metadata_only, true);
   assert.equal(mcpBody.result.structuredContent.native_schema_supported, false);
   assert.equal(mcpBody.result.structuredContent.media_ready, false);
+});
+
+test('HTTP and MCP adapters expose explicit VoiceInfo bytes as a candidate', async t => {
+  const token = 'v'.repeat(32);
+  const service = createReadOnlyHttpServer({ engine: probeEngine(), token });
+  const address = await service.start();
+  const base = `http://${address.host}:${address.port}`;
+  t.after(() => service.close());
+  const headers = { Authorization: `Bearer ${token}` };
+
+  let result = await request(base, '/api/v1/independent/media/voice-blob?account_id=acct-probe&key=voice-1', { headers });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-voice-blob-candidate');
+  assert.equal(result.body.complete, false);
+  assert.equal(result.body.native_schema_supported, false);
+  assert.equal(result.body.third_party_candidate, true);
+  assert.equal(result.body.decoded, false);
+  assert.equal(result.body.data_bytes, 4);
+  assert.equal(result.body.bytes_base64, Buffer.from('SILK').toString('base64'));
+
+  result = await request(base, '/api/v1/independent/media/voice-blob?account_id=acct-probe&key=voice-1', { method: 'POST', headers });
+  assert.equal(result.response.status, 405);
+  assert.equal(result.body.error.code, 'HTTP_API_METHOD_INVALID');
+
+  const mcp = await fetch(`${base}/mcp`, { method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'alpha-independent.media.read_voice_blob', arguments: { account_id: 'acct-probe', key: 'voice-1' } } }) });
+  const mcpBody = await mcp.json();
+  assert.equal(mcp.status, 200);
+  assert.equal(mcpBody.result.structuredContent.scope, 'alpha-independent-voice-blob-candidate');
+  assert.equal(mcpBody.result.structuredContent.third_party_candidate, true);
+  assert.equal(mcpBody.result.structuredContent.bytes_base64, Buffer.from('SILK').toString('base64'));
 });

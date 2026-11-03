@@ -874,6 +874,16 @@ func (b *bridge) dispatch(ctx context.Context, r request) (any, error) {
 		}
 		return value, nil
 	}
+	if r.Op == "media.read_voice" {
+		value, err := b.readVoiceBlob(ctx, r.Params)
+		if err != nil {
+			return nil, err
+		}
+		if err := b.verify(); err != nil {
+			return nil, err
+		}
+		return value, nil
+	}
 	// schema.inspect is a bounded, read-only inventory of the already selected
 	// SQLite snapshot. It is intentionally outside the Alpha protobuf methods;
 	// the desktop adapter exposes it only as an independent diagnostic route.
