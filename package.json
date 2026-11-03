@@ -70,6 +70,7 @@
     "verify:maintenance": "node scripts/verify-maintenance.mjs",
     "verify:reproducible-builds": "node scripts/verify-reproducible-builds.mjs",
     "verify:independent-support": "node scripts/verify-independent-support.mjs",
+    "status": "node scripts/project-status.mjs",
     "verify:dependencies": "node scripts/verify-dependencies.mjs"
   },
   "dependencies": {

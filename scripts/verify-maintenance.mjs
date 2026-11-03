@@ -11,6 +11,7 @@ const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const checks = [
   'check:project',
   'check:maintainability',
+  'status',
   'verify:protocol',
   'verify:vendor',
   'verify:independent-support',

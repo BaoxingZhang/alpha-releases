@@ -137,6 +137,7 @@ npm run verify:maintenance # 一次运行只读的项目/协议/vendor/API维护
 npm run audit:api       # 对照官方 HTTP/MCP 契约与当前独立适配器覆盖面
 npm run verify:packaged-markers # 校验普通/独立 App 的 backend marker、manifest 和 Bundle ID
 npm run verify:independent-support # 校验128项独立后端支持矩阵未漂移（当前82项已实现）
+npm run status              # 从当前证据生成独立完成度、原生状态和剩余分支分类
 npm run test:protocol   # 编解码、分帧边界与来源测试
 npm run verify:vendor   # 核对43个原包运行时文件的SHA256和权限
 npm run audit:native-abi # 只读盘点原生 WCDB dylib 的架构、导出、依赖和签名

@@ -10,6 +10,8 @@
 4. 对离线数据功能只使用 `npm run demo`、`npm run demo:encrypted` 或经授权的副本。默认启动器不会自动寻找个人微信目录。
 5. 提交前先运行 `npm run verify:maintenance`，再按变更范围执行 [CONTRIBUTING.md](../CONTRIBUTING.md) 的完整检查清单。
 
+需要快速查看当前恢复边界时运行 `npm run status`。它从版本、独立支持矩阵、原生 smoke 诊断和组件 manifest 生成机器可读或人类可读报告；该命令只读，不会扫描个人微信目录，也不会把 synthetic fixture 或协议入口算作原生功能。
+
 `npm run check:project` 还会核对 `package.json`、`package-lock.json` 和 `provenance/project-metadata.json` 的项目名称与版本；升级版本时必须同步修改三处，避免锁文件或维护元数据滞后。
 
 需要核对上游是否出现新的发行材料时运行 `npm run audit:upstream`。它默认只打印当前公开仓库、release、更新策略和文件树的审计结果；只有确认结果后才使用 `--write` 更新 [`docs/upstream-alpha-releases-current.json`](upstream-alpha-releases-current.json)。如果本地保留原始 DMG，可额外传入 `--artifact` 做大小和 SHA-256 比对。该流程不会把新的发行包自动接入构建，也不会替换原生 runtime、签名、公钥或授权配置。
