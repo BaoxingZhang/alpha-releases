@@ -30,6 +30,15 @@
         "npm run verify:release-manifest"
       ]
     },
+    "publicSourceCandidate": {
+      "status": "ready-for-license-and-review",
+      "fileCount": 2372,
+      "auditFindings": 0,
+      "strictAudit": "passed",
+      "candidateCreatedOutsideRepository": true,
+      "privateEvidenceExcluded": true,
+      "licenseSelected": false
+    },
     "nativeAbi": {
       "command": "npm run audit:native-abi",
       "status": "passed",
