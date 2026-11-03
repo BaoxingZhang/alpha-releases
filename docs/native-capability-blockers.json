@@ -44,6 +44,39 @@
         "可验证来源和许可证的模型权重",
         "音频解码与取消/缓存的集成测试"
       ]
+    },
+    {
+      "methods": [
+        "startMessageCapture",
+        "watchMessageCapture",
+        "reportMessageActivity",
+        "cancelMessageCapture",
+        "openMessageSession",
+        "closeMessageSession",
+        "sendMessage",
+        "watchMessageSend",
+        "cancelMessageSend",
+        "applyMessageMutation",
+        "discoverPendingMessageResources",
+        "maintainMessageResource",
+        "startMaterialTextSend",
+        "recoverMaterialTextSend"
+      ],
+      "status": "blocked-by-missing-native-writer-and-capture",
+      "evidence": [
+        "docs/backend-compatibility-map.json",
+        "docs/source-gaps.md",
+        "vendor/runtime/component-manifest.json",
+        "vendor/runtime/manifests/alpha-wcdb.component.json",
+        "packages/alpha-engine/index.cjs"
+      ],
+      "reason": "The independent backend has verified read-only DTOs and local export jobs, but no live WeChat capture session, send transport, controlled writer transaction, or resource-maintenance ABI. The shipped component manifest marks controlled_writer unavailable and retention_writer message_mutations false. Returning a local synthetic receipt or treating a snapshot write as a delivered message would misrepresent source data and delivery state.",
+      "required_inputs": [
+        "合法的 native writer/capture ABI 或源码及字段生命周期说明",
+        "授权的 live login/session fixture 与可重放的事件/发送确认",
+        "受控写入事务、回滚、并发和原生数据库完整性验证",
+        "资源修复和消息编辑的 schema、错误码及权限语义"
+      ]
     }
   ]
 }
