@@ -86,6 +86,8 @@ npm run bundle:recovery  # 生成排除用户数据和构建输出的源码恢�
 
 `npm run audit:upstream` 会只读刷新上游 `alpha-releases` 的仓库 HEAD、release 资产、公开文件树、README/stable policy 哈希和可选的本地 DMG 校验。默认只输出报告；加 `--write` 才会原子更新 `docs/upstream-alpha-releases-current.json`，加 `--artifact /absolute/path/Alpha-0.3.5-arm64.dmg` 才会读取并核对本地安装包。该工具不下载发行二进制，也不把上游发行仓库当作源码或许可证来源。
 
+个人 fork 还提供 `.github/workflows/upstream-audit.yml`，每周或手动运行一次只读审计，固定使用 `recovery` 分支工具并把结果保存为 Actions artifact，不会自动修改仓库。
+
 公开源码或发行材料前，可运行 `npm run audit:public-release -- --root /path/to/sanitized-tree --report /tmp/alpha-public-release-audit.json --strict`。它只读扫描 `docs/` 和 `provenance/` 中的本机绝对路径、私钥块和明显访问令牌；默认只报告，私有 REA/Ghidra 证据目录需要显式使用 `--exclude`，报告只保留相对路径和 `[redacted]` 标记。
 
 如需准备一份待维护者复核的公开源码候选目录，可运行：

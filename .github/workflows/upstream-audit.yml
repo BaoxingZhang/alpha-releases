@@ -1,0 +1,77 @@
+name: upstream-audit
+
+on:
+  # GitHub scheduled workflows run from the repository default branch. The
+  # checkout below pins the audit itself to the recovery branch so the report
+  # uses this project's tooling even while the fork keeps upstream main as its
+  # default branch.
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out recovery tooling
+        uses: actions/checkout@v4
+        with:
+          ref: recovery
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Audit public upstream metadata
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/upstream-alpha-releases-current.json"
+          summary="$RUNNER_TEMP/upstream-audit-summary.json"
+          cp docs/upstream-alpha-releases-current.json "$report"
+          npm run audit:upstream -- --output "$report" --write > "$summary"
+
+      - name: Write audit summary
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const root = process.env.RUNNER_TEMP;
+          const summaryPath = path.join(root, 'upstream-audit-summary.json');
+          const reportPath = path.join(root, 'upstream-alpha-releases-current.json');
+          const lines = ['## Upstream audit'];
+          if (fs.existsSync(summaryPath)) {
+            const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
+            lines.push('', `- Observed: \`${summary.observedAt ?? 'unknown'}\``);
+            lines.push(`- Head: \`${summary.head?.sha ?? 'unknown'}\``);
+            lines.push(`- Release: \`${summary.release ?? 'unknown'}\``);
+            lines.push(`- Source files observed: \`${summary.sourceFiles?.length ?? 0}\``);
+          } else {
+            lines.push('', '- Audit did not produce a summary. See the workflow log and artifact.');
+          }
+          lines.push(`- Report present: \`${fs.existsSync(reportPath)}\``);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`);
+          NODE
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-upstream-audit-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/upstream-alpha-releases-current.json
+            ${{ runner.temp }}/upstream-audit-summary.json

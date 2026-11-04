@@ -87,3 +87,17 @@ test('maintenance workflow enforces the strict audit on the prepared public cand
   assert.match(workflow, /--manifest "\$RUNNER_TEMP\/alpha-public-source-candidate\.manifest\.json"/);
   assert.match(workflow, /cp "\$RUNNER_TEMP\/alpha-public-release-audit\.json" \.runtime\/public-release-audit\.json/);
 });
+
+test('periodic upstream audit is read-only and pins recovery tooling', async () => {
+  const workflow = await fs.readFile(new URL('../.github/workflows/upstream-audit.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /schedule:\s*[\s\S]*cron: '0 3 \* \* 1'/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /permissions:\s*\n\s*contents: read/);
+  assert.match(workflow, /uses: actions\/checkout@v4[\s\S]*ref: recovery/);
+  assert.match(workflow, /run: npm ci/);
+  assert.match(workflow, /report="\$RUNNER_TEMP\/upstream-alpha-releases-current\.json"/);
+  assert.match(workflow, /cp docs\/upstream-alpha-releases-current\.json "\$report"/);
+  assert.match(workflow, /npm run audit:upstream -- --output "\$report" --write/);
+  assert.match(workflow, /uses: actions\/upload-artifact@v4/);
+  assert.doesNotMatch(workflow, /git\s+(push|commit)\b/);
+});
