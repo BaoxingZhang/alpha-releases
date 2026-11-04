@@ -63,6 +63,17 @@ async function gitCommit() {
   } catch { return ''; }
 }
 
+async function gitWorkingTreeDirty() {
+  try {
+    const result = await execFileAsync('git', ['status', '--porcelain=v1', '--untracked-files=no'], { cwd: root, maxBuffer: 64 * 1024 });
+    return result.stdout.trim().length > 0;
+  } catch {
+    // A manifest can still be useful in a source archive without git metadata.
+    // Keep the absence of a repository explicit instead of claiming a clean tree.
+    return null;
+  }
+}
+
 export async function buildReleaseManifest({ packagePath = path.join(root, 'package.json'), provenancePath = path.join(root, 'docs/native-runtime-provenance.json') } = {}) {
   const packageJson = JSON.parse(await fs.readFile(packagePath, 'utf8'));
   const identity = readProjectIdentity(packageJson);
@@ -82,6 +93,7 @@ export async function buildReleaseManifest({ packagePath = path.join(root, 'pack
       independent: identity.independent
     },
     gitCommit: await gitCommit(),
+    gitWorkingTreeDirty: await gitWorkingTreeDirty(),
     target: { platform: 'darwin', arch: 'arm64', nativeRecompiled: false, projectSigned: false },
     source: {
       sourceDmgSha256: typeof provenance.source_dmg_sha256 === 'string' ? provenance.source_dmg_sha256 : '',

@@ -13,6 +13,7 @@ test('release manifest records every publishable artifact and stable digest', as
   assert.equal(first.target.arch, 'arm64');
   assert.equal(first.target.nativeRecompiled, false);
   assert.equal(first.target.projectSigned, false);
+  assert.equal(typeof first.gitWorkingTreeDirty, 'boolean');
   assert.deepEqual(first.identity, {
     productName: 'Alpha Recovered',
     bundleIdentifier: 'local.alpha.recovered',
@@ -92,6 +93,16 @@ test('release manifest verifier rejects identity drift', async () => {
     const destination = path.join(directory, 'manifest.json');
     await fs.writeFile(destination, JSON.stringify({ ...source, identity: { ...source.identity, executableName: 'Wrong' } }));
     await assert.rejects(() => verifyReleaseManifest(destination), /RELEASE_MANIFEST_IDENTITY_MISMATCH/);
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
+});
+
+test('release manifest verifier rejects malformed git working tree state', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-release-git-state-'));
+  try {
+    const source = await buildReleaseManifest();
+    const destination = path.join(directory, 'manifest.json');
+    await fs.writeFile(destination, JSON.stringify({ ...source, gitWorkingTreeDirty: 'unknown' }));
+    await assert.rejects(() => verifyReleaseManifest(destination), /RELEASE_MANIFEST_GIT_STATE_INVALID/);
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });
 

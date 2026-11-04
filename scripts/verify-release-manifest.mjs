@@ -106,6 +106,7 @@ export async function verifyReleaseManifest(manifestPath = DEFAULT_MANIFEST) {
     fail('RELEASE_MANIFEST_IDENTITY_MISMATCH');
   }
   if (manifest.target?.platform !== 'darwin' || manifest.target?.arch !== 'arm64') fail('RELEASE_MANIFEST_TARGET_INVALID');
+  if (manifest.gitWorkingTreeDirty !== null && typeof manifest.gitWorkingTreeDirty !== 'boolean') fail('RELEASE_MANIFEST_GIT_STATE_INVALID');
   if (manifest.artifactCount !== manifest.artifacts.length) fail('RELEASE_MANIFEST_COUNT_MISMATCH');
   const seen = new Set();
   const seenArtifacts = new Set();
