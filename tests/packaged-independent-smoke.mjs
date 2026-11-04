@@ -27,6 +27,14 @@ async function installMediaFixture(fixture) {
   const imageId = '0123456789abcdef0123456789abcdef';
   const imageBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
   const fileBytes = Buffer.from('synthetic packaged attachment\n', 'utf8');
+  const box = (type, payload) => { const bytes = Buffer.isBuffer(payload) ? payload : Buffer.from(payload); const header = Buffer.alloc(8); header.writeUInt32BE(bytes.length + 8, 0); header.write(type, 4, 4, 'ascii'); return Buffer.concat([header, bytes]); };
+  const videoBytes = Buffer.concat([
+    box('ftyp', Buffer.concat([Buffer.from('isom', 'ascii'), Buffer.from([0, 0, 2, 0]), Buffer.from('isomiso2', 'ascii')])),
+    box('moov', box('trak', box('mdia', box('hdlr', Buffer.concat([Buffer.alloc(8), Buffer.from('vide', 'ascii')]))))),
+    box('mdat', Buffer.from('synthetic-mp4', 'ascii'))
+  ]);
+  const videoId = 'fedcba9876543210fedcba9876543210';
+  const videoSha256 = crypto.createHash('sha256').update(videoBytes).digest('hex');
   const fileId = crypto.createHash('sha256').update(fileBytes).digest('hex');
   const messageTable = 'Msg_' + crypto.createHash('md5').update(fixture.conversationId).digest('hex');
   const messageDatabase = path.join(fixture.directory, 'message', 'message_0.db');
@@ -35,6 +43,8 @@ async function installMediaFixture(fixture) {
   await fs.mkdir(path.join(fixture.directory, 'media', 'files'), { recursive: true, mode: 0o700 });
   await fs.writeFile(path.join(fixture.directory, imageRelativePath), imageBytes, { mode: 0o600 });
   await fs.writeFile(path.join(fixture.directory, fileRelativePath), fileBytes, { mode: 0o600 });
+  const videoRelativePath = 'media/packaged-smoke.mp4';
+  await fs.writeFile(path.join(fixture.directory, videoRelativePath), videoBytes, { mode: 0o600 });
   const db = new DatabaseSync(messageDatabase);
   db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
     6, 400, 400, 3, 1700000005, 1, 1, `<msg md5="${imageId}"/> packaged image`, Buffer.alloc(0)
@@ -42,9 +52,13 @@ async function installMediaFixture(fixture) {
   db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
     7, 401, 401, 25769803825, 1700000006, 1, 1, `<msg sha256="${fileId}"><appmsg><type>6</type><title>packaged.zip</title><appattach><totallen>${fileBytes.length}</totallen><fileext>zip</fileext></appattach></appmsg></msg>`, Buffer.alloc(0)
   );
+  db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+    8, 402, 402, 43, 1700000007, 1, 1, `<videomsg rawmd5="${videoId}"/> packaged video`, Buffer.alloc(0)
+  );
   db.close();
   const imageMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({ accountId: fixture.accountId, database: 'message/message_0.db', table: messageTable, localId: '6' })).digest('hex')}`;
   const fileMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({ accountId: fixture.accountId, database: 'message/message_0.db', table: messageTable, localId: '7' })).digest('hex')}`;
+  const videoMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({ accountId: fixture.accountId, database: 'message/message_0.db', table: messageTable, localId: '8' })).digest('hex')}`;
   await fs.writeFile(path.join(fixture.directory, 'media-index.v1.json'), JSON.stringify({
     version: 1,
     accountId: fixture.accountId,
@@ -57,9 +71,13 @@ async function installMediaFixture(fixture) {
       kind: 'file', id: fileId, rendition: 'source', relativePath: fileRelativePath,
       sha256: fileId, sizeBytes: fileBytes.length, mimeType: 'application/zip',
       accountId: fixture.accountId, conversationId: fixture.conversationId, messageId: fileMessageId
+    }, {
+      kind: 'video', id: videoId, rendition: 'source', relativePath: videoRelativePath,
+      sha256: videoSha256, sizeBytes: videoBytes.length, mimeType: 'video/mp4',
+      accountId: fixture.accountId, conversationId: fixture.conversationId, messageId: videoMessageId
     }]
   }, null, 2) + '\n', { mode: 0o600 });
-  return { imageBytes, imageSha256: crypto.createHash('sha256').update(imageBytes).digest('hex'), fileBytes, fileId };
+  return { imageBytes, imageSha256: crypto.createHash('sha256').update(imageBytes).digest('hex'), fileBytes, fileId, videoSha256 };
 }
 
 await fs.mkdir(runtime, { recursive: true, mode: 0o700 });
@@ -169,6 +187,13 @@ try {
   assert.equal(attachmentFiles.length, 1);
   assert.deepEqual(await fs.readFile(attachmentFiles[0]), media.fileBytes);
   report.checks.packagedFileAttachmentThroughRendererIpc = true;
+  const video = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.readPlayback(accountId, opaqueId), {
+    accountId: fixture.accountId,
+    opaqueId: media.videoSha256
+  });
+  assert.equal(video.mimeType, 'video/mp4');
+  assert.match(video.url, /^alpha-media:\/\/av\//);
+  report.checks.packagedIndexedVideoPlaybackGrant = true;
 } finally {
   if (app) {
     const closeTimer = setTimeout(() => app.process().kill('SIGKILL'), 8000);

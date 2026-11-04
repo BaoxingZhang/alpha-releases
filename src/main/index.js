@@ -1489,13 +1489,42 @@ function boundedSilk(bytes2) {
   if (!frames) return fail$c("FORMAT_INVALID");
   return bytes2;
 }
-async function locate(root, opaqueId) {
+async function verifyIndexedVideoParents(root, target) {
+  const absoluteRoot = node_path.resolve(root);
+  const absoluteTarget = node_path.resolve(target);
+  const relativeDirectory = node_path.relative(absoluteRoot, node_path.dirname(absoluteTarget));
+  if (relativeDirectory === '..' || relativeDirectory.startsWith(`..${node_path.sep}`) || node_path.isAbsolute(relativeDirectory)) fail$c("INDEX_PATH_INVALID");
+  let current = absoluteRoot;
+  for (const part of relativeDirectory.split(node_path.sep).filter(Boolean)) {
+    current = node_path.join(current, part);
+    const stat = await promises.lstat(current);
+    if (stat.isSymbolicLink() || !stat.isDirectory()) fail$c("INDEX_PATH_INVALID");
+  }
+}
+async function locateIndexedVideo(root, opaqueId, account2) {
+  if (typeof account2 !== "string" || !account2.trim()) return fail$c("NOT_FOUND");
+  let index;
+  try {
+    index = loadMediaIndex({ root, expectedAccountId: account2.trim(), maxFileBytes: STREAM_LIMIT });
+  } catch (error) {
+    if (error instanceof Error && error.message === "MEDIA_INDEX_MANIFEST_MISSING") return fail$c("NOT_FOUND");
+    throw error;
+  }
+  if (index.accountId !== account2.trim()) return fail$c("NOT_FOUND");
+  const entries = index.entries.filter((entry) => entry.kind === "video" && entry.id && entry.sha256 === opaqueId && ["source", "video"].includes(entry.rendition) && entry.mimeType === "video/mp4" && (!entry.accountId || entry.accountId === account2.trim()));
+  if (entries.length !== 1) return fail$c(entries.length ? "AMBIGUOUS" : "NOT_FOUND");
+  const entry = entries[0];
+  await verifyIndexedVideoParents(root, entry.filePath);
+  await readMediaEntry(index, entry, { maxBytes: STREAM_LIMIT });
+  return { directory: node_path.resolve(root), path: entry.filePath, extension: "mp4", indexed: true };
+}
+async function locate(root, opaqueId, account2 = "") {
   await verifyDirectory(root);
   const directory2 = node_path.join(node_path.resolve(root), PLAYBACK_DIRECTORY);
   try {
     await verifyDirectory(directory2);
   } catch (error) {
-    if (error.code === "ENOENT") return fail$c("NOT_FOUND");
+    if (error.code === "ENOENT") return locateIndexedVideo(root, opaqueId, account2);
     throw error;
   }
   const candidates = [];
@@ -1508,8 +1537,9 @@ async function locate(root, opaqueId) {
       if (error.code !== "ENOENT") return fail$c("READ_FAILED");
     }
   }
-  if (candidates.length !== 1) return fail$c(candidates.length ? "AMBIGUOUS" : "NOT_FOUND");
-  return { directory: directory2, ...candidates[0] };
+  if (candidates.length === 1) return { directory: directory2, ...candidates[0] };
+  if (candidates.length > 1) return fail$c("AMBIGUOUS");
+  return locateIndexedVideo(root, opaqueId, account2);
 }
 class PlaybackCacheAccess {
   grants = /* @__PURE__ */ new Map();
@@ -1557,7 +1587,7 @@ class PlaybackCacheAccess {
     try {
       let located;
       try {
-        located = await locate(root, opaqueId);
+        located = await locate(root, opaqueId, account2.trim());
       } catch (reason) {
         // Independent recovery may publish a verified WAV through its
         // content-addressed media-index instead of the native av/ cache.
@@ -1660,7 +1690,7 @@ class PlaybackCacheAccess {
       if (!authorized()) return denied$1();
       await stream.assertAccess(binding.sender, binding.account);
       if (!authorized()) return denied$1();
-      const { directory: directory2, path, extension } = await locate(stream.root(), opaqueId);
+      const { directory: directory2, path, extension } = await locate(stream.root(), opaqueId, binding.account);
       if (extension !== "mp4") return denied$1();
       opened = await this.openVideo(path, opaqueId);
       await verifyDirectory(directory2);

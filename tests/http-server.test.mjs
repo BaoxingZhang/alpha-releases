@@ -67,6 +67,10 @@ function fakeEngine() {
       }
       if (request.startMomentExport) return EngineServerFrame.fromPartial({ requestId: request.requestId, startMomentExport: { jobId: momentJobId } });
       if (request.startRecordExport) return EngineServerFrame.fromPartial({ requestId: request.requestId, startRecordExport: { jobId: recordJobId } });
+      if (request.listChatExports) return EngineServerFrame.fromPartial({ requestId: request.requestId, listChatExports: { jobs: [
+        { jobId: momentJobId, accountId: 'acct-1', state: 'completed', kind: 'moments', format: 'json', directory: '/tmp/moments', createdAtUnixMs: 1700000000000n, updatedAtUnixMs: 1700000001000n, items: [] },
+        { jobId: recordJobId, accountId: 'acct-1', state: 'completed', kind: 'records', format: 'json', directory: '/tmp/records', createdAtUnixMs: 1700000000000n, updatedAtUnixMs: 1700000001000n, items: [] }
+      ] } });
       if (request.watchChatExport) return EngineServerFrame.fromPartial({ requestId: request.requestId, watchChatExport: { jobId: request.watchChatExport.jobId, accountId: 'acct-1', state: 'completed', format: 'json', directory: '/tmp/moments', createdAtUnixMs: 1700000000000n, updatedAtUnixMs: 1700000001000n, kind: request.watchChatExport.jobId === recordJobId ? 'records' : 'moments', items: [] } });
       if (request.cancelChatExport) return EngineServerFrame.fromPartial({ requestId: request.requestId, cancelChatExport: {} });
       if (request.listContacts?.directory) return EngineServerFrame.fromPartial({ requestId: request.requestId, listContacts: { response: { directory: { items: [{ contact: { username: 'wxid_peer', alias: 'peer', remark: '联系人', nickname: '联系人', localType: 1 }, category: 'friend', officialAccountKind: '' }], counts: [{ category: 'friend', count: 1 }, { category: 'group', count: 0 }], total: 1, hasMore: false } } } });
@@ -294,6 +298,12 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   assert.equal(result.body.items[0].sender_id, 'wxid_alpha');
   assert.equal(result.body.items[0].server_id, '9223372036854775808');
   assert.equal(result.body.items[0].preview, '合成置顶第一条');
+  result = await request(base, '/api/v1/independent/exports?account_id=acct-1&kind=records&limit=1', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-export-jobs');
+  assert.equal(result.body.native_schema_supported, false);
+  assert.equal(result.body.jobs.length, 1);
+  assert.equal(result.body.jobs[0].kind, 'records');
   result = await request(base, '/api/v1/independent/records/exports', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', format: 'json', output_directory: '/tmp/alpha-records', categories: [{ category: 'payments' }] }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.job_id, '00000000-0000-4000-8000-000000000008');
@@ -574,7 +584,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 86);
+  assert.equal(result.body.result.tools.length, 87);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
@@ -604,6 +614,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.moments.start_export'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.moments.watch_export'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.moments.cancel_export'));
+  assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.exports.list'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.favorites.list_items'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.favorites.list_media_slots'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.favorites.resolve_media'));
@@ -634,6 +645,10 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-telemetry-status');
   assert.equal(result.body.result.structuredContent.upload_supported, false);
   assert.equal(result.body.result.structuredContent.read_only, true);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 229, method: 'tools/call', params: { name: 'alpha-independent.exports.list', arguments: { kind: 'records', limit: 1 } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-export-jobs');
+  assert.equal(result.body.result.structuredContent.jobs[0].kind, 'records');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 12, method: 'tools/call', params: { name: 'wechat.core.list_tools', arguments: {} } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.package, '');

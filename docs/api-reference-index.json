@@ -539,6 +539,23 @@
       },
       {
         "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/exports",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-export-jobs",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "readOnly": true,
+        "sourceMethod": "listChatExports",
+        "kinds": [
+          "chat",
+          "moments",
+          "records"
+        ]
+      },
+      {
+        "methods": [
           "POST"
         ],
         "path": "/api/v1/independent/records/exports",
@@ -789,6 +806,20 @@
         "partial": true,
         "candidate": true,
         "sourceMethod": "startRecordExport"
+      },
+      {
+        "name": "alpha-independent.exports.list",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-export-jobs",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "readOnly": true,
+        "sourceMethod": "listChatExports",
+        "kinds": [
+          "chat",
+          "moments",
+          "records"
+        ]
       },
       {
         "name": "alpha-independent.records.watch_export",

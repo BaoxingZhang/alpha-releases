@@ -137,6 +137,25 @@
       "nativeSilkVoiceInfoDecoder": false,
       "duplicateMapping": "rejected"
     },
+    "indexedVideoPlayback": {
+      "command": "npm run test:packaged-independent",
+      "status": "passed",
+      "fixture": "synthetic valid MP4 plus media-index.v1.json",
+      "ipc": "renderer -> preload -> main readPlayback",
+      "rangeStream": "implemented; packaged smoke verifies grant issuance only",
+      "requires": [
+        "manifest accountId equals selected account",
+        "entry kind=video",
+        "entry mimeType=video/mp4",
+        "entry rendition=source or video",
+        "non-empty caller-owned entry id",
+        "entry sha256 equals playback opaque id"
+      ],
+      "nativeMedia1Compatible": false,
+      "cdnFetch": false,
+      "complete": false,
+      "nativeSchemaSupported": false
+    },
     "imageKey": {
       "command": "node --test tests/engine-image-key.test.mjs",
       "status": "passed",
@@ -278,7 +297,7 @@
         "mediaResolvePath": "/api/v1/favorites/media/:token",
         "mediaSchema": "__alpha_favorite_media_v1"
       },
-      "tools": 86,
+      "tools": 87,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,
@@ -833,7 +852,8 @@
         "renderer loaded through packaged Electron executable",
         "renderer → preload → main IPC read synthetic-account and fixture messages",
         "packaged renderer → preload → main IPC read an explicitly indexed PNG and render its preview",
-        "packaged renderer → preload → main IPC copy an explicitly indexed file attachment"
+        "packaged renderer → preload → main IPC copy an explicitly indexed file attachment",
+        "packaged renderer → preload → main IPC issue a Range-capable playback grant for an explicitly indexed MP4"
       ],
       "checks": [
         "independentPackagedMarker",
@@ -843,7 +863,8 @@
         "fixtureReadThroughRendererIpc",
         "packagedImageReadThroughRendererIpc",
         "packagedImagePreviewRendered",
-        "packagedFileAttachmentThroughRendererIpc"
+        "packagedFileAttachmentThroughRendererIpc",
+        "packagedIndexedVideoPlaybackGrant"
       ],
       "nativeBackend": "not exercised",
       "appPath": ".runtime/release-artifacts/Alpha Recovered Independent.app",
@@ -1017,7 +1038,8 @@
         "fixtureReadThroughRendererIpc",
         "packagedImageReadThroughRendererIpc",
         "packagedImagePreviewRendered",
-        "packagedFileAttachmentThroughRendererIpc"
+        "packagedFileAttachmentThroughRendererIpc",
+        "packagedIndexedVideoPlaybackGrant"
       ],
       "backendRequestBranches": "82/128",
       "nativeParity": false
@@ -1086,7 +1108,7 @@
     }
   },
   "featureBoundary": {
-    "mediaFilesAndVoicePlayback": "synthetic-voice-playback-mapping-and-indexed-image-only; native media, DAT/AES integration, real SILK/VoiceInfo decoding and video playback unimplemented",
+    "mediaFilesAndVoicePlayback": "synthetic-voice-playback-mapping, indexed-image and explicitly indexed MP4 playback grant; native media1, DAT/AES native integration, real SILK/VoiceInfo decoding and CDN fetch remain unimplemented",
     "momentsAndFavorites": "synthetic-moments-and-favorites-only; synthetic moment emoji requires explicit __alpha_moment_emoji_v1 plus media-index.v1.json; real SnsTimeLine/snsmessage, comment XML and real favorites database/source lookup/media semantics remain unimplemented; synthetic favorite media requires explicit __alpha_favorite_media_v1 plus media-index.v1.json",
     "generalRecordListing": {
       "payments": "partial-candidate-from-message-xml",
