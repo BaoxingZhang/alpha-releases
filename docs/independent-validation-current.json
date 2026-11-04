@@ -319,7 +319,9 @@
           "alpha-independent.records.list_candidates",
           "alpha-independent.records.list_recall_candidates",
           "alpha-independent.media.inspect_asr",
-          "alpha-independent.media.transcribe_indexed_voice"
+          "alpha-independent.media.transcribe_indexed_voice",
+          "alpha-independent.contacts.export",
+          "alpha-independent.contacts.export_group_members"
         ]
       },
       "analyticsTools": [
@@ -509,7 +511,9 @@
       "independentDocumentedPaths": [
         "/api/v1/independent/recall-records",
         "/api/v1/independent/media/asr/status",
-        "/api/v1/independent/media/asr/transcribe"
+        "/api/v1/independent/media/asr/transcribe",
+        "/api/v1/contacts/export",
+        "/api/v1/group-members/export"
       ],
       "optionalAsr": {
         "scope": "alpha-independent-optional-asr",
