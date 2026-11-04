@@ -32,6 +32,7 @@ test('prepares a nested candidate tree and applies default exclusions', async t 
   await fs.mkdir(path.join(root, 'src', 'two'), { recursive: true });
   await fs.mkdir(path.join(root, 'docs', 'native-diagnosis-evidence'), { recursive: true });
   await fs.mkdir(path.join(root, 'packages', 'alpha-data-bridge', '.runtime', 'cache'), { recursive: true });
+  await fs.mkdir(path.join(root, 'packages', 'alpha-snapshot-import'), { recursive: true });
   await fs.mkdir(path.join(root, 'vendor', 'runtime', 'bin'), { recursive: true });
   await fs.mkdir(path.join(root, 'vendor', 'runtime', 'manifests'), { recursive: true });
   await fs.writeFile(path.join(root, 'src', 'nested', 'value.txt'), 'nested source\n');
@@ -43,6 +44,9 @@ test('prepares a nested candidate tree and applies default exclusions', async t 
   await fs.writeFile(path.join(root, 'docs', 'local-run.json'), '{"userData":"/Users/alice/private"}\n');
   await fs.writeFile(path.join(root, 'docs', 'native-diagnosis-evidence', 'trace.json'), '{"private":true}\n');
   await fs.writeFile(path.join(root, 'packages', 'alpha-data-bridge', '.runtime', 'cache', 'build.txt'), '/Users/alice/private\n');
+  await fs.writeFile(path.join(root, 'packages', 'alpha-data-bridge', 'build-validation.json'), '{"binary":"/Users/alice/build"}\n');
+  await fs.writeFile(path.join(root, 'packages', 'alpha-data-bridge', 'search-validation.json'), '{"binary":"/Users/alice/build"}\n');
+  await fs.writeFile(path.join(root, 'packages', 'alpha-snapshot-import', 'build-validation.json'), '{"binary":"/Users/alice/build"}\n');
   await fs.writeFile(path.join(root, 'vendor', 'runtime', 'bin', 'runtime.dylib'), 'binary\n');
   await fs.writeFile(path.join(root, 'vendor', 'runtime', 'bin', 'runtime.LICENSE'), 'license\n');
   await fs.writeFile(path.join(root, 'vendor', 'runtime', 'manifests', 'runtime.json'), '{}\n');
@@ -66,6 +70,9 @@ test('prepares a nested candidate tree and applies default exclusions', async t 
     'docs/local-run.json',
     'docs/native-diagnosis-evidence/trace.json',
     'packages/alpha-data-bridge/.runtime/cache/build.txt',
+    'packages/alpha-data-bridge/build-validation.json',
+    'packages/alpha-data-bridge/search-validation.json',
+    'packages/alpha-snapshot-import/build-validation.json',
     'vendor/runtime/bin/runtime.dylib',
     '.git/private.txt',
     '.alpha/private.txt',

@@ -5,10 +5,11 @@
 ## 日常开发
 
 1. 从 `recovery/main` 或维护者自己的分支开始，确认 `git status` 干净。
-2. 运行 `nvm use`、`npm ci`；首次准备 Electron 和 esbuild 时运行 `npm run setup`。
-3. 修改 `src/`、`packages/` 或 `scripts/`，同时更新相应测试和文档。
-4. 对离线数据功能只使用 `npm run demo`、`npm run demo:encrypted` 或经授权的副本。默认启动器不会自动寻找个人微信目录。
-5. 提交前先运行 `npm run verify:maintenance`，再按变更范围执行 [CONTRIBUTING.md](../CONTRIBUTING.md) 的完整检查清单。
+2. 为新 checkout 配置只读上游远程（已有时只核对 URL）：`git remote add upstream https://github.com/xunchahaha/alpha-releases.git`，随后运行 `git fetch upstream --prune`。个人 fork 使用 `personal` 远程；不要把 `upstream/main` 合并到独立历史的 `recovery/main`，先运行 `npm run audit:upstream` 并按报告核对发行包和 provenance。
+3. 运行 `nvm use`、`npm ci`；首次准备 Electron 和 esbuild 时运行 `npm run setup`。
+4. 修改 `src/`、`packages/` 或 `scripts/`，同时更新相应测试和文档。
+5. 对离线数据功能只使用 `npm run demo`、`npm run demo:encrypted` 或经授权的副本。默认启动器不会自动寻找个人微信目录。
+6. 提交前先运行 `npm run verify:maintenance`，再按变更范围执行 [CONTRIBUTING.md](../CONTRIBUTING.md) 的完整检查清单。
 
 需要快速查看当前恢复边界时运行 `npm run status`。它从版本、独立支持矩阵、原生 smoke 诊断和组件 manifest 生成机器可读或人类可读报告；该命令只读，不会扫描个人微信目录，也不会把 synthetic fixture 或协议入口算作原生功能。
 
