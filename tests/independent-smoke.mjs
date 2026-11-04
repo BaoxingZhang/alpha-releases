@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { spawnSync } from 'node:child_process';
 import { root, launchEnvironment, sandboxProfile } from '../scripts/environment.mjs';
+import { normalizeRunLog } from '../scripts/normalize-run-log.mjs';
 import { createFixture } from './data-bridge-fixture.mjs';
 import { installMomentsFixture, installMomentEmojiFixture } from './moments-fixture.mjs';
 import { installFavoritesFixture } from './favorites-fixture.mjs';
@@ -442,6 +443,6 @@ try {
   }
   const logs = report.logs.join(''); delete report.logs;
   fs.writeFileSync(path.join(root, 'docs/independent-run.json'), JSON.stringify(report, null, 2) + '\n');
-  fs.writeFileSync(path.join(root, 'docs/independent-run.log'), logs);
+  fs.writeFileSync(path.join(root, 'docs/independent-run.log'), normalizeRunLog(logs));
   console.log(JSON.stringify({ checks: report.checks, failure: report.failure, report: 'docs/independent-run.json' }, null, 2));
 }

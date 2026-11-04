@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { root, launchEnvironment, sandboxProfile } from '../scripts/environment.mjs';
+import { normalizeRunLog } from '../scripts/normalize-run-log.mjs';
 import { createEncryptedFixture, cleanupEncryptedFixtureHelper } from './encrypted-fixture.mjs';
 const session = `encrypted-smoke-${Date.now()}`;
 const runtime = path.join(root, '.runtime', session);
@@ -163,6 +164,6 @@ try {
   if (pausedImporter) { try { process.kill(pausedImporter, 'SIGCONT'); } catch {} }
   await close().catch(e => { report.closeError = e.message; });
   fs.writeFileSync(path.join(root, 'docs/encrypted-run.json'), JSON.stringify(report, null, 2) + '\n');
-  fs.writeFileSync(path.join(root, 'docs/encrypted-run.log'), logs.join(''));
+  fs.writeFileSync(path.join(root, 'docs/encrypted-run.log'), normalizeRunLog(logs.join('')));
   console.log(JSON.stringify({ checks: report.checks, failure: report.failure, report: 'docs/encrypted-run.json' }, null, 2));
 }

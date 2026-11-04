@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { root, launchEnvironment, sandboxProfile } from '../scripts/environment.mjs';
+import { normalizeRunLog } from '../scripts/normalize-run-log.mjs';
 const session = `smoke-${Date.now()}`;
 const runtime = path.join(root, '.runtime', session);
 fs.mkdirSync(runtime, { recursive: true });
@@ -71,6 +72,6 @@ if (!report.checks.projectReadable || !report.checks.personalFileReadDenied || !
 } finally {
   if (app) { const stopTimer = setTimeout(() => app.process().kill('SIGKILL'), 8000); try { await app.close(); } catch (e) { report.closeError = e.message; } finally { clearTimeout(stopTimer); } }
   fs.writeFileSync(path.join(root, 'docs/local-run.json'), JSON.stringify(report, null, 2) + '\n');
-  fs.writeFileSync(path.join(root, 'docs/local-run.log'), logs.join(''));
+  fs.writeFileSync(path.join(root, 'docs/local-run.log'), normalizeRunLog(logs.join('')));
   console.log(JSON.stringify({ checks: report.checks, backend: report.backend, failure: report.failure, report: 'docs/local-run.json' }, null, 2));
 }

@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { root, launchEnvironment, sandboxProfile } from '../scripts/environment.mjs';
+import { normalizeRunLog } from '../scripts/normalize-run-log.mjs';
 import { createSearchFixture } from './search-fixture.mjs';
 
 const session = `search-smoke-${Date.now()}`;
@@ -170,6 +171,6 @@ try {
 } finally {
   await close().catch(error => { report.closeError = error.message; });
   fs.writeFileSync(path.join(root, 'docs/search-run.json'), JSON.stringify(report, null, 2) + '\n');
-  fs.writeFileSync(path.join(root, 'docs/search-run.log'), logs.join(''));
+  fs.writeFileSync(path.join(root, 'docs/search-run.log'), normalizeRunLog(logs.join('')));
   console.log(JSON.stringify({ checks: report.checks, failure: report.failure, report: 'docs/search-run.json' }, null, 2));
 }
