@@ -783,6 +783,39 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
       return schemaDiagnostics(await call('getDataSchemaDiagnostics', { accountId: await selectedAccount(params) }));
     }
+    // Official schedule plans are local metadata only. Keep this namespace
+    // separate from Alpha's remote plan service and never execute or fetch
+    // articles through these routes.
+    const officialPlansPath = '/api/v1/independent/official-plans';
+    if (pathname === officialPlansPath) {
+      const account = await selectedAccount(params);
+      if (method === 'GET') {
+        const includeDisabled = boolean(params.include_disabled ?? params.includeDisabled, 'HTTP_API_OFFICIAL_SCHEDULE_INCLUDE_DISABLED_INVALID') ?? false;
+        const limit = integer(params.limit, 1, 100, 'HTTP_API_OFFICIAL_SCHEDULE_LIMIT_INVALID') ?? 20;
+        return officialScheduleScope(await call('listOfficialSchedulePlans', { accountId: account, includeDisabled, limit }));
+      }
+      if (method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const source = params.plan && typeof params.plan === 'object' ? params.plan : params;
+      const mode = params.mode === 'create' || params.mode === 1 ? 1 : params.mode === 'replace' || params.mode === 2 ? 2 : 0;
+      if (!mode) throw new HttpAdapterError('HTTP_API_OFFICIAL_SCHEDULE_MODE_INVALID', 400);
+      const expected = scheduleUint(params.expected_updated_at_unix_ms ?? params.expectedUpdatedAtUnixMs ?? 0, 'HTTP_API_OFFICIAL_SCHEDULE_REVISION_INVALID');
+      return officialScheduleScope(await call('saveOfficialSchedulePlan', { plan: officialSchedulePlan(source, account, 'HTTP_API_OFFICIAL_SCHEDULE_PLAN_INVALID'), mode, expectedUpdatedAtUnixMs: expected ?? 0n }));
+    }
+    // Keep the nested attempts collection below from being interpreted as a
+    // plan id by this single-resource matcher.
+    const officialPlanMatch = pathname !== '/api/v1/independent/official-plans/attempts'
+      ? /^\/api\/v1\/independent\/official-plans\/([^/]+)$/.exec(pathname)
+      : null;
+    if (officialPlanMatch) {
+      const scheduleId = schedulePathId(officialPlanMatch[1], 'HTTP_API_OFFICIAL_SCHEDULE_ID_INVALID');
+      const account = await selectedAccount(params);
+      if (method === 'GET') return officialScheduleScope(await call('getOfficialSchedulePlan', { accountId: account, scheduleId }));
+      if (method === 'DELETE') {
+        const expected = scheduleUint(params.expected_updated_at_unix_ms ?? params.expectedUpdatedAtUnixMs, 'HTTP_API_OFFICIAL_SCHEDULE_REVISION_INVALID', true);
+        return officialScheduleScope(await call('deleteOfficialSchedulePlan', { accountId: account, scheduleId, expectedUpdatedAtUnixMs: expected }));
+      }
+      throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+    }
     if (pathname === '/api/v1/independent/anti-recall/status') {
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
       const raw = params.conversation_ids ?? params.conversationIds ?? params.conversation_id ?? params.conversationId;
