@@ -2,7 +2,9 @@ name: maintenance
 
 on:
   push:
-    branches: [main, master, recovery/**]
+    # Keep the personal recovery branch itself covered; `recovery/**` only
+    # matches slash-qualified branch names such as recovery/try-1.
+    branches: [main, master, recovery, recovery/**]
   pull_request:
   workflow_dispatch:
 
