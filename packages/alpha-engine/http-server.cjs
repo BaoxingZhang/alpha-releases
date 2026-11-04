@@ -19,7 +19,7 @@ const PRINTABLE_TOKEN = /^[\x21-\x7e]{32,256}$/;
 // Conversation export only writes a new file through the engine's bounded,
 // non-overwriting exporter. It does not mutate the source database, but it is
 // kept separate from the ordinary DTO reads so the route remains explicit.
-const ALLOWED_METHODS = new Set(['listAccounts', 'listConversations', 'listMessages', 'searchMessages', 'listContacts', 'listMoments', 'listFavorites', 'listFavoriteMediaSlots', 'resolveFavoriteMedia', 'listMomentAuthors', 'getMomentDayCounts', 'getContactProfile', 'listGeneral', 'listMessageRecallRecords', 'getMessageAntiRecallStatuses', 'manageMomentsAntiDelete', 'getConversationDayCounts', 'getChatExportStats', 'getChatExportCapabilities', 'listChatExports', 'exportConversation', 'exportContacts', 'exportGroupMembers', 'startMomentExport', 'startRecordExport', 'watchChatExport', 'cancelChatExport', 'startAggregateAnalysis', 'watchAggregateAnalysis', 'cancelAggregateAnalysis', 'locateMessage', 'getMessageSource', 'decodeVoicePlayback', 'getImageMediaStatus', 'getTelemetryStatus', 'analyzeAnnual', 'analyzeConversation', 'browseConversationMessages', 'browseAccountMedia', 'listChatExportSchedules', 'getChatExportSchedule', 'saveChatExportSchedule', 'deleteChatExportSchedule', 'runChatExportScheduleNow', 'listChatExportRuns', 'getChatExportRun', 'listChatExportAttempts', 'getChatExportAttempt', 'retryChatExportAttempt', 'listOfficialSchedulePlans', 'getOfficialSchedulePlan', 'saveOfficialSchedulePlan', 'deleteOfficialSchedulePlan', 'listOfficialPlanAttempts', 'getOfficialPlanAttempt', 'requestOfficialPlanAttempt', 'archiveOfficialPlanAttempt', 'getDataRevision', 'getDataWatchTargets', 'getDataSchemaDiagnostics', 'getApplicationLockStatus', 'getAdvancedComponentStatus']);
+const ALLOWED_METHODS = new Set(['listAccounts', 'listConversations', 'listMessages', 'searchMessages', 'listContacts', 'listMoments', 'listFavorites', 'listFavoriteMediaSlots', 'resolveFavoriteMedia', 'listMomentAuthors', 'resolveMomentEmoji', 'getMomentDayCounts', 'getContactProfile', 'listGeneral', 'listMessageRecallRecords', 'getMessageAntiRecallStatuses', 'manageMomentsAntiDelete', 'getConversationDayCounts', 'getChatExportStats', 'getChatExportCapabilities', 'listChatExports', 'exportConversation', 'exportContacts', 'exportGroupMembers', 'startMomentExport', 'startRecordExport', 'watchChatExport', 'cancelChatExport', 'startAggregateAnalysis', 'watchAggregateAnalysis', 'cancelAggregateAnalysis', 'locateMessage', 'getMessageSource', 'decodeVoicePlayback', 'getImageMediaStatus', 'getTelemetryStatus', 'analyzeAnnual', 'analyzeConversation', 'browseConversationMessages', 'browseAccountMedia', 'listChatExportSchedules', 'getChatExportSchedule', 'saveChatExportSchedule', 'deleteChatExportSchedule', 'runChatExportScheduleNow', 'listChatExportRuns', 'getChatExportRun', 'listChatExportAttempts', 'getChatExportAttempt', 'retryChatExportAttempt', 'listOfficialSchedulePlans', 'getOfficialSchedulePlan', 'saveOfficialSchedulePlan', 'deleteOfficialSchedulePlan', 'listOfficialPlanAttempts', 'getOfficialPlanAttempt', 'requestOfficialPlanAttempt', 'archiveOfficialPlanAttempt', 'getDataRevision', 'getDataWatchTargets', 'getDataSchemaDiagnostics', 'getApplicationLockStatus', 'getAdvancedComponentStatus']);
 const LOCAL_METHODS = new Set(['getDataSchemaDiagnostics', 'getApplicationLockStatus', 'getAdvancedComponentStatus', 'getTelemetryStatus', 'listOfficialPlanAttempts', 'getOfficialPlanAttempt', 'requestOfficialPlanAttempt', 'archiveOfficialPlanAttempt']);
 const MCP_SCAN_MAX_PAGES = 128;
 const MCP_SCAN_MAX_ITEMS = 10000;
@@ -284,6 +284,18 @@ function momentsAntiDeleteStatus(value) {
     read_only: true
   };
 }
+function momentsEmojiDiagnostics(value) {
+  const result = snakeKeys(value || {});
+  return {
+    ...result,
+    scope: 'alpha-independent-moments-emoji',
+    synthetic_only: true,
+    complete: false,
+    native_schema_supported: false,
+    media_ready: result.status === 'ready',
+    read_only: true
+  };
+}
 function lockStatus(value) {
   const status = value && typeof value === 'object' && !Array.isArray(value) ? value.status || value : {};
   return {
@@ -537,6 +549,7 @@ function toolDefinitions() {
     { name: 'alpha-independent.groups.list_pinned_messages', description: '读取显式 __alpha_group_pins_v1 synthetic fixture 的群置顶元数据；不兼容原生群置顶 schema 或 writer', inputSchema: { type: 'object', required: ['chatroom_id'], properties: { account_id: string, chatroom_id: string, limit: { type: 'integer', minimum: 1, maximum: 1000 }, offset: { type: 'integer', minimum: 0 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.messages.get_anti_recall_status', description: '返回指定会话的独立防撤回 writer 状态；当前固定 writer=false，不读取或修改原生撤回库', inputSchema: { type: 'object', required: ['conversation_ids'], properties: { account_id: string, conversation_ids: { type: 'array', minItems: 1, maxItems: 500, items: string, uniqueItems: true } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.moments.get_anti_delete_status', description: '返回独立朋友圈防删除 writer 状态；当前固定 writer=false，不读取或修改原生朋友圈库', inputSchema: { type: 'object', properties: { account_id: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.moments.resolve_emoji', description: '解析显式 __alpha_moment_emoji_v1 synthetic 表情映射并校验自有 media-index；不兼容真实评论 XML 或原生媒体 token', inputSchema: { type: 'object', required: ['source_token'], properties: { account_id: string, source_token: { type: 'string', pattern: '^emoji-xml:__alpha_moment_emoji_v1:.+$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.list_sessions', description: '分页读取已验证会话', inputSchema: { type: 'object', properties: { account_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.resolve_session', description: '按会话名称或 ID 做有界字面量查询', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, limit: { type: 'integer', minimum: 1, maximum: 20 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.get_messages', description: '读取指定会话的已验证消息 DTO', inputSchema: { type: 'object', required: ['username'], properties: { account_id: string, username: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string, ascending: { type: 'boolean' }, after_unix_ms: string, before_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -903,6 +916,14 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     if (pathname === '/api/v1/independent/moments/anti-delete/status') {
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
       return momentsAntiDeleteStatus(await call('manageMomentsAntiDelete', { spec: { accountId: await selectedAccount(params), action: 1, operationId: '' } }));
+    }
+    if (pathname === '/api/v1/independent/moments/emoji') {
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const account = await selectedAccount(params);
+      const source = text(params.source_token ?? params.sourceToken, 4096, 'HTTP_API_MOMENT_EMOJI_SOURCE_INVALID');
+      if (!source) throw new HttpAdapterError('HTTP_API_MOMENT_EMOJI_SOURCE_REQUIRED', 400);
+      if (!source.startsWith('emoji-xml:__alpha_moment_emoji_v1:')) throw new HttpAdapterError('HTTP_API_MOMENT_EMOJI_SOURCE_INVALID', 400);
+      return momentsEmojiDiagnostics(await call('resolveMomentEmoji', { accountId: account, source }));
     }
     // Scheduled exports are exposed only under the independent namespace.
     // These routes operate on the local, bounded schedule store and retain
@@ -1479,7 +1500,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       'alpha-independent.mobile.search_chat': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'],
       'alpha-independent.mobile.get_chat_context': ['account_id', 'username', 'anchor_id', 'before', 'after'],
       'wechat.core.get_status': [], 'wechat.core.get_lock_status': [], 'alpha-independent.telemetry.get_status': [], 'alpha-independent.components.get_status': ['component'], 'wechat.core.list_tools': ['package'], 'wechat.core.list_accounts': [], 'wechat.core.get_account_info': ['account_id'],
-      'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'], 'alpha-independent.messages.get_anti_recall_status': ['account_id', 'conversation_ids'], 'alpha-independent.moments.get_anti_delete_status': ['account_id'],
+      'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'], 'alpha-independent.messages.get_anti_recall_status': ['account_id', 'conversation_ids'], 'alpha-independent.moments.get_anti_delete_status': ['account_id'], 'alpha-independent.moments.resolve_emoji': ['account_id', 'source_token'],
       'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'alpha-independent.contacts.export': ['account_id', 'categories', 'query', 'format', 'include_profile', 'include_avatars', 'destination_path', 'utc_offset_minutes'], 'alpha-independent.contacts.export_group_members': ['account_id', 'chatroom_id', 'format', 'destination_path', 'utc_offset_minutes'], 'alpha-independent.groups.list_pinned_messages': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
       'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'], 'alpha-independent.chat.get_incremental_messages': ['account_id', 'conversation_id', 'since_unix_ms', 'end_unix_ms', 'limit', 'cursor', 'ascending'],
       'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.get_image_status': ['account_id', 'verify_sample'], 'alpha-independent.media.read_voice_blob': ['account_id', 'key'], 'alpha-independent.media.read_indexed': ['account_id', 'conversation_id', 'message_id', 'media_id', 'sha256', 'kind', 'rendition'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.media.inspect_asr': ['model_root', 'model_id'], 'alpha-independent.media.transcribe_indexed_voice': ['account_id', 'media_index_root', 'media_id', 'model_root', 'model_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
@@ -1834,6 +1855,14 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     }
     else if (name === 'alpha-independent.moments.get_anti_delete_status') {
       pathName = '/api/v1/independent/moments/anti-delete/status';
+    }
+    else if (name === 'alpha-independent.moments.resolve_emoji') {
+      const account = await selectedAccount(params);
+      const source = text(args.source_token, 4096, 'MCP_MOMENT_EMOJI_SOURCE_INVALID');
+      if (!source) throw new HttpAdapterError('MCP_MOMENT_EMOJI_SOURCE_REQUIRED', 400);
+      if (!source.startsWith('emoji-xml:__alpha_moment_emoji_v1:')) throw new HttpAdapterError('MCP_MOMENT_EMOJI_SOURCE_INVALID', 400);
+      const result = momentsEmojiDiagnostics(await call('resolveMomentEmoji', { accountId: account, source }));
+      return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
     }
     else if (name === 'alpha.analysis.start') { pathName = '/api/v1/analysis'; }
     else if (name === 'alpha.analysis.watch' || name === 'alpha.analysis.cancel') {

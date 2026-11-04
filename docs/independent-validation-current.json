@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 317,
+      "passed": 329,
       "failed": 0,
       "testConcurrency": 1,
       "stateBackup": {
@@ -297,7 +297,17 @@
         "mediaResolvePath": "/api/v1/favorites/media/:token",
         "mediaSchema": "__alpha_favorite_media_v1"
       },
-      "tools": 88,
+      "momentEmojiRoute": {
+        "httpPath": "/api/v1/independent/moments/emoji",
+        "mcpTool": "alpha-independent.moments.resolve_emoji",
+        "status": "passed",
+        "syntheticOnly": true,
+        "complete": false,
+        "nativeSchemaSupported": false,
+        "mediaReady": "only-after-explicit-media-index-verification",
+        "sourcePrefix": "emoji-xml:__alpha_moment_emoji_v1:"
+      },
+      "tools": 89,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,
@@ -341,7 +351,8 @@
           "alpha-independent.media.transcribe_indexed_voice",
           "alpha-independent.contacts.export",
           "alpha-independent.contacts.export_group_members",
-          "alpha-independent.moments.get_anti_delete_status"
+          "alpha-independent.moments.get_anti_delete_status",
+          "alpha-independent.moments.resolve_emoji"
         ]
       },
       "analyticsTools": [

@@ -502,6 +502,19 @@
         "methods": [
           "GET"
         ],
+        "path": "/api/v1/independent/moments/emoji",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-moments-emoji",
+        "syntheticOnly": true,
+        "complete": false,
+        "nativeSchemaSupported": false,
+        "sourceMethod": "resolveMomentEmoji",
+        "mediaReady": "true only when explicit synthetic media-index entry verifies"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
         "path": "/api/v1/independent/telemetry/status",
         "status": "independent-adapter-extension",
         "scope": "alpha-independent-telemetry-status",
@@ -956,6 +969,15 @@
         "writer": false,
         "readOnly": true,
         "sourceMethod": "manageMomentsAntiDelete"
+      },
+      {
+        "name": "alpha-independent.moments.resolve_emoji",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-moments-emoji",
+        "syntheticOnly": true,
+        "complete": false,
+        "nativeSchemaSupported": false,
+        "sourceMethod": "resolveMomentEmoji"
       },
       {
         "name": "alpha-independent.telemetry.get_status",
