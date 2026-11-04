@@ -81,6 +81,7 @@ function fakeEngine() {
       if (request.listGeneral) return EngineServerFrame.fromPartial({ requestId: request.requestId, listGeneral: { response: { items: [{ actor: 'wxid_peer', fields: [{ name: 'groupNickname', value: '群昵称' }, { name: 'isOwner', value: 'true' }] }], sourceDatabase: 'contact/contact.db', sourceTable: 'chat_room' } } });
       if (request.listMessageRecallRecords) return EngineServerFrame.fromPartial({ requestId: request.requestId, listMessageRecallRecords: { records: [{ recordId: `rcl_${'a'.repeat(64)}`, conversationId: request.listMessageRecallRecords.conversationId, originalLocalId: 7n, originalServerId: '8', originalSentAtUnixMs: 1700000000000n, originalSourceType: 10000n, originalSender: 'wxid_peer', originalText: '候选撤回', capturedAtUnixMs: 0n, confirmedAtUnixMs: 0n, confirmation: 'unverified-candidate', provenance: 'alpha-independent-message-derived-candidate', compressedContentRetained: false, packedInfoRetained: false, decodeErrorCode: 'NATIVE_RECALL_SCHEMA_UNSUPPORTED' }], nextCursor: 'next-recall' } });
       if (request.getMessageAntiRecallStatuses) return EngineServerFrame.fromPartial({ requestId: request.requestId, getMessageAntiRecallStatuses: { statuses: request.getMessageAntiRecallStatuses.conversationIds.map(conversationId => ({ conversationId, status: { detected: false, usable: false, enabled: false, verified: false, knownTables: 0, protectedTables: 0, retainedRows: 0n, confirmedRows: 0n, droppedRows: 0n, partial: false, errorCode: 'MESSAGE_ANTI_RECALL_WRITER_DISABLED', externalProtection: '', externalTables: 0, writerErrorCode: 'MESSAGE_ANTI_RECALL_WRITER_DISABLED' } })) } });
+      if (request.manageMomentsAntiDelete) return EngineServerFrame.fromPartial({ requestId: request.requestId, manageMomentsAntiDelete: { result: { status: { detected: false, usable: false, enabled: false, verified: false, targetTable: '', shadowTable: '', triggerName: '', retainedRows: 0n, errorCode: 'MOMENTS_ANTI_DELETE_WRITER_DISABLED', externalProtection: '', writerErrorCode: 'MOMENTS_ANTI_DELETE_WRITER_DISABLED' } } } });
       if (request.startAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, startAggregateAnalysis: { analysisId, conversationsTotal: 1, expiresAtUnixMs: BigInt(Date.now() + 600000) } });
       if (request.watchAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, watchAggregateAnalysis: { analysisId, state: 2, conversationsDone: 1, conversationsTotal: 1, conversationsFailed: 0, reportJson: new Uint8Array(Buffer.from(JSON.stringify({ algorithm_version: 'alpha-aggregate-v1', scope: 'group_chat', total_messages: 1 }), 'utf8')) } });
       if (request.cancelAggregateAnalysis) return EngineServerFrame.fromPartial({ requestId: request.requestId, cancelAggregateAnalysis: { canceled: false } });
@@ -364,6 +365,15 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   result = await request(base, '/api/v1/independent/anti-recall/status?account_id=acct-1', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 400);
   assert.equal(result.body.error.code, 'HTTP_API_ANTI_RECALL_CONVERSATIONS_REQUIRED');
+  result = await request(base, '/api/v1/independent/moments/anti-delete/status?account_id=acct-1', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-moments-anti-delete-status');
+  assert.equal(result.body.complete, false);
+  assert.equal(result.body.native_schema_supported, false);
+  assert.equal(result.body.writer, false);
+  assert.equal(result.body.error_code, 'MOMENTS_ANTI_DELETE_WRITER_DISABLED');
+  result = await request(base, '/api/v1/independent/moments/anti-delete/status?account_id=acct-1', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 405);
   result = await request(base, '/api/v1/independent/recall-records?account_id=acct-1&conversation_id=wxid_peer&cursor=bad%2Bcursor', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 400);
   assert.equal(result.body.error.code, 'HTTP_API_MESSAGE_RECALL_CURSOR_INVALID');
@@ -584,7 +594,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 87);
+  assert.equal(result.body.result.tools.length, 88);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
@@ -635,6 +645,13 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.deepEqual(recallCandidatesTool.inputSchema.required, ['conversation_id']);
   const antiRecallStatusTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.messages.get_anti_recall_status');
   assert.deepEqual(antiRecallStatusTool.inputSchema.required, ['conversation_ids']);
+  const antiDeleteStatusTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.moments.get_anti_delete_status');
+  assert.ok(antiDeleteStatusTool);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 227, method: 'tools/call', params: { name: 'alpha-independent.moments.get_anti_delete_status', arguments: { account_id: 'acct-1' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-moments-anti-delete-status');
+  assert.equal(result.body.result.structuredContent.writer, false);
+  assert.equal(result.body.result.structuredContent.error_code, 'MOMENTS_ANTI_DELETE_WRITER_DISABLED');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 226, method: 'tools/call', params: { name: 'alpha-independent.messages.get_anti_recall_status', arguments: { conversation_ids: ['wxid_peer', 'wxid_other'] } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.scope, 'alpha-independent-message-anti-recall-status');

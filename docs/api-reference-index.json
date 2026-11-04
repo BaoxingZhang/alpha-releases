@@ -489,6 +489,19 @@
         "methods": [
           "GET"
         ],
+        "path": "/api/v1/independent/moments/anti-delete/status",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-moments-anti-delete-status",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "writer": false,
+        "readOnly": true,
+        "sourceMethod": "manageMomentsAntiDelete"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
         "path": "/api/v1/independent/telemetry/status",
         "status": "independent-adapter-extension",
         "scope": "alpha-independent-telemetry-status",
@@ -933,6 +946,16 @@
         "writer": false,
         "readOnly": true,
         "sourceMethod": "getMessageAntiRecallStatuses"
+      },
+      {
+        "name": "alpha-independent.moments.get_anti_delete_status",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-moments-anti-delete-status",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "writer": false,
+        "readOnly": true,
+        "sourceMethod": "manageMomentsAntiDelete"
       },
       {
         "name": "alpha-independent.telemetry.get_status",
