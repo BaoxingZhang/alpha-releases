@@ -3,7 +3,7 @@
 ## 0.3.5-recovery 维护增补 — 2026-11-04（联系人导出适配器）
 
 - 新增独立联系人/群成员文件导出 HTTP 路由和 MCP 工具，复用已验证 DTO 与引擎已有 exporter；严格执行账号隔离、目标路径、格式、源目录/状态目录、符号链接和已有文件校验。响应固定为独立导出边界，不兼容原生 Alpha formatter，也不导出头像。
-- 独立 MCP 工具目录更新为 83 个；新增能力不增加 82/128 原生协议支持数。
+- 独立 MCP 工具目录更新为 86 个；新增记录导出工具 `alpha-independent.records.start_export`、`watch_export`、`cancel_export` 及对应独立 HTTP 路由，固定 `partial=true`、`candidate=true`、`complete=false`、`native_schema_supported=false`，不兼容原生记录库或 formatter；新增能力不增加 82/128 原生协议支持数。
 
 ## 0.3.5-recovery 维护增补 — 2026-11-04（长期维护基线）
 

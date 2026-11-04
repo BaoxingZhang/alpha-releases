@@ -536,6 +536,57 @@
           "html"
         ],
         "avatars": false
+      },
+      {
+        "methods": [
+          "POST"
+        ],
+        "path": "/api/v1/independent/records/exports",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-record-export",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "partial": true,
+        "candidate": true,
+        "sourceMethod": "startRecordExport",
+        "formats": [
+          "json",
+          "csv",
+          "xlsx"
+        ],
+        "categories": [
+          "payments",
+          "friend_requests",
+          "revokes",
+          "calls",
+          "favorites"
+        ]
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/records/exports/:job_id",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-record-export",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "partial": true,
+        "candidate": true,
+        "sourceMethod": "watchChatExport"
+      },
+      {
+        "methods": [
+          "POST"
+        ],
+        "path": "/api/v1/independent/records/exports/:job_id/cancel",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-record-export",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "partial": true,
+        "candidate": true,
+        "sourceMethod": "cancelChatExport"
       }
     ],
     "mcp": [
@@ -728,6 +779,36 @@
         "name": "alpha-independent.moments.cancel_export",
         "status": "synthetic-only",
         "sourceTable": "__alpha_moments_v1"
+      },
+      {
+        "name": "alpha-independent.records.start_export",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-record-export",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "partial": true,
+        "candidate": true,
+        "sourceMethod": "startRecordExport"
+      },
+      {
+        "name": "alpha-independent.records.watch_export",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-record-export",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "partial": true,
+        "candidate": true,
+        "sourceMethod": "watchChatExport"
+      },
+      {
+        "name": "alpha-independent.records.cancel_export",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-record-export",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "partial": true,
+        "candidate": true,
+        "sourceMethod": "cancelChatExport"
       },
       {
         "name": "alpha-independent.favorites.list_items",

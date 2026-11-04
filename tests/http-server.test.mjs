@@ -18,6 +18,7 @@ function fakeEngine() {
   let lastMomentDayCountRequest;
   const analysisId = '00000000-0000-4000-8000-000000000001';
   const momentJobId = '00000000-0000-4000-8000-000000000002';
+  const recordJobId = '00000000-0000-4000-8000-000000000008';
   const scheduleId = '00000000-0000-4000-8000-000000000003';
   const runId = '00000000-0000-4000-8000-000000000004';
   const attemptId = '00000000-0000-4000-8000-000000000005';
@@ -65,7 +66,8 @@ function fakeEngine() {
         return EngineServerFrame.fromPartial({ requestId: request.requestId, getMomentDayCounts: { available: true, days: [{ localDay: 19675n, count: 2n }] } });
       }
       if (request.startMomentExport) return EngineServerFrame.fromPartial({ requestId: request.requestId, startMomentExport: { jobId: momentJobId } });
-      if (request.watchChatExport) return EngineServerFrame.fromPartial({ requestId: request.requestId, watchChatExport: { jobId: request.watchChatExport.jobId, accountId: 'acct-1', state: 'completed', format: 'json', directory: '/tmp/moments', createdAtUnixMs: 1700000000000n, updatedAtUnixMs: 1700000001000n, kind: 'moments', items: [] } });
+      if (request.startRecordExport) return EngineServerFrame.fromPartial({ requestId: request.requestId, startRecordExport: { jobId: recordJobId } });
+      if (request.watchChatExport) return EngineServerFrame.fromPartial({ requestId: request.requestId, watchChatExport: { jobId: request.watchChatExport.jobId, accountId: 'acct-1', state: 'completed', format: 'json', directory: '/tmp/moments', createdAtUnixMs: 1700000000000n, updatedAtUnixMs: 1700000001000n, kind: request.watchChatExport.jobId === recordJobId ? 'records' : 'moments', items: [] } });
       if (request.cancelChatExport) return EngineServerFrame.fromPartial({ requestId: request.requestId, cancelChatExport: {} });
       if (request.listContacts?.directory) return EngineServerFrame.fromPartial({ requestId: request.requestId, listContacts: { response: { directory: { items: [{ contact: { username: 'wxid_peer', alias: 'peer', remark: '联系人', nickname: '联系人', localType: 1 }, category: 'friend', officialAccountKind: '' }], counts: [{ category: 'friend', count: 1 }, { category: 'group', count: 0 }], total: 1, hasMore: false } } } });
       if (request.listContacts) return EngineServerFrame.fromPartial({ requestId: request.requestId, listContacts: { response: { items: [{ username: 'wxid_peer', alias: 'peer', remark: '联系人', nickname: '联系人', localType: 1 }], nextCursor: '', totalCount: 1 } } });
@@ -292,6 +294,21 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   assert.equal(result.body.items[0].sender_id, 'wxid_alpha');
   assert.equal(result.body.items[0].server_id, '9223372036854775808');
   assert.equal(result.body.items[0].preview, '合成置顶第一条');
+  result = await request(base, '/api/v1/independent/records/exports', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', format: 'json', output_directory: '/tmp/alpha-records', categories: [{ category: 'payments' }] }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.job_id, '00000000-0000-4000-8000-000000000008');
+  assert.equal(result.body.partial, true);
+  assert.equal(result.body.candidate, true);
+  result = await request(base, '/api/v1/independent/records/exports/00000000-0000-4000-8000-000000000008', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.kind, 'records');
+  assert.equal(result.body.native_schema_supported, false);
+  result = await request(base, '/api/v1/independent/records/exports/00000000-0000-4000-8000-000000000008/cancel', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: '{}' });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.partial, true);
+  result = await request(base, '/api/v1/independent/records/exports', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', format: 'json', output_directory: '/tmp/alpha-records', categories: [{ category: 'payments', selected: true }] }) });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.body.error.code, 'HTTP_API_RECORD_EXPORT_SELECTION_INVALID');
   result = await request(base, '/api/v1/records?category=friend_requests', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.category, 'friend_requests');
@@ -557,7 +574,7 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 83);
+  assert.equal(result.body.result.tools.length, 86);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
@@ -812,6 +829,15 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 607, method: 'tools/call', params: { name: 'alpha-independent.moments.cancel_export', arguments: { job_id: '00000000-0000-4000-8000-000000000002' } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.synthetic_only, true);
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 608, method: 'tools/call', params: { name: 'alpha-independent.records.start_export', arguments: { account_id: 'acct-1', format: 'json', output_directory: '/tmp/alpha-mcp-records', categories: [{ category: 'payments' }] } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.job_id, '00000000-0000-4000-8000-000000000008');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 609, method: 'tools/call', params: { name: 'alpha-independent.records.watch_export', arguments: { job_id: '00000000-0000-4000-8000-000000000008' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.kind, 'records');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 610, method: 'tools/call', params: { name: 'alpha-independent.records.cancel_export', arguments: { job_id: '00000000-0000-4000-8000-000000000008' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.partial, true);
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 603, method: 'tools/call', params: { name: 'alpha-independent.favorites.list_items', arguments: { query: '合成收藏', include_type_counts: true } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.synthetic_only, true);
