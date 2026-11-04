@@ -25,6 +25,6 @@ node scripts/build-chatlog.mjs
 
 机器结果见 [chatlog-build-results.json](chatlog-build-results.json)，模块构建信息见 [chatlog-build-info.txt](chatlog-build-info.txt)，完整构建日志见 [chatlog-build.log](chatlog-build.log)。报告中的 `candidateExecuted=false` 与编译通过分别记录。
 
-已保存实际编译相关的 57 个源码模块（包含候选主模块）的 70 个独立许可文件，另保存 LAME 与 SILK 的内嵌 C 源文件声明；索引与逐文件哈希见 [chatlog-dependency-licenses.json](chatlog-dependency-licenses.json)，正文位于 `docs/chatlog-licenses/`。Chatlog 根为 Apache 2.0；LAME 内嵌代码及 SILK 原始代码还有各自条款，不能只引用 Go wrapper 的根许可证。许可清单不是对全部依赖的法律结论或代码审计。
+已保存实际编译相关的 57 个源码模块（包含候选主模块）的 70 个独立许可文件，另保存 LAME 与 SILK 的内嵌 C 源文件声明；公开候选使用不含本机路径的 [public-dependency-licenses.json](public-dependency-licenses.json)，逐文件正文位于 `docs/chatlog-licenses/`。内部构建索引 `chatlog-dependency-licenses.json` 仍保留完整本机来源路径，不随公开候选复制。Chatlog 根为 Apache 2.0；LAME 内嵌代码及 SILK 原始代码还有各自条款，不能只引用 Go wrapper 的根许可证。许可清单不是对全部依赖的法律结论或代码审计。
 
 剩余工作包括 Alpha DTO/分页/媒体授权适配、数据库副本与实时一致性、已授权样本验收、现代微信版本兼容，以及朋友圈/收藏/导出/统计/AI/写入等完整功能补齐。Chatlog 原自动 macOS 取密钥实现要求 SIP 状态变化，本次没有使用，也没有提供自动更改系统安全设置的脚本。后续边界见 [候选源码评估](native-backend-candidates.md) 和 [全功能维护方案](independent-maintenance-native.md)。

@@ -8,6 +8,7 @@ const DEFAULT_REPORT_NAME = 'public-release-audit.json';
 const DEFAULT_MANIFEST_NAME = 'public-source-candidate.v1.json';
 const TOP_LEVEL_EXCLUDES = new Set(['.git', '.alpha', '.runtime', 'node_modules', 'dist', 'build']);
 const PRIVATE_EVIDENCE_DEFAULT_EXCLUDES = new Set([
+  'packages/alpha-data-bridge/.runtime',
   'workers/agent/dist',
   'docs/native-diagnosis-evidence',
   'docs/native-startup-diagnosis.json',

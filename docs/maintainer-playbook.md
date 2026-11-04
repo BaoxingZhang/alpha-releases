@@ -33,7 +33,7 @@ npm run restore:independent-state -- --source /absolute/state.alpha-backup --tar
 
 公开源码或发行材料前，使用 `npm run audit:public-release -- --root <sanitized-tree> --report <external-audit-report> --strict`。它扫描 `docs/` 和 `provenance/` 中的用户目录、临时目录、私钥块和常见访问令牌；取证材料需要显式 `--exclude`，不会自动认为它们安全，也不会改写原文件。
 
-准备公开源码候选目录时，运行 `npm run prepare:public-source -- --output <external-candidate> --report <external-audit-report> --manifest <external-manifest>`。流程会在源仓库外创建一个不存在的新目录，复制时保留完整相对路径并排除生成目录和默认私有证据。默认排除包括机器生成的运行/构建报告、原生能力与 provenance 清单、上游本地安装包记录和恢复组件索引；这些文件可以留在内部取证仓库，但不应随公开候选发布。流程随后用严格模式审计；可用重复的 `--exclude relative/path` 加入额外排除。报告和 manifest 只写入调用方指定的外部路径，输出、报告或 manifest 已存在，以及发现 symlink、用户路径或凭据时均失败关闭。`blocked-by-public-audit` 的候选目录可以用于修复和复核，但不修改原始证据；`ready-for-license-and-review` 也不等于许可证已选择或发布已获授权。
+准备公开源码候选目录时，运行 `npm run prepare:public-source -- --output <external-candidate> --report <external-audit-report> --manifest <external-manifest>`。流程会在源仓库外创建一个不存在的新目录，复制时保留完整相对路径并排除生成目录和默认私有证据。默认排除包括机器生成的运行/构建报告、`packages/alpha-data-bridge/.runtime` Go 缓存、原生能力与 provenance 清单、上游本地安装包记录和恢复组件索引；这些文件可以留在内部取证仓库，但不应随公开候选发布。候选保留不含本机路径的 `docs/public-dependency-licenses.json` 和 `docs/chatlog-licenses/` 许可证材料供人工复核。流程随后用严格模式审计；可用重复的 `--exclude relative/path` 加入额外排除。报告和 manifest 只写入调用方指定的外部路径，输出、报告或 manifest 已存在，以及发现 symlink、用户路径或凭据时均失败关闭。`blocked-by-public-audit` 的候选目录可以用于修复和复核，但不修改原始证据；`ready-for-license-and-review` 也不等于许可证已选择或发布已获授权。
 
 ## 功能接手顺序
 

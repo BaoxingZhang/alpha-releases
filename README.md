@@ -97,7 +97,7 @@ npm run prepare:public-source -- \
   --manifest /tmp/alpha-public-source-manifest.json
 ```
 
-该命令把筛选后的文件复制到调用方指定的新目录，保留嵌套路径，默认排除生成目录和私有 REA/Ghidra 证据，然后执行严格公开审计。`--exclude` 可重复传入源仓库相对路径。输出目录必须在源仓库外且不存在；报告和 manifest 也必须写到源仓库及候选目录之外的指定路径。发现路径或凭据时返回 `blocked-by-public-audit`，保留候选目录与脱敏报告供修复，不修改原始 evidence。`ready-for-license-and-review` 只表示该次审计通过，仍需维护者完成许可证、来源、签名和发布审核，不能据此宣称整个项目已经安全公开。
+该命令把筛选后的文件复制到调用方指定的新目录，保留嵌套路径，默认排除生成目录（包括 `packages/alpha-data-bridge/.runtime` Go 缓存）和私有 REA/Ghidra 证据，然后执行严格公开审计。候选保留不含本机路径的 `docs/public-dependency-licenses.json` 和 `docs/chatlog-licenses/` 许可证材料供人工复核。`--exclude` 可重复传入源仓库相对路径。输出目录必须在源仓库外且不存在；报告和 manifest 也必须写到源仓库及候选目录之外的指定路径。发现路径或凭据时返回 `blocked-by-public-audit`，保留候选目录与脱敏报告供修复，不修改原始 evidence。`ready-for-license-and-review` 只表示该次审计通过，仍需维护者完成许可证、来源、签名和发布审核，不能据此宣称整个项目已经安全公开。
 
 `npm run build:packaged` 在 `build/packaged-resources/independent/` 生成可复制到 Electron `Resources/independent/` 的独立后端资源。普通 packaged flavor 默认仍使用原包 native runtime；独立 flavor 通过应用包内 marker 选择独立资源，开发启动时只需显式设置 `ALPHA_RECOVERY_BACKEND=independent`（手工模拟已打包进程时再加 `ALPHA_INDEPENDENT_PACKAGED=1`）。资源缺失时会明确失败，不回退到原生 engine，也不把 UI 启动成功当作后端就绪。
 
