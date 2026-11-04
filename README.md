@@ -86,6 +86,8 @@ npm run bundle:recovery  # 生成排除用户数据和构建输出的源码恢�
 
 `npm run audit:upstream` 会只读刷新上游 `alpha-releases` 的仓库 HEAD、release 资产、公开文件树、README/stable policy 哈希和可选的本地 DMG 校验。默认只输出报告；加 `--write` 才会原子更新 `docs/upstream-alpha-releases-current.json`，加 `--artifact /absolute/path/Alpha-0.3.5-arm64.dmg` 才会读取并核对本地安装包。该工具不下载发行二进制，也不把上游发行仓库当作源码或许可证来源。
 
+许可证、来源分层和公开发布前的人工门槛见 [许可证与来源边界](docs/licensing-and-provenance.md)。当前 `recovery` 分支保持内部维护定位，不为恢复的上游应用层或原生运行时擅自声明许可证。
+
 个人 fork 还提供 `.github/workflows/upstream-audit.yml`，每周或手动运行一次只读审计，固定使用 `recovery` 分支工具并把结果保存为 Actions artifact，不会自动修改仓库。
 
 公开源码或发行材料前，可运行 `npm run audit:public-release -- --root /path/to/sanitized-tree --report /tmp/alpha-public-release-audit.json --strict`。它只读扫描 `docs/` 和 `provenance/` 中的本机绝对路径、私钥块和明显访问令牌；默认只报告，私有 REA/Ghidra 证据目录需要显式使用 `--exclude`，报告只保留相对路径和 `[redacted]` 标记。
@@ -170,7 +172,7 @@ npm run index          # 根据当前src重新生成导航索引
 
 主要缺口包括原 TS/TSX 与类型、完整开发工作区、原依赖锁、Cargo/Rust 和 C++/CMake 工程、原生协议生成工程、服务端授权实现，以及未随包提供的高级组件和语音模型。原生程序依赖自身的完整性、身份、许可及有效期检查，已有二进制不能保证恢复工程完整可用。
 
-详细见 [缺失部分清单](docs/source-gaps.md)、[本地验证说明](docs/local-build-and-run.md)、[原生资源来源](docs/native-runtime-provenance.json)。原始商标、第三方许可文件及 bundle 中的许可注释保留；本工程未给恢复代码重新声明开源许可证。
+详细见 [缺失部分清单](docs/source-gaps.md)、[本地验证说明](docs/local-build-and-run.md)、[原生资源来源](docs/native-runtime-provenance.json) 和 [许可证与来源边界](docs/licensing-and-provenance.md)。原始商标、第三方许可文件及 bundle 中的许可注释保留；本工程未给恢复代码重新声明开源许可证。
 
 ## 独立后端接手基础
 

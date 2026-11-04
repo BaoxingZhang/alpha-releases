@@ -6,6 +6,8 @@
 
 Chatlog适合作为会话、消息、联系人、群、本地媒体的读取底座。完整Alpha目标仍包括朋友圈/收藏、导出任务与调度、统计、AI、写入、安全和许可，不能将读取底座交付成全功能后端。
 
+本表的“候选缺失”针对 Alpha 原生协议语义。当前 recovery 分支另有独立的本地公众号计划 metadata CRUD、blocked-attempt 记录和独立导出调度；这些能力不改变本表的原生兼容分类，也不连接公众号服务或执行远程计划。具体边界见 [独立 HTTP/MCP 接手记录](http-readonly-adapter-recovery.md)。
+
 ## 必须先处理的差异
 
 - **消息身份与分页**：v4查询要求会话；regexp keyword；秒时间范围；offset分页；跨库/会话满足数量可提前返回，不能证明全局稳定排序。消息归一未保留完整server/local/source身份，IsSelf有源码FIXME。
