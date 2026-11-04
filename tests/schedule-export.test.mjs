@@ -114,4 +114,9 @@ test('restart resumes an overdue persisted plan without replaying a backlog', as
   const second = await reopened.schedulerTick();
   assert.equal(second.plansStarted, 0);
   assert.equal(reopened.listRuns({ accountId, scheduleId, limit: 100 }).records.length, 1);
+  // Close the reopened scheduler before the fixture cleanup removes its
+  // state directory. The execution launched by the first tick persists its
+  // terminal state asynchronously; relying on hook ordering can otherwise
+  // race that write against the directory removal on slower CI runners.
+  await reopened.close();
 });
