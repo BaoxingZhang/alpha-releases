@@ -497,6 +497,45 @@
         "uploadSupported": false,
         "readOnly": true,
         "sourceMethod": "getTelemetryStatus"
+      },
+      {
+        "methods": [
+          "POST"
+        ],
+        "path": "/api/v1/contacts/export",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-contact-export",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "localFileOutput": true,
+        "sourceMethod": "exportContacts",
+        "formats": [
+          "xlsx",
+          "csv",
+          "json",
+          "vcf",
+          "html"
+        ],
+        "avatars": false
+      },
+      {
+        "methods": [
+          "POST"
+        ],
+        "path": "/api/v1/group-members/export",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-group-member-export",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "localFileOutput": true,
+        "sourceMethod": "exportGroupMembers",
+        "formats": [
+          "xlsx",
+          "csv",
+          "json",
+          "html"
+        ],
+        "avatars": false
       }
     ],
     "mcp": [
@@ -792,6 +831,39 @@
         "uploadSupported": false,
         "readOnly": true,
         "sourceMethod": "getTelemetryStatus"
+      },
+      {
+        "name": "alpha-independent.contacts.export",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-contact-export",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "localFileOutput": true,
+        "sourceMethod": "exportContacts",
+        "formats": [
+          "xlsx",
+          "csv",
+          "json",
+          "vcf",
+          "html"
+        ],
+        "avatars": false
+      },
+      {
+        "name": "alpha-independent.contacts.export_group_members",
+        "status": "independent-adapter-extension",
+        "scope": "alpha-independent-group-member-export",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "localFileOutput": true,
+        "sourceMethod": "exportGroupMembers",
+        "formats": [
+          "xlsx",
+          "csv",
+          "json",
+          "html"
+        ],
+        "avatars": false
       }
     ],
     "nativeMomentsSchemasSupported": [],
