@@ -4922,6 +4922,11 @@ const CATALOG$1 = {
     cause: "当前窗口没有暴露系统目录对话框能力。",
     action: "改用手动登记路径输入框。"
   },
+  INDEPENDENT_SOURCE_RESTART_REQUIRED: {
+    title: "独立模式的数据副本由启动参数固定",
+    cause: "独立后端不会在运行中切换到另一个目录，避免绕过源快照、路径权限和锁校验。",
+    action: "退出应用后，使用 scripts/launch.mjs --independent --data-dir 或 --encrypted-dir 重新启动目标副本。"
+  },
   SOURCE_DIRECTORY_SELECTION_INVALID: {
     title: "目录选择结果无效",
     cause: "选择器返回了空路径。",
@@ -6666,8 +6671,8 @@ const keyCopy = independentSource ? { intro: "打开启动时指定的微信 v4 
             /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "setup-field", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "微信数据目录" }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "setup-path", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("input", { value: state.manualPath, onChange: (event) => changeSource(event.target.value), placeholder: "选择包含 db_storage 的账号目录", spellCheck: false }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Tooltip, { content: "浏览数据库目录", describe: false, children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", "aria-label": "浏览数据库目录", onClick: () => void chooseDirectory(), children: /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }) }) })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("input", { value: state.manualPath, readOnly: independentSource, onChange: (event) => changeSource(event.target.value), placeholder: "选择包含 db_storage 的账号目录", spellCheck: false }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Tooltip, { content: independentSource ? "独立模式需重启并指定数据副本" : "浏览数据库目录", describe: false, children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", "aria-label": independentSource ? "独立模式需重启并指定数据副本" : "浏览数据库目录", disabled: independentSource, onClick: () => void chooseDirectory(), children: /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }) }) })
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "settings-note", children: independentSource ? "此处只接受启动时指定的数据副本。演示数据中的账号和消息均为人工合成。要更换副本，请使用相应目录重新启动。" : "先点文件夹按钮选择目录。在电脑版微信设置中查找“存储位置”或“文件管理”（名称随版本不同），打开后选择含有 db_storage 文件夹的账号目录；不要选择某个 .db 文件。多个账号时，请确认选的是要查看的账号。" }),

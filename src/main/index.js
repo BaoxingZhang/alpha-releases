@@ -74598,6 +74598,12 @@ if (primaryInstance) electron.app.whenReady().then(async () => {
   });
   electron.ipcMain.handle(IPC_CHANNELS.chooseAccountDataDirectory, async (event) => {
     await checkAccountDiscoveryAccess(event);
+    // The independent engine is constructed once from the explicitly supplied
+    // --data-dir/--encrypted-dir.  It cannot safely switch source roots from
+    // an IPC dialog: doing so would bypass the startup path, snapshot stamps,
+    // and the engine's source authorization boundary.  Fail closed with a
+    // diagnostic that tells the user to restart with the desired copy.
+    if (independentBackendEnabled()) throw new Error("INDEPENDENT_SOURCE_RESTART_REQUIRED");
     if (accountDirectoryDialogs.has(event.sender.id)) throw new Error("SOURCE_DIRECTORY_DIALOG_BUSY");
     accountDirectoryDialogs.add(event.sender.id);
     try {

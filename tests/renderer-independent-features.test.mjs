@@ -60,6 +60,15 @@ test('independent settings do not advertise the native desktop MCP gateway', () 
   assert.match(source, /McpConnectionGuide, \{ status: httpApiStatus, independent: isIndependentEngineStatus\(status\) \}/);
 });
 
+test('independent onboarding keeps the startup-bound source fail-closed', () => {
+  assert.match(mainSource, /if \(independentBackendEnabled\(\)\) throw new Error\("INDEPENDENT_SOURCE_RESTART_REQUIRED"\);/);
+  assert.match(source, /INDEPENDENT_SOURCE_RESTART_REQUIRED: \{/);
+  assert.match(source, /独立模式的数据副本由启动参数固定/);
+  assert.match(source, /readOnly: independentSource/);
+  assert.match(source, /disabled: independentSource/);
+  assert.match(source, /独立模式需重启并指定数据副本/);
+});
+
 test('independent official schedule UI stays metadata-only', () => {
   assert.match(source, /function SchedulePlans\(\{ accountId, bundleId, active: active2, independent = false \}\)/);
   assert.match(source, /独立后端只保存公众号计划元数据，不执行公众号任务；真实执行仍不可用。/);
