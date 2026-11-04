@@ -148,6 +148,13 @@ try {
   assert.deepEqual(image, { mimeType: 'image/png', dataBase64: media.imageBytes.toString('base64') });
   report.checks.packagedImageReadThroughRendererIpc = true;
   await page.locator('.message-media img').first().waitFor({ timeout: 15000 });
+  // The image element can be mounted before Chromium has completed the
+  // decode.  Waiting for the actual load state avoids a timing race that is
+  // more visible on the GitHub macOS runner than on a warm local cache.
+  await page.waitForFunction(() => {
+    const element = document.querySelector('.message-media img');
+    return Boolean(element?.complete && element.naturalWidth > 0);
+  }, { timeout: 15000 });
   assert.equal(await page.locator('.message-media img').first().evaluate((element) => element.complete && element.naturalWidth > 0), true);
   report.checks.packagedImagePreviewRendered = true;
   const attachment = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.openAttachment(accountId, opaqueId, 'reveal'), {
