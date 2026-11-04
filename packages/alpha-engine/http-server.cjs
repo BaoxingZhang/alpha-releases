@@ -19,7 +19,7 @@ const PRINTABLE_TOKEN = /^[\x21-\x7e]{32,256}$/;
 // Conversation export only writes a new file through the engine's bounded,
 // non-overwriting exporter. It does not mutate the source database, but it is
 // kept separate from the ordinary DTO reads so the route remains explicit.
-const ALLOWED_METHODS = new Set(['listAccounts', 'listConversations', 'listMessages', 'searchMessages', 'listContacts', 'listMoments', 'listFavorites', 'listFavoriteMediaSlots', 'resolveFavoriteMedia', 'listMomentAuthors', 'getMomentDayCounts', 'getContactProfile', 'listGeneral', 'listMessageRecallRecords', 'getMessageAntiRecallStatuses', 'getConversationDayCounts', 'getChatExportStats', 'getChatExportCapabilities', 'exportConversation', 'startMomentExport', 'watchChatExport', 'cancelChatExport', 'startAggregateAnalysis', 'watchAggregateAnalysis', 'cancelAggregateAnalysis', 'locateMessage', 'getMessageSource', 'decodeVoicePlayback', 'getImageMediaStatus', 'getTelemetryStatus', 'analyzeAnnual', 'analyzeConversation', 'browseConversationMessages', 'browseAccountMedia', 'listChatExportSchedules', 'getChatExportSchedule', 'saveChatExportSchedule', 'deleteChatExportSchedule', 'runChatExportScheduleNow', 'listChatExportRuns', 'getChatExportRun', 'listChatExportAttempts', 'getChatExportAttempt', 'retryChatExportAttempt', 'listOfficialSchedulePlans', 'getOfficialSchedulePlan', 'saveOfficialSchedulePlan', 'deleteOfficialSchedulePlan', 'listOfficialPlanAttempts', 'getOfficialPlanAttempt', 'requestOfficialPlanAttempt', 'archiveOfficialPlanAttempt', 'getDataRevision', 'getDataWatchTargets', 'getDataSchemaDiagnostics', 'getApplicationLockStatus', 'getAdvancedComponentStatus']);
+const ALLOWED_METHODS = new Set(['listAccounts', 'listConversations', 'listMessages', 'searchMessages', 'listContacts', 'listMoments', 'listFavorites', 'listFavoriteMediaSlots', 'resolveFavoriteMedia', 'listMomentAuthors', 'getMomentDayCounts', 'getContactProfile', 'listGeneral', 'listMessageRecallRecords', 'getMessageAntiRecallStatuses', 'getConversationDayCounts', 'getChatExportStats', 'getChatExportCapabilities', 'exportConversation', 'exportContacts', 'exportGroupMembers', 'startMomentExport', 'watchChatExport', 'cancelChatExport', 'startAggregateAnalysis', 'watchAggregateAnalysis', 'cancelAggregateAnalysis', 'locateMessage', 'getMessageSource', 'decodeVoicePlayback', 'getImageMediaStatus', 'getTelemetryStatus', 'analyzeAnnual', 'analyzeConversation', 'browseConversationMessages', 'browseAccountMedia', 'listChatExportSchedules', 'getChatExportSchedule', 'saveChatExportSchedule', 'deleteChatExportSchedule', 'runChatExportScheduleNow', 'listChatExportRuns', 'getChatExportRun', 'listChatExportAttempts', 'getChatExportAttempt', 'retryChatExportAttempt', 'listOfficialSchedulePlans', 'getOfficialSchedulePlan', 'saveOfficialSchedulePlan', 'deleteOfficialSchedulePlan', 'listOfficialPlanAttempts', 'getOfficialPlanAttempt', 'requestOfficialPlanAttempt', 'archiveOfficialPlanAttempt', 'getDataRevision', 'getDataWatchTargets', 'getDataSchemaDiagnostics', 'getApplicationLockStatus', 'getAdvancedComponentStatus']);
 const LOCAL_METHODS = new Set(['getDataSchemaDiagnostics', 'getApplicationLockStatus', 'getAdvancedComponentStatus', 'getTelemetryStatus', 'listOfficialPlanAttempts', 'getOfficialPlanAttempt', 'requestOfficialPlanAttempt', 'archiveOfficialPlanAttempt']);
 const MCP_SCAN_MAX_PAGES = 128;
 const MCP_SCAN_MAX_ITEMS = 10000;
@@ -390,6 +390,50 @@ function officialScheduleScope(value) {
   };
 }
 
+function contactExportRequest(raw, account, code = 'HTTP_API_CONTACT_EXPORT_INVALID') {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new HttpAdapterError(code, 400);
+  const allowed = new Set(['account_id', 'accountId', 'categories', 'query', 'format', 'include_profile', 'includeProfile', 'include_avatars', 'includeAvatars', 'destination_path', 'destinationPath', 'utc_offset_minutes', 'utcOffsetMinutes']);
+  if (Object.keys(raw).some(key => !allowed.has(key))) throw new HttpAdapterError(code, 400);
+  const accountValue = raw.account_id ?? raw.accountId ?? account;
+  if (accountValue !== account) throw new HttpAdapterError('HTTP_API_ACCOUNT_INVALID', 400);
+  if (!Array.isArray(raw.categories) || raw.categories.length < 1 || raw.categories.length > 8 || new Set(raw.categories).size !== raw.categories.length || raw.categories.some(value => typeof value !== 'string' || !['friend', 'group', 'enterprise_friend', 'enterprise_group', 'official', 'service', 'former_friend', 'blocked'].includes(value))) throw new HttpAdapterError(code, 400);
+  const query = text(raw.query ?? '', 1024, code);
+  const format = text(raw.format, 16, code);
+  if (!['xlsx', 'csv', 'json', 'vcf', 'html'].includes(format)) throw new HttpAdapterError('HTTP_API_FORMAT_UNSUPPORTED', 400);
+  const includeProfile = raw.include_profile ?? raw.includeProfile;
+  const includeAvatars = raw.include_avatars ?? raw.includeAvatars;
+  if (typeof includeProfile !== 'boolean' || typeof includeAvatars !== 'boolean') throw new HttpAdapterError(code, 400);
+  if (includeAvatars) throw new HttpAdapterError('HTTP_API_CONTACT_EXPORT_AVATARS_UNSUPPORTED', 400);
+  const destinationPath = text(raw.destination_path ?? raw.destinationPath, 4096, code);
+  if (!destinationPath || !path.isAbsolute(destinationPath) || path.extname(destinationPath).toLowerCase() !== `.${format}`) throw new HttpAdapterError(code, 400);
+  const utcOffsetMinutes = integer(raw.utc_offset_minutes ?? raw.utcOffsetMinutes, -840, 840, code) ?? 0;
+  return { accountId: account, categories: raw.categories, query, format, includeProfile, includeAvatars, destinationPath, utcOffsetMinutes };
+}
+
+function groupMemberExportRequest(raw, account, code = 'HTTP_API_GROUP_MEMBER_EXPORT_INVALID') {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new HttpAdapterError(code, 400);
+  const allowed = new Set(['account_id', 'accountId', 'chatroom_id', 'chatroomId', 'username', 'format', 'destination_path', 'destinationPath', 'utc_offset_minutes', 'utcOffsetMinutes']);
+  if (Object.keys(raw).some(key => !allowed.has(key))) throw new HttpAdapterError(code, 400);
+  const accountValue = raw.account_id ?? raw.accountId ?? account;
+  if (accountValue !== account) throw new HttpAdapterError('HTTP_API_ACCOUNT_INVALID', 400);
+  const room = text(oneAlias(raw, ['chatroom_id', 'chatroomId', 'username'], `${code}_CHATROOM_AMBIGUOUS`), 256, code);
+  if (!room || !room.endsWith('@chatroom')) throw new HttpAdapterError(code, 400);
+  const format = text(raw.format, 16, code);
+  if (!['xlsx', 'csv', 'json', 'html'].includes(format)) throw new HttpAdapterError('HTTP_API_FORMAT_UNSUPPORTED', 400);
+  const destinationPath = text(raw.destination_path ?? raw.destinationPath, 4096, code);
+  if (!destinationPath || !path.isAbsolute(destinationPath) || path.extname(destinationPath).toLowerCase() !== `.${format}`) throw new HttpAdapterError(code, 400);
+  const utcOffsetMinutes = integer(raw.utc_offset_minutes ?? raw.utcOffsetMinutes, -840, 840, code) ?? 0;
+  return { accountId: account, chatroomId: room, format, destinationPath, utcOffsetMinutes };
+}
+
+function contactExportScope(value) {
+  return { ...snakeKeys(value || {}), scope: 'alpha-independent-contact-export', complete: false, native_schema_supported: false, local_file_output: true };
+}
+
+function groupMemberExportScope(value) {
+  return { ...snakeKeys(value || {}), scope: 'alpha-independent-group-member-export', complete: false, native_schema_supported: false, local_file_output: true };
+}
+
 function officialAttemptScope(value) {
   // Local attempt records use int64 values so they remain lossless inside the
   // engine.  HTTP/MCP JSON must expose those values as decimal strings, just
@@ -477,6 +521,8 @@ function toolDefinitions() {
     { name: 'wechat.contacts.resolve_contact', description: '按联系人或群名称做有界字面量查询', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, limit: { type: 'integer', minimum: 1, maximum: 20 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.contacts.get_contact_profile', description: '返回已验证联系人的存在性和有限群信息', inputSchema: { type: 'object', required: ['username'], properties: { account_id: string, username: string, common_group_limit: { type: 'integer', minimum: 0, maximum: 20 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.contacts.get_group_members', description: '读取已验证群成员字段', inputSchema: { type: 'object', required: ['chatroom_id'], properties: { account_id: string, chatroom_id: string, limit: { type: 'integer', minimum: 1, maximum: 1000 }, offset: { type: 'integer', minimum: 0 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.contacts.export', description: '将已验证联系人字段导出到本机新文件；格式和路径受独立引擎边界约束，不兼容原生 Alpha formatter', inputSchema: { type: 'object', required: ['categories', 'format', 'destination_path', 'include_profile', 'include_avatars'], properties: { account_id: string, categories: { type: 'array', minItems: 1, maxItems: 8, uniqueItems: true, items: string }, query: string, format: { type: 'string', enum: ['xlsx', 'csv', 'json', 'vcf', 'html'] }, include_profile: { type: 'boolean' }, include_avatars: { type: 'boolean', const: false }, destination_path: string, utc_offset_minutes: { type: 'integer', minimum: -840, maximum: 840 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.contacts.export_group_members', description: '将已验证群成员字段导出到本机新文件；不包含头像或未验证原生群资料', inputSchema: { type: 'object', required: ['chatroom_id', 'format', 'destination_path'], properties: { account_id: string, chatroom_id: string, format: { type: 'string', enum: ['xlsx', 'csv', 'json', 'html'] }, destination_path: string, utc_offset_minutes: { type: 'integer', minimum: -840, maximum: 840 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.groups.list_pinned_messages', description: '读取显式 __alpha_group_pins_v1 synthetic fixture 的群置顶元数据；不兼容原生群置顶 schema 或 writer', inputSchema: { type: 'object', required: ['chatroom_id'], properties: { account_id: string, chatroom_id: string, limit: { type: 'integer', minimum: 1, maximum: 1000 }, offset: { type: 'integer', minimum: 0 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.messages.get_anti_recall_status', description: '返回指定会话的独立防撤回 writer 状态；当前固定 writer=false，不读取或修改原生撤回库', inputSchema: { type: 'object', required: ['conversation_ids'], properties: { account_id: string, conversation_ids: { type: 'array', minItems: 1, maxItems: 500, items: string, uniqueItems: true } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.chat.list_sessions', description: '分页读取已验证会话', inputSchema: { type: 'object', properties: { account_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -555,6 +601,8 @@ function toolDefinitions() {
 const LIST_TOOLS_EXCLUDED = new Set([
   'wechat.chat.export_conversation',
   'wechat.chat.export_media_metadata',
+  'alpha-independent.contacts.export',
+  'alpha-independent.contacts.export_group_members',
   'alpha-independent.moments.start_export',
   'alpha-independent.moments.watch_export',
   'alpha-independent.moments.cancel_export'
@@ -1148,6 +1196,11 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const response = await call('listContacts', { accountId: account, ascending: true, query: text(params.query ?? params.keyword, 1024, 'HTTP_API_QUERY_INVALID') || '', limit: integer(params.limit, 1, 500, 'HTTP_API_LIMIT_INVALID') ?? 100, offset: integer(params.offset, 0, 100000, 'HTTP_API_OFFSET_INVALID') ?? 0 });
       return snakeKeys(response.response || response);
     }
+    if (pathname === '/api/v1/contacts/export') {
+      if (method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const account = await selectedAccount(params);
+      return contactExportScope(await call('exportContacts', contactExportRequest(params, account)));
+    }
     if (pathname === '/api/v1/contact-directory') {
       const rawCategories = params.categories === undefined || params.categories === '' ? [] : String(params.categories).split(',').filter(Boolean);
       if (rawCategories.length > 2 || rawCategories.some(category => !['friend', 'group'].includes(category)) || new Set(rawCategories).size !== rawCategories.length) throw new HttpAdapterError('HTTP_API_DIRECTORY_CATEGORY_INVALID', 400);
@@ -1160,6 +1213,11 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const response = await call('listGeneral', { accountId: account, tableName: '__alpha_group_members', query: room, limit: integer(params.limit, 1, 1000, 'HTTP_API_LIMIT_INVALID') ?? 100, offset: integer(params.offset, 0, 100000, 'HTTP_API_OFFSET_INVALID') ?? 0, ascending: true });
       const pageResponse = response.response || {};
       return { items: (pageResponse.items || []).map(item => { const fields = Object.fromEntries((item.fields || []).map(field => [field.name, field.value])); return { username: item.actor, group_nickname: fields.groupNickname || '', nickname: fields.nickname || '', remark: fields.remark || '', alias: fields.alias || '', ...(fields.isOwner === 'true' ? { is_owner: true } : {}) }; }), source_database: pageResponse.sourceDatabase || '', source_table: pageResponse.sourceTable || '' };
+    }
+    if (pathname === '/api/v1/group-members/export') {
+      if (method !== 'POST') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const account = await selectedAccount(params);
+      return groupMemberExportScope(await call('exportGroupMembers', groupMemberExportRequest(params, account)));
     }
     if (pathname === '/api/v1/independent/group-pins') {
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
@@ -1342,7 +1400,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       'alpha-independent.mobile.get_chat_context': ['account_id', 'username', 'anchor_id', 'before', 'after'],
       'wechat.core.get_status': [], 'wechat.core.get_lock_status': [], 'alpha-independent.telemetry.get_status': [], 'alpha-independent.components.get_status': ['component'], 'wechat.core.list_tools': ['package'], 'wechat.core.list_accounts': [], 'wechat.core.get_account_info': ['account_id'],
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'], 'alpha-independent.messages.get_anti_recall_status': ['account_id', 'conversation_ids'],
-      'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'alpha-independent.groups.list_pinned_messages': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
+      'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'alpha-independent.contacts.export': ['account_id', 'categories', 'query', 'format', 'include_profile', 'include_avatars', 'destination_path', 'utc_offset_minutes'], 'alpha-independent.contacts.export_group_members': ['account_id', 'chatroom_id', 'format', 'destination_path', 'utc_offset_minutes'], 'alpha-independent.groups.list_pinned_messages': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
       'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'], 'alpha-independent.chat.get_incremental_messages': ['account_id', 'conversation_id', 'since_unix_ms', 'end_unix_ms', 'limit', 'cursor', 'ascending'],
       'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.get_image_status': ['account_id', 'verify_sample'], 'alpha-independent.media.read_voice_blob': ['account_id', 'key'], 'alpha-independent.media.read_indexed': ['account_id', 'conversation_id', 'message_id', 'media_id', 'sha256', 'kind', 'rendition'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.media.inspect_asr': ['model_root', 'model_id'], 'alpha-independent.media.transcribe_indexed_voice': ['account_id', 'media_index_root', 'media_id', 'model_root', 'model_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
       'alpha-independent.records.list_candidates': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'], 'alpha-independent.records.list_recall_candidates': ['account_id', 'conversation_id', 'cursor', 'limit'],
@@ -1406,6 +1464,8 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
     }
     else if (name === 'wechat.contacts.get_group_members') { pathName = '/api/v1/group-members'; params.chatroom_id = args.chatroom_id; }
+    else if (name === 'alpha-independent.contacts.export') { pathName = '/api/v1/contacts/export'; params = { ...args }; }
+    else if (name === 'alpha-independent.contacts.export_group_members') { pathName = '/api/v1/group-members/export'; params = { ...args }; }
     else if (name === 'alpha-independent.groups.list_pinned_messages') { pathName = '/api/v1/independent/group-pins'; params.chatroom_id = args.chatroom_id; }
     else if (name === 'wechat.chat.list_sessions') pathName = '/api/v1/sessions';
     else if (name === 'wechat.chat.resolve_session') pathName = '/api/v1/sessions';
@@ -1796,7 +1856,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     }
     else return { jsonrpc: '2.0', id: rpc.id, result: { isError: true, structuredContent: { code: 'MCP_TOOL_NOT_FOUND', message: 'MCP_TOOL_NOT_FOUND' }, content: [{ type: 'text', text: JSON.stringify({ code: 'MCP_TOOL_NOT_FOUND', message: 'MCP_TOOL_NOT_FOUND' }) }] } };
     try {
-      let result = await route(pathName, params, ['wechat.chat.export_conversation', 'wechat.chat.export_media_metadata', 'alpha.analysis.start', 'alpha.analysis.cancel', 'alpha-independent.moments.start_export', 'alpha-independent.moments.cancel_export', 'alpha-independent.schedules.save', 'alpha-independent.schedules.delete', 'alpha-independent.schedules.run_now', 'alpha-independent.schedules.retry_attempt', 'alpha-independent.official_plans.request_attempt', 'alpha-independent.official_plans.archive_attempt'].includes(name) ? 'POST' : 'GET');
+      let result = await route(pathName, params, ['wechat.chat.export_conversation', 'wechat.chat.export_media_metadata', 'alpha-independent.contacts.export', 'alpha-independent.contacts.export_group_members', 'alpha.analysis.start', 'alpha.analysis.cancel', 'alpha-independent.moments.start_export', 'alpha-independent.moments.cancel_export', 'alpha-independent.schedules.save', 'alpha-independent.schedules.delete', 'alpha-independent.schedules.run_now', 'alpha-independent.schedules.retry_attempt', 'alpha-independent.official_plans.request_attempt', 'alpha-independent.official_plans.archive_attempt'].includes(name) ? 'POST' : 'GET');
       if (name === 'wechat.contacts.resolve_contact') {
         result = { items: (result.items || []).map(item => ({ username: item.username, display_name: item.remark || item.nickname || item.alias || item.username, kind: item.username?.endsWith('@chatroom') ? 'group' : 'contact' })) };
       } else if (name === 'wechat.chat.resolve_session') {
