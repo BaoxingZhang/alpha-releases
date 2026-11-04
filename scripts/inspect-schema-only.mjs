@@ -78,6 +78,11 @@ async function inventory(root) {
         stack.push({ directory: full, depth: depth + 1 });
       } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.db')) {
         files.push({ path: full, relative: relativePath(root, full), stat });
+      } else if (!entry.isFile()) {
+        // A FIFO, socket, device or other special entry could block or have
+        // side effects during a later inspection. Keep the selected copy
+        // limited to ordinary files and directories.
+        throw failure('SCHEMA_ONLY_UNSUPPORTED_ENTRY');
       }
     }
   }

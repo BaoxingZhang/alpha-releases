@@ -95,6 +95,16 @@ test('schema-only diagnostics rejects symlinks and active SQLite sidecars', asyn
   await assert.rejects(inspectSchemaOnly({ dataDir }), /SCHEMA_ONLY_SYMLINK_DENIED/);
 });
 
+test('schema-only diagnostics rejects special filesystem entries', async t => {
+  const outer = await fs.mkdtemp(path.join(base, 'case-'));
+  t.after(() => fs.rm(outer, { recursive: true, force: true }));
+  const dataDir = path.join(outer, 'copy');
+  await fs.mkdir(dataDir, { recursive: true });
+  const fifo = path.join(dataDir, 'stream');
+  await execute('mkfifo', [fifo]);
+  await assert.rejects(inspectSchemaOnly({ dataDir }), /SCHEMA_ONLY_UNSUPPORTED_ENTRY/);
+});
+
 test('schema-only diagnostics CLI reports malformed core schema without claiming readiness', async t => {
   const outer = await fs.mkdtemp(path.join(base, 'case-'));
   t.after(() => fs.rm(outer, { recursive: true, force: true }));

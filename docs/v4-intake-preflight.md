@@ -9,6 +9,11 @@ npm run preflight:v4 -- \
   --json
 ```
 
+先运行 `npm run build:bridge` 准备本项目的 Go bridge；预检不会自动编译
+bridge。若拿到的是 SQLCipher 加密副本，先按[加密导入流程](encrypted-import.md)
+用调用方手动输入的 key 导入一个静止的明文快照，再对快照目录运行本预检；不要把
+密钥或运行中的原始目录交给预检。
+
 预检先运行只读 SQLite 元数据诊断，再尝试项目自己的只读 bridge。输出为
 `alpha-independent-v4-preflight.v1`，固定标记 `read_only=true`、`complete=false`、
 `native_schema_supported=false`。`status=ready` 只表示 bridge 能识别当前已验证的
@@ -16,7 +21,7 @@ npm run preflight:v4 -- \
 `status=unavailable` 或 `rejected` 表示副本还不能安全读取。
 
 预检不读取密钥、不导入快照、不扫描指定目录之外的路径、不输出消息内容或联系人值，
-也不会把 schema-only 成功映射成 Alpha native parity。源目录必须是绝对、规范化、无符号链接的静止副本，不能有 `-wal`、`-shm` 或 `-journal` 文件。
+也不会把 schema-only 成功映射成 Alpha native parity。源目录必须是绝对、规范化、无符号链接的静止副本；被检查的 SQLite 数据库不能有 `-wal`、`-shm` 或 `-journal` 侧文件，目录中的条目也必须是普通文件或目录。副本权限由调用方负责设置为仅授权维护者可读。
 
 预检后：
 
