@@ -162,6 +162,104 @@ function snakeKeys(value) {
   if (!value || typeof value !== 'object') return value;
   return Object.fromEntries(Object.entries(value).map(([key, child]) => [snakeKey(key), snakeKeys(child)]));
 }
+const MESSAGE_DISPLAY_KEYS = new Set(['kind', 'title', 'description', 'sourceName', 'fileName', 'fileSize', 'fileExtension', 'displayUrl', 'linkUrl', 'location', 'quote']);
+const MESSAGE_DISPLAY_TEXT_KEYS = new Set(['title', 'description', 'sourceName', 'fileName']);
+const MESSAGE_DISPLAY_QUOTE_KEYS = new Set(['sender', 'kind', 'text', 'senderId', 'serverId']);
+function safeDisplayURL(value, display) {
+  if (typeof value !== 'string' || value.length > 4096) return undefined;
+  if (!display && /[\u0000-\u0020\u007f]/.test(value)) return undefined;
+  let parsed;
+  try { parsed = new URL(value); } catch { return undefined; }
+  if (parsed.username || parsed.password) return undefined;
+  if (display) {
+    if (!['http:', 'https:'].includes(parsed.protocol) || parsed.search || parsed.hash || !['', '/'].includes(parsed.pathname)) return undefined;
+  } else {
+    if (parsed.protocol !== 'https:') return undefined;
+    for (const key of parsed.searchParams.keys()) if (/^(?:aes_?key|cdn_?url|encrypt_?url)$/i.test(key)) return undefined;
+  }
+  return value;
+}
+function projectMessageDisplay(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || typeof value.kind !== 'string' || value.kind.length > 64 || value.kind.includes('\0')) return undefined;
+  if (Object.keys(value).some(key => !MESSAGE_DISPLAY_KEYS.has(key))) return undefined;
+  const output = { kind: value.kind };
+  for (const key of MESSAGE_DISPLAY_TEXT_KEYS) {
+    if (value[key] === undefined) continue;
+    if (typeof value[key] !== 'string' || value[key].length > 2048 || value[key].includes('\0')) return undefined;
+    output[key] = value[key];
+  }
+  if (value.fileSize !== undefined && (typeof value.fileSize !== 'string' || !/^\d{1,20}$/.test(value.fileSize) || BigInt(value.fileSize) > (1n << 64n) - 1n)) return undefined;
+  if (value.fileSize !== undefined) output.file_size = value.fileSize;
+  if (value.fileExtension !== undefined && (typeof value.fileExtension !== 'string' || !/^[A-Za-z0-9]{1,12}$/.test(value.fileExtension))) return undefined;
+  if (value.fileExtension !== undefined) output.file_extension = value.fileExtension;
+  if (value.displayUrl !== undefined) {
+    const url = safeDisplayURL(value.displayUrl, true);
+    if (!url) return undefined;
+    output.display_url = url;
+  }
+  if (value.linkUrl !== undefined) {
+    const url = safeDisplayURL(value.linkUrl, false);
+    if (!url) return undefined;
+    output.link_url = url;
+  }
+  if (value.location !== undefined) {
+    const location = value.location;
+    if (!location || typeof location !== 'object' || Array.isArray(location) || typeof location.latitude !== 'number' || !Number.isFinite(location.latitude) || Math.abs(location.latitude) > 90 || typeof location.longitude !== 'number' || !Number.isFinite(location.longitude) || Math.abs(location.longitude) > 180 || typeof location.label !== 'string' || location.label.length > 2048 || location.label.includes('\0')) return undefined;
+    output.location = { latitude: location.latitude, longitude: location.longitude, label: location.label };
+  }
+  if (value.quote !== undefined) {
+    const quote = value.quote;
+    if (!quote || typeof quote !== 'object' || Array.isArray(quote) || Object.keys(quote).some(key => !MESSAGE_DISPLAY_QUOTE_KEYS.has(key)) || typeof quote.sender !== 'string' || quote.sender.length > 2048 || quote.sender.includes('\0') || typeof quote.kind !== 'string' || quote.kind.length > 64 || quote.kind.includes('\0') || typeof quote.text !== 'string' || quote.text.length > 2048 || quote.text.includes('\0')) return undefined;
+    const projected = { sender: quote.sender, kind: quote.kind, text: quote.text };
+    if (quote.senderId !== undefined) {
+      if (typeof quote.senderId !== 'string' || quote.senderId.length > 256 || !quote.senderId.trim() || /[\x00-\x1f\x7f]/.test(quote.senderId)) return undefined;
+      projected.sender_id = quote.senderId.trim();
+    }
+    if (quote.serverId !== undefined) {
+      if (typeof quote.serverId !== 'string' || !/^\d{1,20}$/.test(quote.serverId)) return undefined;
+      projected.server_id = quote.serverId;
+    }
+    output.quote = projected;
+  }
+  return output;
+}
+function messageDisplayResult(value, accountId, conversationId, serverId) {
+  const message = value?.message;
+  const base = {
+    scope: 'alpha-independent-message-display',
+    account_id: accountId,
+    conversation_id: conversationId,
+    server_id: serverId,
+    complete: false,
+    partial: true,
+    native_schema_supported: false,
+    raw_available: false,
+    media_ready: false,
+    exact_identity: Boolean(message)
+  };
+  if (!message) return { ...base, status: 'missing', display: null };
+  let messageServerId;
+  try { messageServerId = BigInt(message.serverId); } catch { throw new HttpAdapterError('HTTP_API_MESSAGE_DISPLAY_RESPONSE_INVALID', 502); }
+  if (message.conversationId !== conversationId || messageServerId !== BigInt(serverId)) throw new HttpAdapterError('HTTP_API_MESSAGE_DISPLAY_RESPONSE_INVALID', 502);
+  const identity = {
+    message_id: typeof message.id === 'string' ? message.id : '',
+    local_id: typeof message.localId === 'bigint' ? message.localId.toString() : (Number.isSafeInteger(message.localId) ? String(message.localId) : '0'),
+    sent_at_unix_ms: typeof message.sentAtUnixMs === 'bigint' ? message.sentAtUnixMs.toString() : String(message.sentAtUnixMs ?? '0'),
+    sender_id: typeof message.senderId === 'string' ? message.senderId : '',
+    kind: typeof message.kind === 'string' ? message.kind : 'unknown'
+  };
+  let bytes = Buffer.alloc(0);
+  if (message.displayJson instanceof Uint8Array || Buffer.isBuffer(message.displayJson)) bytes = Buffer.from(message.displayJson);
+  else if (typeof message.displayJson === 'string') {
+    try { bytes = Buffer.from(message.displayJson, 'base64'); } catch { bytes = Buffer.alloc(0); }
+  }
+  if (!bytes.length || bytes.length > 64 * 1024) return { ...base, ...identity, status: 'unsupported', display: null, reason_code: 'MESSAGE_DISPLAY_UNAVAILABLE' };
+  let parsed;
+  try { parsed = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); } catch { return { ...base, ...identity, status: 'unsupported', display: null, reason_code: 'MESSAGE_DISPLAY_UNSUPPORTED' }; }
+  const display = projectMessageDisplay(parsed);
+  if (!display) return { ...base, ...identity, status: 'unsupported', display: null, reason_code: 'MESSAGE_DISPLAY_UNSUPPORTED' };
+  return { ...base, ...identity, status: 'ready', display };
+}
 const CONTACT_DIRECTORY_CATEGORIES = Object.freeze([
   'friend', 'group', 'enterprise_friend', 'enterprise_group',
   'official', 'service', 'former_friend', 'blocked'
@@ -618,6 +716,7 @@ function toolDefinitions() {
     { name: 'wechat.chat.export_media_metadata', description: '将已验证媒体消息的元数据导出到本机新文件；不读取、解密或播放媒体文件', inputSchema: { type: 'object', required: ['format', 'destination_path'], properties: { account_id: string, username: string, format: { type: 'string', enum: ['media-json', 'media-csv'] }, destination_path: string, start_time_unix_ms: string, end_time_unix_ms: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha.messages.search_page', description: '读取独立后端的跨会话搜索页', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, username: string, sender_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.messages.resolve_search_hit', description: '按会话和 server_id 定位独立后端已验证消息；不兼容官方 alpha.messages.resolve_search_hit schema', inputSchema: { type: 'object', required: ['server_id'], oneOf: [{ required: ['conversation_id'] }, { required: ['username'] }], properties: { account_id: string, conversation_id: string, username: string, server_id: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.messages.resolve_app_display', description: '按会话和 server_id 返回已验证的链接、文件、引用或位置 display 投影；不返回原始 XML、媒体 token 或 CDN URL', inputSchema: { type: 'object', required: ['server_id'], oneOf: [{ required: ['conversation_id'] }, { required: ['username'] }], properties: { account_id: string, conversation_id: string, username: string, server_id: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.records.list_candidates', description: '读取从已验证消息 XML 派生的 partial/candidate 记录；不兼容原生 Alpha 记录库 schema', inputSchema: { type: 'object', required: ['category'], properties: { account_id: string, category: { type: 'string', enum: ['payments', 'friend_requests', 'revokes', 'calls'] }, query: string, ascending: { type: 'boolean' }, limit: { type: 'integer', minimum: 1, maximum: 1000 }, offset: { type: 'integer', minimum: 0 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.records.list_recall_candidates', description: '分页读取从 __alpha_general_revokes 消息 XML 派生的撤回候选；不兼容原生 recall store，也不提供 writer', inputSchema: { type: 'object', required: ['conversation_id'], properties: { account_id: string, conversation_id: string, cursor: string, limit: { type: 'integer', minimum: 1, maximum: 100 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.forensics.list_records', description: '读取已验证消息 XML 推导的 partial/candidate 记录（支付、好友申请、撤回、通话）；支持有界字面量查询及升降序分页', inputSchema: { type: 'object', required: ['category'], properties: { account_id: string, category: { type: 'string', enum: ['payments', 'friend_requests', 'revokes', 'calls'] }, query: string, ascending: { type: 'boolean' }, limit: { type: 'integer', minimum: 1, maximum: 1000 }, offset: { type: 'integer', minimum: 0 } }, additionalProperties: false }, outputSchema: { type: 'object' } }
@@ -1062,6 +1161,15 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const response = await call('getMessageSource', { accountId: account, conversationId: conversation, messageId: message, sourceToken });
       return snakeKeys({ ...response, conversationId: conversation, messageId: message, scope: 'verified-message-text', complete: false, nativeSchemaSupported: false, rawAvailable: false, mediaReady: false });
     }
+    if (pathname === '/api/v1/independent/message-display') {
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const conversation = text(oneAlias(params, ['conversation_id', 'conversationId', 'username', 'talker'], 'HTTP_API_CONVERSATION_AMBIGUOUS'), 1024, 'HTTP_API_MESSAGE_DISPLAY_CONVERSATION_INVALID');
+      if (!conversation) throw new HttpAdapterError('HTTP_API_MESSAGE_DISPLAY_CONVERSATION_REQUIRED', 400);
+      const serverId = text(params.server_id ?? params.serverId, 20, 'HTTP_API_MESSAGE_DISPLAY_SERVER_ID_INVALID');
+      if (!serverId || !/^[1-9][0-9]{0,19}$/.test(serverId) || BigInt(serverId) > (1n << 64n) - 1n) throw new HttpAdapterError('HTTP_API_MESSAGE_DISPLAY_SERVER_ID_INVALID', 400);
+      const value = await call('locateMessage', { accountId: account, conversationId: conversation, serverId });
+      return messageDisplayResult(value, account, conversation, serverId);
+    }
     if (pathname === '/api/v1/independent/media/probe') {
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
       if (typeof engine.probeMedia !== 'function') throw new HttpAdapterError('HTTP_API_MEDIA_PROBE_UNSUPPORTED', 501);
@@ -1503,7 +1611,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'], 'alpha-independent.messages.get_anti_recall_status': ['account_id', 'conversation_ids'], 'alpha-independent.moments.get_anti_delete_status': ['account_id'], 'alpha-independent.moments.resolve_emoji': ['account_id', 'source_token'],
       'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'alpha-independent.contacts.export': ['account_id', 'categories', 'query', 'format', 'include_profile', 'include_avatars', 'destination_path', 'utc_offset_minutes'], 'alpha-independent.contacts.export_group_members': ['account_id', 'chatroom_id', 'format', 'destination_path', 'utc_offset_minutes'], 'alpha-independent.groups.list_pinned_messages': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
       'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'], 'alpha-independent.chat.get_incremental_messages': ['account_id', 'conversation_id', 'since_unix_ms', 'end_unix_ms', 'limit', 'cursor', 'ascending'],
-      'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.get_image_status': ['account_id', 'verify_sample'], 'alpha-independent.media.read_voice_blob': ['account_id', 'key'], 'alpha-independent.media.read_indexed': ['account_id', 'conversation_id', 'message_id', 'media_id', 'sha256', 'kind', 'rendition'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.media.inspect_asr': ['model_root', 'model_id'], 'alpha-independent.media.transcribe_indexed_voice': ['account_id', 'media_index_root', 'media_id', 'model_root', 'model_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
+      'wechat.chat.search_messages': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha.messages.search_page': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'], 'alpha-independent.messages.resolve_search_hit': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.resolve_app_display': ['account_id', 'conversation_id', 'username', 'server_id'], 'alpha-independent.messages.get_source': ['account_id', 'conversation_id', 'message_id', 'source_token'], 'alpha.analysis.start': ['account_id', 'scope', 'conversation_id', 'excluded_conversation_ids', 'from_unix_ms', 'to_unix_ms', 'utc_offset_minutes'], 'alpha.analysis.watch': ['account_id', 'analysis_id'], 'alpha.analysis.cancel': ['account_id', 'analysis_id'], 'alpha-independent.analytics.analyze_annual': ['account_id', 'year', 'utc_offset_minutes'], 'alpha-independent.analytics.analyze_conversation': ['account_id', 'conversation_id', 'max_messages', 'utc_offset_minutes'], 'alpha-independent.media.browse_conversation': ['account_id', 'conversation_id', 'category', 'sender_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.browse_account': ['account_id', 'category', 'conversation_id', 'from_unix_ms', 'to_unix_ms', 'limit', 'cursor'], 'alpha-independent.media.probe': ['account_id'], 'alpha-independent.media.get_image_status': ['account_id', 'verify_sample'], 'alpha-independent.media.read_voice_blob': ['account_id', 'key'], 'alpha-independent.media.read_indexed': ['account_id', 'conversation_id', 'message_id', 'media_id', 'sha256', 'kind', 'rendition'], 'alpha-independent.media.decode_voice_playback': ['account_id', 'media_id'], 'alpha-independent.media.inspect_asr': ['model_root', 'model_id'], 'alpha-independent.media.transcribe_indexed_voice': ['account_id', 'media_index_root', 'media_id', 'model_root', 'model_id'], 'alpha-independent.mobile.get_overview': ['account_id', 'limit', 'cursor'], 'wechat.forensics.list_records': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'],
       'alpha-independent.records.start_export': ['account_id', 'format', 'output_directory', 'categories', 'utc_offset_minutes'], 'alpha-independent.records.watch_export': ['account_id', 'job_id'], 'alpha-independent.records.cancel_export': ['account_id', 'job_id'], 'alpha-independent.records.list_candidates': ['account_id', 'category', 'query', 'ascending', 'limit', 'offset'], 'alpha-independent.records.list_recall_candidates': ['account_id', 'conversation_id', 'cursor', 'limit'], 'alpha-independent.exports.list': ['account_id', 'kind', 'limit'],
       'wechat.chat.list_search_senders': ['account_id', 'query', 'username', 'limit'], 'wechat.chat.get_message_around': ['account_id', 'username', 'anchor_id', 'before', 'after'],
       'wechat.chat.get_message_anchor': ['account_id', 'username', 'kind', 'date'], 'wechat.chat.get_daily_message_counts': ['account_id', 'username', 'month', 'utc_offset_minutes'], 'alpha-independent.source.get_revision': ['account_id'], 'alpha-independent.source.get_watch_targets': ['account_id'], 'alpha-independent.source.get_schema': ['account_id'], 'alpha-independent.moments.list_timeline': ['account_id', 'username', 'keyword', 'limit', 'offset', 'ascending', 'from_unix_ms', 'to_unix_ms'], 'alpha-independent.moments.list_users': ['account_id', 'limit'], 'alpha-independent.moments.day_counts': ['account_id', 'username', 'from_date', 'to_date', 'utc_offset_minutes'], 'alpha-independent.moments.start_export': ['account_id', 'format', 'output_directory', 'usernames', 'keyword', 'start_time_unix_ms', 'end_time_unix_ms', 'media_kinds', 'utc_offset_minutes'], 'alpha-independent.moments.watch_export': ['account_id', 'job_id'], 'alpha-independent.moments.cancel_export': ['account_id', 'job_id'], 'alpha-independent.favorites.list_items': ['account_id', 'type', 'query', 'tag_id', 'limit', 'offset', 'ascending', 'include_type_counts', 'include_media', 'skip_source_context'], 'alpha-independent.favorites.list_media_slots': ['account_id', 'favorite_id'], 'alpha-independent.favorites.resolve_media': ['account_id', 'token'], 'alpha-independent.schedules.list': ['account_id', 'include_disabled', 'limit'], 'alpha-independent.schedules.get': ['account_id', 'schedule_id'], 'alpha-independent.schedules.save': ['account_id', 'mode', 'expected_updated_at_unix_ms', 'plan'], 'alpha-independent.schedules.delete': ['account_id', 'schedule_id', 'expected_updated_at_unix_ms'], 'alpha-independent.schedules.run_now': ['account_id', 'schedule_id', 'expected_updated_at_unix_ms'], 'alpha-independent.schedules.list_runs': ['account_id', 'schedule_id', 'limit'], 'alpha-independent.schedules.get_run': ['account_id', 'run_id'], 'alpha-independent.schedules.list_attempts': ['account_id', 'schedule_id', 'limit'], 'alpha-independent.schedules.get_attempt': ['account_id', 'attempt_id'], 'alpha-independent.schedules.retry_attempt': ['account_id', 'attempt_id', 'expected_revision'], 'alpha-independent.official_plans.list': ['account_id', 'include_disabled', 'limit'], 'alpha-independent.official_plans.get': ['account_id', 'schedule_id'], 'alpha-independent.official_plans.save': ['account_id', 'mode', 'expected_updated_at_unix_ms', 'plan'], 'alpha-independent.official_plans.delete': ['account_id', 'schedule_id', 'expected_updated_at_unix_ms'], 'alpha-independent.official_plans.list_attempts': ['account_id', 'schedule_id', 'include_archived', 'limit'], 'alpha-independent.official_plans.request_attempt': ['account_id', 'schedule_id', 'expected_plan_updated_at_unix_ms'], 'alpha-independent.official_plans.get_attempt': ['account_id', 'attempt_id'], 'alpha-independent.official_plans.archive_attempt': ['account_id', 'attempt_id', 'expected_revision', 'archived'], 'alpha.chat.export_capabilities': [], 'alpha.chat.export_stats': ['account_id', 'conversation_ids', 'refresh'], 'wechat.chat.get_message_raw': ['account_id', 'username', 'message_id', 'server_id', 'local_id'], 'wechat.chat.export_conversation': ['account_id', 'username', 'format', 'destination_path', 'include_media', 'start_time_unix_ms', 'end_time_unix_ms'], 'wechat.chat.export_media_metadata': ['account_id', 'username', 'format', 'destination_path', 'start_time_unix_ms', 'end_time_unix_ms']
@@ -1601,6 +1709,17 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
         synthetic_only: false,
         native_schema_supported: false
       };
+      return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
+    }
+    else if (name === 'alpha-independent.messages.resolve_app_display') {
+      const account = await selectedAccount(params);
+      const conversation = oneAlias(args, ['conversation_id', 'username'], 'MCP_CONVERSATION_AMBIGUOUS');
+      const conversationId = text(conversation, 1024, 'MCP_MESSAGE_DISPLAY_CONVERSATION_INVALID');
+      if (!conversationId) throw new HttpAdapterError('MCP_MESSAGE_DISPLAY_CONVERSATION_REQUIRED', 400);
+      const serverId = text(args.server_id, 20, 'MCP_MESSAGE_DISPLAY_SERVER_ID_INVALID');
+      if (!serverId || !/^[1-9][0-9]{0,19}$/.test(serverId) || BigInt(serverId) > (1n << 64n) - 1n) throw new HttpAdapterError('MCP_MESSAGE_DISPLAY_SERVER_ID_INVALID', 400);
+      const value = await call('locateMessage', { accountId: account, conversationId, serverId });
+      const result = messageDisplayResult(value, account, conversationId, serverId);
       return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
     }
     else if (name === 'alpha-independent.messages.get_source') {

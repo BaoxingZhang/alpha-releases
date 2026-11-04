@@ -55,7 +55,18 @@ function fakeEngine() {
       if (request.listAccounts) return EngineServerFrame.fromPartial({ requestId: request.requestId, listAccounts: { accounts: [{ id: 'acct-1', accountId: 'acct-1', subjectId: 'wxid_self', displayName: '测试账号', capabilities: ['messages', 'contacts', 'groups.members', 'groups.pinnedMessages'], ready: true, verified: true }], selectedAccountId: 'acct-1' } });
       if (request.listConversations) return EngineServerFrame.fromPartial({ requestId: request.requestId, listConversations: { items: [{ id: 'wxid_peer', accountId: 'acct-1', kind: 1, displayName: '联系人', lastActivityUnixMs: 1700000000000n, preview: '你好' }], nextCursor: new Uint8Array([1, 2]), totalCount: 1 } });
       if (request.listMessages) return EngineServerFrame.fromPartial({ requestId: request.requestId, listMessages: { items: [{ id: 'msg-1', conversationId: 'wxid_peer', sentAtUnixMs: 1700000000000n, senderId: 'wxid_self', text: '你好', localId: 1, serverId: 2n }], nextCursor: new Uint8Array(0), appliedAfterUnixMs: 0n } });
-      if (request.locateMessage) return EngineServerFrame.fromPartial({ requestId: request.requestId, locateMessage: request.locateMessage.serverId === '999' ? { message: null, beforeCursor: new Uint8Array(0), afterCursor: new Uint8Array(0) } : { message: { id: 'msg-1', conversationId: request.locateMessage.conversationId, sentAtUnixMs: 1700000000000n, senderId: 'wxid_self', direction: 2, kind: 'text', text: '你好', serverId: 2n }, beforeCursor: new Uint8Array([7]), afterCursor: new Uint8Array([8]) } });
+      if (request.locateMessage) {
+        if (request.locateMessage.serverId === '999') return EngineServerFrame.fromPartial({ requestId: request.requestId, locateMessage: { message: null, beforeCursor: new Uint8Array(0), afterCursor: new Uint8Array(0) } });
+        const displays = {
+          '2': { kind: 'link', title: 'Alpha', description: 'link metadata', displayUrl: 'https://example.test', linkUrl: 'https://example.test/article' },
+          '3': { kind: 'file', fileName: 'report.pdf', fileSize: '42', fileExtension: 'pdf' },
+          '4': { kind: 'quote', quote: { sender: '群友甲', kind: 'text', text: '被引用内容', senderId: 'wxid_sender', serverId: '9007199254740993' } },
+          '5': { kind: 'location', location: { latitude: 31.2, longitude: 121.5, label: '上海' } },
+          '6': { kind: 'link', linkUrl: 'https://example.test/article?cdn_url=secret' }
+        };
+        const display = displays[request.locateMessage.serverId] || { kind: 'unknown', extra: true };
+        return EngineServerFrame.fromPartial({ requestId: request.requestId, locateMessage: { message: { id: 'msg-1', conversationId: request.locateMessage.conversationId, sentAtUnixMs: 1700000000000n, senderId: 'wxid_self', direction: 2, kind: 'app', text: '你好', serverId: BigInt(request.locateMessage.serverId), displayJson: new Uint8Array(Buffer.from(JSON.stringify(display))) }, beforeCursor: new Uint8Array([7]), afterCursor: new Uint8Array([8]) } });
+      }
       if (request.getMessageSource) return EngineServerFrame.fromPartial({ requestId: request.requestId, getMessageSource: { text: '独立来源文本', format: 'text', redacted: false } });
       if (request.searchMessages) return EngineServerFrame.fromPartial({ requestId: request.requestId, searchMessages: { items: [{ id: 'msg-1', conversationId: 'wxid_peer', sentAtUnixMs: 1700000000000n, senderId: 'wxid_self', text: '你好', sourceType: 1n }], nextCursor: new Uint8Array(0) } });
       if (request.listMoments) return EngineServerFrame.fromPartial({ requestId: request.requestId, listMoments: { response: { items: [{ id: 'moment-1', username: 'wxid_peer', nickname: '联系人', createdAtUnixMs: 1700000000000n, type: 1, text: '合成朋友圈', rawXml: '<synthetic/>', sourceTable: '__alpha_moments_v1', fields: [] }], sourceDatabase: 'moments.db', sourceTable: '__alpha_moments_v1' } } });
@@ -608,11 +619,12 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 89);
+  assert.equal(result.body.result.tools.length, 90);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.resolve_search_hit'));
+  assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.resolve_app_display'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.telemetry.get_status'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.get_source'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.official_plans.list'));
@@ -821,6 +833,33 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   result = await request(base, '/api/v1/independent/message-source?account_id=acct-1&conversation_id=wxid_peer&message_id=msg-1&source_token=independent1_a', { headers });
   assert.equal(result.response.status, 400);
   assert.equal(result.body.error.code, 'HTTP_API_MESSAGE_SOURCE_TOKEN_INVALID');
+  result = await request(base, '/api/v1/independent/message-display?account_id=acct-1&conversation_id=wxid_peer&server_id=2', { headers });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-message-display');
+  assert.equal(result.body.status, 'ready');
+  assert.equal(result.body.display.kind, 'link');
+  assert.equal(result.body.display.link_url, 'https://example.test/article');
+  assert.equal(result.body.native_schema_supported, false);
+  assert.equal(Object.hasOwn(result.body, 'raw_xml'), false);
+  for (const [serverId, kind] of [['3', 'file'], ['4', 'quote'], ['5', 'location']]) {
+    result = await request(base, `/api/v1/independent/message-display?account_id=acct-1&conversation_id=wxid_peer&server_id=${serverId}`, { headers });
+    assert.equal(result.response.status, 200);
+    assert.equal(result.body.status, 'ready');
+    assert.equal(result.body.display.kind, kind);
+  }
+  result = await request(base, '/api/v1/independent/message-display?account_id=acct-1&conversation_id=wxid_peer&server_id=6', { headers });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.status, 'unsupported');
+  assert.equal(result.body.reason_code, 'MESSAGE_DISPLAY_UNSUPPORTED');
+  result = await request(base, '/api/v1/independent/message-display?account_id=acct-1&conversation_id=wxid_peer&server_id=999', { headers });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.status, 'missing');
+  assert.equal(result.body.display, null);
+  result = await request(base, '/api/v1/independent/message-display?account_id=acct-1&conversation_id=wxid_peer&server_id=0', { headers });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.body.error.code, 'HTTP_API_MESSAGE_DISPLAY_SERVER_ID_INVALID');
+  result = await request(base, '/api/v1/independent/message-display?account_id=acct-1&conversation_id=wxid_peer&server_id=2', { method: 'POST', headers });
+  assert.equal(result.response.status, 405);
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 22, method: 'tools/call', params: { name: 'alpha-independent.media.browse_conversation', arguments: { conversation_id: 'wxid_peer', category: 'media', limit: 10 } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.scope, 'conversation');
@@ -858,6 +897,22 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(result.body.result.structuredContent.message, null);
   assert.equal(result.body.result.structuredContent.exact_identity, false);
   assert.equal(result.body.result.structuredContent.before_cursor, '');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 231, method: 'tools/call', params: { name: 'alpha-independent.messages.resolve_app_display', arguments: { username: 'wxid_peer', server_id: '2' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.status, 'ready');
+  assert.equal(result.body.result.structuredContent.display.kind, 'link');
+  assert.equal(result.body.result.structuredContent.display.display_url, 'https://example.test');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 232, method: 'tools/call', params: { name: 'alpha-independent.messages.resolve_app_display', arguments: { username: 'wxid_peer', server_id: '999' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.status, 'missing');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 233, method: 'tools/call', params: { name: 'alpha-independent.messages.resolve_app_display', arguments: { username: 'wxid_peer', server_id: '2', extra: true } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.isError, true);
+  assert.equal(result.body.result.structuredContent.code, 'MCP_ARGUMENTS_INVALID');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 234, method: 'tools/call', params: { name: 'wechat.chat.resolve_app_message', arguments: { username: 'wxid_peer', server_id: '2' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.isError, true);
+  assert.equal(result.body.result.structuredContent.code, 'MCP_TOOL_NOT_FOUND');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 601, method: 'tools/call', params: { name: 'alpha-independent.moments.list_timeline', arguments: { username: 'wxid_peer', keyword: '合成朋友圈' } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.synthetic_only, true);
