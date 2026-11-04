@@ -243,6 +243,13 @@ try {
   await page.locator('.message-media img').first().waitFor({ timeout: 15000 });
   const renderedImage = page.locator('.message-media img').first();
   assert.match(await renderedImage.getAttribute('src'), /^alpha-media:\/\/img\//);
+  // The custom alpha-media protocol can finish decoding after the element is
+  // attached. Wait for the decoded image state instead of sampling it once;
+  // this keeps the packaged smoke deterministic on slower hosted runners.
+  await page.waitForFunction(() => {
+    const image = document.querySelector('.message-media img');
+    return Boolean(image && image.complete && image.naturalWidth > 0);
+  }, undefined, { timeout: 15000 });
   assert.equal(await renderedImage.evaluate((image) => image.complete && image.naturalWidth > 0), true);
   report.checks.independentImagePreviewRendered = true;
   report.voice = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.readPlayback(accountId, opaqueId), {
