@@ -297,7 +297,7 @@
         "mediaResolvePath": "/api/v1/favorites/media/:token",
         "mediaSchema": "__alpha_favorite_media_v1"
       },
-      "tools": 87,
+      "tools": 88,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,
@@ -340,7 +340,8 @@
           "alpha-independent.media.inspect_asr",
           "alpha-independent.media.transcribe_indexed_voice",
           "alpha-independent.contacts.export",
-          "alpha-independent.contacts.export_group_members"
+          "alpha-independent.contacts.export_group_members",
+          "alpha-independent.moments.get_anti_delete_status"
         ]
       },
       "analyticsTools": [
