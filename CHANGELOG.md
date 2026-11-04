@@ -1,5 +1,12 @@
 # 变更记录
 
+## 0.3.5-recovery 维护增补 — 2026-11-04（长期维护基线）
+
+- 增加只读上游审计 workflow：每周或手动运行，固定使用 `recovery` 分支工具，将结果写入临时目录并作为 Actions artifact 保存，不自动提交或推送。
+- 为独立本地公众号计划补齐 HTTP metadata CRUD：`/api/v1/independent/official-plans` 及单条资源路径复用账号隔离和 CAS；不联网、不抓取文章、不执行远程计划，也不增加原生协议支持数。
+- 增加许可证与来源边界文档，区分恢复的上游应用层、原生 runtime、独立实现、第三方依赖和品牌材料；当前 recovery 分支继续保持内部维护定位。
+- 修复 macOS packaged image smoke 的异步解码竞态，等待 `alpha-media://` 图片真正完成解码后再断言预览；最新 recovery CI 通过，完整回归为 327/327。
+
 ## 0.3.5-recovery 维护增补 — 2026-11-04（公开候选缓存隔离）
 
 - 公开源码候选默认排除 `packages/alpha-data-bridge/.runtime` Go 构建/模块缓存，避免把本机绝对路径和约 182MB 生成物复制到候选。
