@@ -192,6 +192,16 @@ try {
   await page.locator('.message-location-card').filter({ hasText: '北京天安门' }).waitFor({ timeout: 15000 });
   await page.locator('.message-quote').filter({ hasText: 'packaged quoted text' }).waitFor({ timeout: 15000 });
   report.checks.packagedLocationAndQuoteCardsRendered = true;
+  await page.locator('[data-chat-tool="search"]').click({ timeout: 15000 });
+  const searchDrawer = page.locator('#chat-drawer-search');
+  await searchDrawer.waitFor({ state: 'visible', timeout: 15000 });
+  const searchInput = searchDrawer.locator('input[aria-label="搜索关键词"]');
+  await searchInput.fill('first source');
+  const searchHitText = searchDrawer.locator('.conversation-search-hit-text').filter({ hasText: 'first source' }).first();
+  await searchHitText.waitFor({ timeout: 15000 });
+  await searchHitText.locator('..').click({ timeout: 15000 });
+  await page.locator('.message-row[aria-current="true"]').filter({ hasText: 'first source' }).first().waitFor({ timeout: 15000 });
+  report.checks.packagedConversationSearchAndExactLocate = true;
   const image = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.readImage(accountId, opaqueId), {
     accountId: fixture.accountId,
     opaqueId: media.imageSha256
