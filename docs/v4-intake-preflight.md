@@ -26,18 +26,31 @@ bridge。若拿到的是 SQLCipher 加密副本，先按[加密导入流程](enc
 预检后：
 
 1. `schema-only`：保存 JSON 报告，按报告中的表/列结构补充脱敏副本映射；不要修改 bridge 去猜测原生 schema。
-2. `ready`：先把授权副本复制成项目 `.runtime` 下的新目录（不能使用软链接），再对这个
-   项目内副本重跑预检。`scripts/launch.mjs` 为了隔离边界只接受项目 `.runtime` 下的真实目录；
-   例如副本位于 `/absolute/project/.runtime/authorized-v4/sanitized-v4` 时：
+2. `ready`：使用安全 staging 命令把授权副本复制成项目 `.runtime` 下的新目录；它会拒绝
+   符号链接、特殊文件、SQLite 活动 sidecar、超限文件和目录，并在临时目录完成后原子发布。
+   例如：
+
+   ```sh
+   npm run stage:v4 -- \
+     --source-dir /absolute/authorized-v4-copy \
+     --account-id sanitized-v4 \
+     --target-name sanitized-v4 \
+     --json
+   ```
+
+   staging 完成后会自动运行预检，并只输出有界的状态、计数和预检摘要，不写入源目录的
+   绝对路径。`published=true` 且 `status=ready` 或 `schema-only` 时，项目内副本位于
+   `.runtime/v4-staged/sanitized-v4`；若需要手工分步操作，也可以把副本复制到项目
+   `.runtime` 下的全新真实目录（不能使用软链接），再重跑：
 
    ```sh
    npm run preflight:v4 -- \
-     --data-dir /absolute/project/.runtime/authorized-v4/sanitized-v4 \
+     --data-dir /absolute/project/.runtime/v4-staged/sanitized-v4 \
      --account-id sanitized-v4 \
      --json
    npm run build:independent
    node scripts/launch.mjs --independent \
-     --data-dir /absolute/project/.runtime/authorized-v4/sanitized-v4 \
+     --data-dir /absolute/project/.runtime/v4-staged/sanitized-v4 \
      --account-id sanitized-v4
    ```
 

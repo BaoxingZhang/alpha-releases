@@ -59,6 +59,7 @@
     "inspect:source": "node scripts/inspect-source.mjs",
     "inspect:schema-only": "node scripts/inspect-schema-only.mjs",
     "preflight:v4": "node scripts/preflight-v4-copy.mjs",
+    "stage:v4": "node scripts/stage-v4-copy.mjs",
     "mcp:independent": "node packages/alpha-engine/mcp-stdio.cjs",
     "mcp:config": "node scripts/codex-mcp-config.mjs",
     "asr:inspect": "node scripts/independent-asr.mjs inspect",
