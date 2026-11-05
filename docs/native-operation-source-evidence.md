@@ -156,3 +156,45 @@ REA 对同一 arm64 sidecar（SHA-256 `3aab88ce1c7e343055d426ae4b3c36bfe8ca0c5fe
 对随包的 `alpha-key-worker`、`alpha_xkey_helper` 和 `alpha-security-host` 做了只读字符串与工件哈希核对。三个 arm64 Mach-O 的 SHA-256 分别为 `c4f79fcbcc88ed5e767dad3a86508af2bd629d01ac2da659d708ae215a209e01`、`97812a07af645aeab7e0fb3875300b77126252077ccf9b28339ee1e950ea2d4d` 和 `048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8`。`alpha-key-worker` 保留了 `alpha.key.transport.v1.KeyWorkerCallRequest`、`start/watch/cancel/guard_self_check/resolve_image_key`、`StartKeyAcquisitionRequest`、`targetWatchKeyAcquisitionRequest`、`CancelKeyAcquisitionRequest`、`ResolveImageKeyRequest`、`SecretIngestTicket`、`SecretVaultSealResponse`，以及 Native Vault 和 helper 错误字符串。`alpha_xkey_helper` 还保留了 `database_key`、`image_key`、`alpha-xkey-auth-v1` 和 `ALPHA_XKEY_AUTH_PORT/TOKEN/MODE/TS/NONCE`。
 
 这些线索只证明取钥、密钥封存和图片 key 的协议名称进入了随包工件。没有字段号、完整 schema、transport、Native Vault ticket、provider authorization 或可重放 live fixture；三个工件本轮未执行，也没有读取 key 或活动数据库。因此 `readAccountDataKey`、应用锁 provision/reset 和 native image-key 生命周期继续保持 blocked/UNIMPLEMENTED。机器可校验清单和边界见 [`native-key-worker-evidence.json`](native-key-worker-evidence.json)。
+
+### 官方导出、CDN 媒体和 Persona 的静态线索（2026-11-06）
+
+本轮只读核对了随包官方导出程序、协议生成物、AI host 和 WCDB 组件清单。没有启动官方导出、CDN 下载或 Persona gateway，没有连接账号、公众号服务或模型 provider，也没有读取微信数据。
+
+#### `alpha-official-export`
+
+`vendor/runtime/bin/alpha-official-export` 是 arm64 Mach-O，SHA-256 为 `7351f83269ce3bab42eda9230f1266b6b741a30f8869d5487b1803a16a6e13c8`。静态 `strings` 中保留了 CLI 合同：必须提供绝对 `--engine`、`--account`、`--official-account`、`--scope all|selected`、`--format`，并且必须通过 `--material-bundle-id`、`--delivery-ticket-file` 或 framed stdin 提供材料；支持 `--resume-operation`、`--get-operation`、`--cancel-operation` 和 `--list-operations`。格式字符串包含 `json`、`markdown`、`chatlab-json`、`chatlab-jsonl`、`html`、`txt` 和 `xlsx`；退出状态提示输入材料和取消仍在进行时分别为 6、7。程序还声明输出为脱敏 JSON receipt，operation metadata 不携带原始 spec、material bundle 或 provider diagnostics。
+
+这些字符串说明官方导出依赖 material bundle/delivery ticket、engine transport、provider 和可恢复的 operation 状态。它们没有提供 ticket 签发、permit MAC、公众号登录态、文章服务协议、媒体下载授权或可重放响应；`startOfficialExport`、`startMaterialOfficialExport`、`beginMaterialOfficialExport`、`getMaterialOfficialExport` 和相关 watch/cancel 分支继续保持 `UNIMPLEMENTED`。不能把以下生成的 `OfficialExportSpec`/`StartOfficialExportRequest` 字段当作可用的 native schema：它们只描述 `accountId`、`officialAccountId`、`scope`、选中文章的 `sourceArticleId/canonicalUrl`、格式、媒体选项和 operation/bundle 标识。
+
+#### CDN 媒体补齐
+
+`vendor/runtime/bin/alpha-data-host` SHA-256 为 `a594b57bd7ec51efb0ef683808637a17d08ee622ed880db1a4426e7431b282a0`。`vendor/runtime/manifests/alpha-wcdb.component.json` 的 data-host 声明列出 `native.cdn_media_transfer`、`native.peek_cached_media`、`native.resolve_image_media` 和 `native.read_image_media`，build identity 也带有 `chat-export:cdn-media`；该组件同时标记 `qualification` 为 `local-candidate; target functional/protection tests and internal issuer-signed image identity required`，`release_qualified=false`。顶层 `vendor/runtime/component-manifest.json` 仍将 `original_image_download` 标为 `unavailable`，因此这些清单字段只是发行工件的能力声明。
+
+恢复的协议 surface 只给出请求/状态形状：`StartCdnMediaFetchRequest` 含 `accountId` 以及单个 `conversationId/mutationLocator/kind` 或会话范围的 `conversationId/afterUnixMs/beforeUnixMs/kinds`；状态含 job 计数、字节计数、错误码和失败 locator。它没有给出 `media1_`/CDN locator 的生成规则、图片 key、签名 URL、远端授权或 DAT/AES 解码约定；`startCdnMediaFetch`、`getCdnMediaFetch` 和 `cancelCdnMediaFetch` 不因这些字段而提升为支持。
+
+#### Persona/AI host
+
+`vendor/runtime/bin/alpha-agent-host.cjs` 是带源模块注释的 emitted JavaScript，SHA-256 为 `f3ca767b4c58a3fbf98ef3bc95d3333d3c515c357e93502a0cc4aaf844c50555`。静态代码保留 provider 注册、HTTP/SSE 流解析、model turn、tool descriptor/call approval、重试/超时、上下文压缩和 `credentialDeliveryTicket` 等调用侧逻辑；`vendor/runtime/bin/alpha-engine`（SHA-256 `468cafd9cceb30520cadc3e175fa303f99aeb98dc00e1b2b891af57f1bb3b569`）及 WCDB manifest 还保留 `semantic.persona`、`semantic.persona_prompt` 和 `format.persona*` 名称。
+
+这组证据不足以恢复原 Rust gateway 的持久化、记忆索引、provider 凭据、审批状态、Persona 数据源绑定或真实模型服务。AI host 的源模块注释不是原始 TypeScript 工程，manifest 的 semantic/format 名称也不是运行凭据或可重放 fixture；独立模式继续只允许显式 deterministic fixture，`startPersonaProfile`、`watchPersonaProfile`、`cancelPersonaProfile` 及真实 AI gateway 保持 `UNIMPLEMENTED`/fail-closed。
+
+以上均为静态工件身份和协议/字符串线索，未执行未知 ABI、未访问活动数据库、未改变完整性/授权策略；现有独立支持矩阵不变。
+
+### `alpha-schedules` 的官方计划与运行协调线索（2026-11-06）
+
+`vendor/runtime/bin/alpha-schedules` 是 arm64 Mach-O，SHA-256 为 `d08547cee2dcd478e14f0573d2789095941a367cd5c6af943b447f4a20326f15`。静态 SQLite 字符串显示它维护 `official_export_schedules`（账号、公众号、opaque `material_bundle_id`、scope、formats、media 选项、间隔、next-run、enabled 和更新时间）以及 `pending_official_plan_intents`。独立的 acquisition 状态表还保留 listing/fetching/ready/paused、preparing/acquiring/paused/rendering/failed/canceled 等阶段，包含 revision、lease、attempt、renderer run、cleanup acknowledgement/failure、dispatch fence 和 occurrence control；错误/原因字符串包含 `material_refresh_required`、`provider_failed`、`authorization_expired`、`acquisition_busy`、`acquisition_conflict`、`source_rejected` 和 `renderer_missing`。
+
+这些表和状态词说明原产品有持久化的官方材料采集、续租、取消、清理确认和渲染交接状态机，并有按 `updated_at_unix_ms` 的 CAS 更新及账号删除 fence。它们仍是预编译 `alpha-schedules` 中的 schema/字符串线索：没有 provider transport、材料 ticket 签发、远端文章响应、renderer artifact 或成功回放。当前独立实现只维护本地计划 metadata 和明确 blocked 的尝试记录；不能把这些表名或状态机字符串当作官方计划执行已经恢复。
+
+### `alpha-server` gateway 的静态边界（2026-11-06）
+
+`vendor/runtime/bin/alpha-server` 是 arm64 Mach-O，SHA-256 为 `715c5cc1cade91325ea476a9549a26d1efa9e6b76ebf7c687b74f63b5e2c00b2`。字符串和内嵌 SQL 还显示真实 gateway 需要 loopback HTTP/MCP/A2A 服务、durable Agent run/SSE `event_seq`、加密 agent memory（`agent_conversations`/`agent_memory_messages` v2 schema migration）、Persona draft decision store、caller-scoped idempotency 和 operator tool approval；官方导出路由需要 `official.export` scope，并要求恰好一个 material bundle 或 delivery ticket。媒体 proxy 还要求 bounded URL/exact key，并有 upstream status、source rejection、identity mismatch 和 not-configured 错误族。
+
+Persona 静态契约包含 `alpha-persona-v2`、bounded evidence message IDs、media preference 上限、profile 输出上限和 provider profile 绑定；错误字符串明确 `persona.provider_not_configured`、`delivery_ticket_store`、`official.export_renderer_identity_changed` 等状态。这些是预编译 gateway 的调用侧/持久化线索，没有 provider 凭据、加密存储密钥、permit/ticket 签发、远端媒体 proxy 或可重放 run fixture，不能作为真实 AI、官方导出或 CDN 功能已恢复的证据。`alpha-server` 本轮未执行，独立后端支持矩阵不变。
+
+### `alpha-data-analysis` 的本地分析/格式化边界（2026-11-06）
+
+`vendor/runtime/bin/alpha-data-analysis` 是 arm64 Mach-O，SHA-256 为 `42d136f8260217ec14de557123cc0d7d6800ea1f908d0df73ccd9ba9488664d6`。静态 CLI 合同接受 canonical message DTO 的 JSON array/JSONL，要求绝对输出路径和显式 `--max-messages`，格式包含 `report-json`、`persona-json`、`persona-prompt`、`forensics-json`、`favorites-json`、`jsonl`、`markdown`、`chatlab-json` 和 `chatlab-jsonl`，Persona perspective 只允许 `friend|self`。内嵌 manifest 声明 interface `alpha.data-analysis.cli` v1、features `analysis.local`/`export.local`、`alpha-persona-v2`/`alpha-persona-prompt-v1`，并有与其他组件相同的 2026-11-18 expiry policy。
+
+这说明随包存在一个本地、输入受限的分析/格式化组件；Persona prompt 字符串还要求只使用证据、保留 speaker direction、以消息 ID 作 provenance anchor。它没有提供远端模型、provider 凭据、记忆持久化或真实微信 schema，不能代替 Persona gateway；本轮没有执行该二进制，独立分析和 AI 支持边界不变。
