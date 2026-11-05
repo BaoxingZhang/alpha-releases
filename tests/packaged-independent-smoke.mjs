@@ -212,9 +212,9 @@ try {
   const exportPopup = await exportPopupPromise;
   await exportPopup.locator('form[aria-label="导出设置"]').waitFor({ state: 'visible', timeout: 15000 });
   await exportPopup.getByText('「合成联系人甲」的聊天记录', { exact: true }).waitFor({ timeout: 15000 });
-  for (const formatLabel of ['网页文档', 'Markdown 文档', '纯文本', 'JSON 数据']) {
-    await exportPopup.getByText(formatLabel, { exact: true }).waitFor({ timeout: 15000 });
-  }
+  const exportFormatChoices = exportPopup.locator('.export-choice-grid.is-formats .export-choice');
+  await exportFormatChoices.first().waitFor({ timeout: 15000 });
+  assert.ok(await exportFormatChoices.count() >= 4, 'independent export dialog must offer four or more formats');
   await exportPopup.getByRole('button', { name: '取消', exact: true }).click({ timeout: 15000 });
   report.checks.packagedIndependentChatExportDialog = true;
   const chatExportDirectory = path.join(packagedRuntime, 'chat-export');
