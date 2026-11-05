@@ -198,3 +198,15 @@ Persona 静态契约包含 `alpha-persona-v2`、bounded evidence message IDs、m
 `vendor/runtime/bin/alpha-data-analysis` 是 arm64 Mach-O，SHA-256 为 `42d136f8260217ec14de557123cc0d7d6800ea1f908d0df73ccd9ba9488664d6`。静态 CLI 合同接受 canonical message DTO 的 JSON array/JSONL，要求绝对输出路径和显式 `--max-messages`，格式包含 `report-json`、`persona-json`、`persona-prompt`、`forensics-json`、`favorites-json`、`jsonl`、`markdown`、`chatlab-json` 和 `chatlab-jsonl`，Persona perspective 只允许 `friend|self`。内嵌 manifest 声明 interface `alpha.data-analysis.cli` v1、features `analysis.local`/`export.local`、`alpha-persona-v2`/`alpha-persona-prompt-v1`，并有与其他组件相同的 2026-11-18 expiry policy。
 
 这说明随包存在一个本地、输入受限的分析/格式化组件；Persona prompt 字符串还要求只使用证据、保留 speaker direction、以消息 ID 作 provenance anchor。它没有提供远端模型、provider 凭据、记忆持久化或真实微信 schema，不能代替 Persona gateway；本轮没有执行该二进制，独立分析和 AI 支持边界不变。
+
+### `alpha-chatlab-pull` 的导出消费边界（2026-11-06）
+
+`vendor/runtime/bin/alpha-chatlab-pull` 是 arm64 Mach-O，SHA-256 为 `2a5cc934b52ec55f5e2b22326c9ed7ec48eb072f3103cdbf7c81d8c4c1b7ee92`。静态字符串显示它只消费调用方提供的 Alpha JSON/JSONL 导出：`ALPHA_CHATLAB_SOURCE` 必须是绝对 regular file，源对象需包含 messages array/metadata；服务提供 loopback `/health`、`/sessions`、`/sessions/{session_id}/messages`，非 loopback 绑定要求 16–256 字节可见 ASCII 的 `ALPHA_CHATLAB_PULL_BEARER`。分页包含 timestamp bucket/cursor 边界，源文件变化、超出大小、身份冲突和非 ChatLab 格式都会 fail-closed。
+
+该 sidecar 是已生成导出的 HTTP 只读消费层，不是原生数据库读取器、实时微信捕获链路或官方导出实现；本轮未启动服务，也未读取用户导出。它不能提升独立后端的 native schema 或实时能力支持。
+
+### `alpha-mcp-stdio` 的原生 MCP 静态边界（2026-11-06）
+
+`vendor/runtime/bin/alpha-mcp-stdio` 是 arm64 Mach-O，SHA-256 为 `a18577a91c10b22ae2bf6071e122f1cf3080c241e6d89657abd12fab065da9db`。静态字符串显示它把 MCP stdio 转发到 `ALPHA_MCP_DESKTOP_URL` 指定的桌面 MCP 服务，并可读取 `ALPHA_GATEWAY_SUBJECT`、memory scopes 与 chat-export scopes；工具 surface 包含 official export lifecycle、Persona draft、relationship review 和 agent memory 操作。官方导出调用要求恰好一个 material bundle 或 delivery ticket，另有 delivery-ticket digest、provider-not-configured、idempotency 和 account UUID 校验。
+
+这些只是原生 MCP 的调用面、环境变量和输入校验线索，没有桌面 URL、ticket 签发、provider、授权账号或可重放的 MCP fixture；本轮未启动该二进制。它不能替代项目的 `packages/alpha-engine/mcp-stdio.cjs`，也不改变独立 MCP 的 support matrix 或 native readiness 结论。
