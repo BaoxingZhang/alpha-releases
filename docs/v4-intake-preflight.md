@@ -26,7 +26,17 @@ bridge。若拿到的是 SQLCipher 加密副本，先按[加密导入流程](enc
 预检后：
 
 1. `schema-only`：保存 JSON 报告，按报告中的表/列结构补充脱敏副本映射；不要修改 bridge 去猜测原生 schema。
-2. `ready`：运行 `npm run test:independent` 和最小只读 UI smoke，再逐项核对 DTO 字段和行数。
+2. `ready`：先运行 `npm run build:independent`，再用预检同一个副本启动独立桌面：
+
+   ```sh
+   node scripts/launch.mjs --independent \
+     --data-dir /absolute/authorized-v4-copy \
+     --account-id sanitized-v4
+   ```
+
+   随后执行最小只读 UI/DTO smoke，逐项核对联系人、会话和消息字段及行数。
+   `npm run test:independent` 仍可用于回归独立后端的 synthetic fixture，但它会自行创建
+   synthetic 数据，不能替代对授权副本的验收。
 3. `rejected`/`unavailable`：修复副本或重新导出后重跑；不要将空结果当作成功。
 
 即使预检为 `ready`，真实发送、写入、自动取钥、原生媒体、AI 和原生完整性仍需各自的授权材料与可重放证据。

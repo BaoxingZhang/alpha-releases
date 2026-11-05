@@ -17,7 +17,7 @@
 
 接入已解密的 v4 副本前，可运行 `npm run inspect:source -- --data-dir /absolute/decrypted-v4 --account-id label --json`。它只对显式目录执行 bridge 的 `schema.inspect`，输出数据库相对路径、表和列元数据；不会读取数据库 key、修改副本或扫描用户目录。诊断始终标记 `complete=false` 与 `native_schema_supported=false`，只能用于决定后续适配工作，不能当作 Alpha 原生 schema 验证。
 
-更完整的接入入口是 `npm run build:bridge` 之后运行 `npm run preflight:v4 -- --data-dir /absolute/decrypted-v4 --account-id sanitized-v4 --json`。它先执行 schema-only 诊断，再尝试 bridge；`ready`、`schema-only`、`unavailable` 和 `rejected` 的含义及处理步骤见 [v4 副本接入预检](v4-intake-preflight.md)。SQLCipher 副本必须先按[加密导入流程](encrypted-import.md)生成静止明文快照；预检只接受静止的绝对目录，拒绝符号链接和被检查数据库的 SQLite `-wal`/`-shm`/`-journal` 侧文件，不读取密钥或消息内容。
+更完整的接入入口是 `npm run build:bridge` 之后运行 `npm run preflight:v4 -- --data-dir /absolute/decrypted-v4 --account-id sanitized-v4 --json`。它先执行 schema-only 诊断，再尝试 bridge；`ready`、`schema-only`、`unavailable` 和 `rejected` 的含义及处理步骤见 [v4 副本接入预检](v4-intake-preflight.md)。得到 `ready` 后，使用同一个 `--data-dir` 和 `--account-id` 运行 `npm run build:independent` 与 `node scripts/launch.mjs --independent ...` 做真实副本的只读 UI/DTO 抽样；`npm run test:independent` 只回归自建 synthetic fixture，不能替代真实副本验收。SQLCipher 副本必须先按[加密导入流程](encrypted-import.md)生成静止明文快照；预检只接受静止的绝对目录，拒绝符号链接和被检查数据库的 SQLite `-wal`/`-shm`/`-journal` 侧文件，不读取密钥或消息内容。
 
 `npm run check:project` 还会核对 `package.json`、`package-lock.json` 和 `provenance/project-metadata.json` 的项目名称与版本；升级版本时必须同步修改三处，避免锁文件或维护元数据滞后。
 
