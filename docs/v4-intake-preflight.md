@@ -26,11 +26,18 @@ bridge。若拿到的是 SQLCipher 加密副本，先按[加密导入流程](enc
 预检后：
 
 1. `schema-only`：保存 JSON 报告，按报告中的表/列结构补充脱敏副本映射；不要修改 bridge 去猜测原生 schema。
-2. `ready`：先运行 `npm run build:independent`，再用预检同一个副本启动独立桌面：
+2. `ready`：先把授权副本复制成项目 `.runtime` 下的新目录（不能使用软链接），再对这个
+   项目内副本重跑预检。`scripts/launch.mjs` 为了隔离边界只接受项目 `.runtime` 下的真实目录；
+   例如副本位于 `/absolute/project/.runtime/authorized-v4/sanitized-v4` 时：
 
    ```sh
+   npm run preflight:v4 -- \
+     --data-dir /absolute/project/.runtime/authorized-v4/sanitized-v4 \
+     --account-id sanitized-v4 \
+     --json
+   npm run build:independent
    node scripts/launch.mjs --independent \
-     --data-dir /absolute/authorized-v4-copy \
+     --data-dir /absolute/project/.runtime/authorized-v4/sanitized-v4 \
      --account-id sanitized-v4
    ```
 
