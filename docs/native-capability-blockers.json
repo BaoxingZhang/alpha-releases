@@ -16,7 +16,10 @@
         "packages/alpha-engine/index.cjs",
         "src/main/index.js",
         "docs/backend-compatibility-map.json",
-        "docs/native-diagnosis-evidence/guard-state-lock-pseudocode.c"
+        "docs/native-diagnosis-evidence/guard-state-lock-pseudocode.c",
+        "docs/native-key-worker-evidence.json",
+        "docs/native-xkey-wechat2-live-probe.json",
+        "docs/chatlog-wechat2-live-key-probe.json"
       ],
       "reason": "The independent backend has a password lock, but no native vault, Windows Hello provider, account-generation key store, or verified image/database key lifetime. Returning a synthetic key or treating password-lock configuration as native provisioning would misrepresent the security boundary.",
       "required_inputs": [
@@ -68,7 +71,8 @@
         "docs/source-gaps.md",
         "vendor/runtime/component-manifest.json",
         "vendor/runtime/manifests/alpha-wcdb.component.json",
-        "packages/alpha-engine/index.cjs"
+        "packages/alpha-engine/index.cjs",
+        "docs/native-message-send-evidence.json"
       ],
       "reason": "The independent backend has verified read-only DTOs and local export jobs, but no live WeChat capture session, send transport, controlled writer transaction, or resource-maintenance ABI. The shipped component manifest marks controlled_writer unavailable and retention_writer message_mutations false. Returning a local synthetic receipt or treating a snapshot write as a delivered message would misrepresent source data and delivery state.",
       "required_inputs": [

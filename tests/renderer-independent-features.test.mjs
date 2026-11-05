@@ -39,6 +39,11 @@ test('independent renderer exposes only explicit synthetic favorites and moments
 });
 
 test('independent media browser remains metadata-only', () => {
+  assert.match(source, /const INDEPENDENT_MEDIA_TABS = \[\s*\.\.\.MEDIA_TABS,\s*\{ id: "file", label: "文件" \},\s*\{ id: "link", label: "链接" \}/);
+  assert.match(source, /const mediaTabs = metadataOnly \? INDEPENDENT_MEDIA_TABS : MEDIA_TABS;/);
+  assert.match(source, /items: mediaTabs/);
+  assert.match(source, /activeTab === "media" \|\| activeTab === "image" \|\| activeTab === "video"/);
+  assert.match(source, /category: activeTab/);
   assert.match(source, /function MediaTile\(\{[^}]*metadataOnly = false/);
   assert.match(source, /const canReadImage = !metadataOnly \|\| indexedImages/);
   assert.match(source, /const canReadVideo = !metadataOnly/);

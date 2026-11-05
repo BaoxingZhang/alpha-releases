@@ -33724,6 +33724,12 @@ const MEDIA_TABS = [
   { id: "image", label: "图片" },
   { id: "video", label: "视频" }
 ];
+const INDEPENDENT_MEDIA_TABS = [
+  ...MEDIA_TABS,
+  { id: "file", label: "文件" },
+  { id: "link", label: "链接" }
+];
+const MEDIA_EMPTY_LABELS = { media: "图片或视频", image: "图片", video: "视频", file: "文件", link: "链接" };
 function filterConversationChoices(items, query) {
   const needle = query.trim().toLowerCase();
   if (!needle) return [...items];
@@ -33808,9 +33814,11 @@ function ConversationFilter({ accountId, value, onChange }) {
 function MediaWall({ accountId, accountEpoch }) {
   const { remoteConversations, status } = useWorkspace();
   const metadataOnly = isIndependentEngineStatus(status);
+  const mediaTabs = metadataOnly ? INDEPENDENT_MEDIA_TABS : MEDIA_TABS;
   const navigate = useNavigate();
   const client = useQueryClient();
   const [tab, setTab] = reactExports.useState("media");
+  const activeTab = mediaTabs.some((item) => item.id === tab) ? tab : "media";
   const [conversationId, setConversationId] = reactExports.useState("");
   const [preset, setPreset] = reactExports.useState("all");
   const [rolling, setRolling] = reactExports.useState({});
@@ -33825,7 +33833,7 @@ function MediaWall({ accountId, accountEpoch }) {
   }, [preset, from, to]);
   const filters = reactExports.useMemo(() => accountMediaFilters(conversationId, preset === "custom" ? custom.filters : rolling), [conversationId, preset, custom.filters, rolling]);
   const supported = typeof window.alpha.messages.browseAccountMedia === "function";
-  const options = accountMediaQueryOptions(accountId, accountEpoch, tab, filters);
+  const options = accountMediaQueryOptions(accountId, accountEpoch, activeTab, filters);
   const query = useInfiniteQuery({ ...options, enabled: Boolean(accountId) && supported && !custom.error });
   const items = reactExports.useMemo(() => mergeBrowsePages(query.data?.pages ?? []), [query.data]);
   const names2 = reactExports.useMemo(() => new Map(remoteConversations.filter((item) => item.accountId === accountId).map((item) => [item.id, item.name])), [remoteConversations, accountId]);
@@ -33851,9 +33859,9 @@ function MediaWall({ accountId, accountEpoch }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       Masthead,
       {
-        title: "图片与视频",
-        hint: metadataOnly ? "独立离线模式按元数据浏览；仅明确绑定本地索引的图片允许预览，视频和未绑定媒体不会读取或播放。" : "所有会话里的图片和视频，按时间从新到旧排列；视频在点击播放后才读取。",
-        nav: accountId ? /* @__PURE__ */ jsxRuntimeExports.jsx(Tabs, { items: MEDIA_TABS, variant: "underline", value: tab, onChange: setTab, label: "媒体类型", idPrefix: "media" }) : void 0,
+        title: "媒体浏览",
+        hint: metadataOnly ? "独立离线模式按元数据浏览图片、视频、文件和链接；仅明确绑定本地索引的图片允许预览，其他内容不会读取或播放。" : "所有会话里的图片和视频，按时间从新到旧排列；视频在点击播放后才读取。",
+        nav: accountId ? /* @__PURE__ */ jsxRuntimeExports.jsx(Tabs, { items: mediaTabs, variant: "underline", value: activeTab, onChange: setTab, label: "媒体类型", idPrefix: "media" }) : void 0,
         actions: accountId ? /* @__PURE__ */ jsxRuntimeExports.jsx(
           IconButton,
           {
@@ -33919,10 +33927,10 @@ function MediaWall({ accountId, accountEpoch }) {
         {
           className: "media-page-state",
           icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Images, { size: 22 }),
-          title: filtered ? "没有符合条件的图片或视频" : "还没有图片或视频",
-          description: filtered ? "可以换一个会话或时间范围再看。" : "微信在本机记录过的图片和视频会显示在这里。"
+    title: filtered ? `没有符合条件的${MEDIA_EMPTY_LABELS[activeTab] || "媒体消息"}` : `还没有${MEDIA_EMPTY_LABELS[activeTab] || "媒体消息"}`,
+          description: filtered ? "可以换一个会话或时间范围再看。" : metadataOnly ? "独立离线模式只显示已验证的消息元数据。" : "微信在本机记录过的图片和视频会显示在这里。"
         }
-      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+      ) : activeTab === "media" || activeTab === "image" || activeTab === "video" ? /* @__PURE__ */ jsxRuntimeExports.jsx(
         MediaGrid,
         {
           accountId,
@@ -33938,6 +33946,19 @@ function MediaWall({ accountId, accountEpoch }) {
           onOpenVideo: setVideo,
           metadataOnly,
           footer: query.isFetchingNextPage ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "conversation-search-note media-page-more", role: "status", children: "正在读取更多…" }) : void 0
+        }
+      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+        BrowseList,
+        {
+          accountId,
+          conversationId,
+          category: activeTab,
+          items,
+          active: true,
+          hasMore: Boolean(query.hasNextPage),
+          fetching,
+          onLoadMore: loadMore,
+          onLocate: locate
         }
       )
     ] }),
