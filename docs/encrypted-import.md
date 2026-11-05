@@ -13,6 +13,8 @@ npm run demo:encrypted
 
 显式离线副本入口：
 
+在新 checkout 或尚未构建本地独立后端的环境中，先运行 `npm run build:independent`；构建完成后再执行下面的启动命令。
+
 ```sh
 npm run start:independent -- --session my-offline-copy \
   --encrypted-dir /absolute/project/.runtime/my-encrypted-copy \

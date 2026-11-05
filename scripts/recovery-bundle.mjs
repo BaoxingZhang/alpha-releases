@@ -112,7 +112,19 @@ async function stageReproducibleFiles(files, directory) {
   }
 }
 
-export async function buildRecoveryBundle({ output = DEFAULT_OUTPUT, includeVendorRuntime = false } = {}) {
+async function syncFile(filename) {
+  const handle = await fs.open(filename, 'r');
+  try { await handle.sync(); }
+  finally { await handle.close(); }
+}
+
+async function syncDirectory(directory) {
+  const handle = await fs.open(directory, 'r');
+  try { await handle.sync(); }
+  finally { await handle.close(); }
+}
+
+export async function buildRecoveryBundle({ output = DEFAULT_OUTPUT, includeVendorRuntime = false, runTar = execFileAsync } = {}) {
   if (process.platform !== 'darwin' || process.arch !== 'arm64') fail('RECOVERY_BUNDLE_TARGET_UNSUPPORTED');
   const destination = path.resolve(output);
   if (!destination.startsWith(`${path.join(root, '.runtime')}${path.sep}`) && !destination.startsWith(`${path.join(root, 'build')}${path.sep}`)) {
@@ -121,12 +133,16 @@ export async function buildRecoveryBundle({ output = DEFAULT_OUTPUT, includeVend
   const files = await collectFiles({ includeVendorRuntime });
   const project = await projectIdentity();
   await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
-  await fs.rm(destination, { force: true });
+  // Keep the previous archive in place until the new archive is complete and
+  // durable. A unique sibling temporary file also ensures a failed tar cannot
+  // leave a truncated bundle at the published path.
+  const temporaryArchive = `${destination}.${crypto.randomUUID()}.tmp`;
+  let archivePublished = false;
   const staging = await fs.mkdtemp(path.join(root, '.runtime', 'recovery-bundle-stage-'));
   try {
     await stageReproducibleFiles(files, staging);
-    await execFileAsync('/usr/bin/tar', [
-      '-czf', destination,
+    await runTar('/usr/bin/tar', [
+      '-czf', temporaryArchive,
       // ustar keeps the normalized mtime in its fixed header and avoids
       // libarchive's non-deterministic pax ctime extension. Current source
       // paths are bounded below ustar's 100-byte name limit.
@@ -136,8 +152,13 @@ export async function buildRecoveryBundle({ output = DEFAULT_OUTPUT, includeVend
       '--uid', '0', '--gid', '0', '--uname', 'root', '--gname', 'root',
       '-C', staging, '--', ...files
     ], { cwd: root, maxBuffer: 4096 });
+    await syncFile(temporaryArchive);
+    await fs.rename(temporaryArchive, destination);
+    archivePublished = true;
+    await syncDirectory(path.dirname(destination));
   } finally {
     await fs.rm(staging, { recursive: true, force: true });
+    if (!archivePublished) await fs.rm(temporaryArchive, { force: true });
   }
   const entries = [];
   for (const relative of files) {

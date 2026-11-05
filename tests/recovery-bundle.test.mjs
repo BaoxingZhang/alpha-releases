@@ -48,3 +48,16 @@ test('recovery source archive bytes are reproducible across invocations', { time
   assert.equal(first.manifest.archive.sha256, second.manifest.archive.sha256);
   assert.equal(await fs.readFile(firstOutput, 'hex'), await fs.readFile(secondOutput, 'hex'));
 });
+
+test('recovery source archive failure preserves the previous archive', { timeout: 30_000 }, async t => {
+  const directory = await fs.mkdtemp(path.join(root, '.runtime/recovery-bundle-atomic-'));
+  const output = path.join(directory, 'source.tar.gz');
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  await fs.writeFile(output, 'previous complete archive\n', { mode: 0o600 });
+  await assert.rejects(
+    buildRecoveryBundle({ output, runTar: async () => { throw new Error('injected tar failure'); } }),
+    /injected tar failure/
+  );
+  assert.equal(await fs.readFile(output, 'utf8'), 'previous complete archive\n');
+  assert.deepEqual(await fs.readdir(directory), ['source.tar.gz']);
+});
