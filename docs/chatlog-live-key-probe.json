@@ -1,0 +1,36 @@
+{
+  "schema": "alpha-recovered.chatlog-live-key-probe.v1",
+  "observedDate": "2026-11-05",
+  "recordedAt": "2026-11-05T13:19:16Z",
+  "mode": "read-only-chatlog-key-probe",
+  "realWeChatProcess": true,
+  "databaseContentsRead": false,
+  "nativeFilesModified": false,
+  "keyMaterialEmitted": false,
+  "probeCompleted": true,
+  "durationSecondsBound": 120,
+  "command": {
+    "executable": "build/candidates/chatlog",
+    "arguments": [
+      "key",
+      "--pid",
+      "<wechat-main-pid>",
+      "--force"
+    ],
+    "environment": "isolated temporary CHATLOG_DIR and HOME",
+    "operation": "bounded in-memory key probe; output was not persisted"
+  },
+  "result": {
+    "status": "failed",
+    "errorCode": "CHATLOG_KEY_NOT_ACQUIRED",
+    "rawOutputPersisted": false,
+    "keyValuesPersisted": false,
+    "processDiscovery": "memory-read path completed without a database key"
+  },
+  "interpretation": [
+    "The candidate Chatlog key path did not produce a usable database key within the bounded probe.",
+    "No database contents were opened and no native or user files were modified.",
+    "This is candidate-helper evidence only; it does not establish that the WeChat version or database format is unsupported.",
+    "The result does not authorize forged key values, native Alpha token substitution, or bypassing macOS protections."
+  ]
+}
