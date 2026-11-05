@@ -26,6 +26,21 @@ test('current evidence refresh rejects a stale runtime tool count', async () => 
   assert.ok(errors.some(error => error.includes('httpAdapter.tools')));
 });
 
+test('current evidence records every source diagnostics surface', async () => {
+  const evidence = await loadCurrentEvidence();
+  const sourceDiagnostics = evidence.validation.httpAdapter.listTools.sourceDiagnostics;
+  assert.deepEqual(sourceDiagnostics.httpPaths, [
+    '/api/v1/independent/source/revision',
+    '/api/v1/independent/source/watch-targets',
+    '/api/v1/independent/source/schema'
+  ]);
+  assert.deepEqual(sourceDiagnostics.mcpTools, [
+    'alpha-independent.source.get_revision',
+    'alpha-independent.source.get_watch_targets',
+    'alpha-independent.source.get_schema'
+  ]);
+});
+
 test('current evidence refresh reports stale release and flavor joins without reading runtime artifacts', async () => {
   const evidence = await loadCurrentEvidence();
   evidence.validation.currentEvidenceRefresh.releaseManifest.artifactDigest = '0'.repeat(64);

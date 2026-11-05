@@ -48,6 +48,29 @@ export function validateCurrentEvidenceRefresh(currentValidation, options = {}) 
   } else {
     if (!isCount(httpAdapter.tools)) errors.push('validation.httpAdapter.tools: expected a non-negative safe integer');
     if (isCount(options.httpToolCount)) compareField(errors, httpAdapter.tools, options.httpToolCount, 'validation.httpAdapter.tools vs runtime toolDefinitions');
+    const sourceDiagnostics = httpAdapter.listTools?.sourceDiagnostics;
+    if (!isRecord(sourceDiagnostics)) {
+      errors.push('validation.httpAdapter.listTools.sourceDiagnostics: recorded evidence entry is missing');
+    } else {
+      for (const path of [
+        '/api/v1/independent/source/revision',
+        '/api/v1/independent/source/watch-targets',
+        '/api/v1/independent/source/schema'
+      ]) {
+        if (!Array.isArray(sourceDiagnostics.httpPaths) || !sourceDiagnostics.httpPaths.includes(path)) {
+          errors.push(`validation.httpAdapter.listTools.sourceDiagnostics.httpPaths: missing ${path}`);
+        }
+      }
+      for (const tool of [
+        'alpha-independent.source.get_revision',
+        'alpha-independent.source.get_watch_targets',
+        'alpha-independent.source.get_schema'
+      ]) {
+        if (!Array.isArray(sourceDiagnostics.mcpTools) || !sourceDiagnostics.mcpTools.includes(tool)) {
+          errors.push(`validation.httpAdapter.listTools.sourceDiagnostics.mcpTools: missing ${tool}`);
+        }
+      }
+    }
   }
 
   const source = refresh.publicSourceCandidate;
