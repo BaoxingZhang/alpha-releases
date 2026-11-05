@@ -23,6 +23,22 @@ npm run start:independent -- --session my-offline-copy \
 
 目录必须位于本工程 `.runtime/` 内，路径不能包含符号链接。账号标签只标识该数据集，不表示经过微信登录认证。密钥从页面输入，不应写入命令参数、环境变量或持久配置。
 
+如果源目录仍是加密状态且需要先生成一个静止副本，可运行：
+
+```sh
+npm run stage:encrypted-v4 -- \
+  --source-dir /absolute/authorized-encrypted-v4 \
+  --account-id my-dataset-label \
+  --target-name my-dataset-label \
+  --json
+```
+
+该命令会把 regular files 原子复制到项目内
+`.runtime/v4-encrypted-static/my-dataset-label`，排除 `-wal`、`-shm` 和
+`-journal`，并写入带 SHA-256 的相对路径 manifest。它不会解密，也不证明数据库
+schema 可读；发布结果必须再通过本节的合法 key 导入流程，不能把该目录直接作为
+明文 `--data-dir` 使用。加密副本和 key 都不应提交到 Git。
+
 当前支持一个固定格式：4096 字节页、80 字节 reserve、PBKDF2-HMAC-SHA512 256000 次、AES-256-CBC、逐页 HMAC-SHA512。仅导入 `contact.db`、`session.db`、`message.db` 和 `message_N.db`，保留目录层级。它还不是通用 SQLCipher 导入器；其他版本、每库不同密钥、活动 WAL/SHM/journal 和实时数据库均不支持。
 
 ## 处理与存储
@@ -47,7 +63,7 @@ npm run test:independent
 npm run test:smoke
 ```
 
-早期加密导入阶段记录的 `npm test` 共 79 项全部通过，另有导入器 5 组 Go 单测通过；当前仓库全量回归为 362/362，详见[维护路线图](maintenance-roadmap.md)。加密测试数据由 Node crypto 独立生成；SQLite C API 先分配 reserve 80，随后重新组织数据库页，不截断普通 SQLite 页。Go 解密后的四个库与独立明文基准逐字节一致。测试覆盖错误密钥、篡改页、路径/符号链接/活动日志、取消、锁、manifest 篡改、重启复用和密钥未持久化，汇总见 [encrypted-validation.json](encrypted-validation.json)。
+早期加密导入阶段记录的 `npm test` 共 79 项全部通过，另有导入器 5 组 Go 单测通过；当前仓库全量回归为 367/367，详见[维护路线图](maintenance-roadmap.md)。加密测试数据由 Node crypto 独立生成；SQLite C API 先分配 reserve 80，随后重新组织数据库页，不截断普通 SQLite 页。Go 解密后的四个库与独立明文基准逐字节一致。测试覆盖错误密钥、篡改页、路径/符号链接/活动日志、取消、锁、manifest 篡改、重启复用和密钥未持久化，汇总见 [encrypted-validation.json](encrypted-validation.json)。
 
 桌面队列在独立模式下允许导入与锁控制同时在途；原模式仍使用原队列策略。实际 Electron 测试暂停本应用的 Go 导入子进程，确认锁状态仍可返回、锁定可取消导入并清理工作目录；解锁后此前已提交的快照仍可读取。
 

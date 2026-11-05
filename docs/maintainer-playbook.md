@@ -19,6 +19,13 @@
 
 更完整的接入入口是 `npm run build:bridge` 之后运行 `npm run preflight:v4 -- --data-dir /absolute/decrypted-v4 --account-id sanitized-v4 --json`。它先执行 schema-only 诊断，再尝试 bridge；`ready`、`schema-only`、`unavailable` 和 `rejected` 的含义及处理步骤见 [v4 副本接入预检](v4-intake-preflight.md)。推荐用 `npm run stage:v4 -- --source-dir /absolute/decrypted-v4 --account-id sanitized-v4 --target-name sanitized-v4 --json` 把授权副本安全复制到项目 `.runtime/v4-staged/`，该命令会拒绝符号链接、特殊文件、SQLite sidecar、超限文件并在复制后自动预检。得到 `published=true` 后，使用项目内 `--data-dir` 和 `--account-id` 运行 `npm run build:independent` 与 `node scripts/launch.mjs --independent ...` 做真实副本的只读 UI/DTO 抽样；启动器只接受项目 `.runtime` 下的真实目录。`npm run test:independent` 只回归自建 synthetic fixture，不能替代真实副本验收。SQLCipher 副本必须先按[加密导入流程](encrypted-import.md)生成静止明文快照；预检只接受静止的绝对目录，拒绝符号链接和被检查数据库的 SQLite `-wal`/`-shm`/`-journal` 侧文件，不读取密钥或消息内容。
 
+对仍处于加密状态、尚未取得合法 key 的源目录，可先运行
+`npm run stage:encrypted-v4 -- --source-dir /absolute/authorized-encrypted-v4 --account-id sanitized-v4 --target-name sanitized-v4 --json`。
+它只把 regular files 复制到 `.runtime/v4-encrypted-static/<name>`，排除 SQLite
+sidecar，写入相对路径和 SHA-256 manifest，并在原子发布前后检查源文件集合；它不解密、
+不读取表内容，也不执行 `preflight:v4`。发布后的目录仍需通过受支持的 key 导入流程，
+不能直接作为明文 `--data-dir` 启动。
+
 `npm run check:project` 还会核对 `package.json`、`package-lock.json` 和 `provenance/project-metadata.json` 的项目名称与版本；升级版本时必须同步修改三处，避免锁文件或维护元数据滞后。
 
 需要核对上游是否出现新的发行材料时运行 `npm run audit:upstream`。它默认只打印当前公开仓库、release、更新策略和文件树的审计结果；只有确认结果后才使用 `--write` 更新 [`docs/upstream-alpha-releases-current.json`](upstream-alpha-releases-current.json)。如果本地保留原始 DMG，可额外传入 `--artifact` 做大小和 SHA-256 比对。该流程不会把新的发行包自动接入构建，也不会替换原生 runtime、签名、公钥或授权配置。

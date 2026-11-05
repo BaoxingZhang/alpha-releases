@@ -22,7 +22,7 @@
 | main → alpha-engine | `EngineClientFrame`、`EngineServerFrame` 的 encode/decode；4 字节大端长度头；请求 ID、超时、取消、启动 hello 与能力协商 | 可恢复已包含方法的线格式、枚举和字段，并实现独立后端或主进程适配器 | 不能从编码器推导数据库 SQL、排序/聚合算法、服务端全部约束、并发语义和异常恢复行为 |
 | HTTP bridge → engine | `POST /engine-frame`、protobuf、回环地址、临时 Bearer token、请求大小限制和只读操作白名单 | 可保留外部工具的数据访问入口和鉴权边界 | 此 bridge 只覆盖部分读取操作；它不是整个产品的后端 API |
 | alpha-data-host → native | manifest 的 `alpha.native.v1`、`alpha.data-rpc.v1`、`--semantic-json-stdio`、`alpha_native_get_api` 与 readonly provider ABI 名称 | 可据已知操作名和调用侧继续整理接口 | ABI 头文件、结构布局、全部 JSON schema、SQLCipher 参数与微信 schema 映射没有完整源码；不能只替换 dylib 文件名 |
-| key-worker / xkey / security-host | helper 协议名称、密钥编码、手动导入/自动获取参数、签名与 peer 配置 | 能规划自己的密钥提供接口和合法测试输入 | macOS 自动获取具体实现、版本适配、原生凭据保管、完整安全握手源码未取得 |
+| key-worker / xkey / security-host | helper 协议名称、密钥编码、手动导入/自动获取参数、签名与 peer 配置 | 能规划自己的密钥提供接口和合法测试输入 | 原生 `alpha-xkey-helper-v1` 依赖 loopback challenge、security-host/Native Vault ticket、runtime policy 和 issuer；macOS 自动获取具体实现、版本适配、原生凭据保管、完整安全握手源码未取得。当前 Chatlog candidate helper 是独立适配器，不能直接替换原生 helper，也不能伪造 auth token |
 | main → AI gateway → JS worker | 本地网关配置、客户端请求、流事件处理，以及可读的 agent host/provider 实现 | 模型调用循环可逐步拆出为可维护模块；可编写新网关满足调用侧契约 | 原 Rust 网关的持久化、授权、记忆索引、工具调度及恢复算法不能由前端接口完整推出 |
 
 本地证据位置：`src/main/index.js:57950` / `60099` 是两端 frame 编码器；`:62766` 是长度头；`:62812` 是 EngineClient；`:62987` 附近为 hello；`:64730` 附近为请求发送；`:5562` 是 DesktopEngineBridge；`:64690` 附近为 `dispatchReadOnlyFrame` 白名单。`src/main/index.js:67416` 和 `:67833` 是网关生命周期/路径；`src/agent-host/index.cjs:4365`、`:6193`、`:6602`、`:6891` 分别包含模型 HTTP、模型协议归一化、host runtime、framing。源文件可直接打开：[main](../src/main/index.js)、[agent host](../src/agent-host/index.cjs)、[WCDB manifest](../vendor/runtime/manifests/alpha-wcdb.component.json)。行号针对当前保存的发布 JS。

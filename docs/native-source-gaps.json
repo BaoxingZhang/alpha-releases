@@ -121,7 +121,7 @@
           "needle": "\"security\""
         }
       ],
-      "rebuild_boundary": "Original files and public trust data were copied byte-for-byte. Signatures, permits, peer identity checks, expiry policies and license checks were not bypassed or modified."
+      "rebuild_boundary": "Original files and public trust data were copied byte-for-byte. Signatures, permits, peer identity checks, expiry policies and license checks were not bypassed or modified. The native xkey chain remains separate from the independent Chatlog-compatible key candidate adapter; no auth token or native ABI was invented."
     },
     {
       "name": "AI agent host",

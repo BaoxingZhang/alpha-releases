@@ -24,6 +24,23 @@ bridge。若拿到的是 SQLCipher 加密副本，先按[加密导入流程](enc
 用调用方手动输入的 key 导入一个静止的明文快照，再对快照目录运行本预检；不要把
 密钥或运行中的原始目录交给预检。
 
+如果需要先把加密源保存为项目内的静止副本，可以使用：
+
+```sh
+npm run stage:encrypted-v4 -- \
+  --source-dir /absolute/authorized-encrypted-v4 \
+  --account-id sanitized-v4 \
+  --target-name sanitized-v4 \
+  --json
+```
+
+该命令只复制普通文件，排除 `-wal`、`-shm` 和 `-journal` 侧文件，逐文件写入
+SHA-256 manifest，并在临时目录完成后原子发布到
+`.runtime/v4-encrypted-static/sanitized-v4`。它不会解密、读取表内容或运行预检，
+因此 `published=true` 只表示静止加密副本已安全落盘，不能直接交给明文 bridge。
+随后仍需通过合法 key 使用[加密导入流程](encrypted-import.md)；原始目录和副本都必须
+保持静止，不能把排除的活动 sidecar 当作可恢复数据。
+
 预检先运行只读 SQLite 元数据诊断，再尝试项目自己的只读 bridge。输出为
 `alpha-independent-v4-preflight.v1`，固定标记 `read_only=true`、`complete=false`、
 `native_schema_supported=false`。`status=ready` 只表示 bridge 能识别当前已验证的
