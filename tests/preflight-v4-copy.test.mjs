@@ -36,10 +36,10 @@ test('v4 preflight reports ready only when the source diagnostic is ready', asyn
     dataDir,
     account: 'sanitized-v4',
     inspectSchema: async () => ({ schema: 'alpha-independent-schema-only-diagnostics.v1', status: 'partial', databases: [], errors: [{ path: 'message.db', code: 'SCHEMA_ONLY_SQLITE_READ_FAILED' }], tableCount: 0 }),
-    inspectSrc: async () => ({ status: 'ready', diagnostics: { sourceKind: 'explicit-offline-sqlite-schema', databases: [], tableCount: 3 } })
+    inspectSrc: async () => ({ status: 'ready', diagnostics: { sourceKind: 'explicit-offline-sqlite-schema', databases: [{ path: 'contact.db', tables: [] }], tableCount: 3 } })
   });
   assert.equal(report.status, 'ready');
-  assert.deepEqual(report.source, { status: 'ready', diagnostics: { sourceKind: 'explicit-offline-sqlite-schema', databases: [], tableCount: 3 } });
+  assert.deepEqual(report.source, { status: 'ready', diagnostics: { sourceKind: 'explicit-offline-sqlite-schema', databases: [{ path: 'contact.db', tables: [] }], tableCount: 3 } });
   } finally { await fs.rm(dataDir, { recursive: true, force: true }); }
 });
 

@@ -55,3 +55,16 @@ test('source inspection argument helpers reject unsafe paths and labels', () => 
     'data-dir': '/tmp/data', 'account-id': 'acct-1', json: true
   });
 });
+
+test('source inspection does not call an empty or unrecognized directory ready', async t => {
+  await fs.mkdir(base, { recursive: true });
+  const outer = await fs.mkdtemp(path.join(base, 'empty-'));
+  t.after(() => fs.rm(outer, { recursive: true, force: true }));
+  const { stdout, stderr } = await execute(
+    process.execPath,
+    [script, '--data-dir', outer, '--account-id', 'sanitized-v4', '--json'],
+    { cwd: root, maxBuffer: 5 * 1024 * 1024 }
+  ).then(() => ({ stdout: '', stderr: '' }), error => error);
+  assert.equal(stdout, '');
+  assert.match(stderr, /(?:NO_DATABASES|SOURCE_SCHEMA_UNSUPPORTED)/);
+});

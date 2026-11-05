@@ -110,6 +110,18 @@ async function inspectSource({ dataDir, account, timeoutMs = DEFAULT_TIMEOUT_MS 
   if (response.id !== 'source-diagnostics' || response.ok !== true || !response.result || typeof response.result !== 'object') {
     throw failure(response?.error?.code || 'SOURCE_RESPONSE_INVALID', response?.error?.message || 'Bridge did not return a successful schema diagnostic');
   }
+  // The bridge's schema.inspect operation is intentionally generic, but the
+  // v4 preflight is allowed to report `ready` only when the bridge opened at
+  // least one recognized Alpha database. An empty inventory can otherwise
+  // make an arbitrary directory containing no supported DBs look ready.
+  if (response.result.sourceKind !== 'explicit-offline-sqlite-schema'
+    || response.result.readOnly !== true
+    || response.result.complete !== false
+    || response.result.nativeSchemaSupported !== false
+    || !Array.isArray(response.result.databases)
+    || response.result.databases.length < 1) {
+    throw failure('SOURCE_SCHEMA_UNSUPPORTED', 'Bridge did not identify a supported offline v4 database');
+  }
   return {
     schema: 'alpha-independent-source-diagnostics-cli.v1',
     scope: 'alpha-independent-source-diagnostics',
