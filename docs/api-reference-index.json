@@ -664,6 +664,126 @@
         "partial": true,
         "candidate": true,
         "sourceMethod": "cancelChatExport"
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/components/status",
+        "status": "independent-adapter-extension",
+        "description": "independent component diagnostics",
+        "nativeSchemaSupported": false,
+        "complete": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/export-schedules",
+        "status": "independent-adapter-extension",
+        "description": "independent export schedules",
+        "nativeSchemaSupported": false,
+        "complete": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/export-runs",
+        "status": "independent-adapter-extension",
+        "description": "independent export runs",
+        "nativeSchemaSupported": false,
+        "complete": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/export-attempts",
+        "status": "independent-adapter-extension",
+        "description": "independent export attempts",
+        "nativeSchemaSupported": false,
+        "complete": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/media/asr/status",
+        "status": "independent-adapter-extension",
+        "description": "independent ASR diagnostics",
+        "nativeSchemaSupported": false,
+        "complete": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/mobile/session-bundle",
+        "status": "independent-adapter-extension",
+        "description": "independent mobile session bundle",
+        "nativeSchemaSupported": false,
+        "complete": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/mobile/message-media-bundle",
+        "status": "independent-adapter-extension",
+        "description": "independent mobile message media bundle",
+        "nativeSchemaSupported": false,
+        "complete": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/recall-records",
+        "status": "independent-adapter-extension",
+        "description": "independent recall candidates",
+        "nativeSchemaSupported": false,
+        "complete": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/source/revision",
+        "status": "independent-adapter-extension",
+        "description": "independent source revision",
+        "nativeSchemaSupported": false,
+        "complete": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/source/schema",
+        "status": "independent-adapter-extension",
+        "description": "independent source schema",
+        "nativeSchemaSupported": false,
+        "complete": false
+      },
+      {
+        "methods": [
+          "GET"
+        ],
+        "path": "/api/v1/independent/source/watch-targets",
+        "status": "independent-adapter-extension",
+        "description": "independent source watch targets",
+        "nativeSchemaSupported": false,
+        "complete": false
+      },
+      {
+        "methods": [
+          "POST"
+        ],
+        "path": "/api/v1/independent/media/asr/transcribe",
+        "status": "independent-adapter-extension",
+        "description": "independent indexed voice ASR",
+        "nativeSchemaSupported": false,
+        "complete": false
       }
     ],
     "mcp": [

@@ -146,6 +146,7 @@ function createChatExportJobs({ runExport, now = () => BigInt(Date.now()), maxJo
         if (!stat.isFile() || stat.size > MAX_STATE_BYTES || (stat.mode & 0o077)) fail('CHAT_EXPORT_STATE_INVALID');
         const parsed = JSON.parse(fs.readFileSync(fd, 'utf8'));
         if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.jobs) || parsed.jobs.length > maxJobs) fail('CHAT_EXPORT_STATE_INVALID');
+        const seenJobIds = new Set();
         for (const raw of parsed.jobs) {
           // Only rewrite durable state when restoreJob has to mark an
           // in-flight job as interrupted.  A fresh engine with no state file
@@ -154,6 +155,8 @@ function createChatExportJobs({ runExport, now = () => BigInt(Date.now()), maxJo
           // runs, and that write would race recursive cleanup.
           if (['queued', 'running', 'canceling'].includes(raw?.state)) rewrite = true;
           const job = restoreJob(raw);
+          if (seenJobIds.has(job.jobId)) fail('CHAT_EXPORT_STATE_INVALID');
+          seenJobIds.add(job.jobId);
           if (job.accountId === '') fail('CHAT_EXPORT_STATE_INVALID');
           jobs.set(job.jobId, { job, request: null });
         }

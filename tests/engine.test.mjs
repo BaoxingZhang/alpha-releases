@@ -658,7 +658,12 @@ test('metadata media browse filters real kinds, preserves refs/display, and pagi
     assert.equal((await c.send('browseConversationMessages', { accountId, conversationId: 'wxid_alpha', category })).error.code, 'TYPE_BROWSE_CATEGORY_UNSUPPORTED');
   }
   assert.equal((await c.send('browseConversationMessages', { accountId, conversationId: 'wxid_alpha', category: 'media', page: { pageSize: 121 } })).error.code, 'TYPE_BROWSE_REQUEST_INVALID');
-  assert.equal((await c.send('browseAccountMedia', { accountId, category: 'file' })).error.code, 'ACCOUNT_MEDIA_CATEGORY_UNSUPPORTED');
+  const files = ok(await c.send('browseAccountMedia', {
+    accountId, category: 'file', page: { pageSize: 20 }
+  }), 'browseAccountMedia');
+  assert.equal(files.items.length, 1);
+  assert.equal(files.items[0].displayJson.length > 0, true);
+  assert.equal(JSON.parse(Buffer.from(files.items[0].displayJson).toString('utf8')).kind, 'file');
 
   const exactEpoch = ok(await c.send('browseConversationMessages', {
     accountId, conversationId: 'wxid_alpha', category: 'media', fromUnixMs: 0n, toUnixMs: 0n, page: { pageSize: 5 }

@@ -291,7 +291,10 @@ const CONTACT_DIRECTORY_ALL_CATEGORIES = ['friend', 'group', 'enterprise_friend'
 const CONTACT_DIRECTORY_MAX_ITEMS = 100000;
 const CONTACT_DIRECTORY_MAX_PAGES = 256;
 const TYPE_BROWSE_CATEGORIES = new Set(['media', 'file', 'link']);
-const ACCOUNT_MEDIA_CATEGORIES = new Set(['media', 'image', 'video']);
+// Account-wide browsing can project file messages using the same verified
+// message DTO as conversation browsing. Files remain metadata-only; this
+// category does not imply attachment bytes or a native media token.
+const ACCOUNT_MEDIA_CATEGORIES = new Set(['media', 'image', 'video', 'file']);
 const GENERAL_RECORD_TABLES = new Set(['__alpha_group_members', '__alpha_group_pins', '__alpha_general_payments', '__alpha_general_friend_requests', '__alpha_general_revokes', '__alpha_general_calls']);
 const BROWSE_PAGE_MAX = 120;
 const BROWSE_BRIDGE_PAGE = 120;
@@ -392,6 +395,7 @@ function browseMessageMatches(message, category, accountWide = false) {
   const sourceType = Number(message.sourceType & 0xffffffffn);
   const kind = message.kind;
   if (accountWide) {
+    if (category === 'file') return message.display?.kind === 'file';
     if (category === 'image') return sourceType === 3 || kind === 'image';
     if (category === 'video') return sourceType === 43 || kind === 'video';
     return sourceType === 3 || sourceType === 34 || sourceType === 43 || sourceType === 47 || ['image', 'voice', 'video', 'sticker'].includes(kind);

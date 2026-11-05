@@ -90,3 +90,10 @@ test('restart preserves a durable terminal job error code', async t => {
   assert.equal(jobs.watch('dddddddd-dddd-4ddd-8ddd-dddddddddddd').errorCode, 'CHAT_EXPORT_ITEM_FAILED');
   await jobs.close();
 });
+
+test('rejects duplicate chat job ids in durable state', async t => {
+  const f = await make(t);
+  const job = { jobId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', accountId, state: 'completed', format: 'json', directory: f.root, createdAtUnixMs: '1700000000000', updatedAtUnixMs: '1700000000000', items: [{ conversationId: 'wxid_alpha', name: 'wxid_alpha', state: 'completed', phase: 'writing', messagesDone: '0', mediaSaved: '0', mediaFailed: '0', path: '', mediaManifestPath: '', errorCode: '', unchanged: false, mediaIndexing: false }] };
+  await fs.writeFile(path.join(f.stateDir, STATE_FILE), JSON.stringify({ version: 1, jobs: [job, { ...job }] }) + '\n', { mode: 0o600 });
+  assert.throws(() => createChatExportJobs({ stateDir: f.stateDir, runExport: async () => ({ itemCount: 0 }) }), /CHAT_EXPORT_STATE_INVALID/);
+});

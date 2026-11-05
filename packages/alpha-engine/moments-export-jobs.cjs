@@ -113,6 +113,7 @@ function createMomentsExportJobs({ runExport, now = () => BigInt(Date.now()), ma
         if (!stat.isFile() || stat.size > MAX_STATE_BYTES || (stat.mode & 0o077)) fail('MOMENT_EXPORT_STATE_INVALID');
         const parsed = JSON.parse(fs.readFileSync(fd, 'utf8'));
         if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.jobs) || parsed.jobs.length > maxJobs) fail('MOMENT_EXPORT_STATE_INVALID');
+        const seenJobIds = new Set();
         for (const raw of parsed.jobs) {
           // Restore rewrites in-flight jobs as failed after a process
           // restart.  Persist that explicit transition, but avoid creating a
@@ -120,6 +121,8 @@ function createMomentsExportJobs({ runExport, now = () => BigInt(Date.now()), ma
           // close() and an unnecessary queued write would race cleanup.
           if (['queued', 'running', 'canceling'].includes(raw?.state)) rewrite = true;
           const job = restoreJob(raw);
+          if (seenJobIds.has(job.jobId)) fail('MOMENT_EXPORT_STATE_INVALID');
+          seenJobIds.add(job.jobId);
           jobs.set(job.jobId, { job, request: null });
         }
       } finally { fs.closeSync(fd); }

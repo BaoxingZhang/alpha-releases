@@ -17,7 +17,22 @@ function runtimeHttpPaths() {
   for (const match of httpSource.matchAll(/(?:pathname|url\.pathname)\s*===\s*['\"]([^'\"]+)['\"]/g)) paths.push(match[1]);
   // These routes are implemented by a regular expression or in the outer
   // request handler rather than by a literal pathname comparison.
-  paths.push('/health', '/api/v1/health', '/mcp', '/api/v1/sessions/{session_id}/messages', '/api/v1/analysis/{analysis_id}', '/api/v1/analysis/{analysis_id}/cancel');
+  paths.push(
+    '/health', '/api/v1/health', '/mcp',
+    '/api/v1/sessions/{session_id}/messages', '/api/v1/analysis/{analysis_id}', '/api/v1/analysis/{analysis_id}/cancel',
+    // Dynamic routes are implemented by anchored regular expressions. Keep
+    // their documented shapes in the audit surface so coverage does not
+    // report false gaps merely because the source has no literal pathname.
+    '/api/v1/independent/moments/exports/:job_id',
+    '/api/v1/independent/moments/exports/:job_id/cancel',
+    '/api/v1/favorites/:favorite_id/media',
+    '/api/v1/favorites/media/:token',
+    '/api/v1/independent/sessions/:conversation_id/messages',
+    '/api/v1/independent/sessions/:conversation_id/history',
+    '/api/v1/independent/media/indexed/<sha256>',
+    '/api/v1/independent/records/exports/:job_id',
+    '/api/v1/independent/records/exports/:job_id/cancel'
+  );
   return new Set(unique(paths));
 }
 
@@ -43,6 +58,10 @@ const httpPaths = runtimeHttpPaths();
 const http = officialHttpCoverage(httpPaths);
 const mcp = mcpCoverage();
 const independent = api.independentAdapter || {};
+const documentedIndependentPaths = new Set((independent.http || []).map(entry => entry.path));
+const independentRuntimeUndocumentedPaths = [...httpPaths]
+  .filter(path => path.startsWith('/api/v1/independent/') && !documentedIndependentPaths.has(path))
+  .sort();
 const report = {
   schema: 'alpha-api-coverage.v1',
   generatedAt: new Date().toISOString(),
@@ -57,7 +76,8 @@ const report = {
     missing: http.filter(entry => !entry.implemented),
     entries: http,
     runtimePaths: [...httpPaths].sort(),
-    independentDocumentedPaths: (independent.http || []).map(entry => entry.path)
+    independentDocumentedPaths: (independent.http || []).map(entry => entry.path),
+    independentRuntimeUndocumentedPaths
   },
   mcp: {
     officialCount: mcp.official.length,
