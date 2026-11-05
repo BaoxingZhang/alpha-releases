@@ -13140,7 +13140,7 @@ function searchPageResponse(value, request2, independent = false) {
   })) };
 }
 const TYPE_BROWSE_CATEGORIES = ["media", "file", "link", "music", "mini-program", "transaction"];
-const ACCOUNT_MEDIA_CATEGORIES = ["media", "image", "video"];
+const ACCOUNT_MEDIA_CATEGORIES = ["media", "image", "video", "file", "link"];
 const TYPE_BROWSE_DEFAULT_PAGE = 60;
 const TYPE_BROWSE_MAX_PAGE = 120;
 const TYPE_BROWSE_METHOD_IDS = [137, 138];

@@ -5,6 +5,7 @@ import path from 'node:path';
 
 const source = fs.readFileSync(path.join(process.cwd(), 'src/renderer/assets/index-DPCwIOAb.js'), 'utf8');
 const mainSource = fs.readFileSync(path.join(process.cwd(), 'src/main/index.js'), 'utf8');
+const preloadSource = fs.readFileSync(path.join(process.cwd(), 'src/preload/index.js'), 'utf8');
 const styleSource = fs.readFileSync(path.join(process.cwd(), 'src/renderer/assets/index-Bk459aoT.css'), 'utf8');
 
 test('independent renderer exposes only explicit synthetic favorites and moments', () => {
@@ -44,6 +45,9 @@ test('independent media browser remains metadata-only', () => {
   assert.match(source, /items: mediaTabs/);
   assert.match(source, /activeTab === "media" \|\| activeTab === "image" \|\| activeTab === "video"/);
   assert.match(source, /category: activeTab/);
+  assert.match(mainSource, /const ACCOUNT_MEDIA_CATEGORIES = \["media", "image", "video", "file", "link"\];/);
+  assert.match(mainSource, /function accountMediaRequest\(accountId2, value\)/);
+  assert.match(preloadSource, /browseAccountMedia: \(\.\.\.args\) => electron\.ipcRenderer\.invoke\(IPC_CHANNELS\.browseAccountMedia, \.\.\.args\)/);
   assert.match(source, /function MediaTile\(\{[^}]*metadataOnly = false/);
   assert.match(source, /const canReadImage = !metadataOnly \|\| indexedImages/);
   assert.match(source, /const canReadVideo = !metadataOnly/);

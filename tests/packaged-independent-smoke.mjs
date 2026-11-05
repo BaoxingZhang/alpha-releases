@@ -55,6 +55,9 @@ async function installMediaFixture(fixture) {
   db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
     8, 402, 402, 43, 1700000007, 1, 1, `<videomsg rawmd5="${videoId}"/> packaged video`, Buffer.alloc(0)
   );
+  db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+    9, 403, 403, 49, 1700000008, 1, 1, '<msg><appmsg><type>5</type><title>packaged link</title><des>synthetic packaged link</des><url>https://example.test/packaged</url></appmsg></msg>', Buffer.alloc(0)
+  );
   db.close();
   const imageMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({ accountId: fixture.accountId, database: 'message/message_0.db', table: messageTable, localId: '6' })).digest('hex')}`;
   const fileMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({ accountId: fixture.accountId, database: 'message/message_0.db', table: messageTable, localId: '7' })).digest('hex')}`;
@@ -154,6 +157,16 @@ try {
   await page.locator('main[data-surface="workspace"]').waitFor();
   await page.getByText('合成联系人甲', { exact: true }).first().click({ timeout: 15000 });
   await page.getByText('first source', { exact: true }).first().waitFor({ timeout: 15000 });
+  const accountMedia = await page.evaluate(async (accountId) => {
+    const result = {};
+    for (const category of ['file', 'link']) {
+      result[category] = await window.alpha.messages.browseAccountMedia(accountId, { category, pageSize: 90 });
+    }
+    return result;
+  }, fixture.accountId);
+  assert.ok(accountMedia.file.items.some((item) => item.display?.kind === 'file'), JSON.stringify(accountMedia.file));
+  assert.ok(accountMedia.link.items.some((item) => item.display?.kind === 'link'), JSON.stringify(accountMedia.link));
+  report.checks.packagedAccountMediaFileAndLinkThroughRendererIpc = true;
   const selectedMessages = await page.evaluate(async ({ accountId, conversationId }) => window.alpha.messages.list(accountId, conversationId, 100, true), {
     accountId: fixture.accountId,
     conversationId: fixture.conversationId
@@ -187,6 +200,20 @@ try {
   assert.equal(attachmentFiles.length, 1);
   assert.deepEqual(await fs.readFile(attachmentFiles[0]), media.fileBytes);
   report.checks.packagedFileAttachmentThroughRendererIpc = true;
+  await page.getByRole('button', { name: '图片与视频', exact: true }).click({ timeout: 15000 });
+  const mediaPage = page.locator('section[aria-label="图片与视频"]');
+  await mediaPage.waitFor({ timeout: 15000 });
+  const mediaTabList = mediaPage.getByRole('tablist', { name: '媒体类型', exact: true });
+  await mediaTabList.waitFor({ timeout: 15000 });
+  const mediaTabs = await mediaTabList.getByRole('tab').evaluateAll((tabs) => tabs.map((tab) => tab.getAttribute('data-tab')));
+  assert.deepEqual(mediaTabs, ['media', 'image', 'video', 'file', 'link']);
+  await mediaPage.getByRole('tab', { name: '文件', exact: true }).click();
+  await mediaPage.locator('#media-panel-file').waitFor({ timeout: 15000 });
+  await mediaPage.getByText('packaged.zip', { exact: true }).waitFor({ timeout: 15000 });
+  await mediaPage.getByRole('tab', { name: '链接', exact: true }).click();
+  await mediaPage.locator('#media-panel-link').waitFor({ timeout: 15000 });
+  await mediaPage.getByText('packaged link', { exact: true }).waitFor({ timeout: 15000 });
+  report.checks.packagedIndependentFileAndLinkTabs = true;
   const video = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.readPlayback(accountId, opaqueId), {
     accountId: fixture.accountId,
     opaqueId: media.videoSha256
