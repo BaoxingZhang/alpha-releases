@@ -19,6 +19,19 @@ test('native message sidecar evidence remains bound to the shipped artifact', as
   assert.ok(evidence.observedProtocolTypes.includes('SendMessageRequest'));
   assert.ok(evidence.observedProtocolTypes.includes('MessageCaptureStartRequest'));
   assert.ok(evidence.observedProtocolTypes.includes('ApplyMessageMutationRequest'));
+  for (const errorString of [
+    'cli.account_required',
+    'cli.idempotency_required',
+    'cli.engine_required',
+    'cli.target_required',
+    'cli.delivery_ticket_invalid',
+    'message.material_session_missing',
+    'message.remote_failed',
+    'engine.message_send_response_missing',
+    'engine.message_cancel_response_missing',
+    'engine.message_session_response_missing',
+    'message.canceled'
+  ]) assert.ok(evidence.observedErrorStrings.includes(errorString), errorString);
   assert.equal(evidence.scope.staticOnly, true);
   assert.equal(evidence.scope.executed, false);
   assert.equal(evidence.scope.nativeSchemaSupported, false);

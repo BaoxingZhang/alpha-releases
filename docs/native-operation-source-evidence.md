@@ -141,6 +141,8 @@ Rust 符号还保留了 `alpha_protocol::alpha::engine::v1`、`alpha_protocol::a
 
 机器可校验的哈希、类型清单和边界保存在 [`native-message-send-evidence.json`](native-message-send-evidence.json)；测试会重新计算 sidecar 哈希，防止二进制替换后继续沿用这份静态结论。
 
+同一静态字符串库存还包含 `cli.account_required`、`cli.idempotency_required`、`cli.engine_required`、`cli.target_required`、`cli.delivery_ticket_invalid`、`message.material_session_missing`、`message.remote_failed`、`engine.message_send_response_missing`、`engine.message_cancel_response_missing`、`engine.message_session_response_missing` 和 `message.canceled`。这些字符串只能作为参数校验、会话缺失、远端失败和响应缺失分支的线索；它们没有把错误码映射到完整请求字段、transport 或授权 permit。对应清单已写入证据 JSON，并由测试绑定到同一二进制工件。
+
 这些观察只说明发送 sidecar 编译进了协议类型和编解码代码。它们没有给出字段编号、真实 transport、登录/捕获会话、资源维护 ABI、授权 permit、错误码闭合关系或可重放的发送确认。`alpha-message-send` 也没有被本轮执行，未知 writer/capture 调用没有被触发，原生文件没有修改。因此 `sendMessage`、消息捕获、消息变更和资源维护继续保持 `UNIMPLEMENTED`/writer-disabled；只有在取得授权的 live fixture、完整 schema/ABI 和可重放确认后，才可以把这些线索转换成实现。
 
 ### `alpha-message-send` 的 Rust 依赖元数据复核（2026-11-04）

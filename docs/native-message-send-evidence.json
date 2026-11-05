@@ -31,6 +31,19 @@
     "alpha_protocol::alpha::message::v1",
     "alpha_protocol::alpha::mutation::v1"
   ],
+  "observedErrorStrings": [
+    "cli.account_required",
+    "cli.idempotency_required",
+    "cli.engine_required",
+    "cli.target_required",
+    "cli.delivery_ticket_invalid",
+    "message.material_session_missing",
+    "message.remote_failed",
+    "engine.message_send_response_missing",
+    "engine.message_cancel_response_missing",
+    "engine.message_session_response_missing",
+    "message.canceled"
+  ],
   "evidence": [
     "ev_da5d672431c60e4716f1bf4c2be8da2ae22eae92c831f5fb37cb6f7271f8e259",
     "ev_63ca57615f4413586ceac6d3363f634975710c607957132591d6ee1c5757b18a"
