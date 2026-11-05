@@ -32,7 +32,7 @@
 
 [334456777/WeFlow](https://github.com/334456777/WeFlow) 的公开分支包含 `crates/`、`weflow-native` 和 `weflow-wcdb-ffi` 等 Rust 后端材料，并描述了消息、联系人、朋友圈、媒体、分析和 HTTP/MCP 能力。它的 [native-cli 文档](https://github.com/334456777/WeFlow/blob/main/docs/native-cli.md) 和 [desktop Rust layer 文档](https://github.com/334456777/WeFlow/blob/main/docs/desktop-rust-layer.md) 可用于比较独立原生层的职责。
 
-该仓库同样使用 CC BY-NC-SA 4.0，并明确真实数据验证主要集中在 Windows；README 没有证明 macOS arm64 已通过。因此它只能作为独立参考或后续许可评估对象，不能直接替换当前项目的 Alpha runtime，也不能被当作已验证的 macOS 兼容后端。
+截至 2026-11-06，仓库 `main` 的 [LICENSE](https://github.com/334456777/WeFlow/blob/main/LICENSE) 文本声明为 Unlicense/公有领域；提交历史同时显示该仓库长期合并了来自其他 WeFlow 仓库的代码，而相关来源曾使用 CC BY-NC-SA 4.0。单个当前 LICENSE 文件不足以清除这些混合来源的逐文件版权和许可证义务，因此本工程不把整仓复制或作为依赖，也不把它的 Unlicense 声明扩展到历史继承代码。该仓库还明确真实数据验证主要集中在 Windows；README 没有证明 macOS arm64 已通过。因此它只能作为独立参考或后续逐文件 provenance/许可评估对象，不能直接替换当前项目的 Alpha runtime，也不能被当作已验证的 macOS 兼容后端。
 
 ## `xunchahaha/alpha-build` 与 Alpha release 仓库
 
