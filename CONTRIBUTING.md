@@ -28,7 +28,9 @@ npm run verify:maintenance
 ```sh
 npm run check:project
 npm run check:maintainability
-npm test
+mkdir -p .runtime
+npm test 2>&1 | tee .runtime/npm-test.log
+npm run verify:test-evidence -- --log .runtime/npm-test.log
 npm run test:independent
 npm run test:packaged-independent
 npm run test:packaged-native
