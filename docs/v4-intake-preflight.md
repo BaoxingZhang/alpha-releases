@@ -9,6 +9,14 @@ npm run preflight:v4 -- \
   --json
 ```
 
+如果还不知道微信数据目录，可以先运行：
+
+```sh
+npm run discover:v4-sources -- --json
+```
+
+这个命令只检查固定的 macOS 微信容器路径和有限的数据库文件名，输出相对路径的脱敏摘要、候选标识及 `-wal`/`-shm`/`-journal` 侧文件状态；它不读取 SQLite 表内容、不复制文件、不扫描任意用户目录，也不把候选目录当作可用数据源。若候选显示 `active-sidecars`，请先由用户完全退出微信，再重新运行预检；工具不会替用户关闭微信。
+
 先运行 `npm run build:bridge` 准备本项目的 Go bridge；预检不会自动编译
 bridge。若拿到的是 SQLCipher 加密副本，先按[加密导入流程](encrypted-import.md)
 用调用方手动输入的 key 导入一个静止的明文快照，再对快照目录运行本预检；不要把

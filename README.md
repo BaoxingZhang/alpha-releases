@@ -10,6 +10,8 @@
 
 在接入一个已解密的 v4 数据副本前，可以运行 `npm run inspect:source -- --data-dir /absolute/decrypted-v4 --account-id label --json` 查看有界 SQLite 表/列诊断。该命令只调用项目自己的只读 bridge `schema.inspect`，要求显式绝对路径和调用方标签，不读取密钥、不导入快照、不扫描其它目录；输出固定为独立 source-diagnostics，`complete=false`、`native_schema_supported=false`，不能据此宣称真实 native schema 兼容。
 
+如果还不知道微信数据目录，可以先运行 `npm run discover:v4-sources -- --json`。它只检查固定的 macOS 微信容器路径，输出脱敏相对路径、候选标识和 SQLite `-wal/-shm/-journal` 侧文件状态，不读取表内容、不复制文件、不扫描任意用户目录；`active-sidecars` 只表示数据仍可能被微信使用，不能当作可读取副本。
+
 如果副本的核心 schema 尚未匹配、因此 bridge 还不能启动，可先运行 `npm run inspect:schema-only -- --data-dir /absolute/decrypted-v4 --json`。这个独立诊断只枚举明确目录中的 `.db` 文件并读取表/列元数据，保留无法打开数据库的有界错误；它不启动业务 bridge、不读取密钥、不读取消息内容，也不放宽任何业务 schema。输出固定 `readOnly=true`、`complete=false`、`nativeSchemaSupported=false`，详见 [schema-only 诊断](docs/schema-only-diagnostics.md)。
 
 也可以用 `npm run preflight:v4 -- --data-dir /absolute/decrypted-v4 --account-id sanitized-v4 --json` 一次完成 schema-only 和 bridge 预检。`status=ready` 只表示当前副本被独立 bridge 识别，`status=schema-only` 表示 SQLite 元数据可读但业务 schema 尚未匹配；所有结果仍固定 `complete=false`、`native_schema_supported=false`，详见 [v4 副本接入预检](docs/v4-intake-preflight.md)。
