@@ -202,6 +202,69 @@ try {
   await searchHitText.locator('..').click({ timeout: 15000 });
   await page.locator('.message-row[aria-current="true"]').filter({ hasText: 'first source' }).first().waitFor({ timeout: 15000 });
   report.checks.packagedConversationSearchAndExactLocate = true;
+  const chatExportCapabilities = await page.evaluate(() => window.alpha.chatExport?.capabilities?.() ?? null);
+  assert.ok(chatExportCapabilities, 'packaged chat export bridge is unavailable');
+  assert.deepEqual(chatExportCapabilities.mediaKinds, []);
+  assert.equal(chatExportCapabilities.voiceTranscripts, false);
+  report.exportCapabilities = chatExportCapabilities;
+  const exportPopupPromise = page.waitForEvent('popup', { timeout: 15000 });
+  await page.locator('[data-chat-tool="export"]').click({ timeout: 15000 });
+  const exportPopup = await exportPopupPromise;
+  await exportPopup.locator('form[aria-label="导出设置"]').waitFor({ state: 'visible', timeout: 15000 });
+  await exportPopup.getByText('「合成联系人甲」的聊天记录', { exact: true }).waitFor({ timeout: 15000 });
+  for (const formatLabel of ['网页文档', 'Markdown 文档', '纯文本', 'JSON 数据']) {
+    await exportPopup.getByText(formatLabel, { exact: true }).waitFor({ timeout: 15000 });
+  }
+  await exportPopup.getByRole('button', { name: '取消', exact: true }).click({ timeout: 15000 });
+  report.checks.packagedIndependentChatExportDialog = true;
+  const chatExportDirectory = path.join(packagedRuntime, 'chat-export');
+  const chatExportSnapshots = await page.evaluate(async ({ accountId, conversationId, outputDirectory }) => {
+    const terminal = new Set(['canceled', 'completed', 'completed_with_errors', 'failed']);
+    const snapshots = [];
+    for (const format of ['json', 'html', 'txt', 'xlsx']) {
+      const started = await window.alpha.chatExport.start({
+        accountId,
+        conversationIds: [conversationId],
+        format,
+        outputDirectory,
+        range: {},
+        media: [],
+        voiceTranscripts: false
+      });
+      const deadline = Date.now() + 30000;
+      let latest = null;
+      while (Date.now() < deadline) {
+        const jobs = await window.alpha.chatExport.list(accountId);
+        latest = jobs.find((job) => job.jobId === started.jobId) ?? latest;
+        if (latest && terminal.has(latest.state)) break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      if (!latest || !terminal.has(latest.state)) throw new Error(`CHAT_EXPORT_SMOKE_TIMEOUT:${format}:${JSON.stringify(latest)}`);
+      snapshots.push(latest);
+    }
+    return snapshots;
+  }, { accountId: fixture.accountId, conversationId: fixture.conversationId, outputDirectory: chatExportDirectory });
+  assert.equal(chatExportSnapshots.length, 4);
+  for (const snapshot of chatExportSnapshots) {
+    assert.equal(snapshot.state, 'completed', JSON.stringify(snapshot));
+    assert.equal(snapshot.items.length, 1, JSON.stringify(snapshot));
+    assert.equal(snapshot.items[0]?.state, 'completed', JSON.stringify(snapshot));
+    assert.ok(Number(snapshot.items[0]?.messagesDone) > 0, JSON.stringify(snapshot));
+    assert.ok(snapshot.items[0]?.path?.startsWith(`${chatExportDirectory}${path.sep}`), JSON.stringify(snapshot));
+  }
+  const exportedFiles = Object.fromEntries(await Promise.all(chatExportSnapshots.map(async (snapshot) => {
+    const filePath = snapshot.items[0].path;
+    return [snapshot.format, { filePath, bytes: await fs.readFile(filePath) }];
+  })));
+  const exportBody = JSON.parse(exportedFiles.json.bytes.toString('utf8'));
+  assert.equal(exportBody.format, 'json');
+  assert.ok(exportBody.messages.some((message) => message.text === 'first source'));
+  assert.match(exportedFiles.html.bytes.toString('utf8'), /^<!doctype html>/i);
+  assert.match(exportedFiles.html.bytes.toString('utf8'), /first source/);
+  assert.match(exportedFiles.txt.bytes.toString('utf8'), /first source/);
+  assert.equal(exportedFiles.xlsx.bytes.subarray(0, 4).toString('hex'), '504b0304');
+  report.chatExports = chatExportSnapshots;
+  report.checks.packagedIndependentChatExportThroughRendererIpc = true;
   const image = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.readImage(accountId, opaqueId), {
     accountId: fixture.accountId,
     opaqueId: media.imageSha256
