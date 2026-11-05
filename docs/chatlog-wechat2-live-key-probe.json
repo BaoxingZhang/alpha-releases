@@ -1,0 +1,45 @@
+{
+  "schema": "alpha-recovered.chatlog-wechat2-live-key-probe.v1",
+  "observedDate": "2026-11-05",
+  "recordedAt": "2026-11-05T15:22:06Z",
+  "mode": "read-only-chatlog-key-probe",
+  "realWeChatProcess": true,
+  "target": {
+    "label": "WeChat2 main process",
+    "pid": 57027
+  },
+  "databaseContentsRead": false,
+  "nativeFilesModified": false,
+  "keyMaterialEmitted": false,
+  "probeCompleted": true,
+  "durationSecondsBound": 120,
+  "command": {
+    "executable": "build/candidates/chatlog",
+    "arguments": [
+      "key",
+      "--pid",
+      "<wechat2-main-pid>",
+      "--force"
+    ],
+    "environment": "isolated temporary CHATLOG_DIR and HOME",
+    "operation": "bounded in-memory key probe; output was not persisted"
+  },
+  "result": {
+    "status": "failed",
+    "errorCode": "CHATLOG_KEY_NOT_ACQUIRED",
+    "exitCode": 0,
+    "stdoutBytes": 0,
+    "stderrBytes": 525,
+    "has64HexOutput": false,
+    "rawOutputPersisted": false,
+    "keyValuesPersisted": false,
+    "temporaryConfigRemoved": true,
+    "processDiscovery": "probe process exited without a usable database key"
+  },
+  "interpretation": [
+    "The candidate Chatlog key path completed its bounded process interaction but emitted no usable database key.",
+    "No database contents were opened and no native or user files were modified.",
+    "This is candidate-helper evidence only; it does not establish that the WeChat version or database format is unsupported.",
+    "The result does not authorize forged key values, native token substitution, or bypassing macOS protections."
+  ]
+}
