@@ -35,6 +35,15 @@ test('release manifest records every publishable artifact and stable digest', as
   assert.equal(second.artifactDigest, first.artifactDigest);
 });
 
+test('release manifest marks untracked source files as dirty', async () => {
+  const marker = path.join(process.cwd(), `.release-manifest-untracked-${process.pid}-${Date.now()}`);
+  try {
+    await fs.writeFile(marker, 'untracked release input\n', { flag: 'wx', mode: 0o600 });
+    const manifest = await buildReleaseManifest();
+    assert.equal(manifest.gitWorkingTreeDirty, true);
+  } finally { await fs.rm(marker, { force: true }); }
+});
+
 test('release manifest writes atomically to a caller-selected path', async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-release-manifest-'));
   try {

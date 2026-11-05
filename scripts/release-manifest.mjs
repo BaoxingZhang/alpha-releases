@@ -65,7 +65,7 @@ async function gitCommit() {
 
 async function gitWorkingTreeDirty() {
   try {
-    const result = await execFileAsync('git', ['status', '--porcelain=v1', '--untracked-files=no'], { cwd: root, maxBuffer: 64 * 1024 });
+    const result = await execFileAsync('git', ['status', '--porcelain=v1'], { cwd: root, maxBuffer: 64 * 1024 });
     return result.stdout.trim().length > 0;
   } catch {
     // A manifest can still be useful in a source archive without git metadata.
