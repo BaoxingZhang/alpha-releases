@@ -704,6 +704,20 @@
         "coverage": "verified-account-and-session-dto"
       },
       {
+        "name": "alpha-independent.mobile.get_session_bundle",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "sourceMethods": [
+          "listAccounts",
+          "listConversations",
+          "listMessages"
+        ],
+        "scope": "alpha-independent-mobile-session-bundle",
+        "coverage": "verified-account-session-message-dto",
+        "officialAlias": false
+      },
+      {
         "name": "alpha-independent.mobile.search_chat",
         "status": "independent-adapter-extension",
         "nativeSchemaSupported": false,

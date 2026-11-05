@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 343,
+      "passed": 344,
       "failed": 0,
       "testConcurrency": 1,
       "stateBackup": {
@@ -307,7 +307,7 @@
         "mediaReady": "only-after-explicit-media-index-verification",
         "sourcePrefix": "emoji-xml:__alpha_moment_emoji_v1:"
       },
-      "tools": 90,
+      "tools": 91,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,
