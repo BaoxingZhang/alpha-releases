@@ -1,8 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { discoverSources, parse } from '../scripts/discover-v4-sources.mjs';
+
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const discoveryScript = path.join(repositoryRoot, 'scripts/discover-v4-sources.mjs');
 
 async function fixture(t) {
   const home = await fs.mkdtemp(path.join(process.cwd(), '.runtime/discover-v4-'));
@@ -15,6 +20,23 @@ async function writeDb(root, directory, name, sidecar = false) {
   await fs.mkdir(target, { recursive: true, mode: 0o700 });
   await fs.writeFile(path.join(target, name), 'secret message bytes', { mode: 0o600 });
   if (sidecar) await fs.writeFile(path.join(target, `${name}-wal`), 'active sidecar', { mode: 0o600 });
+}
+
+async function runCli(home, args) {
+  return await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [discoveryScript, ...args], {
+      cwd: repositoryRoot,
+      env: { ...process.env, HOME: home, USERPROFILE: home }
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', chunk => { stdout += chunk; });
+    child.stderr.on('data', chunk => { stderr += chunk; });
+    child.once('error', reject);
+    child.once('close', (code, signal) => resolve({ code, signal, stdout, stderr }));
+  });
 }
 
 test('discovers fixed standard roots without reading database contents', async t => {
@@ -77,4 +99,29 @@ test('show-path is explicit human-only output and never enters JSON reports', as
   assert.equal(candidate.relative_path.includes(candidate.absolute_path), false);
   assert.throws(() => parse(['--json', '--show-path']), error => error?.code === 'V4_DISCOVERY_PATH_OUTPUT_REQUIRES_HUMAN_MODE');
   assert.throws(() => parse(['--show-path', '--show-path']), error => error?.code === 'V4_DISCOVERY_USAGE');
+});
+
+test('CLI preserves human-only path output and redacted JSON boundary', async t => {
+  const home = await fixture(t);
+  await writeDb(home, 'contact', 'contact.db');
+  await writeDb(home, 'session', 'session.db');
+  await writeDb(home, 'message', 'message_0.db');
+  const candidatePath = path.join(home, 'Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files/account/db_storage');
+
+  const human = await runCli(home, ['--show-path']);
+  assert.equal(human.code, 0);
+  assert.equal(human.stderr, '');
+  assert.match(human.stdout, new RegExp(candidatePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(human.stdout, /<redacted-[0-9a-f]{16}>/);
+
+  const json = await runCli(home, ['--json']);
+  assert.equal(json.code, 0);
+  assert.equal(json.stderr, '');
+  assert.equal(JSON.stringify(JSON.parse(json.stdout)).includes(home), false);
+  assert.equal(JSON.stringify(JSON.parse(json.stdout)).includes('absolute_path'), false);
+
+  const rejected = await runCli(home, ['--show-path', '--json']);
+  assert.equal(rejected.code, 2);
+  assert.equal(rejected.stdout, '');
+  assert.match(rejected.stderr, /V4_DISCOVERY_PATH_OUTPUT_REQUIRES_HUMAN_MODE/);
 });
