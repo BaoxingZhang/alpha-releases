@@ -10,7 +10,7 @@
 
 在接入一个已解密的 v4 数据副本前，可以运行 `npm run inspect:source -- --data-dir /absolute/decrypted-v4 --account-id label --json` 查看有界 SQLite 表/列诊断。该命令只调用项目自己的只读 bridge `schema.inspect`，要求显式绝对路径和调用方标签，不读取密钥、不导入快照、不扫描其它目录；输出固定为独立 source-diagnostics，`complete=false`、`native_schema_supported=false`，不能据此宣称真实 native schema 兼容。
 
-如果还不知道微信数据目录，可以先运行 `npm run discover:v4-sources -- --json`。它只检查固定的 macOS 微信容器路径，输出脱敏相对路径、候选标识和 SQLite `-wal/-shm/-journal` 侧文件状态，不读取表内容、不复制文件、不扫描任意用户目录；`active-sidecars` 只表示数据仍可能被微信使用，不能当作可读取副本。
+如果还不知道微信数据目录，可以先运行 `npm run discover:v4-sources -- --json`。它只检查固定的 macOS 微信容器路径，输出脱敏相对路径、候选标识和 SQLite `-wal/-shm/-journal` 侧文件状态，不读取表内容、不复制文件、不扫描任意用户目录；`active-sidecars` 只表示数据仍可能被微信使用，不能当作可读取副本。需要把候选路径复制到人工预检命令时，可运行不带 `--json` 的 `npm run discover:v4-sources -- --show-path`；绝对路径只在这个明确的人类输出模式出现，`--show-path --json` 会被拒绝。
 
 如果副本的核心 schema 尚未匹配、因此 bridge 还不能启动，可先运行 `npm run inspect:schema-only -- --data-dir /absolute/decrypted-v4 --json`。这个独立诊断只枚举明确目录中的 `.db` 文件并读取表/列元数据，保留无法打开数据库的有界错误；它不启动业务 bridge、不读取密钥、不读取消息内容，也不放宽任何业务 schema。输出固定 `readOnly=true`、`complete=false`、`nativeSchemaSupported=false`，详见 [schema-only 诊断](docs/schema-only-diagnostics.md)。
 

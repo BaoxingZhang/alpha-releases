@@ -65,3 +65,16 @@ test('bounds discovery traversal and rejects arbitrary root options', async t =>
   assert.equal(report.roots[0].truncated, true);
   assert.throws(() => parse(['--root', home]), error => error?.code === 'V4_DISCOVERY_USAGE');
 });
+
+test('show-path is explicit human-only output and never enters JSON reports', async t => {
+  const home = await fixture(t);
+  await writeDb(home, 'contact', 'contact.db');
+  await writeDb(home, 'session', 'session.db');
+  await writeDb(home, 'message', 'message_0.db');
+  const report = await discoverSources({ home, includePaths: true });
+  const candidate = report.roots[0].candidates[0];
+  assert.equal(candidate.absolute_path.endsWith('/db_storage'), true);
+  assert.equal(candidate.relative_path.includes(candidate.absolute_path), false);
+  assert.throws(() => parse(['--json', '--show-path']), error => error?.code === 'V4_DISCOVERY_PATH_OUTPUT_REQUIRES_HUMAN_MODE');
+  assert.throws(() => parse(['--show-path', '--show-path']), error => error?.code === 'V4_DISCOVERY_USAGE');
+});

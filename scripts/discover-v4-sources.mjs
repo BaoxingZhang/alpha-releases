@@ -75,8 +75,14 @@ function parse(argv) {
       values.json = true;
       continue;
     }
+    if (option === '--show-path') {
+      if (values.showPath) throw failure('V4_DISCOVERY_USAGE');
+      values.showPath = true;
+      continue;
+    }
     throw failure('V4_DISCOVERY_USAGE');
   }
+  if (values.json && values.showPath) throw failure('V4_DISCOVERY_PATH_OUTPUT_REQUIRES_HUMAN_MODE');
   return values;
 }
 
@@ -96,7 +102,7 @@ async function safeRoot(home, relative, fsApi) {
   return { root, status: 'present' };
 }
 
-async function inspectRoot({ home, root, relativeRoot, fsApi, limits }) {
+async function inspectRoot({ home, root, relativeRoot, fsApi, limits, includePaths = false }) {
   const queue = [{ directory: root, depth: 0 }];
   const markerFiles = [];
   const sidecars = [];
@@ -167,6 +173,7 @@ async function inspectRoot({ home, root, relativeRoot, fsApi, limits }) {
     .map(([directory, value]) => ({
       source_id: `wechat-v4-${digest(directory)}`,
       relative_path: redactedRelativePath(home, directory),
+      ...(includePaths ? { absolute_path: directory } : {}),
       marker_kinds: [...value.kinds].sort(),
       marker_file_count: value.files,
       active_sidecar_count: value.sidecars,
@@ -187,14 +194,14 @@ async function inspectRoot({ home, root, relativeRoot, fsApi, limits }) {
   };
 }
 
-async function discoverSources({ home = os.homedir(), fsApi = fs, limits = DISCOVERY_LIMITS } = {}) {
+async function discoverSources({ home = os.homedir(), fsApi = fs, limits = DISCOVERY_LIMITS, includePaths = false } = {}) {
   if (typeof home !== 'string' || !path.isAbsolute(home)) throw failure('V4_DISCOVERY_HOME_INVALID');
   const roots = [];
   for (const relative of STANDARD_RELATIVE_ROOTS.slice(0, limits.maxRoots)) {
     const result = await safeRoot(home, relative, fsApi);
     if (!result) continue;
     if (result.status !== 'present') { roots.push({ relative_root: relative, status: result.status, code: result.code }); continue; }
-    roots.push(await inspectRoot({ home, root: result.root, relativeRoot: relative, fsApi, limits }));
+    roots.push(await inspectRoot({ home, root: result.root, relativeRoot: relative, fsApi, limits, includePaths }));
   }
   const report = {
     schema: 'alpha-independent-v4-source-discovery.v1',
@@ -210,12 +217,16 @@ async function discoverSources({ home = os.homedir(), fsApi = fs, limits = DISCO
   return report;
 }
 
-function printHuman(report) {
+function printHuman(report, { showPath = false } = {}) {
   console.log(`v4 source discovery: ${report.status}`);
   console.log('read-only: true; complete: false; native schema supported: false');
   for (const root of report.roots) {
     console.log(`root ${root.relative_root || '<unknown>'}: ${root.status}; candidates: ${root.candidates?.length || 0}`);
-    for (const candidate of root.candidates || []) console.log(`  ${candidate.source_id}: ${candidate.relative_path}; ${candidate.status}; sidecars=${candidate.active_sidecar_count}`);
+    for (const candidate of root.candidates || []) {
+      const location = showPath && candidate.absolute_path ? candidate.absolute_path : candidate.relative_path;
+      console.log(`  ${candidate.source_id}: ${location}; ${candidate.status}; sidecars=${candidate.active_sidecar_count}`);
+      if (showPath) console.log('    use this path only after the source is static and has no active SQLite sidecars');
+    }
   }
 }
 
@@ -224,9 +235,9 @@ export { DISCOVERY_LIMITS, STANDARD_RELATIVE_ROOTS, discoverSources, markerKind,
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
   try {
     const options = parse(process.argv.slice(2));
-    const report = await discoverSources();
+    const report = await discoverSources({ includePaths: options.showPath === true });
     if (options.json) console.log(JSON.stringify(report, null, 2));
-    else printHuman(report);
+    else printHuman(report, options);
   } catch (error) {
     process.stderr.write(`${error?.code || 'V4_DISCOVERY_FAILED'}\n`);
     process.exitCode = 2;
