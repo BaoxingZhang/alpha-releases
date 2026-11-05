@@ -9,7 +9,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 test('bounded WeChat2 Chatlog probe remains explicit failed evidence', async () => {
   const evidence = JSON.parse(await fs.readFile(path.join(root, 'docs/chatlog-wechat2-live-key-probe.json'), 'utf8'));
   assert.equal(evidence.schema, 'alpha-recovered.chatlog-wechat2-live-key-probe.v1');
-  assert.equal(evidence.observedDate, '2026-11-05');
+  assert.equal(evidence.observedDate, '2026-11-06');
   assert.equal(evidence.realWeChatProcess, true);
   assert.equal(evidence.target.label, 'WeChat2 main process');
   assert.equal(evidence.target.pid, 57027);
@@ -28,7 +28,10 @@ test('bounded WeChat2 Chatlog probe remains explicit failed evidence', async () 
   assert.equal(evidence.result.keyValuesPersisted, false);
   assert.equal(evidence.result.temporaryConfigRemoved, true);
   assert.equal(evidence.latestRetry.result.errorCode, 'CHATLOG_KEY_PROBE_TIMEOUT');
-  assert.equal(evidence.latestRetry.durationSecondsBound, 125);
+  assert.equal(evidence.latestRetry.durationSecondsBound, 120);
+  assert.equal(evidence.latestRetry.result.exitCode, null);
+  assert.equal(evidence.latestRetry.result.signal, 'SIGTERM');
+  assert.equal(evidence.latestRetry.result.stderrBytes, 435);
   assert.equal(evidence.latestRetry.keyMaterialEmitted, false);
   assert.equal(evidence.latestRetry.databaseContentsRead, false);
   assert.ok(!JSON.stringify(evidence).includes('/Users/'));

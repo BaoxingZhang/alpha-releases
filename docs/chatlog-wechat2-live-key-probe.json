@@ -1,6 +1,6 @@
 {
   "schema": "alpha-recovered.chatlog-wechat2-live-key-probe.v1",
-  "observedDate": "2026-11-05",
+  "observedDate": "2026-11-06",
   "recordedAt": "2026-11-05T15:22:06Z",
   "mode": "read-only-chatlog-key-probe",
   "realWeChatProcess": true,
@@ -43,8 +43,8 @@
     "The result does not authorize forged key values, native token substitution, or bypassing macOS protections."
   ],
   "latestRetry": {
-    "recordedAt": "2026-11-05T18:58:37Z",
-    "durationSecondsBound": 125,
+    "recordedAt": "2026-11-05T19:55:47Z",
+    "durationSecondsBound": 120,
     "databaseContentsRead": false,
     "nativeFilesModified": false,
     "keyMaterialEmitted": false,
@@ -52,8 +52,10 @@
     "result": {
       "status": "timeout",
       "errorCode": "CHATLOG_KEY_PROBE_TIMEOUT",
+      "exitCode": null,
+      "signal": "SIGTERM",
       "stdoutBytes": 0,
-      "stderrBytes": 0,
+      "stderrBytes": 435,
       "rawOutputPersisted": false,
       "keyValuesPersisted": false,
       "helperProcessRemaining": false,
