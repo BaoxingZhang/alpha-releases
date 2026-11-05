@@ -58,6 +58,7 @@
     "test:chatlog:candidate": "node scripts/test-chatlog-candidate-real.mjs",
     "inspect:source": "node scripts/inspect-source.mjs",
     "inspect:schema-only": "node scripts/inspect-schema-only.mjs",
+    "inspect:key-sources": "node scripts/key-source-diagnostics.mjs",
     "discover:v4-sources": "node scripts/discover-v4-sources.mjs",
     "preflight:v4": "node scripts/preflight-v4-copy.mjs",
     "stage:v4": "node scripts/stage-v4-copy.mjs",

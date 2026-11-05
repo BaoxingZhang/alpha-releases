@@ -14,6 +14,8 @@
 
 如果副本的核心 schema 尚未匹配、因此 bridge 还不能启动，可先运行 `npm run inspect:schema-only -- --data-dir /absolute/decrypted-v4 --json`。这个独立诊断只枚举明确目录中的 `.db` 文件并读取表/列元数据，保留无法打开数据库的有界错误；它不启动业务 bridge、不读取密钥、不读取消息内容，也不放宽任何业务 schema。输出固定 `readOnly=true`、`complete=false`、`nativeSchemaSupported=false`，详见 [schema-only 诊断](docs/schema-only-diagnostics.md)。
 
+在尚未取得合法数据库 key 时，可运行 `npm run inspect:key-sources -- --static-dir /absolute/project/.runtime/v4-encrypted-static/wechat2-static --json` 做取钥来源诊断。它只报告显式 helper 是否为可执行绝对文件、取钥相关环境变量是否存在，以及静止加密副本 manifest 的文件/字节/sidecar 计数；不执行 helper、不读取 key 或活动数据库，绝不输出环境变量值、helper 路径或 manifest 文件列表。`status=configured` 只是表示存在可供后续人工选择的来源，不表示 key 已取得或数据已解密，详见 [取钥来源只读诊断](docs/key-source-diagnostics.md)。
+
 也可以用 `npm run preflight:v4 -- --data-dir /absolute/decrypted-v4 --account-id sanitized-v4 --json` 一次完成 schema-only 和 bridge 预检。`status=ready` 只表示当前副本被独立 bridge 识别，`status=schema-only` 表示 SQLite 元数据可读但业务 schema 尚未匹配；所有结果仍固定 `complete=false`、`native_schema_supported=false`，详见 [v4 副本接入预检](docs/v4-intake-preflight.md)。
 
 需要把项目外的授权静止副本接入桌面时，可使用 `npm run stage:v4 -- --source-dir /absolute/decrypted-v4 --account-id sanitized-v4 --target-name sanitized-v4 --json`。它会在项目 `.runtime/v4-staged/` 下创建无软链接的副本，拒绝 SQLite 活动 sidecar、特殊文件和超限输入，并在原子发布前运行预检；`published=true` 仍只表示独立 DTO 可读，不代表 native schema 或完整功能。
