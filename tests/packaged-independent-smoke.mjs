@@ -207,9 +207,19 @@ try {
   assert.deepEqual(chatExportCapabilities.mediaKinds, []);
   assert.equal(chatExportCapabilities.voiceTranscripts, false);
   report.exportCapabilities = chatExportCapabilities;
-  const exportPopupPromise = page.waitForEvent('popup', { timeout: 15000 });
+  // Electron on macOS 15 can create the record BrowserWindow without
+  // forwarding a Playwright `popup` event. Snapshot the known windows and
+  // discover the new child through the Electron application API instead.
+  const existingWindows = new Set(app.windows());
   await page.locator('[data-chat-tool="export"]').click({ timeout: 15000 });
-  const exportPopup = await exportPopupPromise;
+  let exportPopup;
+  const exportPopupDeadline = Date.now() + 15000;
+  while (Date.now() < exportPopupDeadline) {
+    exportPopup = app.windows().find(candidate => !existingWindows.has(candidate) && candidate !== page);
+    if (exportPopup) break;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  assert.ok(exportPopup, `packaged export window did not open; windows=${app.windows().map(candidate => candidate.url()).join(',')}`);
   await exportPopup.locator('form[aria-label="导出设置"]').waitFor({ state: 'visible', timeout: 15000 });
   await exportPopup.getByText('「合成联系人甲」的聊天记录', { exact: true }).waitFor({ timeout: 15000 });
   const exportFormatChoices = exportPopup.locator('.export-choice-grid.is-formats .export-choice');
