@@ -31984,6 +31984,8 @@ const CHAT_EXPORT_FORMATS = [
   { id: "json", extension: "json", name: "JSON 数据", description: "每条消息的发送人、时间、类型、正文和附件分字段保存，适合用程序读取和处理。" },
   { id: "chatlab-json", extension: "json", name: "ChatLab JSON", description: "用于兼容 ChatLab 的聊天分析工具；附件另存，按配套清单中的消息序号对应。" },
   { id: "chatlab-jsonl", extension: "jsonl", name: "ChatLab 逐行 JSON", description: "每行一条记录，适合流式处理；附件另存，按清单中的消息序号对应。" },
+  { id: "chatlab-v0-json", extension: "json", name: "ChatLab v0.0.2 JSON", description: "ChatLab v0.0.2 标准字段映射；媒体和原生 token 保持不可用。" },
+  { id: "chatlab-v0-jsonl", extension: "jsonl", name: "ChatLab v0.0.2 JSONL", description: "ChatLab v0.0.2 标准逐行映射；媒体和原生 token 保持不可用。" },
   { id: "arkme-json", extension: "json", name: "Arkme JSON", description: "用于 Arkme 兼容工具。" },
   { id: "sql", extension: "sql", name: "SQL 数据脚本", description: "导出消息建表与插入语句。" },
   { id: "weclone", extension: "csv", name: "WeClone 训练数据", description: "用于 WeClone 数据处理流程；包含私人聊天内容，请谨慎分享。" }
@@ -52461,6 +52463,8 @@ const FORMAT_ICONS = {
   json: /* @__PURE__ */ jsxRuntimeExports.jsx(Braces, { size: ICON }),
   "chatlab-json": /* @__PURE__ */ jsxRuntimeExports.jsx(ChartColumn, { size: ICON }),
   "chatlab-jsonl": /* @__PURE__ */ jsxRuntimeExports.jsx(Rows3, { size: ICON }),
+  "chatlab-v0-json": /* @__PURE__ */ jsxRuntimeExports.jsx(ChartColumn, { size: ICON }),
+  "chatlab-v0-jsonl": /* @__PURE__ */ jsxRuntimeExports.jsx(Rows3, { size: ICON }),
   sql: /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { size: ICON }),
   weclone: /* @__PURE__ */ jsxRuntimeExports.jsx(Bot, { size: ICON })
 };

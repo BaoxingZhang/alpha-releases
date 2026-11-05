@@ -6,9 +6,14 @@
 // recovered, so these files must not be presented as byte-compatible exports.
 
 const CHAT_DERIVED_FORMATS = new Set(['chatlab-json', 'chatlab-jsonl', 'sql', 'weclone']);
+const { toChatLabExport, stringifyChatLab, stringifyChatLabJsonl } = require('./chatlab-v0.cjs');
+CHAT_DERIVED_FORMATS.add('chatlab-v0-json');
+CHAT_DERIVED_FORMATS.add('chatlab-v0-jsonl');
 const CHAT_FORMAT_EXTENSIONS = Object.freeze({
   'chatlab-json': '.json',
   'chatlab-jsonl': '.jsonl',
+  'chatlab-v0-json': '.json',
+  'chatlab-v0-jsonl': '.jsonl',
   sql: '.sql',
   weclone: '.csv'
 });
@@ -67,6 +72,14 @@ function chatlabJsonl(meta, items) {
   return `${lines.join('\n')}\n`;
 }
 
+function chatlabV0(meta, items, jsonl) {
+  const value = toChatLabExport({
+    conversation: { conversationId: meta.conversationId, name: meta.conversationId },
+    messages: items.map(item => ({ ...item, content: item.text === null ? null : item.text }))
+  }, { exportedAtUnixSec: 0 });
+  return jsonl ? stringifyChatLabJsonl(value) : stringifyChatLab(value);
+}
+
 function sqlQuote(value) {
   if (value === null || value === undefined) return 'NULL';
   return `'${String(value).replaceAll("'", "''")}'`;
@@ -108,6 +121,8 @@ function wecloneCsv(_meta, items) {
 function derivedConversationOutput(format, meta, items) {
   if (format === 'chatlab-json') return chatlabJson(meta, items);
   if (format === 'chatlab-jsonl') return chatlabJsonl(meta, items);
+  if (format === 'chatlab-v0-json') return chatlabV0(meta, items, false);
+  if (format === 'chatlab-v0-jsonl') return chatlabV0(meta, items, true);
   if (format === 'sql') return conversationSql(meta, items);
   if (format === 'weclone') return wecloneCsv(meta, items);
   throw new Error('EXPORT_FORMAT_UNSUPPORTED');

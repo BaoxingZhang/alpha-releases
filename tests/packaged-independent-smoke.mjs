@@ -215,6 +215,8 @@ try {
   const exportFormatChoices = exportPopup.locator('.export-choice-grid.is-formats .export-choice');
   await exportFormatChoices.first().waitFor({ timeout: 15000 });
   assert.ok(await exportFormatChoices.count() >= 4, 'independent export dialog must offer four or more formats');
+  await exportPopup.getByText('ChatLab v0.0.2 JSON', { exact: true }).waitFor({ timeout: 15000 });
+  await exportPopup.getByText('ChatLab v0.0.2 JSONL', { exact: true }).waitFor({ timeout: 15000 });
   await exportPopup.getByRole('button', { name: '取消', exact: true }).click({ timeout: 15000 });
   report.checks.packagedIndependentChatExportDialog = true;
   const chatExportDirectory = path.join(packagedRuntime, 'chat-export');

@@ -28,7 +28,7 @@ npm run start:independent
 
 新增的上下文工具只使用独立引擎已经验证的消息 DTO：`get_message_around` 接受消息 `id`、`serverId` 或 `localId`，`get_message_anchor` 支持首条消息和 `YYYY-MM-DD` 日期，`get_daily_message_counts` 使用独立引擎的会话日计数。它们不会返回原始 XML、本地媒体路径、数据库密钥或未经验证的原 Alpha 媒体 token。
 
-`POST /api/v1/exports` 只允许独立引擎已验证的 `json`、`markdown`、`html`、`txt`、`xlsx`，以及由已验证消息 DTO 生成的派生 `chatlab-json`、`chatlab-jsonl`、`sql`、`weclone` 格式；派生格式不声称与原 Alpha/native formatter 或第三方工具完全兼容。`POST /api/v1/media-metadata` 只允许 `media-json`、`media-csv`，可省略会话标识以导出账号范围，接收绝对 `destination_path` 和可选的毫秒时间范围；引擎会拒绝源目录/状态目录、符号链接、已有目标、媒体打包和未支持格式，不覆盖已有文件。该接口写入一个新导出文件，因此不把文件写入称作数据源只读操作。
+`POST /api/v1/exports` 只允许独立引擎已验证的 `json`、`markdown`、`html`、`txt`、`xlsx`，以及由已验证消息 DTO 生成的派生 `chatlab-json`、`chatlab-jsonl`、`chatlab-v0-json`、`chatlab-v0-jsonl`、`sql`、`weclone` 格式；派生格式不声称与原 Alpha/native formatter 或第三方工具完全兼容。`POST /api/v1/media-metadata` 只允许 `media-json`、`media-csv`，可省略会话标识以导出账号范围，接收绝对 `destination_path` 和可选的毫秒时间范围；引擎会拒绝源目录/状态目录、符号链接、已有目标、媒体打包和未支持格式，不覆盖已有文件。该接口写入一个新导出文件，因此不把文件写入称作数据源只读操作。
 
 这是一层独立适配器，尚未声称兼容官方文档中的全部 HTTP 路径和 MCP 工具。官方接口中依赖原生媒体、朋友圈、收藏、发送和完整 ChatLab 语义的路径仍需逐项取得 schema 和运行证据后实现。当前测试使用合成引擎 DTO，验证令牌、Host/Origin、HTTP 路由、游标/长整数转换、受控导出、MCP 工具、参数白名单和未知工具错误；没有读取真实微信目录。
 

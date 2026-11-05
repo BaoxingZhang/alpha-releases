@@ -2,7 +2,7 @@
 
 独立引擎现已接通恢复协议中的聊天导出任务字段 121–125：
 
-- `getChatExportCapabilities` 宣布最多 500 个会话；独立模式的格式策略允许 JSON、Markdown、HTML、TXT、XLSX，以及基于已验证消息 DTO 的派生 `chatlab-json`、`chatlab-jsonl`、`sql`、`weclone`。媒体、消息类型筛选、头像、语音转写和 CDN 补齐明确不可用。
+- `getChatExportCapabilities` 宣布最多 500 个会话；独立模式的格式策略允许 JSON、Markdown、HTML、TXT、XLSX，以及基于已验证消息 DTO 的派生 `chatlab-json`、`chatlab-jsonl`、`chatlab-v0-json`、`chatlab-v0-jsonl`、`sql`、`weclone`。媒体、消息类型筛选、头像、语音转写和 CDN 补齐明确不可用。
 - `startChatExport` 创建任务并按会话顺序调用已经验证的 `exportConversation`。每个会话输出到调用者提供的目录，文件名包含安全化的会话标识和稳定摘要；格式可选 JSON、Markdown、HTML、TXT、XLSX 或四种派生格式。XLSX 输出为单个 `Messages` 工作表，使用已验证消息 DTO 的固定列；派生格式不声称与原 Alpha/native formatter 或 ChatLab/WeClone 完全兼容。
 - `listChatExports`、`watchChatExport` 和 `cancelChatExport` 返回任务状态、每个会话的消息计数、输出路径和错误码。
 

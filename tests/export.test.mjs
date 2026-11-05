@@ -103,6 +103,8 @@ test('derived exports are bounded, parseable and preserve verified message field
   const cases = [
     ['chatlab-json', 'chatlab.json'],
     ['chatlab-jsonl', 'chatlab.jsonl'],
+    ['chatlab-v0-json', 'chatlab-v0.json'],
+    ['chatlab-v0-jsonl', 'chatlab-v0.jsonl'],
     ['sql', 'chat.sql'],
     ['weclone', 'chat.csv']
   ];
@@ -119,6 +121,18 @@ test('derived exports are bounded, parseable and preserve verified message field
       assert.equal(lines[0].format, 'chatlab-jsonl-derived');
       assert.equal(lines[0].recordType, 'meta');
       assert.equal(lines[1].recordType, 'message');
+    }
+    if (format === 'chatlab-v0-json') {
+      const parsed = JSON.parse(output);
+      assert.equal(parsed.chatlab.version, '0.0.2');
+      assert.equal(parsed.meta.platform, 'weixin');
+      assert.equal(parsed.messages[0].platformMessageId, '9007199254740997');
+    }
+    if (format === 'chatlab-v0-jsonl') {
+      const lines = output.trimEnd().split('\n').map(line => JSON.parse(line));
+      assert.equal(lines[0]._type, 'header');
+      assert.equal(lines[0].chatlab.version, '0.0.2');
+      assert.equal(lines.at(-1)._type, 'message');
     }
     if (format === 'sql') assert.match(output, /CREATE TABLE IF NOT EXISTS alpha_messages/);
     if (format === 'weclone') {
