@@ -87,3 +87,41 @@ SHA-256 manifest，并在临时目录完成后原子发布到
 3. `rejected`/`unavailable`：修复副本或重新导出后重跑；不要将空结果当作成功。
 
 即使预检为 `ready`，真实发送、写入、自动取钥、原生媒体、AI 和原生完整性仍需各自的授权材料与可重放证据。
+
+## 只读取指定会话
+
+副本通过预检并启动独立后端后，可以只读取一个会话的有限记录，不需要把全部聊天导出。筛选发生在已经静止并验证过的 `data-dir` 上；它不会让活动微信目录变得可读，也不会绕过 `-wal`/`-shm`/`-journal` 拒绝。
+
+使用独立 HTTP 适配器时，按会话、时间范围和页大小读取。`after_unix_ms` 和
+`before_unix_ms` 是排他的毫秒边界，响应中的 `next_cursor` 可用于下一页：
+
+```sh
+curl -sS \
+  'http://127.0.0.1:5031/api/v1/messages?account_id=sanitized-v4&conversation_id=wxid_example&limit=100&ascending=true&after_unix_ms=0&before_unix_ms=4102444800000' \
+  -H 'Authorization: Bearer <local-adapter-token>'
+```
+
+也可以写出单个会话的 JSON 文件；目标必须是源目录和项目状态目录之外、由调用方新建的绝对路径：
+
+```sh
+curl -sS -X POST 'http://127.0.0.1:5031/api/v1/exports' \
+  -H 'Authorization: Bearer <local-adapter-token>' \
+  -H 'Content-Type: application/json' \
+  --data '{"conversation_id":"wxid_example","destination_path":"/absolute/authorized-output/chat.json","format":"json","include_media":false,"start_time_unix_ms":"0","end_time_unix_ms":"4102444800000"}'
+```
+
+如果只使用已解密的 Chatlog 候选工具，可用 `talker`、时间/关键字筛选以及
+`limit`/`offset` 做同样的有限读取：
+
+```sh
+npm run chatlog:preview -- \
+  --binary /absolute/project/build/candidates/chatlog \
+  --work-dir /absolute/decrypted-static-workdir \
+  --kind messages \
+  --talker wxid_example \
+  --limit 100 \
+  --offset 0
+```
+
+这些接口只读取明确提供的静止副本；它们不读取正在运行的微信进程、不自动取钥，
+也不宣称与 Alpha 原生消息分页或 Chatlog schema 完全兼容。
