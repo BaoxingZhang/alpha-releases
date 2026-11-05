@@ -10,6 +10,7 @@ const require = createRequire(import.meta.url);
 const { readProjectIdentity, flavorIdentity } = require('../packages/alpha-desktop/project-identity.cjs');
 
 const execFileAsync = promisify(execFile);
+const DMG_RETRY_DELAYS_MS = [500, 1000, 2000];
 export const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const projectPackagePath = path.join(root, 'package.json');
 const projectIdentity = readProjectIdentity(JSON.parse(await fs.readFile(projectPackagePath, 'utf8')));
@@ -45,6 +46,23 @@ async function installedElectronVersion() {
 }
 
 function fail(message) { throw new Error(message); }
+
+export function isHdiutilResourceBusy(error) {
+  const message = [error?.message, error?.stderr, error?.stdout].filter(value => typeof value === 'string').join('\n');
+  return /hdiutil:\s+create failed\s+-\s+Resource busy/i.test(message) || /\bResource busy\b/i.test(message);
+}
+
+export async function createDmgWithRetry(args, { delaysMs = DMG_RETRY_DELAYS_MS, execute = execFileAsync, sleep = delay => new Promise(resolve => setTimeout(resolve, delay)) } = {}) {
+  const delays = Array.isArray(delaysMs) ? delaysMs : DMG_RETRY_DELAYS_MS;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await execute('/usr/bin/hdiutil', args, { cwd: root, maxBuffer: 4096 });
+    } catch (error) {
+      if (!isHdiutilResourceBusy(error) || attempt >= delays.length) throw error;
+      await sleep(delays[attempt]);
+    }
+  }
+}
 
 // Info.plist is XML, so identity values must be escaped before they are
 // interpolated into the template. The project identity validator deliberately
@@ -263,7 +281,7 @@ export async function packageMacosApp({ output, createDmg = false, independent =
   if (createDmg) {
     const dmgPath = destination.replace(/\.app$/i, '.dmg');
     await fs.rm(dmgPath, { force: true });
-    await execFileAsync('/usr/bin/hdiutil', ['create', '-volname', productName, '-srcfolder', destination, '-ov', '-format', 'UDZO', dmgPath], { cwd: root, maxBuffer: 4096 });
+    await createDmgWithRetry(['create', '-volname', productName, '-srcfolder', destination, '-ov', '-format', 'UDZO', dmgPath]);
     const bytes = await fs.readFile(dmgPath);
     dmg = { path: path.relative(root, dmgPath).split(path.sep).join('/'), bytes: bytes.byteLength, sha256: crypto.createHash('sha256').update(bytes).digest('hex'), signed: false, notarized: false };
     manifest.dmg = dmg;

@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { buildFileManifest, manifestDigest, rewriteElectronInfoPlist } from '../scripts/package-macos-app.mjs';
+import { buildFileManifest, createDmgWithRetry, isHdiutilResourceBusy, manifestDigest, rewriteElectronInfoPlist } from '../scripts/package-macos-app.mjs';
 import updateMode from '../packages/alpha-desktop/update-mode.cjs';
 const { readIndependentUpdateMode } = updateMode;
 
@@ -24,6 +24,29 @@ test('macOS app packaging rewrites identity while retaining Electron executable'
   assert.match(result, /CFBundleName<\/key>\s*<string>Alpha Recovered<\/string>/);
   assert.match(result, /CFBundleIdentifier<\/key>\s*<string>local\.alpha\.recovered<\/string>/);
   assert.match(result, /CFBundleExecutable<\/key>\s*<string>Electron<\/string>/);
+});
+
+test('DMG packaging identifies transient hdiutil resource contention for bounded retry', () => {
+  assert.equal(isHdiutilResourceBusy({ stderr: 'hdiutil: create failed - Resource busy\n' }), true);
+  assert.equal(isHdiutilResourceBusy({ message: 'Command failed: hdiutil create' }), false);
+  assert.equal(isHdiutilResourceBusy(new Error('Resource busy')), true);
+});
+
+test('DMG packaging retries only transient resource contention', async () => {
+  const calls = [];
+  const sleeps = [];
+  const result = await createDmgWithRetry(['create'], {
+    delaysMs: [1, 2],
+    sleep: async delay => sleeps.push(delay),
+    execute: async (...args) => {
+      calls.push(args);
+      if (calls.length < 3) throw { stderr: 'hdiutil: create failed - Resource busy\\n' };
+      return { stdout: '', stderr: '' };
+    }
+  });
+  assert.equal(result.stdout, '');
+  assert.equal(calls.length, 3);
+  assert.deepEqual(sleeps, [1, 2]);
 });
 
 test('independent app flavor gets a distinct display name and bundle identifier', () => {
