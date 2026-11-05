@@ -376,6 +376,25 @@
         "methods": [
           "GET"
         ],
+        "path": "/api/v1/independent/sessions/:conversation_id/history",
+        "status": "independent-adapter-extension",
+        "schema": "alpha-independent-chat-history.v1",
+        "compatibility": "alpha-independent-message-v1",
+        "scope": "alpha-independent-chat-history",
+        "sourceMethod": "listMessages",
+        "coverage": "verified-message-dto",
+        "pageSemantics": "bounded-page-count",
+        "complete": false,
+        "nativeSchemaSupported": false,
+        "chatlabCompatible": false,
+        "rawAvailable": false,
+        "mediaReady": false,
+        "readOnly": true
+      },
+      {
+        "methods": [
+          "GET"
+        ],
         "path": "/api/v1/independent/message-source",
         "status": "independent-adapter-extension",
         "scope": "verified-message-text",
@@ -776,9 +795,26 @@
         "officialAlias": false
       },
       {
+        "name": "alpha-independent.chat.resolve_history",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "schema": "alpha-independent-chat-history.v1",
+        "compatibility": "alpha-independent-message-v1",
+        "scope": "alpha-independent-chat-history",
+        "sourceMethod": "listMessages",
+        "coverage": "verified-message-dto",
+        "pageSemantics": "bounded-page-count",
+        "rawAvailable": false,
+        "mediaReady": false,
+        "readOnly": true,
+        "officialAlias": false
+      },
+      {
         "name": "alpha-independent.analytics.analyze_annual",
         "status": "independent-adapter-extension",
         "nativeSchemaSupported": false,
+        "chatlabCompatible": false,
         "sourceMethods": [
           "analyzeAnnual",
           "sessions.list",

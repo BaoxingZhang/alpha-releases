@@ -307,7 +307,7 @@
         "mediaReady": "only-after-explicit-media-index-verification",
         "sourcePrefix": "emoji-xml:__alpha_moment_emoji_v1:"
       },
-      "tools": 92,
+      "tools": 93,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,
