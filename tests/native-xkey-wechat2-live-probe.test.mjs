@@ -1,0 +1,28 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+
+test('WeChat2 native xkey probe remains explicit failed evidence', async () => {
+  const evidence = JSON.parse(await fs.readFile(path.join(root, 'docs/native-xkey-wechat2-live-probe.json'), 'utf8'));
+  assert.equal(evidence.schema, 'alpha-recovered.native-xkey-wechat2-live-probe.v1');
+  assert.equal(evidence.observedDate, '2026-11-05');
+  assert.equal(evidence.realWeChatData, true);
+  assert.equal(evidence.databaseContentsRead, false);
+  assert.equal(evidence.nativeFilesModified, false);
+  assert.equal(evidence.keyMaterialEmitted, false);
+  assert.equal(evidence.probeCompleted, true);
+  assert.equal(evidence.target.pid, 57027);
+  assert.equal(evidence.target.result.status, 'failed');
+  assert.equal(evidence.target.result.exitCode, 1);
+  assert.equal(evidence.target.result.errorCode, 'KEY_PROVIDER_NOT_CONFIGURED');
+  assert.equal(evidence.result.stdoutBytes, 0);
+  assert.equal(evidence.result.has64HexOutput, false);
+  assert.equal(evidence.result.rawOutputPersisted, false);
+  assert.equal(evidence.result.keyValuesPersisted, false);
+  assert.ok(!JSON.stringify(evidence).includes('/Users/'));
+  assert.ok(!JSON.stringify(evidence).match(/(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])/iu));
+});

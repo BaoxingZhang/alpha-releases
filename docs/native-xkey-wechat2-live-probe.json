@@ -1,0 +1,45 @@
+{
+  "schema": "alpha-recovered.native-xkey-wechat2-live-probe.v1",
+  "observedDate": "2026-11-05",
+  "mode": "read-only-list-conversations",
+  "realWeChatData": true,
+  "databaseContentsRead": false,
+  "nativeFilesModified": false,
+  "keyMaterialEmitted": false,
+  "probeCompleted": true,
+  "command": {
+    "executable": "vendor/runtime/bin/alpha-cli",
+    "arguments": [
+      "--source-database",
+      "<redacted-wechat2-db-storage>",
+      "--xkey-process-id",
+      "<wechat2-main-pid>",
+      "--list-conversations",
+      "--page-size",
+      "1"
+    ],
+    "operation": "bounded native xkey acquisition followed by a one-page conversation probe"
+  },
+  "target": {
+    "label": "WeChat2 main process",
+    "pid": 57027,
+    "result": {
+      "status": "failed",
+      "exitCode": 1,
+      "errorCode": "KEY_PROVIDER_NOT_CONFIGURED"
+    }
+  },
+  "result": {
+    "stdoutBytes": 0,
+    "stderrBytes": 1014,
+    "has64HexOutput": false,
+    "rawOutputPersisted": false,
+    "keyValuesPersisted": false
+  },
+  "interpretation": [
+    "The native probe reached the executable but its key provider was not configured, so no database key was acquired.",
+    "No database contents were opened and no native or user files were modified.",
+    "This result does not establish that the WeChat version or database format is unsupported.",
+    "The result does not authorize forged key values, native token substitution, or bypassing macOS protections."
+  ]
+}
