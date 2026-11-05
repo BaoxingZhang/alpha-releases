@@ -46,3 +46,32 @@
 
 相关仓库已经放在工作区外的只读研究目录 `<external-research-root>/WeFlow1`，没有导入构建、没有修改许可证声明、没有替换 Alpha runtime。复核中没有找到收藏功能、收藏表名或收藏 API 的证据，因此收藏不能从 WeFlow1 推导实现。后续若要利用其中的代码，必须先单独确认许可证、署名、非商业和相同方式共享义务，并重新验证 ABI、微信版本、平台和数据安全边界。
 
+## 2026-11-06 原生组件与许可证复核
+
+本轮对两个公开仓库的固定提交做了文件级复核：`xunchahaha/WeFlow1` 为
+`916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73`，`hicccc77/WeFlow` 为
+`91adcfdbb24e8e147d8332440b8c6ac899ad2abf`。两者的仓库 `LICENSE` 都是
+**CC BY-NC-SA 4.0**，复核范围内没有发现 `NOTICE` 或 `COPYING` 文件。许可证原文分别见
+[`WeFlow1/LICENSE`](https://raw.githubusercontent.com/xunchahaha/WeFlow1/916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73/LICENSE) 和
+[`WeFlow/LICENSE`](https://raw.githubusercontent.com/hicccc77/WeFlow/91adcfdbb24e8e147d8332440b8c6ac899ad2abf/LICENSE)。因此，Alpha
+工程只记录行为和接口证据，不复制其 TypeScript、原生二进制或媒体/取钥实现；任何未来的代码复用都必须单独完成逐文件署名、非商业、相同方式共享和来源核查。
+
+`WeFlow1` 的 `electron/services/keyServiceMac.ts` 通过 `koffi` 动态绑定
+`GetDbKey`/`ListWeChatProcesses`，并调用 `xkey_helper`、检查 SIP、请求管理员授权，处理
+`task_for_pid`、进程 attach/hook 等失败。它依赖微信进程、调试权限和随仓库发布的
+`libwx_key.dylib`/helper，不能被当作离线 key 推导器或 Alpha 的授权替代；相关代码只作为
+行为证据保留在审计记录中（[keyServiceMac.ts](https://raw.githubusercontent.com/xunchahaha/WeFlow1/916b7c2c57d81de02d3b3f965f7c84bfa6bc7c73/electron/services/keyServiceMac.ts)）。
+
+其 `nativeImageDecrypt.ts` 仅加载平台原生 addon 并调用
+`decryptDatNative(inputPath, xorKey, aesKey)`，没有在 TypeScript 中实现 DAT/AES 解码算法；
+`wcdbCore.ts` 同样通过 C ABI 加载 `libwcdb_api.dylib`。父仓库现在改为第三方可插拔组件，
+明确要求用户自行配置 WCDB/媒体/WeLive 实现，且未配置时直接返回“未配置”错误（见
+[`third-party-components.md`](https://raw.githubusercontent.com/hicccc77/WeFlow/91adcfdbb24e8e147d8332440b8c6ac899ad2abf/docs/third-party-components.md)）。
+其中列出的 `wcdb_*` 函数只能作为能力分类和行为对照，不能证明与 Alpha 的
+`_alpha_native_get_api(version,size,out_api)` 函数表、数据库 schema、授权 permit 或媒体 token
+兼容。Alpha 继续对真实朋友圈、收藏、媒体和自动取钥保持 fail-closed。
+
+本轮没有把上述仓库、二进制或真实数据加入依赖、构建产物或发布包，也没有用它们提高独立
+后端的支持计数。可移植范围限于自行重写的 DTO/导出映射、能力分类和错误边界；生产实现必须
+保持 `native_schema_supported=false`，直到获得独立且合法的 schema、ABI、授权和真实数据证据。
+
