@@ -69,6 +69,8 @@ npm run start:independent -- --data-dir /absolute/project/.runtime/your-snapshot
 
 新增的 `listMessageRecallRecords` 是独立后端的只读候选适配器：它只调用 `listGeneral` 读取显式 `__alpha_general_revokes` 表，再从可验证的撤回消息 XML 生成 message-derived record。返回的 `recordId` 是本引擎基于来源身份计算的 opaque id；分页 cursor 绑定账号和会话，扫描和页大小均有上限。每条记录固定带 `confirmation=unverified-candidate`、`provenance=alpha-independent-message-derived-candidate`、`decodeErrorCode=NATIVE_RECALL_SCHEMA_UNSUPPORTED`，`capturedAtUnixMs`/`confirmedAtUnixMs` 为零且不保留压缩/packed 内容。这些记录只用于查阅和导出候选，不兼容原生 recall store，不证明撤回已确认，也不提供 anti-recall writer。覆盖测试见 `tests/engine-message-recall.test.mjs`。
 
+独立 mobile 组合工具 `alpha-independent.mobile.get_message_media_bundle` 只读取已验证消息 DTO 的媒体引用，并投影显式 `alpha-media://sha256/...` 索引为 metadata-only 状态；固定 `complete=false`、`native_schema_supported=false`、`media_ready=false`、`raw_available=false`、`official_alias=false`，不返回字节、原始 XML、`media1_`、CDN URL 或 key。
+
 独立 mobile 组合工具 `alpha-independent.mobile.get_overview`、`alpha-independent.mobile.get_session_bundle`、`alpha-independent.mobile.search_chat` 与 `alpha-independent.mobile.get_chat_context` 只覆盖已验证账号、会话和消息 DTO，固定 `complete=false`、`native_schema_supported=false`，不实现官方移动端 snapshot/schema，也不增加 82/128 协议支持。`get_session_bundle` 只组合 `listAccounts`、`listConversations` 和 `listMessages` 的有界结果，不包含未读数、静音、头像缓存、媒体 URL、原始 XML 或 native token。
 
 

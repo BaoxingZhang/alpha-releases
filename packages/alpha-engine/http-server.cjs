@@ -710,6 +710,7 @@ function toolDefinitions() {
     { name: 'alpha-independent.media.transcribe_indexed_voice', description: '对调用方显式选择的 WAV media-index 语音运行可选 ASR；不兼容原生 transcribeVoice/VoiceInfo/SILK', inputSchema: { type: 'object', required: ['media_index_root', 'media_id', 'model_root'], properties: { account_id: string, media_index_root: string, media_id: string, model_root: string, model_id: { type: 'string', enum: ['zipformer-zh-small'] } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.mobile.get_overview', description: '组合返回已验证账号状态和会话摘要；不兼容官方 wechat.mobile.get_overview/native mobile snapshot schema', inputSchema: { type: 'object', properties: { account_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.mobile.get_session_bundle', description: '组合返回已验证账号、会话和一页消息 DTO；不兼容官方 mobile session bundle/native schema', inputSchema: { type: 'object', required: ['conversation_id'], properties: { account_id: string, conversation_id: string, message_limit: { type: 'integer', minimum: 1, maximum: 500 }, message_cursor: string, ascending: { type: 'boolean' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.mobile.get_message_media_bundle', description: '组合返回一条已验证消息及其媒体引用和 metadata-only 索引状态；不返回字节、media1、CDN 或 key', inputSchema: { type: 'object', oneOf: [{ required: ['conversation_id', 'server_id'] }, { required: ['username', 'server_id'] }, { required: ['conversation_id', 'message_id'] }, { required: ['username', 'message_id'] }], properties: { account_id: string, conversation_id: string, username: string, server_id: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' }, message_id: string, include_bytes: { type: 'boolean' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.mobile.search_chat', description: '在已验证消息 DTO 上提供独立移动端搜索组合；不兼容官方 wechat.mobile.search_chat schema', inputSchema: { type: 'object', required: ['query'], properties: { account_id: string, query: string, username: string, sender_id: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.mobile.get_chat_context', description: '读取已验证会话中指定消息的有界前后文；不兼容官方 wechat.mobile.get_chat_context schema', inputSchema: { type: 'object', required: ['username', 'anchor_id'], properties: { account_id: string, username: string, anchor_id: string, before: { type: 'integer', minimum: 0, maximum: 50 }, after: { type: 'integer', minimum: 0, maximum: 50 } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.chat.get_incremental_messages', description: '读取独立已验证消息 DTO 的有界毫秒增量窗口；不兼容官方 ChatLab 增量同步 schema 或 nextSince 语义', inputSchema: { type: 'object', required: ['conversation_id'], properties: { account_id: string, conversation_id: string, since_unix_ms: string, end_unix_ms: string, limit: { type: 'integer', minimum: 1, maximum: 500 }, cursor: string, ascending: { type: 'boolean' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -1171,6 +1172,21 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const value = await call('locateMessage', { accountId: account, conversationId: conversation, serverId });
       return messageDisplayResult(value, account, conversation, serverId);
     }
+    if (pathname === '/api/v1/independent/mobile/message-media-bundle') {
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      const conversation = text(oneAlias(params, ['conversation_id', 'conversationId', 'username', 'talker'], 'HTTP_API_MESSAGE_MEDIA_CONVERSATION_AMBIGUOUS'), 1024, 'HTTP_API_MESSAGE_MEDIA_CONVERSATION_INVALID');
+      if (!conversation) throw new HttpAdapterError('HTTP_API_MESSAGE_MEDIA_CONVERSATION_REQUIRED', 400);
+      if (params.include_bytes !== undefined || params.includeBytes !== undefined) throw new HttpAdapterError('HTTP_API_MESSAGE_MEDIA_BYTES_UNAVAILABLE', 400);
+      const serverId = text(params.server_id ?? params.serverId, 20, 'HTTP_API_MESSAGE_MEDIA_SERVER_ID_INVALID');
+      const messageId = text(params.message_id ?? params.messageId, 2048, 'HTTP_API_MESSAGE_MEDIA_MESSAGE_ID_INVALID');
+      if ((serverId && messageId) || (!serverId && !messageId)) throw new HttpAdapterError('HTTP_API_MESSAGE_MEDIA_IDENTIFIER_REQUIRED', 400);
+      if (serverId && (!/^[1-9][0-9]{0,19}$/.test(serverId) || BigInt(serverId) > (1n << 64n) - 1n)) throw new HttpAdapterError('HTTP_API_MESSAGE_MEDIA_SERVER_ID_INVALID', 400);
+      const account = await selectedAccount(params);
+      const located = serverId
+        ? await call('locateMessage', { accountId: account, conversationId: conversation, serverId })
+        : await findMessageForBundle(account, conversation, messageId);
+      return messageMediaBundleResult(located, account, conversation, serverId, messageId);
+    }
     if (pathname === '/api/v1/independent/media/probe') {
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
       if (typeof engine.probeMedia !== 'function') throw new HttpAdapterError('HTTP_API_MEDIA_PROBE_UNSUPPORTED', 501);
@@ -1573,6 +1589,38 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       text: item.text || ''
     };
   }
+  function projectMessageMediaRefs(message) {
+    if (!message || !Array.isArray(message.refs)) return [];
+    return message.refs.map(ref => {
+      if (!ref || typeof ref !== 'object') throw new HttpAdapterError('HTTP_API_MESSAGE_MEDIA_RESPONSE_INVALID', 502);
+      const kind = typeof ref.kind === 'string' && /^(?:image|video|voice|file|emoji)$/.test(ref.kind) ? ref.kind : 'unknown';
+      const id = typeof ref.id === 'string' && ref.id.length <= 256 && !/[\u0000-\u001f\u007f]/.test(ref.id) ? ref.id : '';
+      const rendition = typeof ref.rendition === 'string' && /^[A-Za-z0-9._:-]{1,64}$/.test(ref.rendition) ? ref.rendition : 'source';
+      const mimeType = typeof ref.mimeType === 'string' && ref.mimeType.length <= 128 && !/[\r\n\u0000]/.test(ref.mimeType) ? ref.mimeType : '';
+      const uri = typeof ref.uri === 'string' ? ref.uri : '';
+      const indexed = /^alpha-media:\/\/sha256\/[0-9a-f]{64}$/.test(uri);
+      const remote = /^https?:\/\//i.test(uri);
+      return { kind, ...(id ? { id } : {}), ...(mimeType ? { mime_type: mimeType } : {}), rendition, indexed, remote, media_ready: false, ...(indexed ? { sha256: uri.slice(-64) } : {}) };
+    });
+  }
+  function messageMediaBundleResult(value, accountId, conversationId, serverId, messageId) {
+    const message = value?.message;
+    const base = { scope: 'alpha-independent-mobile-message-media-bundle', account_id: accountId, conversation_id: conversationId, complete: false, native_schema_supported: false, media_ready: false, raw_available: false, official_alias: false };
+    if (!message) return { ...base, status: 'missing', message: null, media_refs: [], media_items: [] };
+    if (message.conversationId !== conversationId) throw new HttpAdapterError('HTTP_API_MESSAGE_MEDIA_RESPONSE_INVALID', 502);
+    if (serverId !== undefined) {
+      let actual; try { actual = BigInt(message.serverId); } catch { throw new HttpAdapterError('HTTP_API_MESSAGE_MEDIA_RESPONSE_INVALID', 502); }
+      if (actual !== BigInt(serverId)) throw new HttpAdapterError('HTTP_API_MESSAGE_MEDIA_RESPONSE_INVALID', 502);
+    }
+    if (messageId !== undefined && message.id !== messageId) throw new HttpAdapterError('HTTP_API_MESSAGE_MEDIA_RESPONSE_INVALID', 502);
+    const refs = projectMessageMediaRefs(message);
+    return { ...base, status: 'ready', message: mcpMessage(message, true), media_refs: refs, media_items: refs.map(ref => ({ ...ref, metadata_only: true })) };
+  }
+  async function findMessageForBundle(account, conversationId, messageId) {
+    const items = await mcpAllMessages(account, conversationId);
+    const item = items.find(candidate => candidate && candidate.id === messageId);
+    return item ? { message: item, beforeCursor: new Uint8Array(0), afterCursor: new Uint8Array(0) } : { message: null, beforeCursor: new Uint8Array(0), afterCursor: new Uint8Array(0) };
+  }
   async function mcpFindConversation(account, conversationId) {
     let next = new Uint8Array(0);
     for (let pageNumber = 0; pageNumber < MCP_SCAN_MAX_PAGES; pageNumber += 1) {
@@ -1592,7 +1640,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       if (!Array.isArray(value.items) || value.items.length > 500) throw new HttpAdapterError('MCP_MESSAGE_PAGE_INVALID', 502);
       items.push(...value.items);
       if (items.length > MCP_SCAN_MAX_ITEMS) throw new HttpAdapterError('MCP_SCAN_LIMIT', 413);
-      if (!value.nextCursor) return items;
+      if (!value.nextCursor || value.nextCursor.length === 0) return items;
       next = cursor(value.nextCursor, 'MCP_CURSOR_INVALID');
     }
     throw new HttpAdapterError('MCP_SCAN_LIMIT', 413);
@@ -1644,6 +1692,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
     const allowedArguments = {
       'alpha-independent.mobile.search_chat': ['account_id', 'query', 'username', 'sender_id', 'limit', 'cursor'],
       'alpha-independent.mobile.get_session_bundle': ['account_id', 'conversation_id', 'message_limit', 'message_cursor', 'ascending'],
+      'alpha-independent.mobile.get_message_media_bundle': ['account_id', 'conversation_id', 'username', 'server_id', 'message_id', 'include_bytes'],
       'alpha-independent.mobile.get_chat_context': ['account_id', 'username', 'anchor_id', 'before', 'after'],
       'wechat.core.get_status': [], 'wechat.core.get_lock_status': [], 'alpha-independent.telemetry.get_status': [], 'alpha-independent.components.get_status': ['component'], 'wechat.core.list_tools': ['package'], 'wechat.core.list_accounts': [], 'wechat.core.get_account_info': ['account_id'],
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'], 'alpha-independent.messages.get_anti_recall_status': ['account_id', 'conversation_ids'], 'alpha-independent.moments.get_anti_delete_status': ['account_id'], 'alpha-independent.moments.resolve_emoji': ['account_id', 'source_token'],
@@ -1848,6 +1897,17 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
         ...(args.message_limit !== undefined ? { message_limit: args.message_limit } : {}),
         ...(args.message_cursor !== undefined ? { message_cursor: args.message_cursor } : {}),
         ...(args.ascending !== undefined ? { ascending: args.ascending } : {})
+      };
+    }
+    else if (name === 'alpha-independent.mobile.get_message_media_bundle') {
+      pathName = '/api/v1/independent/mobile/message-media-bundle';
+      params = {
+        ...(args.account_id !== undefined ? { account_id: args.account_id } : {}),
+        ...(args.conversation_id !== undefined ? { conversation_id: args.conversation_id } : {}),
+        ...(args.username !== undefined ? { username: args.username } : {}),
+        ...(args.server_id !== undefined ? { server_id: args.server_id } : {}),
+        ...(args.message_id !== undefined ? { message_id: args.message_id } : {}),
+        ...(args.include_bytes !== undefined ? { include_bytes: args.include_bytes } : {})
       };
     }
     else if (name === 'alpha-independent.mobile.get_overview') {

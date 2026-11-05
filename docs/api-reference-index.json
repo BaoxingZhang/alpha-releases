@@ -718,6 +718,21 @@
         "officialAlias": false
       },
       {
+        "name": "alpha-independent.mobile.get_message_media_bundle",
+        "status": "independent-adapter-extension",
+        "nativeSchemaSupported": false,
+        "complete": false,
+        "sourceMethods": [
+          "locateMessage",
+          "listMessages"
+        ],
+        "scope": "alpha-independent-mobile-message-media-bundle",
+        "coverage": "verified-message-media-metadata",
+        "officialAlias": false,
+        "mediaReady": false,
+        "rawAvailable": false
+      },
+      {
         "name": "alpha-independent.mobile.search_chat",
         "status": "independent-adapter-extension",
         "nativeSchemaSupported": false,
