@@ -109,4 +109,10 @@ npm run package:macos-dmg:independent
 
 继续推进完整业务运行，需要取得受支持的原生开发构建及其配置/策略，或者原始 Rust/C++ 工程和对应开发材料。当前恢复工程适合阅读、修改及验证界面/主进程 JavaScript；要交付完整可维护应用，还需要补齐 [source-gaps.md](source-gaps.md) 中的原生、远端和组件缺口。
 
+### 真实微信 XKey 只读探测（2026-11-05）
+
+在用户已启动微信并授权只读查找标准数据目录后，使用随包 `vendor/runtime/bin/alpha-cli` 对两个微信主进程和一个子进程发起了单页 `list-conversations` 探测。三个目标均在 XKey acquisition 阶段返回 `NATIVE_WECHAT_CAPTURE_TARGET_NOT_FOUND`；没有出现管理员授权弹窗，没有取得数据库 key，没有进入 ready/open，也没有读取表内容或修改原生文件。主进程发现逻辑会过滤 `WeChatAppEx` 子进程，因此子进程结果只作为排除项记录。
+
+该结果只能说明当前进程发现、TCC、guard 或运行时资格链路没有命中目标，不能据此断言微信版本或数据库格式不支持。完整脱敏记录见 [native-xkey-live-probe.json](native-xkey-live-probe.json)。这项 live probe 不进入自动 CI，避免 CI 触碰用户微信数据。
+
 后续有限静态诊断已经定位到原生自镜像/内存段检查与内嵌策略绑定，`-103` 映射为完整性类别；仍未确定实测命中的具体分支。8 个 peer 文件均匹配随包清单，状态读取失败对应另外的错误分支，因此不把 HOME 路径或当前未过期的策略日期当作根因。详见 [native-startup-diagnosis.json](native-startup-diagnosis.json)。

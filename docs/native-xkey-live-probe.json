@@ -1,0 +1,57 @@
+{
+  "schema": "alpha-recovered.native-xkey-live-probe.v1",
+  "observedAt": "2026-11-05T11:40:53Z",
+  "mode": "read-only-list-conversations",
+  "realWeChatData": true,
+  "databaseContentsRead": false,
+  "nativeFilesModified": false,
+  "authorizationPromptShown": false,
+  "databaseKeyAcquired": false,
+  "readyOpen": false,
+  "command": {
+    "executable": "vendor/runtime/bin/alpha-cli",
+    "arguments": [
+      "--source-database <redacted>/xwechat_files/<account>/db_storage",
+      "--xkey-process-id <pid>",
+      "--list-conversations",
+      "--page-size",
+      "1"
+    ],
+    "operation": "xkey acquisition followed by one-page conversation probe"
+  },
+  "targets": [
+    {
+      "label": "WeChat main process",
+      "pid": 12961,
+      "databaseAccount": "<qq-account>",
+      "result": {
+        "status": "failed",
+        "errorCode": "NATIVE_WECHAT_CAPTURE_TARGET_NOT_FOUND"
+      }
+    },
+    {
+      "label": "WeChatAppEx child process",
+      "pid": 12976,
+      "databaseAccount": "<qq-account>",
+      "result": {
+        "status": "failed",
+        "errorCode": "NATIVE_WECHAT_CAPTURE_TARGET_NOT_FOUND"
+      }
+    },
+    {
+      "label": "WeChat2 main process",
+      "pid": 13581,
+      "databaseAccount": "<wxid-account>",
+      "result": {
+        "status": "failed",
+        "errorCode": "NATIVE_WECHAT_CAPTURE_TARGET_NOT_FOUND"
+      }
+    }
+  ],
+  "interpretation": [
+    "The shipped alpha-cli started alpha-engine, alpha-data-host, and native-host before the XKey failure.",
+    "No administrator authorization prompt appeared during these probes.",
+    "The result does not establish that the WeChat version or database is unsupported; process discovery, TCC, guard, and runtime qualification remain unresolved.",
+    "The probe does not authorize retrying with forged ALPHA_XKEY_AUTH_* values or bypassing macOS protections."
+  ]
+}
