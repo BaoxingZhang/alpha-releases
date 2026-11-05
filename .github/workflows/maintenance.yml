@@ -72,7 +72,13 @@ jobs:
           npm run test:packaged-native 2>&1 | tee .runtime/packaged-native-smoke.log
 
       - name: Run complete test suite
-        run: npm test
+        run: |
+          set -o pipefail
+          mkdir -p .runtime
+          npm test 2>&1 | tee .runtime/npm-test.log
+
+      - name: Verify recorded test evidence
+        run: npm run verify:test-evidence -- --log .runtime/npm-test.log
 
       - name: Run independent desktop smoke
         run: npm run test:independent
