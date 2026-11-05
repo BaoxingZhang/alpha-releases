@@ -4,7 +4,7 @@
 
 ## 当前基线
 
-当前分支 `recovery/main` 已能在 macOS arm64 从本项目源码构建独立 flavor，并通过 Electron renderer → preload → main → Go bridge → SQLite 的离线读取链路。独立协议支持矩阵为 **82/128**；完整回归为 **336/336**，packaged independent smoke 已通过。独立 stateDir 核心备份/恢复回归为 7/7，CLI 进程回归为 2/2；Chatlog candidate 预览回归为 5/5，真实 source inspection CLI 回归为 2/2，并通过真实 arm64 Chatlog candidate 对合成 v4 SQLite 的联系人、会话、消息 smoke。新机器 doctor 回归为 3/3。快照、数据库 key、密码锁验证器和运行时凭据明确排除。原始 flavor 在临时 HOME/TMP、无项目 Seatbelt wrapper 的 disposable smoke 中能完成 `engine` 与 `native-host` 握手，但没有真实账号数据。
+当前分支 `recovery/main` 已能在 macOS arm64 从本项目源码构建独立 flavor，并通过 Electron renderer → preload → main → Go bridge → SQLite 的离线读取链路。独立协议支持矩阵为 **82/128**；完整回归为 **343/343**，packaged independent smoke 已通过。独立 stateDir 核心备份/恢复回归为 7/7，CLI 进程回归为 2/2；Chatlog candidate 预览回归为 5/5，真实 source inspection CLI 回归为 2/2，并通过真实 arm64 Chatlog candidate 对合成 v4 SQLite 的联系人、会话、消息 smoke。新机器 doctor 回归为 3/3。快照、数据库 key、密码锁验证器和运行时凭据明确排除。原始 flavor 在临时 HOME/TMP、无项目 Seatbelt wrapper 的 disposable smoke 中能完成 `engine` 与 `native-host` 握手，但没有真实账号数据。
 
 当前可交付的是可维护的独立离线读取版，包含会话、消息、联系人、搜索、只读导出、合成数据边界、媒体 metadata/index、任务调度、HTTP/MCP 和 Codex stdio 接入。原生源码、真实微信数据、写入/发送、真实媒体解码、AI 服务和授权服务仍未恢复。
 

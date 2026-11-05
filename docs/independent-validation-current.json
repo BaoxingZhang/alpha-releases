@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-04",
+  "recordedAt": "2026-11-05",
   "scope": "Current independent recovery status after contact and chat XLSX export, export, partial general records, analysis, media metadata, bounded DAT image decoder foundation, image-key lifecycle, indexed image refs, independent media resolution, synthetic voice playback mapping, persistent chat jobs, generic export job views, schedule plan, derived conversation formats, opaque official plan intent storage, telemetry consent, HTTP/MCP additions including independent candidate-record routes and synthetic moments day-count and metadata-only export routes, favorites routes and synthetic favorite-media routes, capability-gated synthetic moments/favorites renderer smoke, upstream release audit, anti-recall status/control and moments anti-delete status boundaries, manual database-key acquisition watch and explicit opt-in key-helper experiment, moments fixture reader, synthetic moment emoji resolver, metadata-only export task and favorites fixture reader and metadata-only favorites export, message-derived recall candidate pagination, moments anti-delete status boundary, offline SQLite schema diagnostics, native WCDB ABI artifact audit, and reproducible packaging; optional third-party WCDB compatibility probe boundary; not full Alpha parity; standalone Codex MCP stdio transport and independent official schedule plan metadata CRUD; independent ChatLab bounded incremental message adapter and packaged renderer IPC smoke, large synthetic contact pagination regression, independent component diagnostics, independent update-environment isolation regression, opt-in Chatlog candidate subprocess boundary with loopback/path/response/cleanup tests, candidate-only Chatlog JSON normalization and bounded read helpers, schema-only SQLite diagnostics for mismatched v4 copies, and independent message display projection adapter",
   "protocol": {
     "totalRequestBranches": 128,
@@ -10,7 +10,7 @@
   "validation": {
     "npmTest": {
       "command": "npm test",
-      "passed": 336,
+      "passed": 343,
       "failed": 0,
       "testConcurrency": 1,
       "stateBackup": {
