@@ -210,3 +210,11 @@ Persona 静态契约包含 `alpha-persona-v2`、bounded evidence message IDs、m
 `vendor/runtime/bin/alpha-mcp-stdio` 是 arm64 Mach-O，SHA-256 为 `a18577a91c10b22ae2bf6071e122f1cf3080c241e6d89657abd12fab065da9db`。静态字符串显示它把 MCP stdio 转发到 `ALPHA_MCP_DESKTOP_URL` 指定的桌面 MCP 服务，并可读取 `ALPHA_GATEWAY_SUBJECT`、memory scopes 与 chat-export scopes；工具 surface 包含 official export lifecycle、Persona draft、relationship review 和 agent memory 操作。官方导出调用要求恰好一个 material bundle 或 delivery ticket，另有 delivery-ticket digest、provider-not-configured、idempotency 和 account UUID 校验。
 
 这些只是原生 MCP 的调用面、环境变量和输入校验线索，没有桌面 URL、ticket 签发、provider、授权账号或可重放的 MCP fixture；本轮未启动该二进制。它不能替代项目的 `packages/alpha-engine/mcp-stdio.cjs`，也不改变独立 MCP 的 support matrix 或 native readiness 结论。
+
+### `alpha-official-export` 的官方导出静态证据（2026-11-06）
+
+REA/Ghidra 对 `vendor/runtime/bin/alpha-official-export` 做了只读审查。该 arm64 Mach-O 的 SHA-256 为 `7351f83269ce3bab42eda9230f1266b6b741a30f8869d5487b1803a16a6e13c8`。证据摘要和可机器校验的工件绑定见 [`native-official-export-evidence.json`](native-official-export-evidence.json)。
+
+静态符号和类型名称包含 `OfficialExportSpec`、`SensitiveTicket`、`MaterialBundleDescriptor`、`MaterialDeliveryTicket`、`MaterialIngestTicket`、`MaterialOfficialExportStatus`、`JobSummary`、`WatchJobResponse`、`OperationPermitClaims` 和 `EntitlementSnapshot`。CLI 参数错误字符串还包含材料来源校验、恢复冲突、管理参数冲突，以及 `account`、`official-account`、`scope`、`download-assets`、`include-media`、`max-pages`、`timeout-seconds`、`material-bundle-id` 的模式冲突信息。REA 观察到 `parse_arguments`、`execute_export_inner`、`execute_material_operation` 和 `job_state_name` 入口，但这些只是 shipped-artifact 的静态入口索引。
+
+这些名称没有提供 protobuf 字段编号、完整消息 schema、ticket 签发或 MAC 语义、授权范围和过期规则、公众号服务 transport、远端文章响应、媒体下载授权或可重放的成功回放。`job_state_name` 只能证明存在有界状态查找和 `unspecified` fallback，不能恢复稳定的状态枚举或持久化合同。二进制未执行，未知函数和 ticket 未调用，原生文件未修改；因此官方导出及材料导出生命周期继续保持 `UNIMPLEMENTED`，独立后端不把这些线索宣称为 native schema 或功能恢复。

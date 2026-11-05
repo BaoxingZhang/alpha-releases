@@ -1,0 +1,84 @@
+{
+  "schema": "alpha.native-official-export-evidence.v1",
+  "artifact": {
+    "path": "vendor/runtime/bin/alpha-official-export",
+    "sha256": "7351f83269ce3bab42eda9230f1266b6b741a30f8869d5487b1803a16a6e13c8",
+    "architecture": "arm64",
+    "format": "mach-o"
+  },
+  "observedProtocolTypes": [
+    "OfficialExportSpec",
+    "SensitiveTicket",
+    "MaterialBundleDescriptor",
+    "MaterialDeliveryTicket",
+    "MaterialIngestTicket",
+    "MaterialCaptureEvent",
+    "OfficialArticlePreview",
+    "OfficialArticleSelection",
+    "OfficialSchedulePlan",
+    "OfficialScheduleRecord",
+    "MaterialOfficialExportStatus",
+    "ListMaterialOfficialExportsResponse",
+    "JobSummary",
+    "WatchJobResponse",
+    "OperationPermitClaims",
+    "EntitlementSnapshot",
+    "EngineServerFrame"
+  ],
+  "observedProcedureFacts": [
+    {
+      "name": "parse_arguments",
+      "address": "0x100000880",
+      "evidence": "ev_1b9fe67918736179d7d8f912dabbadaf7ed32e52293283cb6b4c05002480d92a"
+    },
+    {
+      "name": "execute_export_inner",
+      "address": "0x100083380",
+      "evidence": "ev_3a89561b3ce911517785f40471023f1f5391e97aed2fdc6b0ae5c12bc6ab7a5c"
+    },
+    {
+      "name": "execute_material_operation",
+      "address": "0x100003ac",
+      "evidence": "ev_2ad75241901bdd4f69c2815c21fd20dd27a4d2de48e96281d6c81fe675690b8f"
+    },
+    {
+      "name": "job_state_name",
+      "address": "0x1000a4f40",
+      "evidence": "ev_1e8b763c9d4c3a1b31d1812268ca0b44d87a20855a5cd9df2f828bafba4ed5eb"
+    }
+  ],
+  "observedStrings": [
+    "cli.arguments",
+    "--help",
+    "all",
+    "cli.selection_source_invalid",
+    "cli.material_source_invalid",
+    "cli.management_arguments_invalid",
+    "cli.resume_spec_conflict",
+    "on_mode_conflict--account--official-account--scope--download-assets--include-media--max-pages--timeout-seconds--material-bundle-id"
+  ],
+  "evidence": [
+    "ev_d9f8cda889745a9a80e6902dc2df8e147bca6a6005cf7679ce709bf336ef64a0",
+    "ev_27b2dea8a0b6368a41864d02a06e38d52d539a2be4101ec0c8b89df96a2c5e3e",
+    "ev_4ad58a2ca347a321c187d1fbfa5b319f71ce9a3f89382e6c2ff503b5de08a9d9",
+    "ev_37c14a7a33701c5047540ce8de172b35cb66650cc002aecbda4f68d839398f71",
+    "ev_1e8b763c9d4c3a1b31d1812268ca0b44d87a20855a5cd9df2f828bafba4ed5eb"
+  ],
+  "scope": {
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "staticOnly": true,
+    "executed": false,
+    "nativeFilesModified": false,
+    "realDataValidated": false,
+    "nativeSchemaSupported": false,
+    "writerEnabled": false
+  },
+  "limitations": [
+    "Protocol type names and CLI strings do not provide protobuf field numbers or complete message schemas.",
+    "SensitiveTicket, MaterialDeliveryTicket and OperationPermitClaims names do not establish ticket issuance, MAC semantics, authorization scope or expiry behavior.",
+    "The artifact does not establish the engine transport, provider login state, material bundle contents, remote article responses or media download authorization.",
+    "The decompiler observes a 12-entry job-state lookup with an unspecified fallback, but does not recover a complete stable state enum or persistence contract.",
+    "The sidecar was not executed and no unknown function, ticket, account directory or real data was accessed; it is not used by the independent backend."
+  ]
+}
