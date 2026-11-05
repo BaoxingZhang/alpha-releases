@@ -150,3 +150,9 @@ Rust 符号还保留了 `alpha_protocol::alpha::engine::v1`、`alpha_protocol::a
 REA 对同一 arm64 sidecar（SHA-256 `3aab88ce1c7e343055d426ae4b3c36bfe8ca0c5fee128a7214396b583ea011ed`）检查了 cargo-auditable 元数据。工件为 3,312,224 字节的 Mach-O arm64 文件，但没有发现 `.dep-v0` 依赖段；只观察到一个从只读 rustc 路径推断出的编译器提交哈希。Evidence：`ev_706d1526f6918d4de116a6b492796155604ced4fee64388bce0b814d664bc579`，其父记录为 `ev_437f7d897b1d4a7f00593560a204dbb8143b4b6a5f1822b1aec3c5c32b10322f`。
 
 这项复核不能恢复 Cargo 包名、版本、来源或完整运行时依赖，也不能证明该 sidecar 的构建 provenance；缺少 `.dep-v0` 不等于没有依赖。因此它没有增加可编译的 Rust 源码、ABI 或发送/捕获实现证据，现有 `UNIMPLEMENTED`/writer-disabled 边界保持不变。
+
+### `alpha-key-worker` 与 `alpha_xkey_helper` 的 Native Vault 线索（2026-11-06）
+
+对随包的 `alpha-key-worker`、`alpha_xkey_helper` 和 `alpha-security-host` 做了只读字符串与工件哈希核对。三个 arm64 Mach-O 的 SHA-256 分别为 `c4f79fcbcc88ed5e767dad3a86508af2bd629d01ac2da659d708ae215a209e01`、`97812a07af645aeab7e0fb3875300b77126252077ccf9b28339ee1e950ea2d4d` 和 `048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8`。`alpha-key-worker` 保留了 `alpha.key.transport.v1.KeyWorkerCallRequest`、`start/watch/cancel/guard_self_check/resolve_image_key`、`StartKeyAcquisitionRequest`、`targetWatchKeyAcquisitionRequest`、`CancelKeyAcquisitionRequest`、`ResolveImageKeyRequest`、`SecretIngestTicket`、`SecretVaultSealResponse`，以及 Native Vault 和 helper 错误字符串。`alpha_xkey_helper` 还保留了 `database_key`、`image_key`、`alpha-xkey-auth-v1` 和 `ALPHA_XKEY_AUTH_PORT/TOKEN/MODE/TS/NONCE`。
+
+这些线索只证明取钥、密钥封存和图片 key 的协议名称进入了随包工件。没有字段号、完整 schema、transport、Native Vault ticket、provider authorization 或可重放 live fixture；三个工件本轮未执行，也没有读取 key 或活动数据库。因此 `readAccountDataKey`、应用锁 provision/reset 和 native image-key 生命周期继续保持 blocked/UNIMPLEMENTED。机器可校验清单和边界见 [`native-key-worker-evidence.json`](native-key-worker-evidence.json)。

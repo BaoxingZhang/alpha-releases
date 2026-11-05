@@ -1,0 +1,82 @@
+{
+  "schema": "alpha.native-key-worker-evidence.v1",
+  "artifacts": [
+    {
+      "path": "vendor/runtime/bin/alpha-key-worker",
+      "sha256": "c4f79fcbcc88ed5e767dad3a86508af2bd629d01ac2da659d708ae215a209e01",
+      "architecture": "arm64",
+      "format": "mach-o",
+      "stringLineCount": 4713
+    },
+    {
+      "path": "vendor/runtime/bin/alpha_xkey_helper",
+      "sha256": "97812a07af645aeab7e0fb3875300b77126252077ccf9b28339ee1e950ea2d4d",
+      "architecture": "arm64",
+      "format": "mach-o",
+      "stringLineCount": 1495
+    },
+    {
+      "path": "vendor/runtime/bin/alpha-security-host",
+      "sha256": "048d59cd57a8eb18beec858d9ac1d9260b00cce808ae8a595f5f65f1f46f5be8",
+      "architecture": "arm64",
+      "format": "mach-o",
+      "stringLineCount": 25276
+    }
+  ],
+  "observedKeyWorkerInterface": "alpha.key.transport.v1.KeyWorkerCallRequest",
+  "observedOperations": [
+    "start",
+    "watch",
+    "cancel",
+    "guard_self_check",
+    "resolve_image_key"
+  ],
+  "observedRequestTypes": [
+    "StartKeyAcquisitionRequest",
+    "targetWatchKeyAcquisitionRequest",
+    "CancelKeyAcquisitionRequest",
+    "ResolveImageKeyRequest"
+  ],
+  "observedSecurityTypes": [
+    "SecretIngestTicket",
+    "SecretVaultSealResponse",
+    "alpha-xkey-auth-v1",
+    "database_key",
+    "image_key"
+  ],
+  "observedErrorStrings": [
+    "KEY_VAULT_HOST_REJECTED",
+    "KEY_VAULT_PIPE_FAILED",
+    "KEY_VAULT_SEAL_FAILED",
+    "KEY_VAULT_SECRET_EXISTS",
+    "KEY_VAULT_TICKET_REJECTED",
+    "KEY_INGEST_EXPIRED",
+    "KEY_INGEST_TICKET_INVALID",
+    "KEY_PROVIDER_AUTH_FAILED",
+    "KEY_RUNTIME_POLICY_REJECTED"
+  ],
+  "observedEnvironmentNames": [
+    "ALPHA_XKEY_AUTH_PORT",
+    "ALPHA_XKEY_AUTH_TOKEN",
+    "ALPHA_XKEY_AUTH_MODE",
+    "ALPHA_XKEY_AUTH_TS",
+    "ALPHA_XKEY_AUTH_NONCE"
+  ],
+  "scope": {
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "staticOnly": true,
+    "executed": false,
+    "nativeSchemaSupported": false,
+    "keyRead": false,
+    "activeDatabaseRead": false,
+    "nativeVaultReady": false
+  },
+  "limitations": [
+    "Static strings do not provide protobuf field numbers, complete schemas, transport framing, or ABI layouts.",
+    "The evidence does not provide a valid Native Vault ticket, provider authorization, or replayable live fixture.",
+    "The key worker and helper were not executed, and no database key or image key was read.",
+    "The observed interface cannot safely implement readAccountDataKey or application-lock provisioning.",
+    "The independent password lock and Chatlog-compatible helper remain separate from the native vault chain."
+  ]
+}

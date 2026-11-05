@@ -183,7 +183,7 @@ const requiredFiles = [
   'provenance/go-toolchain.json', 'provenance/recovered-files.json', 'provenance/maintenance-changes.json', 'provenance/project-metadata.json', 'provenance/independent-update-mode.json',
   'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', 'docs/maintainer-playbook.md', 'docs/key-source-diagnostics.md', 'docs/codex-mcp.md',
   'docs/local-build-and-run.md', 'docs/schema-only-diagnostics.md', 'docs/v4-intake-preflight.md', 'docs/native-runtime-provenance.json', 'docs/http-readonly-adapter-recovery.md', 'docs/optional-asr.md', 'docs/cross-platform-release-evidence.json', 'docs/media-decoder-evidence.md', 'docs/media-index-foundation.md', 'docs/file-attachment-recovery.md', 'docs/media-schema-evidence.md',
-  'docs/independent-validation-current.json', 'docs/independent-support-matrix.json', 'docs/native-smoke-validation.json', 'docs/native-abi-validation.json', 'docs/state-backup-recovery.md', 'tests/state-backup.test.mjs', 'tests/state-backup-cli.test.mjs'
+  'docs/independent-validation-current.json', 'docs/independent-support-matrix.json', 'docs/native-smoke-validation.json', 'docs/native-abi-validation.json', 'docs/native-key-worker-evidence.json', 'tests/native-key-worker-evidence.test.mjs', 'docs/state-backup-recovery.md', 'tests/state-backup.test.mjs', 'tests/state-backup-cli.test.mjs'
 ];
 for (const relativePath of requiredFiles) await exists(relativePath);
 await exists('vendor/runtime', 'directory');
