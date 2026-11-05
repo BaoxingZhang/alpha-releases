@@ -58,6 +58,12 @@ async function installMediaFixture(fixture) {
   db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
     9, 403, 403, 49, 1700000008, 1, 1, '<msg><appmsg><type>5</type><title>packaged link</title><des>synthetic packaged link</des><url>https://example.test/packaged</url></appmsg></msg>', Buffer.alloc(0)
   );
+  db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+    10, 404, 404, 48, 1700000009, 1, 1, '<msg><location x="39.9042" y="116.4074" label="北京天安门" /></msg>', Buffer.alloc(0)
+  );
+  db.prepare(`INSERT INTO "${messageTable}" (local_id,server_id,sort_seq,local_type,create_time,real_sender_id,status,message_content,packed_info_data) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+    11, 405, 405, 244813135921, 1700000010, 1, 1, '<msg><appmsg><type>57</type><title>packaged quoted text</title><refermsg><type>1</type><svrid>9007199254740993</svrid><fromusr>wxid_self</fromusr><displayname>自己</displayname></refermsg></appmsg></msg>', Buffer.alloc(0)
+  );
   db.close();
   const imageMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({ accountId: fixture.accountId, database: 'message/message_0.db', table: messageTable, localId: '6' })).digest('hex')}`;
   const fileMessageId = `msg-${crypto.createHash('sha256').update(JSON.stringify({ accountId: fixture.accountId, database: 'message/message_0.db', table: messageTable, localId: '7' })).digest('hex')}`;
@@ -172,6 +178,20 @@ try {
     conversationId: fixture.conversationId
   });
   assert.ok(selectedMessages.some(message => message.text.includes('packaged image')), JSON.stringify(selectedMessages));
+  const locationMessage = selectedMessages.find((message) => message.display?.kind === 'location');
+  assert.deepEqual(locationMessage?.display?.location, { latitude: 39.9042, longitude: 116.4074, label: '北京天安门' });
+  const quoteMessage = selectedMessages.find((message) => message.display?.kind === 'quote');
+  assert.deepEqual(quoteMessage?.display?.quote, {
+    sender: '自己',
+    kind: 'text',
+    text: 'packaged quoted text',
+    senderId: 'wxid_self',
+    serverId: '9007199254740993'
+  });
+  report.checks.packagedMessageDisplayLocationAndQuoteThroughRendererIpc = true;
+  await page.locator('.message-location-card').filter({ hasText: '北京天安门' }).waitFor({ timeout: 15000 });
+  await page.locator('.message-quote').filter({ hasText: 'packaged quoted text' }).waitFor({ timeout: 15000 });
+  report.checks.packagedLocationAndQuoteCardsRendered = true;
   const image = await page.evaluate(async ({ accountId, opaqueId }) => window.alpha.media.readImage(accountId, opaqueId), {
     accountId: fixture.accountId,
     opaqueId: media.imageSha256
