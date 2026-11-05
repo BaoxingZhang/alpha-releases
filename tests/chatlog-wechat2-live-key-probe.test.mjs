@@ -27,6 +27,10 @@ test('bounded WeChat2 Chatlog probe remains explicit failed evidence', async () 
   assert.equal(evidence.result.rawOutputPersisted, false);
   assert.equal(evidence.result.keyValuesPersisted, false);
   assert.equal(evidence.result.temporaryConfigRemoved, true);
+  assert.equal(evidence.latestRetry.result.errorCode, 'CHATLOG_KEY_PROBE_TIMEOUT');
+  assert.equal(evidence.latestRetry.durationSecondsBound, 125);
+  assert.equal(evidence.latestRetry.keyMaterialEmitted, false);
+  assert.equal(evidence.latestRetry.databaseContentsRead, false);
   assert.ok(!JSON.stringify(evidence).includes('/Users/'));
   assert.ok(!JSON.stringify(evidence).match(/(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])/iu));
 });

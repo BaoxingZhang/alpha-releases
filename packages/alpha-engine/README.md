@@ -64,7 +64,7 @@ Hello 身份为 `alpha-independent-engine`，协议 1.0。`supportedMethodIds` �
 | decodeVoicePlayback | 128 | 仅接受消息库显式 `__alpha_voice_playback_v1` synthetic 映射和自有 `media-index.v1.json` 中唯一、重新校验的 WAV 条目；重复 source→WAV 映射、非 WAV rendition/MIME、哈希或账号不一致均失败关闭，不兼容真实 VoiceInfo/SILK/native media cache |
 | resolveMessageMedia | 103 | 仅接受显式索引产生的 `alpha-media://sha256/<sha256>` token；要求图片条目绑定当前账号、会话和消息，并重新校验文件哈希/大小和消息 ref；原 Alpha `media1_`、MD5、远程补齐、pending、live video 和非零 record offset 明确不可用 |
 | browseConversationMessages | 137 | 真实 `messages.list` 的降序元数据筛选；支持 `media`、`file`、`link`，保留消息 refs/display；`music`、`mini-program`、`transaction` 明确返回不可用 |
-| browseAccountMedia | 138 | 直接读取指定会话，或按真实 session index 扫描账号范围的 `media`、`image`、`video` 元数据；支持分页和毫秒范围，不读媒体文件、不生成 token、不播放；消息中的图片 ref 可按显式 `media-index.v1.json` 绑定为独立 `alpha-media://sha256/...` URI，主进程按大小、哈希、路径边界和图片 magic 读取，显式 `encoding=dat` 条目另需手动进程内 key；详情见 [`docs/media-index-foundation.md`](../../docs/media-index-foundation.md) |
+| browseAccountMedia | 138 | 直接读取指定会话，或按真实 session index 扫描账号范围的 `media`、`image`、`video`、`file`、`link` 元数据；支持分页和毫秒范围，不读媒体文件、不生成 token、不播放；消息中的图片 ref 可按显式 `media-index.v1.json` 绑定为独立 `alpha-media://sha256/...` URI，主进程按大小、哈希、路径边界和图片 magic 读取，显式 `encoding=dat` 条目另需手动进程内 key；详情见 [`docs/media-index-foundation.md`](../../docs/media-index-foundation.md) |
 | exportConversation | 16 | 只读 JSON/Markdown/HTML/TXT/XLSX 和四种消息 DTO 派生格式导出，支持精确毫秒范围和安全新文件发布；HTML 是安全转义的静态页面，XLSX 是固定列的单工作表，SQL/CSV/JSON 派生文件只含验证过的文本和元数据，不含媒体 |
 | searchMessages | 17 | 全局/会话搜索、Unicode 小写字面匹配、发送者/闭区间时间筛选、按会话分组及真实数量 |
 | discoverAccounts | 29 | 仅接受与已配置源路径完全一致的 sourceLocation |

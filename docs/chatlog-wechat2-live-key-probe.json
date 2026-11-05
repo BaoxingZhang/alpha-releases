@@ -41,5 +41,24 @@
     "No database contents were opened and no native or user files were modified.",
     "This is candidate-helper evidence only; it does not establish that the WeChat version or database format is unsupported.",
     "The result does not authorize forged key values, native token substitution, or bypassing macOS protections."
-  ]
+  ],
+  "latestRetry": {
+    "recordedAt": "2026-11-05T18:58:37Z",
+    "durationSecondsBound": 125,
+    "databaseContentsRead": false,
+    "nativeFilesModified": false,
+    "keyMaterialEmitted": false,
+    "probeCompleted": true,
+    "result": {
+      "status": "timeout",
+      "errorCode": "CHATLOG_KEY_PROBE_TIMEOUT",
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "rawOutputPersisted": false,
+      "keyValuesPersisted": false,
+      "helperProcessRemaining": false,
+      "temporaryConfigRemoved": true
+    },
+    "interpretation": "The repeat remained bounded and timed out without a key; the helper was confirmed gone afterward, and no database content or native file was accessed."
+  }
 }

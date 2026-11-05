@@ -664,6 +664,11 @@ test('metadata media browse filters real kinds, preserves refs/display, and pagi
   assert.equal(files.items.length, 1);
   assert.equal(files.items[0].displayJson.length > 0, true);
   assert.equal(JSON.parse(Buffer.from(files.items[0].displayJson).toString('utf8')).kind, 'file');
+  const accountLinks = ok(await c.send('browseAccountMedia', {
+    accountId, category: 'link', page: { pageSize: 20 }
+  }), 'browseAccountMedia');
+  assert.equal(accountLinks.items.length, 1);
+  assert.equal(JSON.parse(Buffer.from(accountLinks.items[0].displayJson).toString('utf8')).kind, 'link');
 
   const exactEpoch = ok(await c.send('browseConversationMessages', {
     accountId, conversationId: 'wxid_alpha', category: 'media', fromUnixMs: 0n, toUnixMs: 0n, page: { pageSize: 5 }

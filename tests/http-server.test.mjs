@@ -100,7 +100,11 @@ function fakeEngine() {
       if (request.analyzeAnnual) return EngineServerFrame.fromPartial({ requestId: request.requestId, analyzeAnnual: { reportJson: new Uint8Array(Buffer.from(JSON.stringify({ year: request.analyzeAnnual.year, utc_offset_minutes: request.analyzeAnnual.utcOffsetMinutes, total_messages: 1, top_terms: [] }), 'utf8')), scannedMessages: 1, truncated: false } });
       if (request.analyzeConversation) return EngineServerFrame.fromPartial({ requestId: request.requestId, analyzeConversation: { reportJson: new Uint8Array(Buffer.from(JSON.stringify({ algorithm_version: 'alpha-independent-conversation-v1', total_messages: 1, truncated: false, journey: { moments: [] } }), 'utf8')), itemCount: 1, truncated: false } });
       if (request.browseConversationMessages) return EngineServerFrame.fromPartial({ requestId: request.requestId, browseConversationMessages: { items: [{ id: 'media-1', conversationId: request.browseConversationMessages.conversationId, sentAtUnixMs: 1700000000000n, senderId: 'wxid_self', sourceType: 3n, refs: [{ kind: 'image', id: 'media-ref', mimeType: 'image/*', rendition: 'source' }], mediaResolveToken: '' }], nextCursor: new Uint8Array([9]) } });
-      if (request.browseAccountMedia) return EngineServerFrame.fromPartial({ requestId: request.requestId, browseAccountMedia: { items: [{ id: 'media-1', conversationId: request.browseAccountMedia.conversationId || 'wxid_peer', sentAtUnixMs: 1700000000000n, senderId: 'wxid_self', sourceType: 3n, refs: [{ kind: 'image', id: 'media-ref', mimeType: 'image/*', rendition: 'source' }], mediaResolveToken: '' }], nextCursor: new Uint8Array(0) } });
+      if (request.browseAccountMedia) {
+        const category = request.browseAccountMedia.category;
+        const kind = category === 'file' ? 'file' : category === 'link' ? 'link' : 'image';
+        return EngineServerFrame.fromPartial({ requestId: request.requestId, browseAccountMedia: { items: [{ id: 'media-1', conversationId: request.browseAccountMedia.conversationId || 'wxid_peer', sentAtUnixMs: 1700000000000n, senderId: 'wxid_self', sourceType: 3n, refs: [{ kind, id: 'media-ref', mimeType: kind === 'file' ? 'application/pdf' : kind === 'link' ? 'text/html' : 'image/*', rendition: 'source' }], mediaResolveToken: '' }], nextCursor: new Uint8Array(0) } });
+      }
       if (request.exportConversation) return EngineServerFrame.fromPartial({ requestId: request.requestId, exportConversation: { destinationPath: request.exportConversation.destinationPath, format: request.exportConversation.format, itemCount: 1, mediaManifestPath: '', mediaIncluded: 0, mediaFailed: 0 } });
       if (request.getChatExportCapabilities) return EngineServerFrame.fromPartial({ requestId: request.requestId, getChatExportCapabilities: { maxConversations: 500, formats: ['json', 'markdown'], mediaKinds: [], supportsTimeRange: true } });
       if (request.getDataRevision) return EngineServerFrame.fromPartial({ requestId: request.requestId, getDataRevision: { revision: '0123456789abcdef' } });
@@ -759,6 +763,8 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.deepEqual(recordsTool.inputSchema.properties.category.enum, ['payments', 'friend_requests', 'revokes', 'calls']);
   const independentRecordsTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.records.list_candidates');
   assert.deepEqual(independentRecordsTool.inputSchema.properties.category.enum, ['payments', 'friend_requests', 'revokes', 'calls']);
+  const accountMediaTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.media.browse_account');
+  assert.deepEqual(accountMediaTool.inputSchema.properties.category.enum, ['media', 'image', 'video', 'file', 'link']);
   const recallCandidatesTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.records.list_recall_candidates');
   assert.deepEqual(recallCandidatesTool.inputSchema.required, ['conversation_id']);
   const antiRecallStatusTool = result.body.result.tools.find(tool => tool.name === 'alpha-independent.messages.get_anti_recall_status');
@@ -996,10 +1002,15 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.scope, 'discoverable-sessions');
   assert.equal(result.body.result.structuredContent.items[0].conversation_id, 'wxid_peer');
+  assert.equal(result.body.result.structuredContent.items[0].refs[0].kind, 'image');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 24, method: 'tools/call', params: { name: 'alpha-independent.media.browse_account', arguments: { category: 'file' } } }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.isError, true);
-  assert.equal(result.body.result.structuredContent.code, 'MCP_MEDIA_CATEGORY_INVALID');
+  assert.equal(result.body.result.structuredContent.scope, 'discoverable-sessions');
+  assert.equal(result.body.result.structuredContent.items[0].refs[0].kind, 'file');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 25, method: 'tools/call', params: { name: 'alpha-independent.media.browse_account', arguments: { category: 'link' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.scope, 'discoverable-sessions');
+  assert.equal(result.body.result.structuredContent.items[0].refs[0].kind, 'link');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 16, method: 'tools/call', params: { name: 'alpha-independent.messages.resolve_search_hit', arguments: { username: 'wxid_peer', server_id: '2' } } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.result.structuredContent.message.id, 'msg-1');
