@@ -20,7 +20,14 @@ function excluded(relative, includeVendorRuntime) {
   const normalized = relative.split(path.sep).join('/');
   const first = normalized.split('/')[0];
   if (TOP_LEVEL_EXCLUDES.has(first) || /(^|\/)\.git(?:\/|$)/.test(normalized)) return true;
+  // Build caches can also live below package roots (for example the Go
+  // bridge's .runtime cache). They are machine-local outputs and must never
+  // enter a source archive or affect its reproducibility.
+  if (/(^|\/)\.runtime(?:\/|$)/.test(normalized)) return true;
   if (normalized === 'workers/agent/dist' || normalized.startsWith('workers/agent/dist/')) return true;
+  // Smoke reports and screenshots are generated evidence, not source. Keep
+  // other documentation JSON (including durable validation evidence) intact.
+  if (/^docs\/[^/]*-run\.(?:json|log|png)$/i.test(normalized)) return true;
   if (/^docs\/.*\.(?:png|log)$/i.test(normalized)) return true;
   if (!includeVendorRuntime && (normalized === 'vendor/runtime' || normalized.startsWith('vendor/runtime/'))) {
     if (normalized === 'vendor/runtime') return false;

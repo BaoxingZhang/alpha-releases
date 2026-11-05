@@ -24,11 +24,15 @@ test('recovery source bundle excludes generated outputs and user runtime state',
   assert.ok(result.manifest.files.some(item => item.path === 'README.md'));
   assert.ok(result.manifest.files.some(item => item.path === 'vendor/runtime/manifests/alpha-wcdb.component.json'));
   assert.equal(result.manifest.files.some(item => item.path === 'vendor/runtime/bin/alpha-server'), false);
-  assert.equal(result.manifest.files.some(item => /^(?:\.runtime|dist|build|node_modules|\.alpha)\//.test(item.path)), false);
+  assert.equal(result.manifest.files.some(item => /(^|\/)(?:\.runtime|dist|build|node_modules|\.alpha)(?:\/|$)/.test(item.path)), false);
   assert.equal(result.manifest.files.some(item => /^docs\/.*\.(?:png|log)$/i.test(item.path)), false);
+  assert.equal(result.manifest.files.some(item => /^docs\/[^/]*-run\.(?:json|log|png)$/i.test(item.path)), false);
+  assert.equal(result.manifest.files.some(item => /(^|\/)\.runtime(?:\/|$)/.test(item.path)), false);
   const archive = await execFileAsync('/usr/bin/tar', ['-tzf', output], { cwd: root, maxBuffer: 1024 * 1024 });
   assert.match(archive.stdout, /(^|\n)README\.md\n/);
   assert.doesNotMatch(archive.stdout, /(^|\n)vendor\/runtime\/bin\/alpha-server\n/);
+  assert.doesNotMatch(archive.stdout, /(^|\/)\.runtime(?:\/|$)/);
+  assert.doesNotMatch(archive.stdout, /(^|\n)docs\/[^/]*-run\.(?:json|log|png)\n/i);
 });
 
 test('recovery source archive bytes are reproducible across invocations', { timeout: 30_000 }, async t => {
