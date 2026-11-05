@@ -40,6 +40,8 @@
 
 [alpha-releases](https://github.com/xunchahaha/alpha-releases) 继续提供发行材料和 [HTTP API](https://github.com/xunchahaha/alpha-releases/blob/main/docs/api/http-api.md)、[MCP](https://github.com/xunchahaha/alpha-releases/blob/main/docs/api/mcp.md) 契约。它们可用于补齐接口清单和验收字段，但不包含 Alpha 原生实现或服务端源码。
 
+截至 2026-11-06 的公开审计显示，`alpha-releases` 的 `main` HEAD 仍为 `09232cbca892241fd3d2046957832a6b4d764ddc`，递归树只有 README、截图、API 文档和更新清单；[latest release](https://github.com/xunchahaha/alpha-releases/releases/tag/v0.3.5) 仍是 v0.3.5。官方说明高级 CDN 媒体补齐只面向 Windows x64，macOS arm64 没有对应实现；公开的 [issue #29](https://github.com/xunchahaha/alpha-releases/issues/29)、[issue #32](https://github.com/xunchahaha/alpha-releases/issues/32) 和 [issue #25](https://github.com/xunchahaha/alpha-releases/issues/25) 也没有提供可复用源码或修复提交。因此这次审计没有闭合当前 46 个独立协议缺口，仍需保持原生 schema、ABI、授权和实时服务边界为 fail-closed。
+
 ## 对本工程的处理
 
 相关仓库已经放在工作区外的只读研究目录 `<external-research-root>/WeFlow1`，没有导入构建、没有修改许可证声明、没有替换 Alpha runtime。复核中没有找到收藏功能、收藏表名或收藏 API 的证据，因此收藏不能从 WeFlow1 推导实现。后续若要利用其中的代码，必须先单独确认许可证、署名、非商业和相同方式共享义务，并重新验证 ABI、微信版本、平台和数据安全边界。
