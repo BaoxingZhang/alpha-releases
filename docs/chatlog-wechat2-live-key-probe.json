@@ -42,7 +42,7 @@
     "This is candidate-helper evidence only; it does not establish that the WeChat version or database format is unsupported.",
     "The result does not authorize forged key values, native token substitution, or bypassing macOS protections."
   ],
-  "latestRetry": {
+  "previousRetry": {
     "recordedAt": "2026-11-05T19:55:47Z",
     "durationSecondsBound": 120,
     "databaseContentsRead": false,
@@ -62,5 +62,27 @@
       "temporaryConfigRemoved": true
     },
     "interpretation": "The repeat remained bounded and timed out without a key; the helper was confirmed gone afterward, and no database content or native file was accessed."
+  },
+  "latestRetry": {
+    "recordedAt": "2026-11-05T20:37:46Z",
+    "durationSecondsBound": 120,
+    "databaseContentsRead": false,
+    "nativeFilesModified": false,
+    "keyMaterialEmitted": false,
+    "probeCompleted": true,
+    "result": {
+      "status": "failed",
+      "errorCode": "CHATLOG_KEY_NOT_ACQUIRED",
+      "exitCode": 0,
+      "signal": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 524,
+      "has64HexOutput": false,
+      "rawOutputPersisted": false,
+      "keyValuesPersisted": false,
+      "helperProcessRemaining": false,
+      "temporaryConfigRemoved": true
+    },
+    "interpretation": "The latest bounded retry exited normally without emitting a usable key; no database content or native file was accessed."
   }
 }
