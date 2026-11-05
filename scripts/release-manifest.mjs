@@ -24,11 +24,41 @@ const ARTIFACTS = [
 
 function fail(message) { throw new Error(message); }
 
-async function hashFile(file) {
-  const digest = crypto.createHash('sha256');
-  const bytes = await fs.readFile(file);
-  digest.update(bytes);
-  return { bytes: bytes.byteLength, sha256: digest.digest('hex') };
+function sameFileSnapshot(left, right) {
+  return left.dev === right.dev
+    && left.ino === right.ino
+    && left.size === right.size
+    && left.mode === right.mode
+    && left.mtimeNs === right.mtimeNs
+    && left.ctimeNs === right.ctimeNs;
+}
+
+/**
+ * Read one publishable file through a no-follow descriptor and verify that it
+ * did not change while it was being hashed. A build can run concurrently with
+ * manifest generation; recording bytes from one version and mode from another
+ * would make the manifest self-inconsistent, so fail closed on any observed
+ * inode or metadata change.
+ */
+export async function readStableFile(file, relativePath = file) {
+  let handle;
+  try {
+    handle = await fs.open(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  } catch (error) {
+    if (error.code === 'ELOOP') fail(`RELEASE_SYMLINK_REJECTED:${relativePath}`);
+    throw error;
+  }
+  try {
+    const before = await handle.stat({ bigint: true });
+    if (!before.isFile()) fail(`RELEASE_ENTRY_UNSUPPORTED:${relativePath}`);
+    const bytes = await handle.readFile();
+    const after = await handle.stat({ bigint: true });
+    if (!sameFileSnapshot(before, after)) fail(`RELEASE_FILE_CHANGED:${relativePath}`);
+    const digest = crypto.createHash('sha256').update(bytes).digest('hex');
+    return { bytes: bytes.byteLength, sha256: digest, mode: (Number(after.mode) & 0o777).toString(8) };
+  } finally {
+    await handle.close();
+  }
 }
 
 async function collectFiles(label, relativeRoot) {
@@ -45,9 +75,9 @@ async function collectFiles(label, relativeRoot) {
       if (entry.isSymbolicLink()) fail(`RELEASE_SYMLINK_REJECTED:${path.posix.join(relativeRoot, relative)}`);
       if (entry.isDirectory()) await walk(absolute, relative);
       else if (entry.isFile()) {
-        const stat = await fs.stat(absolute);
-        const hash = await hashFile(absolute);
-        files.push({ artifact: label, path: path.posix.join(relativeRoot, relative), bytes: hash.bytes, sha256: hash.sha256, mode: (stat.mode & 0o777).toString(8) });
+        const manifestPath = path.posix.join(relativeRoot, relative);
+        const file = await readStableFile(absolute, manifestPath);
+        files.push({ artifact: label, path: manifestPath, ...file });
       } else fail(`RELEASE_ENTRY_UNSUPPORTED:${path.posix.join(relativeRoot, relative)}`);
     }
   }

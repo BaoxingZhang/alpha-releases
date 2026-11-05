@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { buildReleaseManifest, writeReleaseManifest } from '../scripts/release-manifest.mjs';
+import { buildReleaseManifest, readStableFile, writeReleaseManifest } from '../scripts/release-manifest.mjs';
 import { verifyReleaseManifest } from '../scripts/verify-release-manifest.mjs';
 
 test('release manifest records every publishable artifact and stable digest', async () => {
@@ -54,6 +54,21 @@ test('release manifest writes atomically to a caller-selected path', async () =>
     assert.equal(parsed.artifactDigest, result.manifest.artifactDigest);
     const mode = (await fs.stat(destination)).mode & 0o777;
     assert.equal(mode, 0o600);
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
+});
+
+test('release manifest stable reader rejects symlink inputs and records file metadata together', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-release-stable-'));
+  try {
+    const source = path.join(directory, 'source.bin');
+    const link = path.join(directory, 'link.bin');
+    await fs.writeFile(source, Buffer.from('stable release input\n'), { mode: 0o640 });
+    await fs.symlink(source, link);
+    const result = await readStableFile(source, 'test/source.bin');
+    assert.equal(result.bytes, 21);
+    assert.equal(result.mode, '640');
+    assert.match(result.sha256, /^[0-9a-f]{64}$/);
+    await assert.rejects(() => readStableFile(link, 'test/link.bin'), /RELEASE_SYMLINK_REJECTED/);
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });
 
