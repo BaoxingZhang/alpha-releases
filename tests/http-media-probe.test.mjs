@@ -52,6 +52,7 @@ test('HTTP and MCP adapters expose metadata-only v4 media probe', async t => {
   assert.equal(result.response.status, 200);
   assert.equal(result.body.status, 'ready');
   assert.equal(result.body.scope, 'explicit-v4-media-database-probe');
+  assert.equal(result.body.complete, false);
   assert.equal(result.body.metadata_only, true);
   assert.equal(result.body.native_schema_supported, false);
   assert.equal(result.body.media_ready, false);
@@ -65,6 +66,7 @@ test('HTTP and MCP adapters expose metadata-only v4 media probe', async t => {
   const mcpBody = await mcp.json();
   assert.equal(mcp.status, 200);
   assert.equal(mcpBody.result.structuredContent.scope, 'explicit-v4-media-database-probe');
+  assert.equal(mcpBody.result.structuredContent.complete, false);
   assert.equal(mcpBody.result.structuredContent.metadata_only, true);
   assert.equal(mcpBody.result.structuredContent.native_schema_supported, false);
   assert.equal(mcpBody.result.structuredContent.media_ready, false);

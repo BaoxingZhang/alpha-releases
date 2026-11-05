@@ -1191,7 +1191,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
       if (typeof engine.probeMedia !== 'function') throw new HttpAdapterError('HTTP_API_MEDIA_PROBE_UNSUPPORTED', 501);
       const response = await engine.probeMedia(await selectedAccount(params));
-      return snakeKeys({ ...response, scope: 'explicit-v4-media-database-probe', complete: response.status === 'ready', mediaReady: false, metadataOnly: true, nativeSchemaSupported: false });
+      return snakeKeys({ ...response, scope: 'explicit-v4-media-database-probe', complete: false, mediaReady: false, metadataOnly: true, nativeSchemaSupported: false });
     }
     if (pathname === '/api/v1/independent/media/image-status') {
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
@@ -1853,7 +1853,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const account = await selectedAccount(params);
       if (typeof engine.probeMedia !== 'function') throw new HttpAdapterError('HTTP_API_MEDIA_PROBE_UNSUPPORTED', 501);
       const value = snakeKeys(await engine.probeMedia(account));
-      const result = { ...value, scope: 'explicit-v4-media-database-probe', complete: value.status === 'ready', media_ready: false, metadata_only: true, native_schema_supported: false };
+      const result = { ...value, scope: 'explicit-v4-media-database-probe', complete: false, media_ready: false, metadata_only: true, native_schema_supported: false };
       return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
     }
     else if (name === 'alpha-independent.media.get_image_status') {
