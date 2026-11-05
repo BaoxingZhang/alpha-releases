@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import test from 'node:test';
-import { auditPublicTree } from '../scripts/audit-public-release.mjs';
+import { auditPublicTree, writeAuditReport } from '../scripts/audit-public-release.mjs';
 
 const execFileAsync = promisify(execFile);
 const script = path.resolve(new URL('../scripts/audit-public-release.mjs', import.meta.url).pathname);
@@ -52,6 +52,17 @@ test('private evidence can be excluded and the report is written atomically', as
   assert.deepEqual(report.excluded, ['docs/private-evidence']);
   assert.deepEqual(JSON.parse(await fs.readFile(reportPath, 'utf8')), report);
   assert.doesNotMatch(result.stdout, /\/Users\/alice/);
+});
+
+test('audit report failure removes the temporary output', async t => {
+  const root = await fixture();
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const destination = path.join(root, 'audit.json');
+  await fs.mkdir(destination);
+  const report = await auditPublicTree({ root });
+  await assert.rejects(() => writeAuditReport(destination, report));
+  const leftovers = (await fs.readdir(root)).filter(name => name.startsWith('audit.json.') && name.endsWith('.tmp'));
+  assert.deepEqual(leftovers, []);
 });
 
 test('report mode does not fail current evidence, while strict mode does', async t => {

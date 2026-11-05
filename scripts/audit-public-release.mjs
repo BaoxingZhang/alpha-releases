@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -142,9 +143,13 @@ export async function auditPublicTree({ root = repositoryRoot, scanRoots = DEFAU
 export async function writeAuditReport(filename, report) {
   const destination = path.resolve(filename);
   await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
-  const temporary = `${destination}.${process.pid}.${Date.now()}.tmp`;
-  await fs.writeFile(temporary, `${JSON.stringify(report, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
-  await fs.rename(temporary, destination);
+  const temporary = `${destination}.${randomUUID()}.tmp`;
+  try {
+    await fs.writeFile(temporary, `${JSON.stringify(report, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+    await fs.rename(temporary, destination);
+  } finally {
+    await fs.rm(temporary, { force: true }).catch(() => {});
+  }
 }
 
 function usage() {
