@@ -91,6 +91,33 @@ test('v4 chat_room RoomData reaches the recovered listGroupMembers wire shape', 
       assert.match(text, /wxid_beta/);
     }
   }
+  for (const format of ['chatlab-v0-json', 'chatlab-v0-jsonl']) {
+    const destinationPath = path.join(directory, `conversation.${format.endsWith('jsonl') ? 'jsonl' : 'json'}`);
+    const response = await call('exportConversation', {
+      accountId: fixture.accountId,
+      conversationId: fixture.chatroomId,
+      format,
+      destinationPath,
+      includeMedia: false
+    });
+    assert.equal(response.error, undefined, response.error?.code);
+    const output = await fs.readFile(destinationPath, 'utf8');
+    if (format.endsWith('jsonl')) {
+      const lines = output.trimEnd().split('\n').map(line => JSON.parse(line));
+      assert.equal(lines[0]._type, 'header');
+      assert.equal(lines[0].meta.type, 'group');
+      assert.equal(lines.filter(line => line._type === 'member').length, 2);
+      assert.equal(lines.find(line => line._type === 'member' && line.platformId === 'wxid_alpha').accountName, 'Alpha');
+    } else {
+      const value = JSON.parse(output);
+      assert.equal(value.meta.type, 'group');
+      assert.equal(value.meta.groupId, fixture.chatroomId);
+      assert.deepEqual(value.members.map(member => member.platformId), ['wxid_alpha', 'wxid_beta']);
+      assert.equal(value.members[0].accountName, 'Alpha');
+      assert.deepEqual(value.members[0].roles, [{ id: 'owner' }]);
+      assert.equal(value.members[1].accountName, 'Beta');
+    }
+  }
   const unsupported = await call('exportGroupMembers', {
     accountId: fixture.accountId,
     chatroomId: fixture.chatroomId,
@@ -99,4 +126,42 @@ test('v4 chat_room RoomData reaches the recovered listGroupMembers wire shape', 
     utcOffsetMinutes: 0
   });
   assert.equal(unsupported.error.code, 'EXPORT_FORMAT_UNSUPPORTED');
+});
+
+test('ChatLab v0 group export accepts the verified 5000-member bound and rejects overflow', async t => {
+  const directory = await fs.mkdtemp(path.join(root, '.runtime/engine-groups-bound-'));
+  const fixture = await createGroupMembersFixture(path.join(directory, 'data'), { memberCount: 5000 });
+  const stateDir = path.join(directory, 'state');
+  await fs.mkdir(stateDir, { mode: 0o700 });
+  const lock = await createSecurity({ stateDir });
+  const engine = await createEngine({ lock, stateDir, bridgePath, dataDir: fixture.directory, accountId: fixture.accountId, selfUsername: fixture.selfUsername });
+  let engineClosed = false;
+  t.after(async () => { if (!engineClosed) await engine.close(); await fs.rm(directory, { recursive: true, force: true }); });
+  let requestId = 0n;
+  const call = async (target, method, payload = {}) => {
+    const request = EngineClientFrame.fromPartial({ requestId: ++requestId, [method]: payload });
+    const reply = await target.dispatch(EngineClientFrame.decode(EngineClientFrame.encode(request).finish()));
+    return EngineServerFrame.decode(EngineServerFrame.encode(reply).finish());
+  };
+  await call(engine, 'hello', { protocol: { major: 1, minor: 0 } });
+  const destinationPath = path.join(directory, 'members-5000.json');
+  const response = await call(engine, 'exportConversation', { accountId: fixture.accountId, conversationId: fixture.chatroomId, format: 'chatlab-v0-json', destinationPath, includeMedia: false });
+  assert.equal(response.error, undefined, response.error?.code);
+  const value = JSON.parse(await fs.readFile(destinationPath, 'utf8'));
+  assert.equal(value.members.length, 5000);
+  assert.equal(value.members.at(-1).platformId, 'wxid_member_4999');
+
+  await engine.close(); engineClosed = true;
+  const overflowDirectory = await fs.mkdtemp(path.join(root, '.runtime/engine-groups-overflow-'));
+  const overflowFixture = await createGroupMembersFixture(path.join(overflowDirectory, 'data'), { memberCount: 5001 });
+  const overflowStateDir = path.join(overflowDirectory, 'state');
+  await fs.mkdir(overflowStateDir, { mode: 0o700 });
+  const overflowLock = await createSecurity({ stateDir: overflowStateDir });
+  const overflowEngine = await createEngine({ lock: overflowLock, stateDir: overflowStateDir, bridgePath, dataDir: overflowFixture.directory, accountId: overflowFixture.accountId, selfUsername: overflowFixture.selfUsername });
+  t.after(async () => { await overflowEngine.close(); await fs.rm(overflowDirectory, { recursive: true, force: true }); });
+  await call(overflowEngine, 'hello', { protocol: { major: 1, minor: 0 } });
+  const overflowPath = path.join(overflowDirectory, 'members-overflow.json');
+  const overflowResponse = await call(overflowEngine, 'exportConversation', { accountId: overflowFixture.accountId, conversationId: overflowFixture.chatroomId, format: 'chatlab-v0-json', destinationPath: overflowPath, includeMedia: false });
+  assert.ok(overflowResponse.error, 'overflow must fail closed');
+  await assert.rejects(fs.access(overflowPath));
 });

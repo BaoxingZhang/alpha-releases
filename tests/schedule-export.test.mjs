@@ -53,6 +53,10 @@ test('schedule rejects multi-format and relative destinations', async t => {
   assert.deepEqual(xlsx.formats, ['xlsx']);
   const sql = await f.store.save({ plan: plan(f.output, { scheduleId: '11111111-1111-4111-8111-111111111112', formats: ['sql'] }), mode: 'create', expectedUpdatedAtUnixMs: 0n });
   assert.deepEqual(sql.formats, ['sql']);
+  const chatlab = await f.store.save({ plan: plan(f.output, { scheduleId: '11111111-1111-4111-8111-111111111113', formats: ['chatlab-v0-json'] }), mode: 'create', expectedUpdatedAtUnixMs: 0n });
+  assert.deepEqual(chatlab.formats, ['chatlab-v0-json']);
+  const chatlabJsonl = await f.store.save({ plan: plan(f.output, { scheduleId: '11111111-1111-4111-8111-111111111114', formats: ['chatlab-v0-jsonl'] }), mode: 'create', expectedUpdatedAtUnixMs: 0n });
+  assert.deepEqual(chatlabJsonl.formats, ['chatlab-v0-jsonl']);
 });
 
 test('run-now submits verified single export and records history', async t => {

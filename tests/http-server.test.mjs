@@ -583,6 +583,14 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   result = await request(base, '/api/v1/exports', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', conversation_id: 'wxid_peer', format: 'sql', destination_path: '/tmp/alpha-http-export.sql' }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.format, 'sql');
+  result = await request(base, '/api/v1/exports/formats', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(result.body.formats.slice(-4), ['group-members-csv', 'group-members-json', 'group-members-html', 'group-members-xlsx']);
+  assert.ok(result.body.formats.includes('chatlab-v0-json'));
+  assert.ok(result.body.formats.includes('chatlab-v0-jsonl'));
+  result = await request(base, '/api/v1/exports', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', conversation_id: 'wxid_peer', format: 'chatlab-v0-jsonl', destination_path: '/tmp/alpha-http-export.chatlab.jsonl' }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.format, 'chatlab-v0-jsonl');
   result = await request(base, '/api/v1/media-metadata', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', format: 'media-json', destination_path: '/tmp/alpha-http-media.json' }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.destination_path, '/tmp/alpha-http-media.json');

@@ -72,9 +72,15 @@ function chatlabJsonl(meta, items) {
   return `${lines.join('\n')}\n`;
 }
 
-function chatlabV0(meta, items, jsonl) {
+function chatlabV0(meta, items, jsonl, members = []) {
   const value = toChatLabExport({
-    conversation: { conversationId: meta.conversationId, name: meta.conversationId },
+    conversation: {
+      conversationId: meta.conversationId,
+      name: meta.conversationName || meta.conversationId,
+      isGroup: meta.conversationId.endsWith('@chatroom'),
+      ...(meta.conversationId.endsWith('@chatroom') ? { groupId: meta.conversationId } : {})
+    },
+    members,
     messages: items.map(item => ({ ...item, content: item.text === null ? null : item.text }))
   }, { exportedAtUnixSec: 0 });
   return jsonl ? stringifyChatLabJsonl(value) : stringifyChatLab(value);
@@ -118,11 +124,11 @@ function wecloneCsv(_meta, items) {
   return [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\n') + '\n';
 }
 
-function derivedConversationOutput(format, meta, items) {
+function derivedConversationOutput(format, meta, items, members = []) {
   if (format === 'chatlab-json') return chatlabJson(meta, items);
   if (format === 'chatlab-jsonl') return chatlabJsonl(meta, items);
-  if (format === 'chatlab-v0-json') return chatlabV0(meta, items, false);
-  if (format === 'chatlab-v0-jsonl') return chatlabV0(meta, items, true);
+  if (format === 'chatlab-v0-json') return chatlabV0(meta, items, false, members);
+  if (format === 'chatlab-v0-jsonl') return chatlabV0(meta, items, true, members);
   if (format === 'sql') return conversationSql(meta, items);
   if (format === 'weclone') return wecloneCsv(meta, items);
   throw new Error('EXPORT_FORMAT_UNSUPPORTED');

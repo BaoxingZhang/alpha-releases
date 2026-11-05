@@ -2534,7 +2534,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       return browseMessages(request, true);
     },
     async exportConversation(request) {
-      await requireAccount(request.accountId);
+      const accountInfo = await requireAccount(request.accountId);
       const requestedFormat = text(request.format, 32).toLowerCase();
       if (MEDIA_METADATA_EXPORT_FORMATS.has(requestedFormat)) return exportMediaMetadata({ ...request, format: requestedFormat });
       const conversationId = requestName(request.conversationId, 'EXPORT_REQUEST_INVALID');
@@ -2589,8 +2589,29 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
         done = !page.nextCursor; cursor = page.nextCursor;
       }
       guard();
+      // ChatLab v0 can carry verified group-member DTOs. Only query the
+      // independent bridge's explicit __alpha_group_members projection for
+      // chatrooms and only when the account advertises that capability. This
+      // keeps private chats empty and avoids guessing native member schemas.
+      let chatLabMembers = [];
+      if ((format === 'chatlab-v0-json' || format === 'chatlab-v0-jsonl') && conversationId.endsWith('@chatroom') && accountInfo.capabilities?.includes('groups.members')) {
+        const rawMembers = [];
+        for (let offset = 0; offset <= 5000; offset += 1000) {
+          const page = await callData('general.list', { tableName: '__alpha_group_members', query: conversationId, limit: 1000, offset, ascending: true });
+          if (!page || !Array.isArray(page.items) || page.items.length > 1000 || typeof page.sourceDatabase !== 'string' || page.sourceDatabase.length > 1024) throw error('BRIDGE_GENERAL_RESPONSE_INVALID');
+          rawMembers.push(...page.items.map(groupMemberExportRow));
+          if (page.items.length < 1000) break;
+        }
+        if (rawMembers.length > 5000) throw error('GROUP_MEMBER_EXPORT_TOO_LARGE');
+        chatLabMembers = rawMembers.map(member => ({
+          platformId: member.username,
+          accountName: member.nickname || member.remark || member.username,
+          ...(member.groupNickname ? { groupNickname: member.groupNickname } : {}),
+          ...(member.isOwner ? { roles: [{ id: 'owner' }] } : {})
+        }));
+      }
       const meta = { accountId, conversationId, ...(start !== undefined ? { startTimeUnixMs: start.toString() } : {}), ...(end !== undefined ? { endTimeUnixMs: end.toString() } : {}) };
-      const output = format === 'json' ? JSON.stringify({ version: 1, format, ...meta, itemCount: items.length, messages: items }) + '\n' : format === 'markdown' ? markdownExport(meta, items) : format === 'html' ? htmlExport(meta, items) : format === 'xlsx' ? conversationXlsxOutput(items) : CHAT_DERIVED_FORMATS.has(format) ? derivedConversationOutput(format, meta, items) : textExport(meta, items);
+      const output = format === 'json' ? JSON.stringify({ version: 1, format, ...meta, itemCount: items.length, messages: items }) + '\n' : format === 'markdown' ? markdownExport(meta, items) : format === 'html' ? htmlExport(meta, items) : format === 'xlsx' ? conversationXlsxOutput(items) : CHAT_DERIVED_FORMATS.has(format) ? derivedConversationOutput(format, meta, items, chatLabMembers) : textExport(meta, items);
       if (Buffer.byteLength(output, 'utf8') > MAX_EXPORT_BYTES) throw error('EXPORT_LIMIT_EXCEEDED');
       if (Date.now() - startedAt > MAX_EXPORT_RUNTIME_MS) throw error('EXPORT_TIMEOUT');
       const temporary = path.join(path.dirname(destinationPath), `.alpha-export-${crypto.randomUUID()}.tmp`);

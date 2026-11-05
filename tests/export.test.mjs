@@ -126,6 +126,8 @@ test('derived exports are bounded, parseable and preserve verified message field
       const parsed = JSON.parse(output);
       assert.equal(parsed.chatlab.version, '0.0.2');
       assert.equal(parsed.meta.platform, 'weixin');
+      assert.equal(parsed.meta.type, 'private');
+      assert.deepEqual(parsed.members, []);
       assert.equal(parsed.messages[0].platformMessageId, '9007199254740997');
     }
     if (format === 'chatlab-v0-jsonl') {

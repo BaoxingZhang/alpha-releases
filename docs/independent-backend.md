@@ -115,4 +115,4 @@ npm run verify:vendor
 
 ### ChatLab v0.0.2 导出互操作
 
-独立引擎提供纯 DTO 的 ChatLab v0.0.2 JSON/JSONL 映射模块 `packages/alpha-engine/chatlab-v0.cjs`。它只接收已经验证的账号、会话、成员和消息 DTO，将 `serverId`/`localId` 等长整数保持为字符串，时间转换为秒级 Unix 整数，并按 ChatLab 标准输出 header、members、messages。媒体字节、原生 `media1_` token、CDN 地址和未验证的 `chatRecords` 保持省略；该导出是互操作格式映射，不计入 native 128 支持，也不复制 ChatLab 的 AGPL 源码。
+独立引擎提供纯 DTO 的 ChatLab v0.0.2 JSON/JSONL 映射模块 `packages/alpha-engine/chatlab-v0.cjs`。它只接收已经验证的账号、会话、成员和消息 DTO，将 `serverId`/`localId` 等长整数保持为字符串，时间转换为秒级 Unix 整数，并按 ChatLab 标准输出 header、members、messages。对 `@chatroom` 会话，导出会有界读取现有 `__alpha_group_members` verified projection（最多 5000 条）并映射为成员；私聊成员保持为空。媒体字节、原生 `media1_` token、CDN 地址和未验证的 `chatRecords` 保持省略；该导出是互操作格式映射，不计入 native 128 支持，也不复制 ChatLab 的 AGPL 源码。

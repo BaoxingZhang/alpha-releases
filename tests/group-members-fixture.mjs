@@ -24,14 +24,17 @@ function user(username, displayName) {
   return Buffer.concat([field(1, username), field(2, displayName)]);
 }
 
-function roomData() {
-  return Buffer.concat([field(1, user('wxid_alpha', '群主显示名')), field(1, user('wxid_beta', '群成员显示名'))]);
+function roomData(memberCount = 2) {
+  if (!Number.isInteger(memberCount) || memberCount < 2 || memberCount > 5001) throw new Error('memberCount must be between 2 and 5001');
+  const users = [field(1, user('wxid_alpha', '群主显示名')), field(1, user('wxid_beta', '群成员显示名'))];
+  for (let index = 2; index < memberCount; index += 1) users.push(field(1, user(`wxid_member_${index}`, `群成员${index}`)));
+  return Buffer.concat(users);
 }
 
 /** Creates only a synthetic v4 chat_room row in the fixture directory. */
-export async function createGroupMembersFixture(directory) {
+export async function createGroupMembersFixture(directory, options = {}) {
   const original = await createFixture(directory);
-  const encoded = roomData().toString('base64');
+  const encoded = roomData(options.memberCount ?? 2).toString('base64');
   const script = `
 import base64, sqlite3, sys
 db=sqlite3.connect(sys.argv[1] + '/contact/contact.db')
