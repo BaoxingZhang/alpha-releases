@@ -201,6 +201,12 @@ try {
   await searchHitText.waitFor({ timeout: 15000 });
   await searchHitText.locator('..').click({ timeout: 15000 });
   await page.locator('.message-row[aria-current="true"]').filter({ hasText: 'first source' }).first().waitFor({ timeout: 15000 });
+  // Locating a result does not necessarily close the search drawer. Explicitly
+  // close it before clicking the next header tool; on slower CI runners the
+  // drawer can otherwise remain above the header and intercept the click.
+  const closeSearchDrawer = page.getByRole('button', { name: '关闭搜索聊天记录', exact: true });
+  if (await closeSearchDrawer.isVisible().catch(() => false)) await closeSearchDrawer.click({ timeout: 15000 });
+  await page.locator('#chat-drawer-search').waitFor({ state: 'hidden', timeout: 15000 });
   report.checks.packagedConversationSearchAndExactLocate = true;
   const chatExportCapabilities = await page.evaluate(() => window.alpha.chatExport?.capabilities?.() ?? null);
   assert.ok(chatExportCapabilities, 'packaged chat export bridge is unavailable');
