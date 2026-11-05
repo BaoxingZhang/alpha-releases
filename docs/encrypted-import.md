@@ -63,7 +63,7 @@ npm run test:independent
 npm run test:smoke
 ```
 
-早期加密导入阶段记录的 `npm test` 共 79 项全部通过，另有导入器 5 组 Go 单测通过；当前仓库全量回归为 367/367，详见[维护路线图](maintenance-roadmap.md)。加密测试数据由 Node crypto 独立生成；SQLite C API 先分配 reserve 80，随后重新组织数据库页，不截断普通 SQLite 页。Go 解密后的四个库与独立明文基准逐字节一致。测试覆盖错误密钥、篡改页、路径/符号链接/活动日志、取消、锁、manifest 篡改、重启复用和密钥未持久化，汇总见 [encrypted-validation.json](encrypted-validation.json)。
+早期加密导入阶段记录的 `npm test` 共 79 项全部通过，另有导入器 5 组 Go 单测通过；当前仓库全量回归为 368/368，详见[维护路线图](maintenance-roadmap.md)。加密测试数据由 Node crypto 独立生成；SQLite C API 先分配 reserve 80，随后重新组织数据库页，不截断普通 SQLite 页。Go 解密后的四个库与独立明文基准逐字节一致。测试覆盖错误密钥、篡改页、路径/符号链接/活动日志、取消、锁、manifest 篡改、重启复用和密钥未持久化，汇总见 [encrypted-validation.json](encrypted-validation.json)。
 
 桌面队列在独立模式下允许导入与锁控制同时在途；原模式仍使用原队列策略。实际 Electron 测试暂停本应用的 Go 导入子进程，确认锁状态仍可返回、锁定可取消导入并清理工作目录；解锁后此前已提交的快照仍可读取。
 
