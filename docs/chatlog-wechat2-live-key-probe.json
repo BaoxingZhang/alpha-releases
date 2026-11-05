@@ -64,7 +64,7 @@
     "interpretation": "The repeat remained bounded and timed out without a key; the helper was confirmed gone afterward, and no database content or native file was accessed."
   },
   "latestRetry": {
-    "recordedAt": "2026-11-05T20:37:46Z",
+    "recordedAt": "2026-11-05T21:57:12.650Z",
     "durationSecondsBound": 120,
     "databaseContentsRead": false,
     "nativeFilesModified": false,
@@ -76,13 +76,13 @@
       "exitCode": 0,
       "signal": null,
       "stdoutBytes": 0,
-      "stderrBytes": 524,
+      "stderrBytes": 522,
       "has64HexOutput": false,
       "rawOutputPersisted": false,
       "keyValuesPersisted": false,
-      "helperProcessRemaining": false,
-      "temporaryConfigRemoved": true
+      "temporaryConfigRemoved": true,
+      "helperProcessRemaining": false
     },
-    "interpretation": "The latest bounded retry exited normally without emitting a usable key; no database content or native file was accessed."
+    "interpretation": "The bounded retry against the current WeChat2 process exited normally without emitting a usable key; no database content or native file was accessed, and the temporary configuration was removed."
   }
 }
