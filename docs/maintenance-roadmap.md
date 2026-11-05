@@ -19,6 +19,24 @@
 | E. 写入与实时能力 | 捕获、发送、编辑、防撤回、防删除和公众号执行 | 合法 writer/capture ABI 或自研协议、可回滚副本、事务和确认语义 | 只在隔离副本先验收幂等、回滚、并发和失败恢复；真实发送需单独授权 |
 | F. 自主发行 | 不依赖作者签发更新的长期发布 | 自有许可证、签名/公证身份、版本迁移和发布密钥 | 干净 macOS arm64 环境可从本项目构建、升级、回滚并验证 manifest |
 
+## 下一阶段最小授权材料包
+
+真实数据接入先准备一份**静止、脱敏、只读**的 v4 副本，并明确数据集标签。源目录必须已关闭微信相关进程、没有 `-wal`、`-shm` 或 `-journal` 文件，且不含符号链接；不要提供正在使用的 WeChat/WeChat2 数据目录。加密副本可用下面的命令生成到项目 `.runtime/`，它只复制文件并写入脱敏 SHA-256 manifest，不解密：
+
+```sh
+npm run stage:encrypted-v4 -- \
+  --source-dir /absolute/authorized-encrypted-v4 \
+  --account-id sanitized-v4 \
+  --target-name sanitized-v4 \
+  --json
+```
+
+如果已经有合法的明文静止副本，使用 `npm run stage:v4`；接入前先运行 `npm run preflight:v4 -- --data-dir /absolute/staged-copy --account-id sanitized-v4 --json`。报告为 `schema-only` 只表示结构可读，不能当作业务数据已经解密或账号已经 ready。
+
+解密还需要合法的 32 字节数据库 key。key 只能在本机应用输入或受控 stdin 流程中使用，不要粘贴到聊天、命令参数、环境变量、日志或持久文件。没有 key 时可以继续做 schema-only 诊断，但不能读取联系人、会话和消息。
+
+真实媒体验证另需调用方明确列出的文件和自有 `media-index.v1.json`；媒体索引必须绑定账号、会话、消息、大小和 SHA-256。语音转写若要验证可选 backend，还需调用方提供已核验的 WAV、`zipformer-zh-small` 模型目录和四个模型文件的哈希；这仍不等于原生 VoiceInfo/SILK 转写。发送、写入、授权、AI 和公众号执行还需要对应的合法 ABI/服务授权、隔离测试账号和可回滚副本，当前没有这些材料就保持 fail-closed。
+
 ## 已确认的阻塞项
 
 以下 46 个请求分支目前没有足够证据安全实现，保持 `UNIMPLEMENTED` 或独立边界错误：
