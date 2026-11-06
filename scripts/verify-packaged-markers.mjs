@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { buildFileManifest, manifestDigest } from './package-macos-app.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const require = createRequire(import.meta.url);
@@ -74,6 +75,14 @@ async function verifyFlavor({ productName, backend, bundleIdentifier, executable
   }
   if (manifest.files.some(file => file.path === 'Contents/MacOS/Electron')) {
     fail('PACKAGED_TEMPLATE_EXECUTABLE_RETAINED', appName);
+  }
+  // Re-hash the assembled app instead of trusting the manifest that was
+  // written beside it. This catches post-package edits, stale manifests and
+  // incomplete copies before an app/DMG is treated as a release input.
+  const actualFiles = await buildFileManifest(appPath, { allowSymlinks: true, sourceRoot: appPath });
+  const actualBytes = actualFiles.reduce((total, file) => total + file.bytes, 0);
+  if (manifest.fileCount !== actualFiles.length || manifest.totalBytes !== actualBytes || manifest.artifactDigest !== manifestDigest(actualFiles)) {
+    fail('PACKAGED_MANIFEST_DIGEST_MISMATCH', appName);
   }
   let updateMode;
   if (backend === 'independent') {

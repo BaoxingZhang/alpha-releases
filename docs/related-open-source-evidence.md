@@ -46,6 +46,18 @@
 
 相关仓库已经放在工作区外的只读研究目录 `<external-research-root>/WeFlow1`，没有导入构建、没有修改许可证声明、没有替换 Alpha runtime。复核中没有找到收藏功能、收藏表名或收藏 API 的证据，因此收藏不能从 WeFlow1 推导实现。后续若要利用其中的代码，必须先单独确认许可证、署名、非商业和相同方式共享义务，并重新验证 ABI、微信版本、平台和数据安全边界。
 
+## 2026-11-06 新增公开候选复核
+
+本轮重新检查了作者账号下的 [xunchahaha/WeFlow1](https://github.com/xunchahaha/WeFlow1)。仓库仍公开 TypeScript/Electron 应用层和预编译资源，但 GitHub 的许可证元数据为 `NOASSERTION`，固定提交的 `LICENSE` 文本是 **CC BY-NC-SA 4.0**；最近的 `nightly-dev` 发布只提供 Windows/Linux 安装包和调试构建，没有 macOS 资产。它不是 Alpha 源码，也没有证明与 Alpha 的数据库、ABI、授权或完整性策略兼容，因此本工程不复制代码、不引入二进制、不提高支持矩阵。
+
+另发现 [xunchahaha/echotrace](https://github.com/xunchahaha/echotrace)，仓库明确带 MIT LICENSE，包含 Flutter/Dart 的 `wcdb_*` FFI 声明和 Windows v4 解密参考；当前发布物只有 Windows，预编译 WCDB 二进制的来源和许可证仍未闭合。它可以作为 MIT 许可下的接口分类参考，但不是 macOS Alpha 后端，不能直接接入本项目或替代 `_alpha_native_get_api` 函数表。
+
+这两项材料都没有提供合法、可重放的 Alpha macOS 取钥/真实数据证据。原生取钥、真实朋友圈/收藏/媒体和 writer 能力继续保持 `native_schema_supported=false` 或 `UNIMPLEMENTED`。
+
+同轮还复核了 [xunchahaha/WeChatMsg_fix](https://github.com/xunchahaha/WeChatMsg_fix)。它是 Windows-only 的 Python v4 数据库解析/导出 fork，根目录带 MIT 文本但继承来源的逐文件许可需要另行核查；README 只覆盖 Windows WeChat 4.0.3.22 及以前版本，没有 macOS、Alpha ABI 或取钥授权证据。它最多作为 PBKDF2/SQLite 页面和字段模型的参考，不进入 Alpha 构建，也不能提高 macOS/native 支持计数。
+
+[xunchahaha/WeChatDataAnalysis](https://github.com/xunchahaha/WeChatDataAnalysis) 也只有无许可证元数据的公开 fork，包含 Windows v4 解密、聊天/联系人/朋友圈和导出代码及预编译组件。由于继承代码和二进制的再分发许可未闭合，本工程只记录其功能线索，不复制源码或资源。
+
 ## 2026-11-06 原生组件与许可证复核
 
 本轮对两个公开仓库的固定提交做了文件级复核：`xunchahaha/WeFlow1` 为
