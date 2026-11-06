@@ -5,7 +5,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { root, launchEnvironment } from '../scripts/environment.mjs';
+import { root } from '../scripts/environment.mjs';
 import projectPackage from '../package.json' with { type: 'json' };
 import projectIdentity from '../packages/alpha-desktop/project-identity.cjs';
 
@@ -45,6 +45,29 @@ async function exists(filename) {
   catch (error) { if (error.code === 'ENOENT') return false; throw error; }
 }
 
+function isResourceBusy(error) {
+  const text = [error?.message, error?.stderr, error?.stdout]
+    .filter(value => typeof value === 'string')
+    .join('\n');
+  return /\bresource busy\b/i.test(text);
+}
+
+function packagedSmokeEnvironment() {
+  // The mounted app must select its backend from the packaged marker and
+  // resolve all executables from Contents/Resources. Keep the parent process
+  // independent of the project build/runtime and of inherited injection
+  // variables; the disposable paths below are the only writable locations.
+  return {
+    PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
+    LANG: typeof process.env.LANG === 'string' && process.env.LANG ? process.env.LANG : 'C.UTF-8',
+    HOME: path.join(runtimeRoot, 'home'),
+    TMPDIR: path.join(runtimeRoot, 'tmp'),
+    TMP: path.join(runtimeRoot, 'tmp'),
+    TEMP: path.join(runtimeRoot, 'tmp'),
+    ALPHA_RECOVERY_SESSION: session
+  };
+}
+
 async function attach() {
   await fs.mkdir(mountRoot, { recursive: true, mode: 0o700 });
   const result = await execFileAsync('/usr/bin/hdiutil', ['attach', '-nobrowse', '-readonly', '-plist', '-mountrandom', mountRoot, dmg], { maxBuffer: 1024 * 1024 });
@@ -57,8 +80,29 @@ async function attach() {
 
 async function detach() {
   if (!mountPoint) return;
-  try { await execFileAsync('/usr/bin/hdiutil', ['detach', mountPoint], { maxBuffer: 256 * 1024 }); }
-  finally { mountPoint = undefined; }
+  const point = mountPoint;
+  const delays = [250, 500, 1000, 2000];
+  let lastError;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await execFileAsync('/usr/bin/hdiutil', ['detach', point], { maxBuffer: 256 * 1024 });
+      mountPoint = undefined;
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!isResourceBusy(error) || attempt >= delays.length) break;
+      await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+    }
+  }
+  if (!isResourceBusy(lastError)) throw lastError;
+  try {
+    await execFileAsync('/usr/bin/hdiutil', ['detach', '-force', point], { maxBuffer: 256 * 1024 });
+    report.detach = { forced: true };
+    mountPoint = undefined;
+  } catch (error) {
+    error.cause = lastError;
+    throw error;
+  }
 }
 
 await fs.mkdir(runtimeRoot, { recursive: true, mode: 0o700 });
@@ -78,13 +122,17 @@ try {
   assert.equal(bundleRuntimeBefore, false, 'DMG app bundle must not contain a writable runtime directory');
   assert.ok((await fs.stat(executablePath)).isFile(), 'mounted independent executable is missing');
   assert.ok((await fs.stat(resourcesPath)).isDirectory(), 'mounted independent resources are missing');
-  const environment = launchEnvironment(session, { backend: 'independent' });
-  for (const [key, suffix] of Object.entries({ HOME: 'home', TMPDIR: 'tmp', TMP: 'tmp', TEMP: 'tmp' })) {
-    environment[key] = path.join(runtimeRoot, suffix);
-    await fs.mkdir(environment[key], { recursive: true, mode: 0o700 });
-  }
-  environment.ALPHA_RECOVERY_SESSION = session;
-  app = await electron.launch({ executablePath, args: ['--no-sandbox'], cwd: root, env: environment, timeout: 60000 });
+  const environment = packagedSmokeEnvironment();
+  for (const key of ['HOME', 'TMPDIR']) await fs.mkdir(environment[key], { recursive: true, mode: 0o700 });
+  const userDataRoot = path.join(runtimeRoot, 'electron-user-data');
+  await fs.mkdir(userDataRoot, { recursive: true, mode: 0o700 });
+  app = await electron.launch({
+    executablePath,
+    args: ['--no-sandbox', '--user-data-dir=' + userDataRoot],
+    cwd: temporaryRoot,
+    env: environment,
+    timeout: 60000
+  });
   const main = await app.evaluate(({ app }) => ({
     isPackaged: app.isPackaged,
     appPath: app.getAppPath(),
@@ -101,6 +149,7 @@ try {
     if (['appPath', 'resourcesPath'].includes(name)) continue;
     if (typeof value === 'string') assert.equal(isInside(mountPoint, value), false, `${name} must be outside read-only DMG`);
   }
+  report.checks.packagedRendererRuntimeInsideDisposableRoot = true;
   report.checks.packagedRendererRuntimeOutsideMount = true;
   let page;
   const deadline = Date.now() + 45000;
