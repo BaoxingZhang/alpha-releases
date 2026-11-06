@@ -284,9 +284,9 @@
       "status": "passed"
     },
     "httpAdapter": {
-      "command": "node --test tests/http-server.test.mjs tests/http-favorites.test.mjs tests/http-voice-playback.test.mjs tests/http-media-probe.test.mjs tests/http-indexed-media.test.mjs",
+      "command": "node --test tests/http-server.test.mjs tests/http-favorites.test.mjs tests/http-voice-playback.test.mjs tests/http-media-probe.test.mjs tests/http-indexed-media.test.mjs tests/message-operation-evidence.test.mjs",
       "status": "passed",
-      "tests": 11,
+      "tests": 12,
       "favoritesRoute": {
         "command": "node --test tests/http-favorites.test.mjs",
         "status": "passed",
@@ -307,7 +307,20 @@
         "mediaReady": "only-after-explicit-media-index-verification",
         "sourcePrefix": "emoji-xml:__alpha_moment_emoji_v1:"
       },
-      "tools": 94,
+      "messageOperationEvidence": {
+        "httpPath": "/api/v1/independent/messages/operation-evidence",
+        "mcpTool": "alpha-independent.messages.get_operation_evidence",
+        "status": "passed",
+        "artifact": "vendor/runtime/bin/alpha-message-send",
+        "staticOnly": true,
+        "executed": false,
+        "realDataValidated": false,
+        "complete": false,
+        "nativeSchemaSupported": false,
+        "writer": false,
+        "readOnly": true
+      },
+      "tools": 95,
       "listTools": {
         "name": "wechat.core.list_tools",
         "complete": false,
@@ -339,6 +352,7 @@
         "independentExtensions": [
           "alpha-independent.messages.resolve_search_hit",
           "alpha-independent.messages.resolve_app_display",
+          "alpha-independent.messages.get_operation_evidence",
           "alpha-independent.messages.get_source",
           "alpha-independent.analytics.analyze_annual",
           "alpha-independent.analytics.analyze_conversation",

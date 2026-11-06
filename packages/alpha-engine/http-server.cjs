@@ -301,6 +301,43 @@ function sourceDiagnostics(value) {
     native_schema_supported: false
   };
 }
+function messageOperationEvidence() {
+  return {
+    scope: 'alpha-independent-message-operation-evidence',
+    artifact_path: 'vendor/runtime/bin/alpha-message-send',
+    artifact_sha256: '3aab88ce1c7e343055d426ae4b3c36bfe8ca0c5fee128a7214396b583ea011ed',
+    artifact_architecture: 'arm64',
+    artifact_format: 'mach-o',
+    procedure_count: 3567,
+    defined_string_count: 6880,
+    observed_protocol_types: [
+      'MessageCaptureStartRequest', 'MessageCaptureWatchResponse', 'MessageCaptureCancelResponse',
+      'SendMessageRequest', 'SendMessageResponse', 'MessageSendWatchRequest', 'MessageSendCancelRequest',
+      'ApplyMessageMutationRequest', 'ApplyMessageMutationResponse', 'DiscoverPendingMessageResourcesRequest',
+      'DiscoverPendingMessageResourcesResponse', 'MaintainMessageResourceRequest', 'MaintainMessageResourceResponse',
+      'LoginCaptureEvent', 'MessageRecallRecord', 'MessageMutationReceipt'
+    ],
+    observed_error_strings: [
+      'cli.account_required', 'cli.idempotency_required', 'cli.engine_required', 'cli.target_required',
+      'cli.delivery_ticket_invalid', 'message.material_session_missing', 'message.remote_failed',
+      'engine.message_send_response_missing', 'engine.message_cancel_response_missing',
+      'engine.message_session_response_missing', 'message.canceled'
+    ],
+    operations: [
+      { name: 'sendMessage', status: 'unavailable', observed_protocol: 'SendMessageRequest/SendMessageResponse' },
+      { name: 'messageCapture', status: 'unavailable', observed_protocol: 'MessageCaptureStartRequest/MessageCaptureWatchResponse' },
+      { name: 'messageMutation', status: 'unavailable', observed_protocol: 'ApplyMessageMutationRequest/ApplyMessageMutationResponse' },
+      { name: 'messageResourceMaintenance', status: 'unavailable', observed_protocol: 'DiscoverPendingMessageResourcesRequest/MaintainMessageResourceRequest' }
+    ],
+    static_only: true,
+    executed: false,
+    real_data_validated: false,
+    complete: false,
+    native_schema_supported: false,
+    writer: false,
+    read_only: true
+  };
+}
 function independentIncrementalMessages(value, { accountId, conversationId, sinceUnixMs, endUnixMs }) {
   const page = snakeKeys(value || {});
   return {
@@ -669,6 +706,7 @@ function toolDefinitions() {
     { name: 'wechat.core.get_lock_status', description: '返回独立应用锁的只读状态；不返回密码、失败计数或重试时间，也不提供解锁和配置操作', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.telemetry.get_status', description: '返回独立遥测同意和停用状态；不上传、不读取事件队列、不修改状态', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'alpha-independent.components.get_status', description: '返回独立后端高级组件的静态可用性诊断；不包含授权、设备密钥、下载或 native ready 证明', inputSchema: { type: 'object', required: ['component'], properties: { component: { type: 'integer', enum: [1, 2, 3, 5, 6] } }, additionalProperties: false }, outputSchema: { type: 'object' } },
+    { name: 'alpha-independent.messages.get_operation_evidence', description: '返回随包消息发送/捕获工件的静态证据；不执行、不接触微信数据、不启用 writer 或原生 schema', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.core.list_tools', description: '列出当前独立适配器声明的只读工具，可按 package 前缀过滤；不代表原 Alpha/native 完整工具目录', inputSchema: { type: 'object', properties: { package: { type: 'string', maxLength: 64, pattern: '^[A-Za-z][A-Za-z0-9_-]*(?:\\.[A-Za-z][A-Za-z0-9_-]*)*$' } }, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.core.list_accounts', description: '列出已验证的离线账号', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, outputSchema: { type: 'object' } },
     { name: 'wechat.core.get_account_info', description: '返回一个已验证账号的非敏感状态字段', inputSchema: { type: 'object', properties: { account_id: string }, additionalProperties: false }, outputSchema: { type: 'object' } },
@@ -924,6 +962,10 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const component = integer(params.component, 1, 6, 'HTTP_API_COMPONENT_INVALID');
       if (![1, 2, 3, 5, 6].includes(component)) throw new HttpAdapterError('HTTP_API_COMPONENT_INVALID', 400);
       return snakeKeys({ scope: 'alpha-independent-component-status', complete: false, nativeSchemaSupported: false, ...(await call('getAdvancedComponentStatus', { component })) });
+    }
+    if (pathname === '/api/v1/independent/messages/operation-evidence') {
+      if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
+      return messageOperationEvidence();
     }
     if (pathname === '/api/v1/independent/media/asr/status') {
       if (method !== 'GET') throw new HttpAdapterError('HTTP_API_METHOD_INVALID', 405);
@@ -1781,7 +1823,7 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       'alpha-independent.mobile.get_session_bundle': ['account_id', 'conversation_id', 'message_limit', 'message_cursor', 'ascending'],
       'alpha-independent.mobile.get_message_media_bundle': ['account_id', 'conversation_id', 'username', 'server_id', 'message_id', 'include_bytes'],
       'alpha-independent.mobile.get_chat_context': ['account_id', 'username', 'anchor_id', 'before', 'after'],
-      'wechat.core.get_status': [], 'wechat.core.get_lock_status': [], 'alpha-independent.telemetry.get_status': [], 'alpha-independent.components.get_status': ['component'], 'wechat.core.list_tools': ['package'], 'wechat.core.list_accounts': [], 'wechat.core.get_account_info': ['account_id'],
+      'wechat.core.get_status': [], 'wechat.core.get_lock_status': [], 'alpha-independent.telemetry.get_status': [], 'alpha-independent.components.get_status': ['component'], 'alpha-independent.messages.get_operation_evidence': [], 'wechat.core.list_tools': ['package'], 'wechat.core.list_accounts': [], 'wechat.core.get_account_info': ['account_id'],
       'wechat.contacts.list_contacts': ['account_id', 'keyword', 'limit', 'offset'], 'wechat.contacts.list_directory': ['account_id', 'categories', 'query', 'limit', 'offset'], 'wechat.contacts.resolve_contact': ['account_id', 'query', 'limit'], 'wechat.contacts.get_contact_profile': ['account_id', 'username', 'common_group_limit'], 'alpha-independent.messages.get_anti_recall_status': ['account_id', 'conversation_ids'], 'alpha-independent.moments.get_anti_delete_status': ['account_id'], 'alpha-independent.moments.resolve_emoji': ['account_id', 'source_token'],
       'wechat.contacts.get_group_members': ['account_id', 'chatroom_id', 'limit', 'offset'], 'alpha-independent.contacts.export': ['account_id', 'categories', 'query', 'format', 'include_profile', 'include_avatars', 'destination_path', 'utc_offset_minutes'], 'alpha-independent.contacts.export_group_members': ['account_id', 'chatroom_id', 'format', 'destination_path', 'utc_offset_minutes'], 'alpha-independent.groups.list_pinned_messages': ['account_id', 'chatroom_id', 'limit', 'offset'], 'wechat.chat.list_sessions': ['account_id', 'limit', 'cursor'],
       'wechat.chat.resolve_session': ['account_id', 'query', 'limit'], 'wechat.chat.get_messages': ['account_id', 'username', 'limit', 'cursor', 'ascending', 'after_unix_ms', 'before_unix_ms'], 'alpha-independent.chat.get_incremental_messages': ['account_id', 'conversation_id', 'since_unix_ms', 'end_unix_ms', 'limit', 'cursor', 'ascending'], 'alpha-independent.chat.resolve_history': ['account_id', 'conversation_id', 'since_unix_ms', 'end_unix_ms', 'limit', 'page_limit', 'cursor', 'ascending'],
@@ -1819,6 +1861,9 @@ function createReadOnlyHttpServer({ engine, token, host = '127.0.0.1', port = 0,
       const component = integer(args.component, 1, 6, 'MCP_COMPONENT_INVALID');
       if (![1, 2, 3, 5, 6].includes(component)) throw new HttpAdapterError('MCP_COMPONENT_INVALID', 400);
       const result = snakeKeys({ scope: 'alpha-independent-component-status', complete: false, nativeSchemaSupported: false, ...(await call('getAdvancedComponentStatus', { component })) });
+      return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
+    } else if (name === 'alpha-independent.messages.get_operation_evidence') {
+      const result = messageOperationEvidence();
       return { jsonrpc: '2.0', id: rpc.id, result: { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] } };
     } else if (name === 'wechat.core.get_account_info') {
       const accounts = snakeKeys(await call('listAccounts'));
