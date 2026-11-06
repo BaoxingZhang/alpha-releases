@@ -18,6 +18,23 @@ export function validateReleaseBoundary(packageJson, manifest) {
   };
 }
 
+async function readPackagedBoundaries() {
+  const directory = path.join(root, '.runtime', 'release-artifacts');
+  let entries;
+  try { entries = await fs.readdir(directory, { withFileTypes: true }); }
+  catch (error) { if (error.code === 'ENOENT') return []; throw error; }
+  const boundaries = [];
+  for (const entry of entries.filter(item => item.isFile() && item.name.endsWith('.app.manifest.json')).sort((a, b) => a.name.localeCompare(b.name))) {
+    const filename = path.join(directory, entry.name);
+    const value = JSON.parse(await fs.readFile(filename, 'utf8'));
+    if (value.projectSigned !== false || value.notarized !== false) {
+      throw new Error(`RELEASE_GATE_PACKAGED_SIGNING_STATE_UNEXPECTED:${entry.name}`);
+    }
+    boundaries.push({ name: entry.name, projectSigned: false, notarized: false });
+  }
+  return boundaries;
+}
+
 function run(script) {
   return new Promise((resolve, reject) => {
     const child = spawn(npm, ['run', script], { cwd: root, env: process.env, stdio: 'inherit' });
@@ -33,13 +50,14 @@ async function main() {
   await run('verify:release-manifest');
   const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
   const boundary = validateReleaseBoundary(packageJson, manifest);
+  const packagedBoundaries = await readPackagedBoundaries();
   await run('verify:maintenance');
   console.log(JSON.stringify({
     schema: 'alpha-recovered.release-gate.v1',
     manifest: path.relative(root, manifestPath),
     artifactCount: manifest.artifactCount,
     artifactDigest: manifest.artifactDigest,
-    boundary
+    boundary: { ...boundary, packagedManifests: packagedBoundaries }
   }, null, 2));
 }
 
