@@ -20,6 +20,8 @@ const { createOfficialSchedulePlans } = require('./official-schedule-plans.cjs')
 const { createOfficialPlanAttempts } = require('./official-plan-attempts.cjs');
 const { createGenericJobs } = require('./generic-jobs.cjs');
 const { createAggregateAnalysisJobs } = require('./aggregate-analysis-jobs.cjs');
+const { createPersonaProfileJobs } = require('./persona-profile-jobs.cjs');
+const { runDataAnalysis } = require('./persona-profile.cjs');
 const { contactsXlsx, conversationXlsx, groupMembersXlsx, recordsXlsx } = require('./xlsx-writer.cjs');
 const { CHAT_DERIVED_FORMATS, CHAT_FORMAT_EXTENSIONS, derivedConversationOutput } = require('./export-formats.cjs');
 const { loadMediaIndex, readMediaEntry } = require('./media-index.cjs');
@@ -27,7 +29,7 @@ const { readIndexedImage } = require('./indexed-image.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, acquireDatabaseKey: 69, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, listMessageRecallRecords: 100, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, listOfficialScheduleRecords: 77, getOfficialScheduleRecord: 78, cancelOfficialScheduleRecord: 79, archiveOfficialScheduleRecord: 80, listOfficialSchedulePlans: 81, getOfficialSchedulePlan: 82, saveOfficialSchedulePlan: 83, deleteOfficialSchedulePlan: 84, runOfficialSchedulePlanNow: 85, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23, putPendingOfficialPlanCreate: 86, getPendingOfficialPlanCreate: 87, clearPendingOfficialPlanCreate: 88 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, acquireDatabaseKey: 69, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, listMessageRecallRecords: 100, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, startPersonaProfile: 62, watchPersonaProfile: 63, cancelPersonaProfile: 64, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, listOfficialScheduleRecords: 77, getOfficialScheduleRecord: 78, cancelOfficialScheduleRecord: 79, archiveOfficialScheduleRecord: 80, listOfficialSchedulePlans: 81, getOfficialSchedulePlan: 82, saveOfficialSchedulePlan: 83, deleteOfficialSchedulePlan: 84, runOfficialSchedulePlanNow: 85, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23, putPendingOfficialPlanCreate: 86, getPendingOfficialPlanCreate: 87, clearPendingOfficialPlanCreate: 88 });
 // These enum values are recovered from the Alpha protocol. The independent
 // engine can report the local package boundary, but it cannot start or claim
 // a dynamically entitled native component. Keep this status explicit and
@@ -1849,7 +1851,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
   let chatExportSchedules;
   let officialSchedulePlans;
   let officialPlanAttempts;
-  let aggregateAnalysisJobs;
+  let aggregateAnalysisJobs, personaProfileJobs;
   let genericJobs;
 
   async function listAnalysisSessions() {
@@ -2146,6 +2148,41 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
     });
     const reportJson = request.scope === 1 ? modernPrivateReport(result.report, request, conversationsTotal) : modernAnnualReport(result.report, { ...request, conversationsTotal }, year);
     return { reportJson: Buffer.from(JSON.stringify(reportJson), 'utf8'), conversationsDone: conversationsTotal, conversationsTotal };
+  }
+
+  async function runPersonaProfile(request, { isCanceled }) {
+    if (isCanceled()) throw error('PERSONA_PROFILE_CANCELED');
+    const maxPages = request.maxPages;
+    const maxMessages = request.maxMessages;
+    const messages = [];
+    let cursor = Buffer.alloc(0);
+    let pagesRead = 0;
+    let sourceBytesRead = 0n;
+    let sourceTruncated = false;
+    const seenCursors = new Set();
+    while (pagesRead < maxPages && messages.length < maxMessages) {
+      if (isCanceled()) throw error('PERSONA_PROFILE_CANCELED');
+      const page = await handlers.listMessages({ accountId: request.accountId, conversationId: request.conversationId, ascending: true, page: { pageSize: request.pageSize, cursor } });
+      pagesRead += 1;
+      if (!Array.isArray(page.items) || page.items.length > request.pageSize) throw error('PERSONA_PROFILE_SOURCE_INVALID');
+      const remaining = maxMessages - messages.length;
+      const selected = page.items.slice(0, remaining);
+      for (const message of selected) {
+        messages.push(message);
+        const canonical = JSON.stringify({ id: message.id, conversation_id: message.conversationId, sent_at_unix_ms: Number(message.sentAtUnixMs), direction: message.direction === 1 || message.direction === 2 ? message.direction : 0, kind: typeof message.kind === 'string' ? message.kind : 'unknown', text: message.contentDecodeStatus === undefined || message.contentDecodeStatus === 'decoded' ? message.text : '' });
+        sourceBytesRead += BigInt(Buffer.byteLength(canonical, 'utf8') + 1);
+      }
+      const next = page.nextCursor instanceof Uint8Array ? Buffer.from(page.nextCursor) : Buffer.alloc(0);
+      if (!next.length) break;
+      if (selected.length < page.items.length || pagesRead >= maxPages) { sourceTruncated = true; break; }
+      const nextKey = next.toString('base64url');
+      if (seenCursors.has(nextKey)) throw error('PERSONA_PROFILE_SOURCE_INVALID');
+      seenCursors.add(nextKey);
+      cursor = next;
+    }
+    if (messages.length >= maxMessages && cursor.length) sourceTruncated = true;
+    if (pagesRead >= maxPages && cursor.length) sourceTruncated = true;
+    return runDataAnalysis({ messages, perspective: request.perspective, sourceTruncated, pageLimit: { limit: maxPages, pagesRead }, messageLimit: maxMessages, sourceBytesRead, stateDir, isCanceled });
   }
 
   const handlers = {
@@ -2467,6 +2504,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
         await officialSchedulePlans.removeAccount(accountId);
         await officialPlanAttempts.removeAccount(accountId);
         await aggregateAnalysisJobs.removeAccount(accountId);
+        await personaProfileJobs.removeAccount(accountId);
         await dropBridge();
         removeOfficialPlanIntent();
         removeSelection();
@@ -2547,6 +2585,22 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
     },
     async cancelAggregateAnalysis(request) {
       return aggregateAnalysisJobs.cancel(request.analysisId);
+    },
+    async startPersonaProfile(request) {
+      await requireAccount(request.accountId);
+      if (!request || typeof request.accountId !== 'string' || request.accountId !== accountId || typeof request.conversationId !== 'string' || !request.conversationId || request.conversationId.length > 1024 || request.conversationId.includes('\0')) throw error('PERSONA_PROFILE_BINDING_INVALID');
+      if (!Number.isInteger(request.perspective) || ![1, 2].includes(request.perspective)) throw error('PERSONA_PERSPECTIVE_INVALID');
+      const pageSizeValue = request.pageSize === undefined || request.pageSize === 0 ? 100 : request.pageSize;
+      const maxPages = request.maxPages === undefined || request.maxPages === 0 ? 100 : request.maxPages;
+      const maxMessages = request.maxMessages === undefined || request.maxMessages === 0 ? 10000 : request.maxMessages;
+      if (!Number.isInteger(pageSizeValue) || pageSizeValue < 1 || pageSizeValue > 1000 || !Number.isInteger(maxPages) || maxPages < 1 || maxPages > 1000 || !Number.isInteger(maxMessages) || maxMessages < 1 || maxMessages > 100000) throw error('PERSONA_LIMIT_INVALID');
+      return personaProfileJobs.start({ ...request, pageSize: Math.min(pageSizeValue, 500), maxPages, maxMessages });
+    },
+    async watchPersonaProfile(request) {
+      return personaProfileJobs.watch(request.buildId);
+    },
+    async cancelPersonaProfile(request) {
+      return personaProfileJobs.cancel(request.buildId);
     },
     async browseConversationMessages(request) {
       if (typeof request.accountId !== 'string' || !request.accountId.trim() || typeof request.conversationId !== 'string') throw error('TYPE_BROWSE_REQUEST_INVALID');
@@ -3359,6 +3413,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
   officialSchedulePlans = createOfficialSchedulePlans({ stateDir, accountId });
   officialPlanAttempts = createOfficialPlanAttempts({ stateDir, accountId, getPlan: scheduleId => officialSchedulePlans.getPlan({ accountId, scheduleId }) });
   aggregateAnalysisJobs = createAggregateAnalysisJobs({ runAnalysis: runAggregateAnalysis });
+  personaProfileJobs = createPersonaProfileJobs({ runProfile: runPersonaProfile });
   genericJobs = createGenericJobs({ chatExportJobs, momentExportJobs, recordExportJobs });
   return {
     supportedMethods: Object.keys(SUPPORTED),
@@ -3411,7 +3466,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
     async getOfficialPlanAttempt(request) { await requireAccount(request.accountId); return officialPlanAttempts.get(request); },
     async requestOfficialPlanAttempt(request) { await requireAccount(request.accountId); return officialPlanAttempts.request(request); },
     async archiveOfficialPlanAttempt(request) { await requireAccount(request.accountId); return officialPlanAttempts.archive(request); },
-    async close() { await aggregateAnalysisJobs.close(); await officialPlanAttempts.close(); await officialSchedulePlans.close(); await chatExportSchedules.close(); await chatExportJobs.close(); await momentExportJobs.close(); closed = true; await cancelImport(); await dropBridge(); }
+    async close() { await personaProfileJobs.close(); await aggregateAnalysisJobs.close(); await officialPlanAttempts.close(); await officialSchedulePlans.close(); await chatExportSchedules.close(); await chatExportJobs.close(); await momentExportJobs.close(); closed = true; await cancelImport(); await dropBridge(); }
   };
 }
 

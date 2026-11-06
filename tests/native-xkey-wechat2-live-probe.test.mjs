@@ -27,11 +27,13 @@ test('WeChat2 native xkey probe remains explicit failed evidence', async () => {
   assert.deepEqual(evidence.previousLatestRetry.targetPids, [57027, 57576]);
   assert.equal(evidence.latestRetry.result.errorCode, 'NATIVE_WECHAT_CAPTURE_TARGET_NOT_FOUND');
   assert.deepEqual(evidence.latestRetry.targetPids, [57027]);
+  assert.equal(evidence.latestRetry.recordedAt, '2026-11-06T13:52:07Z');
+  assert.equal(evidence.latestRetry.walShmFileCount, 48);
   assert.equal(evidence.latestRetry.databaseContentsRead, false);
   assert.equal(evidence.latestRetry.nativeFilesModified, false);
   assert.equal(evidence.latestRetry.keyMaterialEmitted, false);
   assert.equal(evidence.latestRetry.sourcePathRedacted, true);
-  assert.equal(evidence.latestRetry.result.stderrBytes, 90);
+  assert.equal(evidence.latestRetry.result.stderrBytes, 840);
   assert.equal(evidence.latestRetry.result.rawOutputPersisted, false);
   assert.equal(evidence.latestRetry.result.keyValuesPersisted, false);
   assert.equal(evidence.latestRetry.keyMaterialEmitted, false);

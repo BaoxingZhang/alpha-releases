@@ -65,10 +65,11 @@
     "interpretation": "A repeat against the current WeChat2 main process and its WeChatAppEx child did not find a capture target; this does not establish database incompatibility or authorize bypassing macOS protections."
   },
   "latestRetry": {
-    "recordedAt": "2026-11-06T13:00:42Z",
+    "recordedAt": "2026-11-06T13:52:07Z",
     "targetPids": [
       57027
     ],
+    "walShmFileCount": 48,
     "databaseContentsRead": false,
     "nativeFilesModified": false,
     "keyMaterialEmitted": false,
@@ -79,11 +80,11 @@
       "errorCode": "NATIVE_WECHAT_CAPTURE_TARGET_NOT_FOUND",
       "exitCode": 1,
       "stdoutBytes": 0,
-      "stderrBytes": 90,
+      "stderrBytes": 840,
       "has64HexOutput": false,
       "rawOutputPersisted": false,
       "keyValuesPersisted": false
     },
-    "interpretation": "A new bounded native XKey retry against the current WeChat2 main process did not find a capture target; the database was not opened and no key or file was retained. This does not establish database incompatibility or authorize bypassing macOS protections."
+    "interpretation": "A new bounded native XKey retry against the current WeChat2 main process did not find a capture target; the source contained 48 active WAL/SHM sidecars, the database was not opened, and no key or file was retained. This does not establish database incompatibility or authorize bypassing macOS protections."
   }
 }

@@ -8,8 +8,8 @@
   },
   "counts": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 87,
-    "unsupportedRequestBranches": 41
+    "implementedRequestBranches": 90,
+    "unsupportedRequestBranches": 38
   },
   "supported": [
     {
@@ -123,6 +123,18 @@
     {
       "name": "clearImageKey",
       "fieldNumber": 54
+    },
+    {
+      "name": "startPersonaProfile",
+      "fieldNumber": 62
+    },
+    {
+      "name": "watchPersonaProfile",
+      "fieldNumber": 63
+    },
+    {
+      "name": "cancelPersonaProfile",
+      "fieldNumber": 64
     },
     {
       "name": "getAdvancedComponentStatus",
@@ -399,10 +411,6 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "cancelPersonaProfile",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "closeMessageSession",
       "status": "UNIMPLEMENTED"
     },
@@ -495,10 +503,6 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "startPersonaProfile",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "transcribeVoice",
       "status": "UNIMPLEMENTED"
     },
@@ -520,10 +524,6 @@
     },
     {
       "name": "watchMessageSend",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "watchPersonaProfile",
       "status": "UNIMPLEMENTED"
     }
   ]
