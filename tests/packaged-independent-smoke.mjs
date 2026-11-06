@@ -7,6 +7,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { createFixture } from './data-bridge-fixture.mjs';
 import { root, launchEnvironment } from '../scripts/environment.mjs';
 import projectPackage from '../package.json' with { type: 'json' };
+import supportMatrix from '../docs/independent-support-matrix.json' with { type: 'json' };
 import projectIdentity from '../packages/alpha-desktop/project-identity.cjs';
 
 // This smoke starts the generated .app binary itself. Passing an unpacked
@@ -136,8 +137,17 @@ try {
   const backend = await page.evaluate(() => window.alpha.system.getBackendStatus());
   assert.equal(backend.state, 'ready');
   assert.ok(backend.components.some(component => component.component === 'alpha-independent-engine'));
+  assert.deepEqual(backend.capabilitySummary, {
+    scope: 'alpha-independent-protocol',
+    totalRequestBranches: supportMatrix.counts.totalRequestBranches,
+    implementedRequestBranches: supportMatrix.counts.implementedRequestBranches,
+    unsupportedRequestBranches: supportMatrix.counts.unsupportedRequestBranches,
+    unsupportedBehavior: 'UNIMPLEMENTED'
+  }, 'packaged capability summary must match the checked-in independent support matrix');
   report.backend = backend;
+  report.capabilitySummary = backend.capabilitySummary;
   report.checks.independentBackendReady = true;
+  report.checks.packagedCapabilitySummaryMatchesSupportMatrix = true;
 
   const accountResult = await page.evaluate(async ({ accountId, conversationId }) => {
     const accounts = await window.alpha.accounts.list();

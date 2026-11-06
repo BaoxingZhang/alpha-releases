@@ -1,8 +1,8 @@
 {
-  "testedAt": "2026-11-02T04:59:07.433Z",
-  "session": "independent-smoke-1793595547317",
+  "testedAt": "2026-11-06T05:20:21.249Z",
+  "session": "independent-smoke-1793942421117",
   "fixture": {
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793595547317/fixture",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793942421117/fixture",
     "accountId": "synthetic-account",
     "conversationId": "wxid_alpha",
     "selfUsername": "wxid_self",
@@ -23,7 +23,9 @@
     "independentVoicePlaybackThroughRendererIpc": true,
     "independentFileAttachmentThroughRendererIpc": true,
     "messageRendered": true,
+    "syntheticMomentExportThroughRendererIpc": true,
     "syntheticMomentsRenderedReadOnly": true,
+    "syntheticMomentEmojiRenderedThroughMediaProtocol": true,
     "syntheticFavoritesRenderedReadOnly": true,
     "independentRecordExportThroughRendererIpc": true,
     "independentRecordCategoriesGated": true,
@@ -44,6 +46,13 @@
         "protocol": "1.0"
       }
     ],
+    "capabilitySummary": {
+      "scope": "alpha-independent-protocol",
+      "totalRequestBranches": 128,
+      "implementedRequestBranches": 86,
+      "unsupportedRequestBranches": 42,
+      "unsupportedBehavior": "UNIMPLEMENTED"
+    },
     "update": {
       "state": "unconfigured",
       "currentVersion": "0.3.5",
@@ -56,7 +65,7 @@
     {
       "id": "synthetic-account",
       "sourceProfile": "alpha-independent-offline-v4",
-      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793595547317/fixture",
+      "dataSourcePath": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793942421117/fixture",
       "subjectId": "",
       "displayName": "离线数据源 · synthetic-account",
       "schemaProfile": "wechat-v4-offline",
@@ -76,6 +85,7 @@
         "moments",
         "moment-authors",
         "moment-day-counts",
+        "moment-emoji",
         "favorites"
       ],
       "detected": true,
@@ -261,7 +271,7 @@
             "uri": "alpha-media://sha256/431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460",
             "mimeType": "image/png",
             "rendition": "source",
-            "displayUrl": "alpha-media://img/028204059704f7882418ce088163c8b1/431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460/46f72f5163396231cc50b2fec5ccd59dced24d275e9c16cfe85349f55af15fee"
+            "displayUrl": "alpha-media://img/223af737771662aad1ffd84962ba20a8/431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460/2a5712c97f244d77e2516f0e9513d7f90a5d92a791ebed1a8b26b63c0f3eaca7"
           }
         ],
         "senderId": "wxid_alpha",
@@ -428,23 +438,27 @@
   },
   "ownedChildProcesses": [
     {
-      "pid": 18016,
+      "pid": 7447,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 18017,
+      "pid": 7448,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
     },
     {
-      "pid": 18020,
+      "pid": 7450,
+      "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
+    },
+    {
+      "pid": 7454,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
     },
     {
-      "pid": 18021,
+      "pid": 7461,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/build/candidates/alpha-data-bridge"
     },
     {
-      "pid": 18022,
+      "pid": 7464,
       "executable": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
     }
   ],
@@ -459,16 +473,40 @@
   "attachment": {
     "fileName": "archive.zip"
   },
+  "momentExport": {
+    "jobId": "e2e9d411-cc46-4253-8d85-604d1f3e3e74",
+    "accountId": "synthetic-account",
+    "kind": "moments",
+    "state": "completed",
+    "format": "json",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793942421117/moments-export",
+    "createdAtUnixMs": "1793942424559",
+    "updatedAtUnixMs": "1793942424575",
+    "finishedAtUnixMs": "1793942424575",
+    "items": [
+      {
+        "conversationId": "moments",
+        "name": "朋友圈",
+        "state": "completed",
+        "phase": "writing",
+        "messagesDone": 3,
+        "messagesTotal": 3,
+        "mediaSaved": 0,
+        "mediaFailed": 0,
+        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793942421117/moments-export/moments-4ce1a2179538.json"
+      }
+    ]
+  },
   "recordExport": {
-    "jobId": "58f1662e-7b1a-4707-b5a9-1d1e2dcae0ba",
+    "jobId": "af011b2a-d348-40a5-b793-dfb85cf48161",
     "accountId": "synthetic-account",
     "kind": "records",
     "state": "completed",
     "format": "json",
-    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793595547317/records-export",
-    "createdAtUnixMs": "1793595549990",
-    "updatedAtUnixMs": "1793595549997",
-    "finishedAtUnixMs": "1793595549997",
+    "directory": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793942421117/records-export",
+    "createdAtUnixMs": "1793942424659",
+    "updatedAtUnixMs": "1793942424668",
+    "finishedAtUnixMs": "1793942424668",
     "items": [
       {
         "conversationId": "payments",
@@ -479,7 +517,7 @@
         "messagesTotal": 0,
         "mediaSaved": 0,
         "mediaFailed": 0,
-        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793595547317/records-export/payments-71a312ebf4b8.json"
+        "path": "/Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/.runtime/independent-smoke-1793942421117/records-export/payments-71a312ebf4b8.json"
       }
     ]
   },

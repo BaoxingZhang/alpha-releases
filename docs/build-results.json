@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T00:43:07.102Z",
+  "builtAt": "2026-11-06T05:20:30.085Z",
   "node": "v24.21.0",
   "electron": "44.10.1",
   "esbuild": "0.28.2",
@@ -27,8 +27,8 @@
         "name": "alpha-data-bridge",
         "source": "build/candidates/alpha-data-bridge",
         "path": "independent/bin/alpha-data-bridge",
-        "bytes": 8617154,
-        "sha256": "aba563c0becf3596a5079cae54f3b69d28d94a1411fac81cf05ea389f6d70ff2",
+        "bytes": 8633874,
+        "sha256": "829030a98fad8a264e5e2b2f8316be5758c68952d83931812ff99a55635325e1",
         "mode": "755"
       },
       {
@@ -36,7 +36,7 @@
         "source": "build/candidates/alpha-snapshot-import",
         "path": "independent/bin/alpha-snapshot-import",
         "bytes": 7816610,
-        "sha256": "bec17c740a056a5f17426cd64bf8162272a052456ef67c9af11837037e267db1",
+        "sha256": "26b3288e892fd29943767d4da0162bd798abd2b493cb076f117192548a22c6c2",
         "mode": "755"
       }
     ],
@@ -46,7 +46,7 @@
     {
       "inputs": {
         "src/main/index.js": {
-          "bytes": 3199303,
+          "bytes": 3202161,
           "imports": [],
           "format": "cjs"
         }
@@ -56,7 +56,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 5368591
+          "bytes": 5373184
         },
         "dist/app/out/main/index.js": {
           "imports": [
@@ -150,10 +150,10 @@
           "entryPoint": "src/main/index.js",
           "inputs": {
             "src/main/index.js": {
-              "bytesInOutput": 3218314
+              "bytesInOutput": 3220905
             }
           },
-          "bytes": 3218362
+          "bytes": 3220953
         }
       }
     },
@@ -252,7 +252,7 @@
           "format": "esm"
         },
         "src/renderer/assets/export-policy.mjs": {
-          "bytes": 891,
+          "bytes": 930,
           "imports": [],
           "format": "esm"
         },
@@ -262,7 +262,7 @@
           "format": "esm"
         },
         "src/renderer/assets/index-DPCwIOAb.js": {
-          "bytes": 2885871,
+          "bytes": 2888372,
           "imports": [],
           "format": "esm"
         },
@@ -315,7 +315,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 1496
+          "bytes": 1549
         },
         "dist/app/out/renderer/assets/export-policy.js": {
           "imports": [],
@@ -326,10 +326,10 @@
           "entryPoint": "src/renderer/assets/export-policy.mjs",
           "inputs": {
             "src/renderer/assets/export-policy.mjs": {
-              "bytesInOutput": 739
+              "bytesInOutput": 778
             }
           },
-          "bytes": 843
+          "bytes": 882
         },
         "dist/app/out/renderer/assets/image-viewer-BiP1Iv4A.js.map": {
           "imports": [],
@@ -363,7 +363,7 @@
           "imports": [],
           "exports": [],
           "inputs": {},
-          "bytes": 5016358
+          "bytes": 5020736
         },
         "dist/app/out/renderer/assets/index-DPCwIOAb.js": {
           "imports": [
@@ -392,10 +392,10 @@
           "entryPoint": "src/renderer/assets/index-DPCwIOAb.js",
           "inputs": {
             "src/renderer/assets/index-DPCwIOAb.js": {
-              "bytesInOutput": 3108154
+              "bytesInOutput": 3111396
             }
           },
-          "bytes": 3108197
+          "bytes": 3111439
         },
         "dist/app/out/renderer/assets/media-metadata-export.js.map": {
           "imports": [],
