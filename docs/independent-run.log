@@ -17,5 +17,5 @@ Error occurred in handler for 'alpha:messages:list': Error: APP_LOCK_LOCKED
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:74958:22
     at async /Users/baoxingzhang/Desktop/temp/alpha-recovered-0.3.5/dist/app/out/main/index.js:72240:14
     at async Session.<anonymous> (node:electron/js2c/browser_init:1:119027)
-Debugger ending on ws://127.0.0.1:64090/a1a231c3-12f8-45aa-be66-47578bc11260
+Debugger ending on ws://127.0.0.1:58565/f2b69559-0ca3-40f9-b42f-bb7bcd3cb16c
 For help, see: https://nodejs.org/learn/getting-started/debugging

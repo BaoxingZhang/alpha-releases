@@ -19,8 +19,8 @@ test('project status reports independent and native boundaries from evidence', a
   const status = await runStatus();
   assert.equal(status.schema, 'alpha.recovery-status.v1');
   assert.equal(status.independent.totalRequestBranches, 128);
-  assert.equal(status.independent.implementedRequestBranches, 86);
-  assert.equal(status.independent.unsupportedRequestBranches, 42);
+  assert.equal(status.independent.implementedRequestBranches, 87);
+  assert.equal(status.independent.unsupportedRequestBranches, 41);
   assert.equal(status.native.state, 'ready-disposable');
   assert.equal(status.native.errorCode, '');
   assert.equal(status.native.isolatedSmoke, 'ready');

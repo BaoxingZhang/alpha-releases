@@ -8,7 +8,7 @@
 
 个人 fork 的 `.github/workflows/upstream-audit.yml` 每周一和手动触发时在 `recovery` 分支工具上执行同一审计，将报告写入临时目录并上传为 Actions artifact；它只读上游元数据，不提交或推送任何变更。
 
-查看当前完成度和原生阻塞时运行 `npm run status`。该报告只汇总仓库内已有证据，当前独立后端为 86/128 个请求分支；它不会把合成 fixture、静态协议入口或原生二进制存在算作真实功能。
+查看当前完成度和原生阻塞时运行 `npm run status`。该报告只汇总仓库内已有证据，当前独立后端为 87/128 个请求分支；它不会把合成 fixture、静态协议入口或原生二进制存在算作真实功能。
 
 ## 本轮实际推进
 
@@ -66,7 +66,7 @@
 
 新增导入数据源可以作为测试或兼容入口，但不能代替微信接入，也不能作为删除原功能的理由。独立实现使用自己的接口和安全机制；不会伪造原作者的签名、设备许可或服务响应。
 
-独立公众号计划的执行请求只保留本地 blocked-attempt 元数据。`official-plan-attempts.v1.json` 采用账号隔离、原子 0600 写入和 revision CAS；HTTP/MCP 查询与四个协议 schedule-record 分支固定报告 `execution_supported=false`/blocked 状态，支持取消和归档的本地状态投影，不联网、不抓取、不下载、不执行，也不冒充原生公众号执行记录。
+独立公众号计划的执行请求只保留本地 blocked-attempt 元数据；`runOfficialSchedulePlanNow` 对启用计划按 updatedAt CAS 原子去重，重复请求返回 `already_pending`，停用计划返回 `disabled`，不执行远程计划。`official-plan-attempts.v1.json` 采用账号隔离、原子 0600 写入和 revision CAS；HTTP/MCP 查询与四个协议 schedule-record 分支固定报告 `execution_supported=false`/blocked 状态，支持取消和归档的本地状态投影，不联网、不抓取、不下载、不执行，也不冒充原生公众号执行记录。
 
 ## 现有依据
 

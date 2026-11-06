@@ -288,6 +288,38 @@ test('official schedule record branches expose only local blocked attempt metada
   await c.close();
 });
 
+test('runOfficialSchedulePlanNow records a blocked local request without claiming execution', async t => {
+  const f = await fixture(t, true);
+  const c = f.start(); const hello = await handshake(c);
+  assert.ok(hello.supportedMethodIds.includes(SUPPORTED.runOfficialSchedulePlanNow));
+  const scheduleId = '44444444-4444-4444-8444-444444444444';
+  const base = {
+    scheduleId, accountId, officialAccountId: 'gh_alpha', materialBundleId: 'bundle-1', scope: 1, selected: [], formats: ['json'],
+    downloadAssets: false, includeMedia: false, maxPages: 20, intervalSeconds: 3600n,
+    nextRunUnixMs: 0n, enabled: true, createdAtUnixMs: 0n, updatedAtUnixMs: 0n
+  };
+  const created = ok(await c.send('saveOfficialSchedulePlan', { plan: base, mode: 1, expectedUpdatedAtUnixMs: 0n }), 'saveOfficialSchedulePlan');
+  const requested = ok(await c.send('runOfficialSchedulePlanNow', { accountId, scheduleId, expectedUpdatedAtUnixMs: created.updatedAtUnixMs }), 'runOfficialSchedulePlanNow');
+  assert.equal(requested.outcome, 'requested');
+  assert.equal(requested.plan.updatedAtUnixMs, created.updatedAtUnixMs);
+  const pending = ok(await c.send('runOfficialSchedulePlanNow', { accountId, scheduleId, expectedUpdatedAtUnixMs: created.updatedAtUnixMs }), 'runOfficialSchedulePlanNow');
+  assert.equal(pending.outcome, 'already_pending');
+  const records = ok(await c.send('listOfficialScheduleRecords', { accountId, scheduleId, limit: 50 }), 'listOfficialScheduleRecords');
+  assert.equal(records.records.length, 1);
+  assert.equal(records.records[0].phase, 'waiting_input');
+  assert.equal(records.records[0].reasonCode, 'status_unavailable');
+  assert.equal((await c.send('runOfficialSchedulePlanNow', { accountId, scheduleId, expectedUpdatedAtUnixMs: created.updatedAtUnixMs - 1n })).error.code, 'OFFICIAL_SCHEDULE_PLAN_CONFLICT');
+  await c.close();
+
+  const disabled = f.start(); await handshake(disabled);
+  const disabledId = '55555555-5555-4555-8555-555555555555';
+  const disabledPlan = ok(await disabled.send('saveOfficialSchedulePlan', { plan: { ...base, scheduleId: disabledId, enabled: false }, mode: 1, expectedUpdatedAtUnixMs: 0n }), 'saveOfficialSchedulePlan');
+  const disabledResult = ok(await disabled.send('runOfficialSchedulePlanNow', { accountId, scheduleId: disabledId, expectedUpdatedAtUnixMs: disabledPlan.updatedAtUnixMs }), 'runOfficialSchedulePlanNow');
+  assert.equal(disabledResult.outcome, 'disabled');
+  assert.equal(ok(await disabled.send('listOfficialScheduleRecords', { accountId, scheduleId: disabledId, limit: 50 }), 'listOfficialScheduleRecords').records.length, 0);
+  await disabled.close();
+});
+
 test('official plan creation intent stores opaque ciphertext with idempotent CAS semantics', async t => {
   const f = await fixture(t), c = f.start(); await handshake(c);
   const scheduleId = '11111111-1111-4111-8111-111111111111';

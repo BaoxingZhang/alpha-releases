@@ -8,8 +8,8 @@
   },
   "counts": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 86,
-    "unsupportedRequestBranches": 42
+    "implementedRequestBranches": 87,
+    "unsupportedRequestBranches": 41
   },
   "supported": [
     {
@@ -167,6 +167,10 @@
     {
       "name": "deleteOfficialSchedulePlan",
       "fieldNumber": 84
+    },
+    {
+      "name": "runOfficialSchedulePlanNow",
+      "fieldNumber": 85
     },
     {
       "name": "putPendingOfficialPlanCreate",
@@ -456,10 +460,6 @@
     },
     {
       "name": "resetApplicationLock",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "runOfficialSchedulePlanNow",
       "status": "UNIMPLEMENTED"
     },
     {

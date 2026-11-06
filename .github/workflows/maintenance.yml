@@ -18,9 +18,10 @@ concurrency:
 jobs:
   macos-arm64:
     # The checked-in Go bootstrap is deliberately pinned to macOS arm64.
-    # Keep this job on the matching hosted runner instead of silently falling
-    # back to a system Go or producing an x86 artifact.
-    runs-on: macos-14
+    # Keep this job on the current hosted arm64 runner instead of silently
+    # falling back to a system Go or producing an x86 artifact. macOS 14
+    # hosted images were retired, so pin the supported macOS 15 arm64 image.
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - name: Check out source and reference submodule

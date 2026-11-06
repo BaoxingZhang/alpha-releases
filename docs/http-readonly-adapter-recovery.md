@@ -34,7 +34,7 @@ npm run start:independent
 
 新增的 `alpha-independent.mobile.get_message_media_bundle` 与 `GET /api/v1/independent/mobile/message-media-bundle` 只组合已验证消息 DTO 和声明性媒体引用，返回 metadata-only 索引状态，固定 `complete=false`、`native_schema_supported=false`、`media_ready=false`、`raw_available=false`、`official_alias=false`；不返回媒体字节、原始 XML、`media1_`、CDN URL 或 key。
 
-新增的 `alpha-independent.mobile.get_session_bundle`、`alpha-independent.mobile.search_chat` 和 `alpha-independent.mobile.get_chat_context` 只组合已验证的账号、会话和消息 DTO，固定返回独立 scope、`complete=false`、`native_schema_supported=false`；`get_session_bundle` 只提供有界 `listAccounts`/`listConversations`/`listMessages` 结果，不包含未读数、静音、头像缓存、媒体 URL、原始 XML 或 native token。它们不实现或别名官方 mobile schema，也不加入 86/128 原生协议支持矩阵。
+新增的 `alpha-independent.mobile.get_session_bundle`、`alpha-independent.mobile.search_chat` 和 `alpha-independent.mobile.get_chat_context` 只组合已验证的账号、会话和消息 DTO，固定返回独立 scope、`complete=false`、`native_schema_supported=false`；`get_session_bundle` 只提供有界 `listAccounts`/`listConversations`/`listMessages` 结果，不包含未读数、静音、头像缓存、媒体 URL、原始 XML 或 native token。它们不实现或别名官方 mobile schema，也不加入 87/128 原生协议支持矩阵。
 
 可用 `npm run audit:api` 重新生成覆盖报告（也可直接运行 `node scripts/audit-api-coverage.mjs --check`）。报告只统计官方路径和工具是否在独立适配器中有显式入口，不把合成 DTO、静态路由或协议声明当作真实 native 兼容证据；当前缺失项会作为审计结果保留，不能用空成功响应掩盖。
 

@@ -61,3 +61,15 @@ test('official plan attempts validate plan revision and account isolation', asyn
   await assert.rejects(store.request({ accountId: 'other-account', scheduleId }), /ACCOUNT_NOT_FOUND/);
   await assert.rejects(store.request({ accountId, scheduleId: '22222222-2222-4222-8222-222222222222' }), /OFFICIAL_SCHEDULE_PLAN_NOT_FOUND/);
 });
+
+test('official plan attempt requestIfAbsent serializes duplicate pending requests', async t => {
+  const { store } = await fixture(t);
+  const [first, second] = await Promise.all([
+    store.requestIfAbsent({ accountId, scheduleId, expectedPlanUpdatedAtUnixMs: 42n }),
+    store.requestIfAbsent({ accountId, scheduleId, expectedPlanUpdatedAtUnixMs: 42n })
+  ]);
+  assert.equal(first.created, true);
+  assert.equal(second.created, false);
+  assert.equal(first.record.attemptId, second.record.attemptId);
+  assert.equal((await store.list({ accountId, scheduleId })).records.length, 1);
+});

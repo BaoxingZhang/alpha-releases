@@ -1,8 +1,8 @@
 # 变更记录
 
-## 0.3.5-recovery 维护增补 — 2026-11-06（公众号计划记录投影）
+## 0.3.5-recovery 维护增补 — 2026-11-06（公众号计划记录与 run-now 投影）
 
-- 本轮完整回归为 392/392；独立协议支持矩阵更新为 86/128，新增 `listOfficialScheduleRecords`、`getOfficialScheduleRecord`、`cancelOfficialScheduleRecord`、`archiveOfficialScheduleRecord`。这些分支只把账号隔离的本地 blocked-attempt metadata 投影为 waiting-input、canceled 或 archived 状态，固定 `executionSupported=false`，不联网、不抓取文章、不下载媒体、不执行计划，也不冒充原生公众号运行记录。
+- 本轮完整回归为 394/394；独立协议支持矩阵更新为 87/128，新增 `runOfficialSchedulePlanNow` 以及 `listOfficialScheduleRecords`、`getOfficialScheduleRecord`、`cancelOfficialScheduleRecord`、`archiveOfficialScheduleRecord`。run-now 只对启用计划按 updatedAt CAS 原子记录 blocked-attempt metadata，重复请求返回 `already_pending`，停用计划返回 `disabled`；这些分支固定 `executionSupported=false`，不联网、不抓取文章、不下载媒体、不执行计划，也不冒充原生公众号运行记录。
 - 为 blocked attempt 增加取消状态和 revision CAS 回归；完整能力仍受真实公众号服务、授权、文章/媒体 schema 缺口限制。
 
 
@@ -10,7 +10,7 @@
 
 - 发行产物构建提交为 `570154e`；本条记录随 recovery 维护基线提交更新。独立 macOS arm64 App/DMG 已从可复现构建产物生成并通过 marker、逐文件清单和 release manifest 校验；独立 DMG 为 252,575,819 bytes，SHA-256 为 `f127676ec9ccb164533360b0a9e75f944d203055ba2c37387a5932292d2f1ba5`。
 - 恢复源码包包含 813 个文件，SHA-256 为 `fd4f2d3aed1eee6afc9585d91a4d3c24ad272b9ea2fe0d04d4bf5e8bca705698`；release manifest 包含 1,398 个 artifact，`artifactDigest` 为 `81b1dd9a6c60e9c6e55ee217108c17a5fc00f941ee1cc7ea5434a9a0672f7e1f`，目标为 `darwin/arm64`。
-- 当前本地完整回归为 390/390，packaged independent smoke 为 16/16；协议绑定校验为 900 项，独立协议支持矩阵为 86/128；新增四个官方 schedule-record 分支的本地 blocked-attempt 投影，仍不执行公众号计划。GitHub Actions 最近的零步骤取消属于 runner 调度基础设施现象，没有代码步骤失败证据。
+- 当前本地完整回归为 394/394，packaged independent smoke 的关键检查全部通过；协议绑定校验为 900 项，独立协议支持矩阵为 87/128；新增四个官方 schedule-record 分支的本地 blocked-attempt 投影，仍不执行公众号计划。GitHub Actions 最近的零步骤取消属于 runner 调度基础设施现象，没有代码步骤失败证据。
 - manifest 继续明确 `nativeRecompiled=false`、`projectSigned=false`；真实微信数据仍未验证。WeChat2 有界取钥探测没有取得合法 key，因此不能宣称原生 parity、自动取钥或真实数据可读。
 
 ## 0.3.5-recovery 维护增补 — 2026-11-04（联系人导出适配器）

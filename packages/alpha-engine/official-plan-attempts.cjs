@@ -111,9 +111,7 @@ function createOfficialPlanAttempts({ stateDir, accountId: fixedAccount, now = (
   const find = attemptId => { uuid(attemptId, 'OFFICIAL_PLAN_ATTEMPT_INVALID'); const found = entries().find(record => record.attemptId === attemptId); if (!found) fail('OFFICIAL_PLAN_ATTEMPT_NOT_FOUND'); return found; };
   const revisionValue = value => { const text = decimal(value, 'OFFICIAL_PLAN_ATTEMPT_REVISION_INVALID'); if (BigInt(text) < 1n) fail('OFFICIAL_PLAN_ATTEMPT_REVISION_INVALID'); return BigInt(text); };
   const wire = record => ({ ...record, requestedAtUnixMs: BigInt(record.requestedAtUnixMs), updatedAtUnixMs: BigInt(record.updatedAtUnixMs), revision: BigInt(record.revision), expectedPlanUpdatedAtUnixMs: BigInt(record.expectedPlanUpdatedAtUnixMs) });
-  return {
-    async request({ accountId: requestAccount, scheduleId, expectedPlanUpdatedAtUnixMs = 0n } = {}) {
-      return serial(async () => {
+  const requestWithinSerial = async ({ accountId: requestAccount, scheduleId, expectedPlanUpdatedAtUnixMs = 0n, deduplicate = false } = {}) => {
         checkAccount(requestAccount); uuid(scheduleId, 'OFFICIAL_PLAN_ATTEMPT_INVALID');
         const expected = BigInt(decimal(expectedPlanUpdatedAtUnixMs));
         if (typeof getPlan !== 'function') fail('OFFICIAL_PLAN_ATTEMPT_UNAVAILABLE');
@@ -121,12 +119,18 @@ function createOfficialPlanAttempts({ stateDir, accountId: fixedAccount, now = (
         try { plan = await getPlan(scheduleId); } catch (failure) { throw failure; }
         if (!plan || plan.accountId !== selectedAccount) fail('OFFICIAL_SCHEDULE_PLAN_NOT_FOUND');
         if (expected !== 0n && BigInt(plan.updatedAtUnixMs) !== expected) fail('OFFICIAL_SCHEDULE_PLAN_CONFLICT');
+        if (deduplicate) {
+          const pending = entries().find(record => record.scheduleId === scheduleId && !record.archived && !record.cancelRequested);
+          if (pending) return { record: wire(pending), created: false };
+        }
         if (entries().length >= MAX_ENTRIES) fail('OFFICIAL_PLAN_ATTEMPT_LIMIT');
         const stamp = timestamp();
         const record = { attemptId: crypto.randomUUID(), accountId: selectedAccount, scheduleId, requestedAtUnixMs: stamp, updatedAtUnixMs: stamp, revision: '1', archived: false, executionSupported: false, reasonCode: 'INDEPENDENT_OFFICIAL_EXECUTION_UNAVAILABLE', expectedPlanUpdatedAtUnixMs: BigInt(plan.updatedAtUnixMs).toString(), cancelRequested: false, cancelConfirmed: false };
-        state.entries.push(record); await persist(); return wire(record);
-      });
-    },
+        state.entries.push(record); await persist(); return { record: wire(record), created: true };
+  };
+  return {
+    async request(args = {}) { return serial(() => requestWithinSerial(args)).then(result => result.record); },
+    async requestIfAbsent(args = {}) { return serial(() => requestWithinSerial({ ...args, deduplicate: true })); },
     list({ accountId: requestAccount, scheduleId, includeArchived = false, limit = 0 } = {}) {
       checkAccount(requestAccount); const effectiveLimit = limit === 0 ? 20 : limit;
       if (typeof includeArchived !== 'boolean' || !Number.isInteger(effectiveLimit) || effectiveLimit < 1 || effectiveLimit > 100) fail('OFFICIAL_PLAN_ATTEMPT_INVALID');
