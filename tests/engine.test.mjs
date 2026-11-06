@@ -308,6 +308,10 @@ test('runOfficialSchedulePlanNow records a blocked local request without claimin
   assert.equal(records.records.length, 1);
   assert.equal(records.records[0].phase, 'waiting_input');
   assert.equal(records.records[0].reasonCode, 'status_unavailable');
+  assert.equal(records.records[0].state, 3);
+  assert.equal(records.records[0].rendererJobId, '');
+  assert.equal(records.records[0].dispatchStarted, false);
+  assert.equal(records.records[0].cancelConfirmed, false);
   assert.equal((await c.send('runOfficialSchedulePlanNow', { accountId, scheduleId, expectedUpdatedAtUnixMs: created.updatedAtUnixMs - 1n })).error.code, 'OFFICIAL_SCHEDULE_PLAN_CONFLICT');
   await c.close();
 

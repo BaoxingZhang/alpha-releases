@@ -68,7 +68,7 @@ codex mcp add \
 
 Codex 的 MCP 配置应把 `command` 指向项目使用的 Node.js，把 `args` 设为 `packages/alpha-engine/mcp-stdio.cjs`，并在 `env` 中提供上述变量。`ALPHA_INDEPENDENT_DATA_DIR` 必须是调用方明确授权的离线副本；不要指向真实微信目录，除非已经完成单独的备份、授权和 schema 验证。`ALPHA_INDEPENDENT_STATE_DIR` 应使用独立的 0700 目录。
 
-独立工具目录包含 `alpha-independent.official_plans.list/get/save/delete`。这些工具只维护账号隔离的 `official-schedule-plans.v1.json` 本地元数据和更新时间 CAS，响应固定标记 `scope=alpha-independent-official-schedule-plans`、`complete=false`、`native_schema_supported=false`、`local_metadata_only=true`；它们不会访问公众号服务、抓取文章、下载媒体、创建官方执行记录或运行官方计划。
+独立工具目录包含 `alpha-independent.official_plans.list/get/save/delete/run_now`。其中 `run_now` 只记录 blocked attempt，不执行远程计划；这些工具只维护账号隔离的 `official-schedule-plans.v1.json` 本地元数据和更新时间 CAS，响应固定标记 `scope=alpha-independent-official-schedule-plans`、`complete=false`、`native_schema_supported=false`、`local_metadata_only=true`；它们不会访问公众号服务、抓取文章、下载媒体、创建官方执行记录或运行官方计划。
 
 stdio 每行接收一个 JSON-RPC 对象，支持 `initialize`、`ping`、`tools/list` 和 `tools/call`。`notifications/initialized` 等通知不返回响应；EOF 后进程会关闭 adapter 和 engine。协议错误会返回 JSON-RPC 错误对象，业务工具错误会保留适配器的 `isError` 结果。
 

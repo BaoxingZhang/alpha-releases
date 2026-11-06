@@ -73,3 +73,20 @@ test('official plan attempt requestIfAbsent serializes duplicate pending request
   assert.equal(first.record.attemptId, second.record.attemptId);
   assert.equal((await store.list({ accountId, scheduleId })).records.length, 1);
 });
+
+test('official plan attempt requestIfAbsent allows a new request after cancel or archive', async t => {
+  const { store } = await fixture(t);
+  const first = (await store.requestIfAbsent({ accountId, scheduleId, expectedPlanUpdatedAtUnixMs: 42n })).record;
+  const canceled = await store.cancel({ accountId, attemptId: first.attemptId, expectedRevision: first.revision });
+  const second = (await store.requestIfAbsent({ accountId, scheduleId, expectedPlanUpdatedAtUnixMs: 42n })).record;
+  assert.notEqual(second.attemptId, first.attemptId);
+  assert.equal(second.cancelRequested, false);
+  const archived = await store.archive({ accountId, attemptId: second.attemptId, expectedRevision: second.revision, archived: true });
+  const third = (await store.requestIfAbsent({ accountId, scheduleId, expectedPlanUpdatedAtUnixMs: 42n })).record;
+  assert.notEqual(third.attemptId, second.attemptId);
+  assert.equal(archived.archived, true);
+  assert.equal(canceled.cancelConfirmed, true);
+  const active = (await store.list({ accountId, scheduleId })).records;
+  assert.equal(active.length, 2);
+  assert.deepEqual(new Set(active.map(record => record.attemptId)), new Set([first.attemptId, third.attemptId]));
+});

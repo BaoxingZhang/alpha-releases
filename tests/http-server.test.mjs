@@ -116,6 +116,7 @@ function fakeEngine() {
       if (request.saveChatExportSchedule) return EngineServerFrame.fromPartial({ requestId: request.requestId, saveChatExportSchedule: { ...schedulePlan(), updatedAtUnixMs: 1700000002000n } });
       if (request.deleteChatExportSchedule) return EngineServerFrame.fromPartial({ requestId: request.requestId, deleteChatExportSchedule: { accountId: 'acct-1', scheduleId, deleted: true } });
       if (request.runChatExportScheduleNow) return EngineServerFrame.fromPartial({ requestId: request.requestId, runChatExportScheduleNow: { plan: schedulePlan(), outcome: 'requested' } });
+      if (request.runOfficialSchedulePlanNow) return EngineServerFrame.fromPartial({ requestId: request.requestId, runOfficialSchedulePlanNow: { plan: officialPlan(), outcome: 'requested' } });
       if (request.listChatExportRuns) return EngineServerFrame.fromPartial({ requestId: request.requestId, listChatExportRuns: { records: [scheduleRun()], truncated: false } });
       if (request.getChatExportRun) return EngineServerFrame.fromPartial({ requestId: request.requestId, getChatExportRun: scheduleRun() });
       if (request.listChatExportAttempts) return EngineServerFrame.fromPartial({ requestId: request.requestId, listChatExportAttempts: { records: [scheduleAttempt()], truncated: false } });
@@ -646,6 +647,12 @@ test('independent HTTP adapter exposes verified DTO and export routes with token
   result = await request(base, '/api/v1/independent/official-plans', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ account_id: 'acct-1', mode: 'replace', expected_updated_at_unix_ms: '1700000000000', plan: { account_id: 'acct-1', schedule_id: officialPlanId, official_account_id: 'gh_alpha', material_bundle_id: 'bundle-1', scope: 1, selected: [], formats: ['json'], download_assets: false, include_media: false, max_pages: 20, interval_seconds: '3600', next_run_unix_ms: '1700000000000', enabled: true } }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.scope, 'alpha-independent-official-schedule-plans');
+  result = await request(base, `/api/v1/independent/official-plans/${officialPlanId}`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ action: 'run-now', expected_updated_at_unix_ms: '1700000000000' }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.scope, 'alpha-independent-official-schedule-plans');
+  assert.equal(result.body.execution_supported, false);
+  assert.equal(result.body.local_metadata_only, true);
+  assert.equal(result.body.outcome, 'requested');
   result = await request(base, `/api/v1/independent/official-plans/${officialPlanId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ expected_updated_at_unix_ms: '1700000000000' }) });
   assert.equal(result.response.status, 200);
   assert.equal(result.body.deleted, true);
@@ -719,13 +726,14 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(directNotification, null);
   let result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
   assert.equal(result.response.status, 200);
-  assert.equal(result.body.result.tools.length, 93);
+  assert.equal(result.body.result.tools.length, 94);
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.chat.get_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'wechat.core.list_tools'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.groups.list_pinned_messages'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.resolve_search_hit'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.resolve_app_display'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.mobile.get_message_media_bundle'));
+  assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.official_plans.run_now'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.telemetry.get_status'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.messages.get_source'));
   assert.ok(result.body.result.tools.some(tool => tool.name === 'alpha-independent.official_plans.list'));
@@ -1255,6 +1263,11 @@ test('MCP adapter lists and calls only the explicit read-only tools', async t =>
   assert.equal(result.body.result.structuredContent.official_account_id, 'gh_alpha');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 132, method: 'tools/call', params: { name: 'alpha-independent.official_plans.save', arguments: { account_id: 'acct-1', mode: 'replace', expected_updated_at_unix_ms: '1700000000000', plan: officialPlan } } }) });
   assert.equal(result.body.result.structuredContent.updated_at_unix_ms, '1700000002000');
+  result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1321, method: 'tools/call', params: { name: 'alpha-independent.official_plans.run_now', arguments: { account_id: 'acct-1', schedule_id: officialPlan.schedule_id, expected_updated_at_unix_ms: '1700000000000' } } }) });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.result.structuredContent.execution_supported, false);
+  assert.equal(result.body.result.structuredContent.local_metadata_only, true);
+  assert.equal(result.body.result.structuredContent.outcome, 'requested');
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 133, method: 'tools/call', params: { name: 'alpha-independent.official_plans.delete', arguments: { account_id: 'acct-1', schedule_id: officialPlan.schedule_id, expected_updated_at_unix_ms: '1700000000000' } } }) });
   assert.equal(result.body.result.structuredContent.deleted, true);
   result = await request(base, '/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 134, method: 'tools/call', params: { name: 'alpha-independent.official_plans.list_attempts', arguments: { account_id: 'acct-1', schedule_id: officialPlan.schedule_id } } }) });
