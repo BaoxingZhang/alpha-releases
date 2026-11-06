@@ -74,7 +74,7 @@ npm run release:manifest
 npm run bundle:recovery
 ```
 
-生成的 App 和 DMG 默认未签名、未公证，也不替代原生授权。发布前需要维护者自行完成代码签名、公证、更新服务和回滚验证；这些步骤当前没有被伪装成已完成。生成 `.runtime/release-manifest.json` 后运行 `npm run verify:release-manifest`，可在发布或归档前重新计算每个产物文件的大小、SHA-256、权限和总摘要。清单覆盖 `dist/app`、`build/runtime-bundle`、`workers/agent/dist` 以及独立 flavor 打包前的 `build/packaged-resources/independent`；后者记录复制进独立 App `Resources/independent` 的完整 backend 输入。
+生成的 App 和 DMG 默认未签名、未公证，也不替代原生授权。发布前需要维护者自行完成代码签名、公证、更新服务和回滚验证；这些步骤当前没有被伪装成已完成。维护者可以运行 `npm run release:gate`，它按顺序执行可重复构建、release manifest 生成与校验、以及维护边界检查，并确认 `package.json` 仍为 `private: true`、产物仍明确标记为未签名。生成 `.runtime/release-manifest.json` 后运行 `npm run verify:release-manifest`，可在发布或归档前重新计算每个产物文件的大小、SHA-256、权限和总摘要。清单覆盖 `dist/app`、`build/runtime-bundle`、`workers/agent/dist` 以及独立 flavor 打包前的 `build/packaged-resources/independent`；后者记录复制进独立 App `Resources/independent` 的完整 backend 输入。
 
 如果已经完成一次 `npm run build:packaged`，两个 `*-from-build` DMG 命令会复用同一套验证过的资源，避免原版和独立 flavor 分别再次重建；完整的一步式流程仍可使用 `npm run package:macos-dmg` 与 `npm run package:macos-dmg:independent`。
 

@@ -47,6 +47,7 @@
     "package:macos-dmg:independent:from-build": "node scripts/package-macos-app.mjs --independent --dmg",
     "release:manifest": "node scripts/release-manifest.mjs",
     "verify:release-manifest": "node scripts/verify-release-manifest.mjs",
+    "release:gate": "node scripts/release-gate.mjs",
     "audit:upstream": "node scripts/audit-upstream-release.mjs",
     "audit:public-release": "node scripts/audit-public-release.mjs",
     "audit:api": "node scripts/audit-api-coverage.mjs --check",
