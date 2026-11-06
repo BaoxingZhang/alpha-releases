@@ -64,6 +64,28 @@
     "interpretation": "The repeat remained bounded and timed out without a key; the helper was confirmed gone afterward, and no database content or native file was accessed."
   },
   "latestRetry": {
+    "recordedAt": "2026-11-06T04:47:55Z",
+    "durationSecondsBound": 120,
+    "databaseContentsRead": false,
+    "nativeFilesModified": false,
+    "keyMaterialEmitted": false,
+    "probeCompleted": true,
+    "result": {
+      "status": "timeout",
+      "errorCode": "CHATLOG_KEY_PROBE_TIMEOUT",
+      "exitCode": null,
+      "signal": "SIGTERM",
+      "stdoutBytes": 0,
+      "stderrBytes": 429,
+      "has64HexOutput": false,
+      "rawOutputPersisted": false,
+      "keyValuesPersisted": false,
+      "helperProcessRemaining": false,
+      "temporaryConfigRemoved": true
+    },
+    "interpretation": "The bounded retry against the restarted WeChat2 process reached the 120-second limit without emitting a usable key; no database content or native file was accessed, and the temporary configuration was removed."
+  },
+  "priorLatestRetry": {
     "recordedAt": "2026-11-05T21:57:12.650Z",
     "durationSecondsBound": 120,
     "databaseContentsRead": false,
