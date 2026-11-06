@@ -27,7 +27,7 @@ const { readIndexedImage } = require('./indexed-image.cjs');
 const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encodeLengthDelimitedFrame, DEFAULT_MAX_FRAME_BYTES } = protocol;
 const ALL_METHODS = Object.keys(EngineClientFrame.fromPartial({})).filter(name => name !== 'requestId');
 // Values are EngineClientFrame field numbers, not RPC ordinal positions.
-const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, acquireDatabaseKey: 69, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, listMessageRecallRecords: 100, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, listOfficialSchedulePlans: 81, getOfficialSchedulePlan: 82, saveOfficialSchedulePlan: 83, deleteOfficialSchedulePlan: 84, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23, putPendingOfficialPlanCreate: 86, getPendingOfficialPlanCreate: 87, clearPendingOfficialPlanCreate: 88 });
+const SUPPORTED = Object.freeze({ hello: 10, getCapabilities: 11, listAccounts: 12, selectAccount: 13, listConversations: 14, listMessages: 15, exportConversation: 16, searchMessages: 17, removeAccount: 70, getJob: 26, watchJob: 27, cancelJob: 28, getMessageSource: 107, resolveMessageMedia: 103, decodeVoicePlayback: 128, resolveFavoriteMedia: 113, resolveMomentEmoji: 118, getChatExportStats: 120, getChatExportCapabilities: 121, startChatExport: 122, listChatExports: 123, watchChatExport: 124, cancelChatExport: 125, startMomentExport: 135, startRecordExport: 136, locateMessage: 126, getConversationDayCounts: 127, discoverAccounts: 29, importDatabaseKey: 30, acquireDatabaseKey: 69, watchDatabaseKeyAcquisition: 129, listContacts: 42, listMoments: 43, listFavorites: 44, listMomentAuthors: 114, getMomentDayCounts: 141, getContactProfile: 115, listGeneral: 45, listMessageRecallRecords: 100, exportContacts: 117, exportGroupMembers: 139, listFavoriteMediaSlots: 116, getApplicationLockStatus: 48, unlockApplication: 50, lockApplication: 51, configureApplicationLock: 131, getImageMediaStatus: 52, configureImageKey: 53, clearImageKey: 54, getDataRevision: 105, getDataWatchTargets: 106, browseConversationMessages: 137, browseAccountMedia: 138, analyzeAnnual: 104, analyzeConversation: 24, startAggregateAnalysis: 110, watchAggregateAnalysis: 111, cancelAggregateAnalysis: 112, getAdvancedComponentStatus: 65, getMessageAntiRecallStatuses: 119, manageMessageAntiRecall: 99, manageMomentsAntiDelete: 47, listChatExportSchedules: 89, getChatExportSchedule: 90, saveChatExportSchedule: 91, deleteChatExportSchedule: 92, runChatExportScheduleNow: 93, listChatExportRuns: 94, getChatExportRun: 95, listChatExportAttempts: 96, getChatExportAttempt: 97, retryChatExportAttempt: 98, listOfficialScheduleRecords: 77, getOfficialScheduleRecord: 78, cancelOfficialScheduleRecord: 79, archiveOfficialScheduleRecord: 80, listOfficialSchedulePlans: 81, getOfficialSchedulePlan: 82, saveOfficialSchedulePlan: 83, deleteOfficialSchedulePlan: 84, getTelemetryStatus: 21, setTelemetryConsent: 22, flushTelemetry: 23, putPendingOfficialPlanCreate: 86, getPendingOfficialPlanCreate: 87, clearPendingOfficialPlanCreate: 88 });
 // These enum values are recovered from the Alpha protocol. The independent
 // engine can report the local package boundary, but it cannot start or claim
 // a dynamically entitled native component. Keep this status explicit and
@@ -44,6 +44,29 @@ function decimal(value, signed = false) {
 }
 const MOMENT_EMOJI_SOURCE = 'emoji-xml:__alpha_moment_emoji_v1:';
 const MOMENT_EMOJI_MIMES = new Set(['image/gif', 'image/png', 'image/jpeg', 'image/webp']);
+function officialScheduleRecordFromAttempt(attempt, plan) {
+  const canceled = attempt.cancelConfirmed === true;
+  const archived = attempt.archived === true;
+  const terminal = canceled || archived;
+  return {
+    accountId: attempt.accountId,
+    scheduleId: attempt.scheduleId,
+    operationId: attempt.attemptId,
+    officialAccountId: typeof plan?.officialAccountId === 'string' && plan.officialAccountId ? plan.officialAccountId : 'independent',
+    state: terminal ? 4 : 3,
+    phase: canceled ? 'canceled' : terminal ? 'failed' : 'waiting_input',
+    reasonCode: canceled ? 'canceled' : 'status_unavailable',
+    rendererJobId: '',
+    revision: BigInt(attempt.revision),
+    occurrenceUnixMs: BigInt(attempt.requestedAtUnixMs),
+    createdAtUnixMs: BigInt(attempt.requestedAtUnixMs),
+    updatedAtUnixMs: BigInt(attempt.updatedAtUnixMs),
+    dispatchStarted: false,
+    cancelRequested: attempt.cancelRequested === true,
+    cancelConfirmed: canceled,
+    archived
+  };
+}
 function syntheticMomentEmojiSource(value) {
   return typeof value === 'string' && value.startsWith(MOMENT_EMOJI_SOURCE) && value.length > MOMENT_EMOJI_SOURCE.length && value.length <= 4096 && !value.includes('\0');
 }
@@ -3256,6 +3279,41 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
     async deleteOfficialSchedulePlan(request) {
       await requireAccount(request.accountId);
       return officialSchedulePlans.deletePlan(request);
+    },
+    async listOfficialScheduleRecords(request) {
+      await requireAccount(request.accountId);
+      if (request.scheduleId !== undefined && request.scheduleId !== '' && typeof request.scheduleId !== 'string') throw error('OFFICIAL_PLAN_ATTEMPT_INVALID');
+      if (request.includeArchived !== undefined && typeof request.includeArchived !== 'boolean') throw error('OFFICIAL_PLAN_ATTEMPT_INVALID');
+      const limit = request.limit === undefined || request.limit === 0 ? 50 : request.limit;
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw error('OFFICIAL_PLAN_ATTEMPT_INVALID');
+      const value = officialPlanAttempts.list({ accountId: request.accountId, scheduleId: request.scheduleId || undefined, includeArchived: request.includeArchived === true, limit });
+      const records = await Promise.all(value.records.map(async attempt => {
+        let plan;
+        try { plan = await officialSchedulePlans.getPlan({ accountId: request.accountId, scheduleId: attempt.scheduleId }); } catch (failure) { if (failure?.message !== 'OFFICIAL_SCHEDULE_PLAN_NOT_FOUND') throw failure; }
+        return officialScheduleRecordFromAttempt(attempt, plan);
+      }));
+      return { records };
+    },
+    async getOfficialScheduleRecord(request) {
+      await requireAccount(request.accountId);
+      const attempt = officialPlanAttempts.get({ accountId: request.accountId, attemptId: request.operationId });
+      let plan;
+      try { plan = await officialSchedulePlans.getPlan({ accountId: request.accountId, scheduleId: attempt.scheduleId }); } catch (failure) { if (failure?.message !== 'OFFICIAL_SCHEDULE_PLAN_NOT_FOUND') throw failure; }
+      return officialScheduleRecordFromAttempt(attempt, plan);
+    },
+    async cancelOfficialScheduleRecord(request) {
+      await requireAccount(request.accountId);
+      const attempt = await officialPlanAttempts.cancel({ accountId: request.accountId, attemptId: request.operationId, expectedRevision: request.expectedRevision });
+      let plan;
+      try { plan = await officialSchedulePlans.getPlan({ accountId: request.accountId, scheduleId: attempt.scheduleId }); } catch (failure) { if (failure?.message !== 'OFFICIAL_SCHEDULE_PLAN_NOT_FOUND') throw failure; }
+      return officialScheduleRecordFromAttempt(attempt, plan);
+    },
+    async archiveOfficialScheduleRecord(request) {
+      await requireAccount(request.accountId);
+      const attempt = await officialPlanAttempts.archive({ accountId: request.accountId, attemptId: request.operationId, expectedRevision: request.expectedRevision, archived: request.archived });
+      let plan;
+      try { plan = await officialSchedulePlans.getPlan({ accountId: request.accountId, scheduleId: attempt.scheduleId }); } catch (failure) { if (failure?.message !== 'OFFICIAL_SCHEDULE_PLAN_NOT_FOUND') throw failure; }
+      return officialScheduleRecordFromAttempt(attempt, plan);
     },
     async listMessages(request) {
       const value = await requireAccount(request.accountId); const limit = pageSize(request.page);

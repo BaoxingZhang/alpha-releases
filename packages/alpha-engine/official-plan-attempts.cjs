@@ -43,7 +43,7 @@ function stateDirectory(directory) {
 }
 function validateRecord(value, fixedAccount) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('OFFICIAL_PLAN_ATTEMPT_STATE_INVALID');
-  const keys = ['attemptId', 'accountId', 'scheduleId', 'requestedAtUnixMs', 'updatedAtUnixMs', 'revision', 'archived', 'executionSupported', 'reasonCode', 'expectedPlanUpdatedAtUnixMs'];
+  const keys = ['attemptId', 'accountId', 'scheduleId', 'requestedAtUnixMs', 'updatedAtUnixMs', 'revision', 'archived', 'executionSupported', 'reasonCode', 'expectedPlanUpdatedAtUnixMs', 'cancelRequested', 'cancelConfirmed'];
   if (Object.keys(value).some(key => !keys.includes(key))) fail('OFFICIAL_PLAN_ATTEMPT_STATE_INVALID');
   const accountId = account(value.accountId);
   if (fixedAccount && accountId !== fixedAccount) fail('OFFICIAL_PLAN_ATTEMPT_STATE_INVALID');
@@ -57,9 +57,11 @@ function validateRecord(value, fixedAccount) {
     archived: value.archived,
     executionSupported: value.executionSupported,
     reasonCode: value.reasonCode,
-    expectedPlanUpdatedAtUnixMs: decimal(value.expectedPlanUpdatedAtUnixMs, 'OFFICIAL_PLAN_ATTEMPT_STATE_INVALID')
+    expectedPlanUpdatedAtUnixMs: decimal(value.expectedPlanUpdatedAtUnixMs, 'OFFICIAL_PLAN_ATTEMPT_STATE_INVALID'),
+    cancelRequested: value.cancelRequested ?? false,
+    cancelConfirmed: value.cancelConfirmed ?? false
   };
-  if (typeof record.archived !== 'boolean' || record.executionSupported !== false || record.reasonCode !== 'INDEPENDENT_OFFICIAL_EXECUTION_UNAVAILABLE' || BigInt(record.revision) < 1n || BigInt(record.updatedAtUnixMs) < BigInt(record.requestedAtUnixMs)) fail('OFFICIAL_PLAN_ATTEMPT_STATE_INVALID');
+  if (typeof record.archived !== 'boolean' || record.executionSupported !== false || record.reasonCode !== 'INDEPENDENT_OFFICIAL_EXECUTION_UNAVAILABLE' || typeof record.cancelRequested !== 'boolean' || typeof record.cancelConfirmed !== 'boolean' || record.cancelConfirmed && !record.cancelRequested || BigInt(record.revision) < 1n || BigInt(record.updatedAtUnixMs) < BigInt(record.requestedAtUnixMs)) fail('OFFICIAL_PLAN_ATTEMPT_STATE_INVALID');
   return record;
 }
 function readState(file, fixedAccount) {
@@ -121,7 +123,7 @@ function createOfficialPlanAttempts({ stateDir, accountId: fixedAccount, now = (
         if (expected !== 0n && BigInt(plan.updatedAtUnixMs) !== expected) fail('OFFICIAL_SCHEDULE_PLAN_CONFLICT');
         if (entries().length >= MAX_ENTRIES) fail('OFFICIAL_PLAN_ATTEMPT_LIMIT');
         const stamp = timestamp();
-        const record = { attemptId: crypto.randomUUID(), accountId: selectedAccount, scheduleId, requestedAtUnixMs: stamp, updatedAtUnixMs: stamp, revision: '1', archived: false, executionSupported: false, reasonCode: 'INDEPENDENT_OFFICIAL_EXECUTION_UNAVAILABLE', expectedPlanUpdatedAtUnixMs: BigInt(plan.updatedAtUnixMs).toString() };
+        const record = { attemptId: crypto.randomUUID(), accountId: selectedAccount, scheduleId, requestedAtUnixMs: stamp, updatedAtUnixMs: stamp, revision: '1', archived: false, executionSupported: false, reasonCode: 'INDEPENDENT_OFFICIAL_EXECUTION_UNAVAILABLE', expectedPlanUpdatedAtUnixMs: BigInt(plan.updatedAtUnixMs).toString(), cancelRequested: false, cancelConfirmed: false };
         state.entries.push(record); await persist(); return wire(record);
       });
     },
@@ -133,6 +135,21 @@ function createOfficialPlanAttempts({ stateDir, accountId: fixedAccount, now = (
       return { records: records.slice(0, effectiveLimit).map(wire), truncated: records.length > effectiveLimit };
     },
     get({ accountId: requestAccount, attemptId } = {}) { checkAccount(requestAccount); return wire(find(attemptId)); },
+    cancel({ accountId: requestAccount, attemptId, expectedRevision } = {}) {
+      return serial(async () => {
+        checkAccount(requestAccount);
+        const record = find(attemptId);
+        const revision = revisionValue(expectedRevision);
+        if (BigInt(record.revision) !== revision) fail('OFFICIAL_PLAN_ATTEMPT_CONFLICT');
+        if (record.archived) fail('OFFICIAL_PLAN_ATTEMPT_CONFLICT');
+        record.cancelRequested = true;
+        record.cancelConfirmed = true;
+        record.revision = (revision + 1n).toString();
+        record.updatedAtUnixMs = timestamp();
+        await persist();
+        return wire(record);
+      });
+    },
     archive({ accountId: requestAccount, attemptId, expectedRevision, archived } = {}) {
       return serial(async () => { checkAccount(requestAccount); const record = find(attemptId); const revision = revisionValue(expectedRevision); if (BigInt(record.revision) !== revision) fail('OFFICIAL_PLAN_ATTEMPT_CONFLICT'); if (typeof archived !== 'boolean') fail('OFFICIAL_PLAN_ATTEMPT_INVALID'); record.archived = archived; record.revision = (revision + 1n).toString(); record.updatedAtUnixMs = timestamp(); await persist(); return wire(record); });
     },

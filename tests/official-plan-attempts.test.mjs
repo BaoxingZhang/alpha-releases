@@ -31,6 +31,8 @@ test('official plan attempts record blocked local requests with CAS archive', as
   assert.equal(created.executionSupported, false);
   assert.equal(created.reasonCode, 'INDEPENDENT_OFFICIAL_EXECUTION_UNAVAILABLE');
   assert.equal(created.expectedPlanUpdatedAtUnixMs, 42n);
+  assert.equal(created.cancelRequested, false);
+  assert.equal(created.cancelConfirmed, false);
   assert.equal((await fs.stat(path.join(root, 'official-plan-attempts.v1.json'))).mode & 0o077, 0);
   assert.deepEqual((await store.list({ accountId })).records.map(item => item.attemptId), [created.attemptId]);
   const archived = await store.archive({ accountId, attemptId: created.attemptId, expectedRevision: created.revision, archived: true });
@@ -39,6 +41,18 @@ test('official plan attempts record blocked local requests with CAS archive', as
   assert.deepEqual((await store.list({ accountId })).records, []);
   assert.equal((await store.list({ accountId, includeArchived: true })).records.length, 1);
   await assert.rejects(store.archive({ accountId, attemptId: created.attemptId, expectedRevision: 1n, archived: false }), /OFFICIAL_PLAN_ATTEMPT_CONFLICT/);
+});
+
+test('official plan attempt cancellation is persisted with revision CAS', async t => {
+  const { store } = await fixture(t);
+  const created = await store.request({ accountId, scheduleId, expectedPlanUpdatedAtUnixMs: 42n });
+  const canceled = await store.cancel({ accountId, attemptId: created.attemptId, expectedRevision: created.revision });
+  assert.equal(canceled.cancelRequested, true);
+  assert.equal(canceled.cancelConfirmed, true);
+  assert.equal(canceled.archived, false);
+  assert.equal(canceled.revision, 2n);
+  assert.equal((await store.get({ accountId, attemptId: created.attemptId })).cancelConfirmed, true);
+  await assert.rejects(store.cancel({ accountId, attemptId: created.attemptId, expectedRevision: 1n }), /OFFICIAL_PLAN_ATTEMPT_CONFLICT/);
 });
 
 test('official plan attempts validate plan revision and account isolation', async t => {

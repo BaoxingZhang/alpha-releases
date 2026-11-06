@@ -16,6 +16,8 @@ const { EngineClientFrame, EngineServerFrame, LengthDelimitedFrameDecoder, encod
 const { createEngine, SUPPORTED, ALL_METHODS } = require('../packages/alpha-engine/index.cjs');
 const { createSecurity } = require('../packages/alpha-security/index.cjs');
 const { BridgeClient } = require('../packages/alpha-engine/bridge-client.cjs');
+const { createOfficialSchedulePlans } = require('../packages/alpha-engine/official-schedule-plans.cjs');
+const { createOfficialPlanAttempts } = require('../packages/alpha-engine/official-plan-attempts.cjs');
 const root = fileURLToPath(new URL('../', import.meta.url));
 const execute = promisify(execFile);
 const bridgePath = path.join(root, 'build/candidates/alpha-data-bridge');
@@ -250,6 +252,40 @@ test('independent official schedule plans persist local metadata with CAS and ac
   const reopened = f.start(); await handshake(reopened);
   assert.deepEqual(ok(await reopened.send('listOfficialSchedulePlans', { accountId, includeDisabled: true }), 'listOfficialSchedulePlans').plans.map(item => item.scheduleId), [disabled.scheduleId]);
   assert.deepEqual(ok(await reopened.send('deleteOfficialSchedulePlan', { accountId, scheduleId: disabled.scheduleId, expectedUpdatedAtUnixMs: disabledCreated.updatedAtUnixMs }), 'deleteOfficialSchedulePlan'), { accountId, scheduleId: disabled.scheduleId, deleted: true });
+});
+
+test('official schedule record branches expose only local blocked attempt metadata', async t => {
+  const f = await fixture(t, true);
+  const planStore = createOfficialSchedulePlans({ stateDir: f.stateDir, accountId, now: () => 1700000000000n });
+  const attemptStore = createOfficialPlanAttempts({ stateDir: f.stateDir, accountId, now: () => 1700000000000n, getPlan: scheduleId => planStore.getPlan({ accountId, scheduleId }) });
+  const scheduleId = '11111111-1111-4111-8111-111111111111';
+  await planStore.save({ mode: 1, expectedUpdatedAtUnixMs: 0n, plan: {
+    scheduleId, accountId, officialAccountId: 'gh_alpha', materialBundleId: 'bundle-1', scope: 1, selected: [], formats: ['json'],
+    downloadAssets: false, includeMedia: false, maxPages: 20, intervalSeconds: 3600n, nextRunUnixMs: 0n, enabled: true, createdAtUnixMs: 0n, updatedAtUnixMs: 0n
+  } });
+  await attemptStore.request({ accountId, scheduleId, expectedPlanUpdatedAtUnixMs: 1700000000000n });
+  await attemptStore.close(); await planStore.close();
+
+  const c = f.start(); const hello = await handshake(c);
+  for (const method of ['listOfficialScheduleRecords', 'getOfficialScheduleRecord', 'cancelOfficialScheduleRecord', 'archiveOfficialScheduleRecord']) assert.ok(hello.supportedMethodIds.includes(SUPPORTED[method]), method);
+  const listed = ok(await c.send('listOfficialScheduleRecords', { accountId, scheduleId, limit: 50 }), 'listOfficialScheduleRecords');
+  assert.equal(listed.records.length, 1);
+  const initial = listed.records[0];
+  assert.equal(initial.state, 3);
+  assert.equal(initial.phase, 'waiting_input');
+  assert.equal(initial.reasonCode, 'status_unavailable');
+  assert.equal(initial.dispatchStarted, false);
+  assert.equal(initial.cancelConfirmed, false);
+  const fetched = ok(await c.send('getOfficialScheduleRecord', { accountId, operationId: initial.operationId }), 'getOfficialScheduleRecord');
+  assert.equal(fetched.operationId, initial.operationId);
+  const canceled = ok(await c.send('cancelOfficialScheduleRecord', { accountId, operationId: initial.operationId, expectedRevision: 1n }), 'cancelOfficialScheduleRecord');
+  assert.equal(canceled.state, 4);
+  assert.equal(canceled.phase, 'canceled');
+  assert.equal(canceled.cancelConfirmed, true);
+  const archived = ok(await c.send('archiveOfficialScheduleRecord', { accountId, operationId: initial.operationId, expectedRevision: 2n, archived: true }), 'archiveOfficialScheduleRecord');
+  assert.equal(archived.archived, true);
+  assert.equal(ok(await c.send('listOfficialScheduleRecords', { accountId, scheduleId, limit: 50 }), 'listOfficialScheduleRecords').records.length, 0);
+  await c.close();
 });
 
 test('official plan creation intent stores opaque ciphertext with idempotent CAS semantics', async t => {

@@ -8,8 +8,8 @@
   },
   "counts": {
     "totalRequestBranches": 128,
-    "implementedRequestBranches": 82,
-    "unsupportedRequestBranches": 46
+    "implementedRequestBranches": 86,
+    "unsupportedRequestBranches": 42
   },
   "supported": [
     {
@@ -135,6 +135,22 @@
     {
       "name": "removeAccount",
       "fieldNumber": 70
+    },
+    {
+      "name": "listOfficialScheduleRecords",
+      "fieldNumber": 77
+    },
+    {
+      "name": "getOfficialScheduleRecord",
+      "fieldNumber": 78
+    },
+    {
+      "name": "cancelOfficialScheduleRecord",
+      "fieldNumber": 79
+    },
+    {
+      "name": "archiveOfficialScheduleRecord",
+      "fieldNumber": 80
     },
     {
       "name": "listOfficialSchedulePlans",
@@ -351,10 +367,6 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "archiveOfficialScheduleRecord",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "beginMaterialOfficialExport",
       "status": "UNIMPLEMENTED"
     },
@@ -383,10 +395,6 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "cancelOfficialScheduleRecord",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "cancelPersonaProfile",
       "status": "UNIMPLEMENTED"
     },
@@ -411,15 +419,7 @@
       "status": "UNIMPLEMENTED"
     },
     {
-      "name": "getOfficialScheduleRecord",
-      "status": "UNIMPLEMENTED"
-    },
-    {
       "name": "listMaterialOfficialExports",
-      "status": "UNIMPLEMENTED"
-    },
-    {
-      "name": "listOfficialScheduleRecords",
       "status": "UNIMPLEMENTED"
     },
     {
