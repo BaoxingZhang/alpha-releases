@@ -63,6 +63,6 @@ npm run audit:api -- --check
 npm run test:packaged-independent
 ```
 
-涉及原生 flavor 时再运行 `npm run test:smoke:native` 和 `npm run test:packaged-native`。这两个命令只证明 disposable runtime handshake，不证明真实账号或业务功能。涉及发布时还要运行 `npm run verify:vendor`、`npm run release:manifest` 和 `npm run verify:release-manifest`。
+涉及原生 flavor 时再运行 `npm run test:smoke:native` 和 `npm run test:packaged-native`。这两个命令只证明 disposable runtime handshake，不证明真实账号或业务功能。涉及发布时可运行统一的 `npm run release:gate`；它还会检查 `private:true` 和 App manifest 的未签名/未公证边界，并可能刷新 Go 构建证据文件。需要单独排查清单时，再运行 `npm run verify:vendor`、`npm run release:manifest` 和 `npm run verify:release-manifest`。
 
 每次提交前检查工作树，只提交源码、测试和必要文档；`.runtime`、原始 DMG、候选公开源码目录、真实微信数据和凭据不得进入仓库。
