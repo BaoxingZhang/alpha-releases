@@ -13,7 +13,7 @@ const execFileAsync = promisify(execFile);
 const independentIdentity = projectIdentity.readProjectIdentity(projectPackage).independent;
 const defaultDmg = path.join(root, '.runtime', 'release-artifacts', `${independentIdentity.productName}.dmg`);
 const session = `packaged-dmg-${Date.now()}`;
-const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-packaged-dmg-smoke-'));
+const temporaryRoot = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'alpha-packaged-dmg-smoke-')));
 const runtimeRoot = path.join(temporaryRoot, 'runtime');
 const mountRoot = path.join(temporaryRoot, 'mount');
 const dmg = path.resolve(process.argv[2] || defaultDmg);
@@ -148,6 +148,9 @@ try {
   for (const [name, value] of Object.entries(main)) {
     if (['appPath', 'resourcesPath'].includes(name)) continue;
     if (typeof value === 'string') assert.equal(isInside(mountPoint, value), false, `${name} must be outside read-only DMG`);
+    if (['userData', 'appData', 'temp'].includes(name) && typeof value === 'string') {
+      assert.equal(isInside(runtimeRoot, value), true, `${name} must stay below disposable smoke root`);
+    }
   }
   report.checks.packagedRendererRuntimeInsideDisposableRoot = true;
   report.checks.packagedRendererRuntimeOutsideMount = true;
