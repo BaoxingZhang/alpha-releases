@@ -1,5 +1,12 @@
 # 变更记录
 
+## 0.3.5-recovery 维护增补 — 2026-11-06（个人发行与验证基线）
+
+- 当前 recovery 提交为 `570154e`。独立 macOS arm64 App/DMG 已从可复现构建产物生成并通过 marker、逐文件清单和 release manifest 校验；独立 DMG 为 252,575,819 bytes，SHA-256 为 `f127676ec9ccb164533360b0a9e75f944d203055ba2c37387a5932292d2f1ba5`。
+- 恢复源码包包含 813 个文件，SHA-256 为 `fd4f2d3aed1eee6afc9585d91a4d3c24ad272b9ea2fe0d04d4bf5e8bca705698`；release manifest 包含 1,398 个 artifact，`artifactDigest` 为 `81b1dd9a6c60e9c6e55ee217108c17a5fc00f941ee1cc7ea5434a9a0672f7e1f`，目标为 `darwin/arm64`。
+- 当前本地完整回归为 390/390，packaged independent smoke 为 16/16；协议绑定校验为 900 项，独立协议支持矩阵为 82/128。GitHub Actions 最近的零步骤取消属于 runner 调度基础设施现象，没有代码步骤失败证据。
+- manifest 继续明确 `nativeRecompiled=false`、`projectSigned=false`；真实微信数据仍未验证。WeChat2 有界取钥探测没有取得合法 key，因此不能宣称原生 parity、自动取钥或真实数据可读。
+
 ## 0.3.5-recovery 维护增补 — 2026-11-04（联系人导出适配器）
 
 - 新增独立联系人/群成员文件导出 HTTP 路由和 MCP 工具，复用已验证 DTO 与引擎已有 exporter；严格执行账号隔离、目标路径、格式、源目录/状态目录、符号链接和已有文件校验。响应固定为独立导出边界，不兼容原生 Alpha formatter，也不导出头像。
