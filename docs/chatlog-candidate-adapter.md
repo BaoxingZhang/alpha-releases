@@ -2,7 +2,7 @@
 
 `packages/alpha-engine/chatlog-candidate.cjs` 是一个独立的、显式 opt-in 的候选读取封装。它为已经准备好的微信 v4 解密工作目录启动固定版本的 Chatlog 子进程，并把访问限制在本机 loopback 的只读 JSON 路由：
 
-2026-11-05 曾在用户已启动的微信进程上做过一次有界的 Chatlog `key --pid --force` 只读探测，最长约 120 秒。2026-11-06 在用户重新启动 WeChat2 后又按同样边界重试，达到 120 秒上限并由探测器终止；两次都没有输出可用数据库密钥。探测使用隔离的临时 `CHATLOG_DIR`/`HOME`，没有打开数据库、保存原始输出或修改微信文件。脱敏证据见 [`chatlog-wechat2-live-key-probe.json`](chatlog-wechat2-live-key-probe.json) 和 [`chatlog-live-key-probe.json`](chatlog-live-key-probe.json)，因此候选 helper 仍保持 fail-closed，不能据此宣称真实数据可读或 Alpha 原生取钥已恢复。
+2026-11-05 曾在用户已启动的微信进程上做过一次有界的 Chatlog `key --pid --force` 只读探测，最长约 120 秒。2026-11-06 在用户重新启动 WeChat2 后又按同样边界重试两次，均达到 120 秒上限并由探测器终止；这些尝试都没有输出可用数据库密钥。探测使用隔离的临时 `CHATLOG_DIR`/`HOME`，没有打开数据库、保存原始输出或修改微信文件。脱敏证据见 [`chatlog-wechat2-live-key-probe.json`](chatlog-wechat2-live-key-probe.json) 和 [`chatlog-live-key-probe.json`](chatlog-live-key-probe.json)，因此候选 helper 仍保持 fail-closed，不能据此宣称真实数据可读或 Alpha 原生取钥已恢复。
 
 - `/health`
 - `/api/v1/chatlog`

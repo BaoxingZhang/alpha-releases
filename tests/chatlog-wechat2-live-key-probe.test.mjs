@@ -46,7 +46,7 @@ test('bounded WeChat2 Chatlog probe remains explicit failed evidence', async () 
   assert.equal(evidence.latestRetry.durationSecondsBound, 120);
   assert.equal(evidence.latestRetry.result.exitCode, null);
   assert.equal(evidence.latestRetry.result.signal, 'SIGTERM');
-  assert.equal(evidence.latestRetry.result.stderrBytes, 429);
+  assert.equal(evidence.latestRetry.result.stderrBytes, 535);
   assert.equal(evidence.latestRetry.result.has64HexOutput, false);
   assert.equal(evidence.latestRetry.keyMaterialEmitted, false);
   assert.equal(evidence.latestRetry.databaseContentsRead, false);

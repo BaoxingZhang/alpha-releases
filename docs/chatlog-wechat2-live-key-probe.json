@@ -64,7 +64,7 @@
     "interpretation": "The repeat remained bounded and timed out without a key; the helper was confirmed gone afterward, and no database content or native file was accessed."
   },
   "latestRetry": {
-    "recordedAt": "2026-11-06T04:47:55Z",
+    "recordedAt": "2026-11-06T07:46:09Z",
     "durationSecondsBound": 120,
     "databaseContentsRead": false,
     "nativeFilesModified": false,
@@ -76,7 +76,7 @@
       "exitCode": null,
       "signal": "SIGTERM",
       "stdoutBytes": 0,
-      "stderrBytes": 429,
+      "stderrBytes": 535,
       "has64HexOutput": false,
       "rawOutputPersisted": false,
       "keyValuesPersisted": false,
