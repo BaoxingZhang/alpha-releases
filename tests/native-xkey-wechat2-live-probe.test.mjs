@@ -9,7 +9,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 test('WeChat2 native xkey probe remains explicit failed evidence', async () => {
   const evidence = JSON.parse(await fs.readFile(path.join(root, 'docs/native-xkey-wechat2-live-probe.json'), 'utf8'));
   assert.equal(evidence.schema, 'alpha-recovered.native-xkey-wechat2-live-probe.v1');
-  assert.equal(evidence.observedDate, '2026-11-05');
+  assert.equal(evidence.observedDate, '2026-11-06');
   assert.equal(evidence.realWeChatData, true);
   assert.equal(evidence.databaseContentsRead, false);
   assert.equal(evidence.nativeFilesModified, false);

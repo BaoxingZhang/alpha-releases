@@ -1,6 +1,6 @@
 {
   "schema": "alpha-recovered.native-xkey-wechat2-live-probe.v1",
-  "observedDate": "2026-11-05",
+  "observedDate": "2026-11-06",
   "mode": "read-only-list-conversations",
   "realWeChatData": true,
   "databaseContentsRead": false,
@@ -43,8 +43,11 @@
     "The result does not authorize forged key values, native token substitution, or bypassing macOS protections."
   ],
   "latestRetry": {
-    "recordedAt": "2026-11-05T18:56:32Z",
-    "targetPids": [57027, 57576],
+    "recordedAt": "2026-11-06T11:39:00Z",
+    "targetPids": [
+      57027,
+      57576
+    ],
     "databaseContentsRead": false,
     "nativeFilesModified": false,
     "keyMaterialEmitted": false,
