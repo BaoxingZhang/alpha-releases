@@ -86,6 +86,28 @@
     "interpretation": "The bounded retry against the restarted WeChat2 process reached the 120-second limit without emitting a usable key; no database content or native file was accessed, and the temporary configuration was removed."
   },
   "latestRetry": {
+    "recordedAt": "2026-11-06T15:30:36Z",
+    "durationSecondsBound": 120,
+    "databaseContentsRead": false,
+    "nativeFilesModified": false,
+    "keyMaterialEmitted": false,
+    "probeCompleted": true,
+    "result": {
+      "status": "failed",
+      "errorCode": "CHATLOG_KEY_NOT_ACQUIRED",
+      "exitCode": 0,
+      "signal": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 378,
+      "has64HexOutput": false,
+      "rawOutputPersisted": false,
+      "keyValuesPersisted": false,
+      "temporaryConfigRemoved": true,
+      "helperProcessRemaining": false
+    },
+    "interpretation": "A bounded retry against the restarted WeChat2 process exited normally without emitting a usable key; the helper reported that the WeChat account was not online in the isolated probe environment, no database content was opened, no native or user file was modified, and no key was retained."
+  },
+  "priorLatestRetry": {
     "recordedAt": "2026-11-06T13:00:42Z",
     "durationSecondsBound": 120,
     "databaseContentsRead": false,
@@ -107,7 +129,7 @@
     },
     "interpretation": "The latest bounded retry against the restarted WeChat2 process exited normally without emitting a usable key; no database content or native file was accessed, and the temporary configuration was removed."
   },
-  "priorLatestRetry": {
+  "earlierPriorRetry": {
     "recordedAt": "2026-11-05T21:57:12.650Z",
     "durationSecondsBound": 120,
     "databaseContentsRead": false,

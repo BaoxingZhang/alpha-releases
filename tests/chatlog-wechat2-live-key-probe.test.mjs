@@ -38,10 +38,13 @@ test('bounded WeChat2 Chatlog probe remains explicit failed evidence', async () 
   assert.equal(evidence.priorLatestRetry.durationSecondsBound, 120);
   assert.equal(evidence.priorLatestRetry.result.exitCode, 0);
   assert.equal(evidence.priorLatestRetry.result.signal, null);
-  assert.equal(evidence.priorLatestRetry.result.stderrBytes, 522);
+  assert.equal(evidence.priorLatestRetry.recordedAt, '2026-11-06T13:00:42Z');
+  assert.equal(evidence.priorLatestRetry.result.stderrBytes, 462);
   assert.equal(evidence.priorLatestRetry.result.has64HexOutput, false);
   assert.equal(evidence.priorLatestRetry.keyMaterialEmitted, false);
   assert.equal(evidence.priorLatestRetry.databaseContentsRead, false);
+  assert.equal(evidence.earlierPriorRetry.recordedAt, '2026-11-05T21:57:12.650Z');
+  assert.equal(evidence.earlierPriorRetry.result.stderrBytes, 522);
   assert.equal(evidence.previousLatestRetry.result.errorCode, 'CHATLOG_KEY_PROBE_TIMEOUT');
   assert.equal(evidence.previousLatestRetry.durationSecondsBound, 120);
   assert.equal(evidence.previousLatestRetry.result.exitCode, null);
@@ -53,7 +56,8 @@ test('bounded WeChat2 Chatlog probe remains explicit failed evidence', async () 
   assert.equal(evidence.latestRetry.durationSecondsBound, 120);
   assert.equal(evidence.latestRetry.result.exitCode, 0);
   assert.equal(evidence.latestRetry.result.signal, null);
-  assert.equal(evidence.latestRetry.result.stderrBytes, 462);
+  assert.equal(evidence.latestRetry.recordedAt, '2026-11-06T15:30:36Z');
+  assert.equal(evidence.latestRetry.result.stderrBytes, 378);
   assert.equal(evidence.latestRetry.result.has64HexOutput, false);
   assert.equal(evidence.latestRetry.keyMaterialEmitted, false);
   assert.equal(evidence.latestRetry.databaseContentsRead, false);
