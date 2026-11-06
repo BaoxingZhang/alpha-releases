@@ -1503,6 +1503,34 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
       return resolved;
     }
   }
+  async function lookupContacts(usernames) {
+    const requested = contactCodec.validateLookupUsernames(usernames);
+    try {
+      return contactCodec.checkedLookup(await callData('contacts.lookup', { usernames: requested }), requested);
+    } catch (failure) {
+      // Older read-only bridges expose the same verified contact DTO through
+      // paged contacts.list but have no bulk lookup operation. Keep the
+      // fallback exact and bounded; do not scan arbitrary tables or infer
+      // profile fields that contacts.list does not provide.
+      if (failure.message !== 'UNSUPPORTED_OPERATION' && failure.message !== 'CAPABILITY_UNAVAILABLE') throw failure;
+      const items = [];
+      let sourceDatabase = '';
+      for (const username of requested) {
+        const page = checkedPage(await callData('contacts.list', { usernameExact: username, limit: 2, cursor: '' }), 2);
+        if (page.items.length > 1) throw error('CONTACT_LOOKUP_AMBIGUOUS');
+        const row = page.items[0];
+        if (!row) continue;
+        const database = row.source?.database;
+        if (typeof database !== 'string' || !database || database.includes('\0')) throw error('BRIDGE_CONTACT_LOOKUP_INVALID');
+        if (sourceDatabase && sourceDatabase !== database) throw error('BRIDGE_CONTACT_LOOKUP_INVALID');
+        sourceDatabase = database;
+        // Keep the bridge-shaped fields (`nickName`, `localType`, etc.) until
+        // checkedLookup applies the same DTO validation as the bulk path.
+        items.push({ ...row, sourceTable: 'contact' });
+      }
+      return contactCodec.checkedLookup({ items, sourceDatabase: sourceDatabase || 'contact.db', sourceTable: 'contact' }, requested);
+    }
+  }
   async function cancelImport() {
     const keyAcquisition = activeKeyAcquisition;
     if (keyAcquisition) { keyAcquisition.controller.abort(error('KEY_ACQUISITION_CANCELED')); await keyAcquisition.done; }
@@ -2886,7 +2914,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
         if (request.query !== undefined && request.query !== '') throw error('CONTACT_LOOKUP_INVALID');
         if (request.limit !== undefined && request.limit !== 0 || request.offset !== undefined && request.offset !== 0 || request.ascending === true) throw error('CONTACT_LOOKUP_INVALID');
         const usernames = contactCodec.validateLookupUsernames(request.lookup?.usernames);
-        const value = contactCodec.checkedLookup(await callData('contacts.lookup', { usernames }), usernames);
+        const value = await lookupContacts(usernames);
         return { response: { items: value.items, sourceDatabase: value.sourceDatabase, sourceTable: value.sourceTable, lookup: { items: value.items } } };
       }
       const limit = Math.min(request.limit || 100, 500), offset = request.offset || 0;
@@ -3068,7 +3096,7 @@ async function createEngine({ lock, stateDir, bridgePath, importerPath = '', key
         } } };
       }
       if (!(accountInfo.capabilities?.includes('contacts.list'))) throw error('CAPABILITY_UNAVAILABLE');
-      const value = contactCodec.checkedLookup(await callData('contacts.lookup', { usernames: [username] }), [username]);
+      const value = await lookupContacts([username]);
       const item = value.items[0];
       if (!item) return { response: { found: false } };
       let commonGroups = [], commonGroupCount = 0, commonGroupsTruncated = false;
