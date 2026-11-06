@@ -23,6 +23,7 @@
     "test:smoke": "node tests/smoke.mjs",
     "test:smoke:native": "node tests/native-smoke.mjs",
     "test:packaged-native": "node tests/packaged-native-smoke.mjs",
+    "test:packaged-dmg": "node tests/packaged-dmg-smoke.mjs",
     "index": "node tools/index-recovered-code.mjs",
     "verify:vendor": "node scripts/verify-vendor.mjs",
     "audit:native-abi": "node scripts/audit-native-abi.mjs",

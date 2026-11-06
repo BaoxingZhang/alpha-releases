@@ -20,9 +20,15 @@ const executablePath = path.join(appPath, 'Contents', 'MacOS', independentIdenti
 const resourcesPath = path.join(appPath, 'Contents', 'Resources');
 const session = `packaged-independent-${Date.now()}`;
 const runtime = path.join(root, '.runtime', session);
-const packagedRuntime = path.join(appPath, 'Contents', '.runtime', session);
 const report = { schema: 'alpha-recovered.packaged-independent-smoke.v1', session, checks: {} };
 let app;
+let packagedRuntime;
+
+function isInside(parent, candidate) {
+  const base = path.resolve(parent);
+  const value = path.resolve(candidate);
+  return value === base || value.startsWith(`${base}${path.sep}`);
+}
 
 async function installMediaFixture(fixture) {
   const imageId = '0123456789abcdef0123456789abcdef';
@@ -105,6 +111,12 @@ try {
     dataDir: fixture.directory,
     accountId: fixture.accountId
   });
+  for (const [key, suffix] of Object.entries({ HOME: 'home', USERPROFILE: 'user-profile', XDG_CONFIG_HOME: 'xdg-config', XDG_DATA_HOME: 'xdg-data', XDG_CACHE_HOME: 'xdg-cache', TMPDIR: 'tmp' })) {
+    environment[key] = path.join(runtime, suffix);
+    await fs.mkdir(environment[key], { recursive: true, mode: 0o700 });
+  }
+  environment.TMP = environment.TMPDIR;
+  environment.TEMP = environment.TMPDIR;
   app = await electron.launch({
     executablePath,
     args: ['--no-sandbox'],
@@ -115,12 +127,31 @@ try {
   const main = await app.evaluate(({ app }) => ({
     isPackaged: app.isPackaged,
     appPath: app.getAppPath(),
-    resourcesPath: process.resourcesPath
+    resourcesPath: process.resourcesPath,
+    home: app.getPath('home'),
+    userData: app.getPath('userData'),
+    appData: app.getPath('appData'),
+    temp: app.getPath('temp')
   }));
   report.main = main;
   assert.equal(main.isPackaged, true);
   assert.equal(main.resourcesPath, resourcesPath);
   assert.equal(main.appPath, path.join(resourcesPath, 'app'));
+  const appBundle = path.resolve(resourcesPath, '..');
+  for (const [name, value] of Object.entries(main)) {
+    if (['isPackaged', 'appPath', 'resourcesPath'].includes(name)) continue;
+    assert.equal(isInside(appBundle, value), false, `${name} must be outside packaged app bundle`);
+  }
+  packagedRuntime = path.dirname(main.appData);
+  assert.equal(main.appData, path.join(packagedRuntime, 'appData'));
+  assert.ok(isInside(main.appData, main.userData), `userData must remain below disposable appData: ${main.userData}`);
+  assert.equal(path.basename(packagedRuntime), session);
+  assert.equal(path.basename(path.dirname(packagedRuntime)), 'recovery-runtime');
+  assert.equal(main.home, path.join(packagedRuntime, 'home'));
+  assert.equal(main.appData, path.join(packagedRuntime, 'appData'));
+  assert.equal(main.temp, path.join(packagedRuntime, 'temp'));
+  report.packagedRuntime = packagedRuntime;
+  report.checks.packagedRuntimeOutsideAppBundle = true;
   report.checks.electronPackagedMode = true;
 
   const deadline = Date.now() + 30000;
@@ -343,12 +374,19 @@ try {
   assert.match(video.url, /^alpha-media:\/\/av\//);
   report.checks.packagedIndexedVideoPlaybackGrant = true;
 } finally {
+  let closeError;
   if (app) {
-    const closeTimer = setTimeout(() => app.process().kill('SIGKILL'), 8000);
-    try { await app.close(); } finally { clearTimeout(closeTimer); }
+    const closeTimer = setTimeout(() => { try { app.process().kill('SIGKILL'); } catch {} }, 8000);
+    try { await app.close(); }
+    catch (error) { closeError = error; }
+    finally { clearTimeout(closeTimer); }
   }
-  await fs.rm(runtime, { recursive: true, force: true });
-  await fs.rm(packagedRuntime, { recursive: true, force: true });
+  for (const directory of [packagedRuntime, runtime]) {
+    if (!directory) continue;
+    try { await fs.rm(directory, { recursive: true, force: true }); }
+    catch (error) { if (!closeError) closeError = error; }
+  }
+  if (closeError) throw closeError;
 }
 
 console.log(JSON.stringify(report, null, 2));

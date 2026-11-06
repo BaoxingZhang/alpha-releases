@@ -15,7 +15,7 @@ const executablePath = path.join(appPath, 'Contents', 'MacOS', identity.executab
 const resourcesPath = path.join(appPath, 'Contents', 'Resources');
 const session = `packaged-native-${Date.now()}`;
 const runtime = path.join(root, '.runtime', session);
-const packagedRuntime = path.join(appPath, 'Contents', '.runtime', session);
+let packagedRuntime;
 const report = {
   schema: 'alpha-recovered.packaged-native-smoke.v1',
   session,
@@ -37,12 +37,27 @@ try {
   assert.ok((await fs.stat(executablePath)).isFile(), 'packaged native executable is missing');
   assert.ok((await fs.stat(path.join(resourcesPath, 'app'))).isDirectory(), 'packaged app resources are missing');
   app = await electron.launch({ executablePath, args: ['--no-sandbox'], cwd: root, env: environment, timeout: 45000 });
-  const main = await app.evaluate(({ app }) => ({ isPackaged: app.isPackaged, appPath: app.getAppPath(), resourcesPath: process.resourcesPath, userData: app.getPath('userData'), home: app.getPath('home') }));
+  const main = await app.evaluate(({ app }) => ({ isPackaged: app.isPackaged, appPath: app.getAppPath(), resourcesPath: process.resourcesPath, userData: app.getPath('userData'), home: app.getPath('home'), appData: app.getPath('appData'), temp: app.getPath('temp') }));
   report.main = main;
   assert.equal(main.isPackaged, true);
   assert.equal(main.appPath, path.join(resourcesPath, 'app'));
   assert.equal(main.resourcesPath, resourcesPath);
+  const appBundle = path.resolve(resourcesPath, '..');
+  for (const [name, value] of Object.entries(main)) {
+    if (['isPackaged', 'appPath', 'resourcesPath'].includes(name)) continue;
+    const candidate = path.resolve(value);
+    assert.equal(candidate === appBundle || candidate.startsWith(`${appBundle}${path.sep}`), false, `${name} must be outside packaged app bundle`);
+  }
+  packagedRuntime = path.dirname(main.appData);
+  assert.equal(main.appData, path.join(packagedRuntime, 'appData'));
+  assert.ok(main.userData === main.appData || main.userData.startsWith(`${main.appData}${path.sep}`), `userData must remain below disposable appData: ${main.userData}`);
+  assert.equal(path.basename(packagedRuntime), session);
+  assert.equal(path.basename(path.dirname(packagedRuntime)), 'recovery-runtime');
   assert.equal(main.home, path.join(packagedRuntime, 'home'));
+  assert.equal(main.appData, path.join(packagedRuntime, 'appData'));
+  assert.equal(main.temp, path.join(packagedRuntime, 'temp'));
+  report.packagedRuntime = packagedRuntime;
+  report.checks.packagedRuntimeOutsideAppBundle = true;
   report.checks.electronPackagedMode = true;
   const deadline = Date.now() + 45000;
   let page;
@@ -65,12 +80,19 @@ try {
   report.accounts = { count: accounts.length, meaning: 'temporary userData had no configured account; this is not a real-data query' };
   report.checks.emptyDisposableAccounts = true;
 } finally {
+  let closeError;
   if (app) {
-    const closeTimer = setTimeout(() => app.process().kill('SIGKILL'), 8000);
-    try { await app.close(); } finally { clearTimeout(closeTimer); }
+    const closeTimer = setTimeout(() => { try { app.process().kill('SIGKILL'); } catch {} }, 8000);
+    try { await app.close(); }
+    catch (error) { closeError = error; }
+    finally { clearTimeout(closeTimer); }
   }
-  await fs.rm(runtime, { recursive: true, force: true });
-  await fs.rm(packagedRuntime, { recursive: true, force: true });
+  for (const directory of [packagedRuntime, runtime]) {
+    if (!directory) continue;
+    try { await fs.rm(directory, { recursive: true, force: true }); }
+    catch (error) { if (!closeError) closeError = error; }
+  }
+  if (closeError) throw closeError;
 }
 
 console.log(JSON.stringify(report, null, 2));
