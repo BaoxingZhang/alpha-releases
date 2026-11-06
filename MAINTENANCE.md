@@ -12,7 +12,7 @@
 
 ## 本轮实际推进
 
-新增自有 Go 只读桥接、Node 协议服务和密码应用锁，已经通过原 UI 的首次设置、合成数据库聊天显示及锁定前后读取验证。本阶段进一步加入显式加密微信 v4 离线副本和已有密钥的导入，逐页认证解密后生成可复用明文快照，并接入显式 helper 的受控自动取钥实验；尚未用真实微信进程验收或宣称 native parity。原功能入口和以下全部领域仍保留；新后端未实现的请求明确返回不可用。
+新增自有 Go 只读桥接、Node 协议服务和密码应用锁，已经通过原 UI 的首次设置、合成数据库聊天显示及锁定前后读取验证。本阶段进一步加入显式加密微信 v4 离线副本和已有密钥的导入，逐页认证解密后生成可复用明文快照，并接入显式 helper 的受控自动取钥实验；已对真实微信进程做有界实时探测，但尚未通过真实数据功能验收或宣称 native parity。原功能入口和以下全部领域仍保留；新后端未实现的请求明确返回不可用。
 
 这次只完成了数据读取和模块接入的第一层，不等于多账号、完整搜索/消息语义、实时数据、媒体、导出、分析、朋友圈、AI/API、编辑发送或独立发行完成。独立后端现在还提供从 `__alpha_general_revokes` 消息 XML 派生的只读撤回候选分页；它保留 `partial`/`candidate` 语义，不兼容原生 recall store，也不提供 writer。安全锁的 native provision/reset/key vault 与真实语音转写的 worker/runtime/模型缺口集中记录在 [`docs/native-capability-blockers.json`](docs/native-capability-blockers.json)，没有合法输入前不得把它们改成成功响应。详见 [本轮实现与限制](docs/independent-backend.md)。
 

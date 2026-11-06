@@ -42,7 +42,7 @@
     "This result does not establish that the WeChat version or database format is unsupported.",
     "The result does not authorize forged key values, native token substitution, or bypassing macOS protections."
   ],
-  "latestRetry": {
+  "previousLatestRetry": {
     "recordedAt": "2026-11-06T11:39:00Z",
     "targetPids": [
       57027,
@@ -63,5 +63,27 @@
       "keyValuesPersisted": false
     },
     "interpretation": "A repeat against the current WeChat2 main process and its WeChatAppEx child did not find a capture target; this does not establish database incompatibility or authorize bypassing macOS protections."
+  },
+  "latestRetry": {
+    "recordedAt": "2026-11-06T13:00:42Z",
+    "targetPids": [
+      57027
+    ],
+    "databaseContentsRead": false,
+    "nativeFilesModified": false,
+    "keyMaterialEmitted": false,
+    "probeCompleted": true,
+    "sourcePathRedacted": true,
+    "result": {
+      "status": "failed",
+      "errorCode": "NATIVE_WECHAT_CAPTURE_TARGET_NOT_FOUND",
+      "exitCode": 1,
+      "stdoutBytes": 0,
+      "stderrBytes": 90,
+      "has64HexOutput": false,
+      "rawOutputPersisted": false,
+      "keyValuesPersisted": false
+    },
+    "interpretation": "A new bounded native XKey retry against the current WeChat2 main process did not find a capture target; the database was not opened and no key or file was retained. This does not establish database incompatibility or authorize bypassing macOS protections."
   }
 }

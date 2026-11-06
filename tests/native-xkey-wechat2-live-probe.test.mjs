@@ -23,8 +23,17 @@ test('WeChat2 native xkey probe remains explicit failed evidence', async () => {
   assert.equal(evidence.result.has64HexOutput, false);
   assert.equal(evidence.result.rawOutputPersisted, false);
   assert.equal(evidence.result.keyValuesPersisted, false);
+  assert.equal(evidence.previousLatestRetry.result.errorCode, 'NATIVE_WECHAT_CAPTURE_TARGET_NOT_FOUND');
+  assert.deepEqual(evidence.previousLatestRetry.targetPids, [57027, 57576]);
   assert.equal(evidence.latestRetry.result.errorCode, 'NATIVE_WECHAT_CAPTURE_TARGET_NOT_FOUND');
-  assert.deepEqual(evidence.latestRetry.targetPids, [57027, 57576]);
+  assert.deepEqual(evidence.latestRetry.targetPids, [57027]);
+  assert.equal(evidence.latestRetry.databaseContentsRead, false);
+  assert.equal(evidence.latestRetry.nativeFilesModified, false);
+  assert.equal(evidence.latestRetry.keyMaterialEmitted, false);
+  assert.equal(evidence.latestRetry.sourcePathRedacted, true);
+  assert.equal(evidence.latestRetry.result.stderrBytes, 90);
+  assert.equal(evidence.latestRetry.result.rawOutputPersisted, false);
+  assert.equal(evidence.latestRetry.result.keyValuesPersisted, false);
   assert.equal(evidence.latestRetry.keyMaterialEmitted, false);
   assert.equal(evidence.latestRetry.databaseContentsRead, false);
   assert.ok(!JSON.stringify(evidence).includes('/Users/'));
